@@ -86,7 +86,7 @@ export default function RestockSessionsScreen() {
   
   // Form state
   const [productName, setProductName] = useState("");
-  const [quantity, setQuantity] = useState("");
+  const [quantity, setQuantity] = useState("1");
   const [supplierName, setSupplierName] = useState("");
   const [supplierEmail, setSupplierEmail] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -454,7 +454,7 @@ export default function RestockSessionsScreen() {
   const cancelEdit = () => {
     setEditingProduct(null);
     setProductName("");
-    setQuantity("");
+    setQuantity("1");
     setSupplierName("");
     setSupplierEmail("");
     setShowEditProductForm(false);
@@ -544,10 +544,22 @@ export default function RestockSessionsScreen() {
     setShowTransitionToast(false);
   };
 
+  const incrementQuantity = () => {
+    const currentQty = parseInt(quantity) || 0;
+    setQuantity((currentQty + 1).toString());
+  };
+
+  const decrementQuantity = () => {
+    const currentQty = parseInt(quantity) || 1;
+    if (currentQty > 1) {
+      setQuantity((currentQty - 1).toString());
+    }
+  };
+
   const cancelAddProduct = () => {
     setShowAddProductForm(false);
     setProductName("");
-    setQuantity("");
+    setQuantity("1");
     setSupplierName("");
     setSupplierEmail("");
     setErrorMessage("");
@@ -576,7 +588,7 @@ export default function RestockSessionsScreen() {
       >
         <View style={restockSessionsStyles.notificationContent}>
           <View style={[restockSessionsStyles.notificationIcon, styles.icon]}>
-            <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: 'bold' }}>
+            <Text style={{ color: '#FFFFFF', fontSize: 10, fontWeight: 'bold' }}>
               {styles.iconText}
             </Text>
           </View>
@@ -585,7 +597,7 @@ export default function RestockSessionsScreen() {
               {notification.message}
             </Text>
             {notification.title && (
-              <Text style={[restockSessionsStyles.notificationText, { fontSize: 12, color: '#666666', marginTop: 2 }]}>
+              <Text style={[restockSessionsStyles.notificationText, { fontSize: 11, color: '#FFFFFF', marginTop: 1, opacity: 0.9 }]}>
                 {notification.title}
               </Text>
             )}
@@ -652,13 +664,27 @@ export default function RestockSessionsScreen() {
 
         <View style={restockSessionsStyles.inputGroup}>
           <Text style={restockSessionsStyles.inputLabel}>Quantity to Order</Text>
-          <TextInput
-            style={restockSessionsStyles.quantityInput}
-            value={quantity}
-            onChangeText={setQuantity}
-            placeholder="0"
-            keyboardType="numeric"
-          />
+          <View style={restockSessionsStyles.quantityContainer}>
+            <TouchableOpacity
+              style={restockSessionsStyles.quantityButton}
+              onPress={decrementQuantity}
+            >
+              <Text style={restockSessionsStyles.quantityButtonText}>−</Text>
+            </TouchableOpacity>
+            <TextInput
+              style={restockSessionsStyles.quantityInput}
+              value={quantity}
+              onChangeText={setQuantity}
+              placeholder="1"
+              keyboardType="numeric"
+            />
+            <TouchableOpacity
+              style={restockSessionsStyles.quantityButton}
+              onPress={incrementQuantity}
+            >
+              <Text style={restockSessionsStyles.quantityButtonText}>+</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={restockSessionsStyles.inputGroup}>
@@ -750,13 +776,27 @@ export default function RestockSessionsScreen() {
 
         <View style={restockSessionsStyles.inputGroup}>
           <Text style={restockSessionsStyles.inputLabel}>Quantity to Order</Text>
-          <TextInput
-            style={restockSessionsStyles.quantityInput}
-            value={quantity}
-            onChangeText={setQuantity}
-            placeholder="0"
-            keyboardType="numeric"
-          />
+          <View style={restockSessionsStyles.quantityContainer}>
+            <TouchableOpacity
+              style={restockSessionsStyles.quantityButton}
+              onPress={decrementQuantity}
+            >
+              <Text style={restockSessionsStyles.quantityButtonText}>−</Text>
+            </TouchableOpacity>
+            <TextInput
+              style={restockSessionsStyles.quantityInput}
+              value={quantity}
+              onChangeText={setQuantity}
+              placeholder="1"
+              keyboardType="numeric"
+            />
+            <TouchableOpacity
+              style={restockSessionsStyles.quantityButton}
+              onPress={incrementQuantity}
+            >
+              <Text style={restockSessionsStyles.quantityButtonText}>+</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={restockSessionsStyles.inputGroup}>

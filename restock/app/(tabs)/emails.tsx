@@ -2,14 +2,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    Alert,
-    Animated,
-    Modal,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  Animated,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { emailsStyles } from "../../styles/components/emails";
 
@@ -162,19 +161,27 @@ export default function EmailsScreen() {
     setEditBody("");
   };
 
+  const handleCancelEdit = () => {
+    setShowEmailEditor(false);
+    setEditingEmail(null);
+    setEditSubject("");
+    setEditBody("");
+  };
+
   const handleRegenerateEmail = (emailId: string) => {
     if (!emailSession) return;
 
-    // Simulate regeneration with slightly different content
-    const email = emailSession.emails.find(e => e.id === emailId);
-    if (!email) return;
+    const emailToRegenerate = emailSession.emails.find(email => email.id === emailId);
+    if (!emailToRegenerate) return;
 
-    const newBody = `Hi ${email.supplierName} team,\n\nHope you're well! We're placing a restock order for the following items:\n\n${email.products.map(p => `• ${p}`).join('\n')}\n\nPlease let us know availability when convenient.\n\nThanks again for your support!\n\nBest regards,\nGreenfields Grocery`;
+    // Regenerate the email content
+    const productList = emailToRegenerate.products.map(p => `• ${p}`).join('\n');
+    const newBody = `Hi ${emailToRegenerate.supplierName} team,\n\nWe hope you're doing well! We'd like to place a restock order for the following items:\n\n${productList}\n\nPlease confirm availability at your earliest convenience.\n\nThank you as always for your continued support.\n\nBest regards,\nGreenfields Grocery`;
 
-    const updatedEmails = emailSession.emails.map(e =>
-      e.id === emailId
-        ? { ...e, body: newBody, subject: `Restock Request from Greenfields Grocery` }
-        : e
+    const updatedEmails = emailSession.emails.map(email =>
+      email.id === emailId
+        ? { ...email, body: newBody }
+        : email
     );
 
     setEmailSession({
@@ -196,8 +203,8 @@ export default function EmailsScreen() {
           onPress: () => {
             setIsSending(true);
             setSendingProgress(0);
-            
-            // Simulate sending process
+
+            // Simulate sending progress
             let currentProgress = 0;
             const progressInterval = setInterval(() => {
               currentProgress += 20;
@@ -261,6 +268,15 @@ export default function EmailsScreen() {
     }
   };
 
+  const getStatusTextStyle = (status: EmailDraft['status']) => {
+    switch (status) {
+      case 'draft': return emailsStyles.statusDraftText;
+      case 'sending': return emailsStyles.statusSendingText;
+      case 'sent': return emailsStyles.statusSentText;
+      case 'failed': return emailsStyles.statusFailedText;
+    }
+  };
+
   if (showSuccess) {
     return (
       <View style={emailsStyles.successContainer}>
@@ -302,32 +318,68 @@ export default function EmailsScreen() {
     );
   }
 
+  // Email Editor Screen
+  if (showEmailEditor && editingEmail) {
+    return (
+      <View style={emailsStyles.container}>
+        {/* Header */}
+        <View style={emailsStyles.header}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <TouchableOpacity onPress={handleCancelEdit}>
+              <Text style={emailsStyles.backButtonText}>← Back</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={emailsStyles.editButton} onPress={handleSaveEmail}>
+              <Text style={emailsStyles.editButtonText}>Save</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Email Content */}
+        <ScrollView style={{ flex: 1, padding: 16 }}>
+          {/* Subject */}
+          <TextInput
+            style={[emailsStyles.modalInput, { fontSize: 18, fontWeight: '600' }]}
+            value={editSubject}
+            onChangeText={setEditSubject}
+            placeholder="Subject"
+          />
+
+          {/* Recipient Info */}
+          <View style={{ marginVertical: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#E8EAED' }}>
+            <Text style={{ fontSize: 14, color: '#5F6368', marginBottom: 4 }}>To:</Text>
+            <Text style={{ fontSize: 16, color: '#202124' }}>
+              {editingEmail.supplierName} ({editingEmail.supplierEmail})
+            </Text>
+          </View>
+
+          {/* Email Body */}
+          <TextInput
+            style={[emailsStyles.modalTextArea, { height: 400, borderWidth: 0, padding: 0 }]}
+            value={editBody}
+            onChangeText={setEditBody}
+            placeholder="Write your email..."
+            multiline
+            textAlignVertical="top"
+          />
+        </ScrollView>
+      </View>
+    );
+  }
+
   return (
     <View style={emailsStyles.container}>
       {/* Header */}
       <View style={emailsStyles.header}>
-        <View>
-          <Text style={emailsStyles.headerTitle}>Review & Send Emails</Text>
-          <Text style={emailsStyles.headerSubtitle}>
-            ✉️ {emailSession.emails.length} Emails Ready to Send
-          </Text>
-        </View>
-        <View style={{ flexDirection: 'row', gap: 12 }}>
-          <TouchableOpacity style={emailsStyles.backButton} onPress={handleBackToSessions}>
-            <Text style={emailsStyles.backButtonText}>Back</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={emailsStyles.sendAllButton} onPress={handleSendAllEmails}>
-            <Text style={emailsStyles.sendAllButtonText}>Send All</Text>
-          </TouchableOpacity>
-        </View>
+        <Text style={emailsStyles.headerTitle}>Email Drafts</Text>
+        <Text style={emailsStyles.headerSubtitle}>
+          {emailSession.emails.length} emails ready to send
+        </Text>
       </View>
 
-      {/* AI Summary */}
+      {/* Email Summary */}
       <View style={emailsStyles.emailSummary}>
-        <Text style={emailsStyles.summaryTitle}>🤖 AI Summary</Text>
         <Text style={emailsStyles.summaryText}>
-          Emails auto-generated using your saved supplier data. 
-          Each email is personalized and includes all products for that supplier.
+          Emails auto-generated using your saved supplier data
         </Text>
       </View>
 
@@ -336,123 +388,60 @@ export default function EmailsScreen() {
         {emailSession.emails.map((email) => (
           <View key={email.id} style={emailsStyles.emailCard}>
             <View style={emailsStyles.emailCardHeader}>
-              <Text style={emailsStyles.supplierName}>🏷️ {email.supplierName}</Text>
-              <Text style={[emailsStyles.emailStatus, getStatusStyle(email.status)]}>
-                {getStatusText(email.status)}
-              </Text>
+              <View style={emailsStyles.emailDetails}>
+                <Text style={emailsStyles.emailSubject}>{email.subject}</Text>
+                <Text style={emailsStyles.emailSupplier}>
+                  To: {email.supplierName} ({email.supplierEmail})
+                </Text>
+              </View>
             </View>
             
-            <View style={emailsStyles.emailDetails}>
-              <Text style={emailsStyles.emailTo}>To: {email.supplierEmail}</Text>
-              <Text style={emailsStyles.emailSubject}>Subject: {email.subject}</Text>
-              <Text style={emailsStyles.emailPreview} numberOfLines={3}>
-                {email.body}
-              </Text>
-            </View>
+            <Text style={emailsStyles.emailPreview} numberOfLines={3}>
+              {email.body}
+            </Text>
             
             <View style={emailsStyles.emailActions}>
               <TouchableOpacity
                 style={emailsStyles.editButton}
                 onPress={() => handleEditEmail(email)}
               >
-                <Text style={emailsStyles.editButtonText}>📝 Edit Email</Text>
+                <Text style={emailsStyles.editButtonText}>Edit</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={emailsStyles.regenerateButton}
-                onPress={() => handleRegenerateEmail(email.id)}
-              >
-                <Text style={emailsStyles.regenerateButtonText}>🔄 Regenerate</Text>
-              </TouchableOpacity>
+              
+              <View style={[emailsStyles.statusBadge, getStatusStyle(email.status)]}>
+                <Text style={[emailsStyles.statusText, getStatusTextStyle(email.status)]}>
+                  {getStatusText(email.status)}
+                </Text>
+              </View>
             </View>
           </View>
         ))}
       </ScrollView>
 
-      {/* Email Editor Modal */}
-      <Modal
-        visible={showEmailEditor}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <View style={emailsStyles.modalOverlay}>
-          <View style={emailsStyles.modalContainer}>
-            <View style={emailsStyles.modalHeader}>
-              <Text style={emailsStyles.modalTitle}>
-                Edit Email to {editingEmail?.supplierName}
-              </Text>
-              <TouchableOpacity
-                style={emailsStyles.closeButton}
-                onPress={() => setShowEmailEditor(false)}
-              >
-                <Text style={emailsStyles.closeButtonText}>×</Text>
-              </TouchableOpacity>
-            </View>
-            
-            <ScrollView style={emailsStyles.modalContent}>
-              <View style={emailsStyles.inputGroup}>
-                <Text style={emailsStyles.inputLabel}>Subject</Text>
-                <TextInput
-                  style={emailsStyles.textInput}
-                  value={editSubject}
-                  onChangeText={setEditSubject}
-                  placeholder="Enter email subject"
-                />
-              </View>
-              
-              <View style={emailsStyles.inputGroup}>
-                <Text style={emailsStyles.inputLabel}>Email Body</Text>
-                <TextInput
-                  style={emailsStyles.bodyInput}
-                  value={editBody}
-                  onChangeText={setEditBody}
-                  placeholder="Enter email body"
-                  multiline
-                />
-              </View>
-              
-              <View style={emailsStyles.modalButtons}>
-                <TouchableOpacity
-                  style={emailsStyles.cancelButton}
-                  onPress={() => setShowEmailEditor(false)}
-                >
-                  <Text style={[emailsStyles.buttonText, emailsStyles.cancelButtonText]}>
-                    Cancel
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={emailsStyles.saveButton}
-                  onPress={handleSaveEmail}
-                >
-                  <Text style={[emailsStyles.buttonText, emailsStyles.saveButtonText]}>
-                    Save Changes
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
+      {/* Send All Button */}
+      <TouchableOpacity style={emailsStyles.sendAllButton} onPress={handleSendAllEmails}>
+        <Text style={emailsStyles.sendAllButtonText}>Send All Emails</Text>
+      </TouchableOpacity>
 
       {/* Sending Progress Overlay */}
       {isSending && (
         <View style={emailsStyles.sendingOverlay}>
           <View style={emailsStyles.sendingContainer}>
-            <Text style={emailsStyles.sendingTitle}>Sending Emails...</Text>
-            <Text style={emailsStyles.sendingText}>
-              Sending {emailSession.emails.length} emails to your suppliers
-            </Text>
+            <Text style={emailsStyles.sendingTitle}>Sending Emails</Text>
+            
             <View style={emailsStyles.progressBar}>
               <Animated.View
                 style={[
                   emailsStyles.progressFill,
                   {
                     width: `${sendingProgress}%`,
-                  }
+                  },
                 ]}
               />
             </View>
-            <Text style={{ marginTop: 12, fontSize: 14, color: '#666666' }}>
-              {sendingProgress}% Complete
+            
+            <Text style={emailsStyles.progressText}>
+              {sendingProgress}% complete
             </Text>
           </View>
         </View>
