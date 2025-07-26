@@ -1,50 +1,58 @@
-# Welcome to your Expo app 👋
+ Restock - Streamlining Restocking for Independent Retailers
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A mobile-first application designed to streamline the restocking process for small business and grocery store owners. This app transforms the traditional clipboard-based restocking workflow into an efficient, AI-powered system that reduces restock time from 3-4 hours to 15-25 minutes.
 
-## Get started
+ The Problem
 
-1. Install dependencies
+Small business and grocery store owners often manage 50-200 product restocks per location manually. The traditional process involves:
+- Walking the store with a clipboard to jot down product names
+- Manually looking up each supplier
+- Formatting individual emails
+- Double-checking quantities
+- Repeating this process for every store they manage
 
-   ```bash
-   npm install
-   ```
+This is a slow, error-prone, and mentally draining process done several times a week.
 
-2. Start the app
+ Our Solution
 
-   ```bash
-   npx expo start
-   ```
+Restock is a mobile-first app that replicates the clipboard experience but with AI-powered email generation and a smart product-supplier database. The app enables users to:
 
-In the output, you'll find options to open the app in a
+- Log products quickly while walking the store
+- Auto-link products to suppliers
+- Generate and send professional emails in minutes
+- Track past orders and save time every week
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+ Progressive Learning & AI Enhancement
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+The app builds a database from the user's own data, learning and remembering product-to-supplier mappings over time:
 
-## Get a fresh project
+- Initially, users input products manually as usual
+- Over weeks, the system offers smarter autocomplete suggestions
+- The AI uses this data to generate emails with minimal input from the user
+- Eventually, the process shifts from manual entry toward smart, predictive restocking assistance
 
-When you're ready, run:
+ Features
 
-```bash
-npm run reset-project
-```
+ Core Functionality
+- Restock Sessions: Create and manage restocking sessions with real-time product tracking
+- Smart Product Entry: Auto-complete suggestions based on previously used products
+- Supplier Management: Automatic supplier linking and email generation
+- Email Generation: AI-powered email creation grouped by supplier
+- Session History: Track and review past restocking sessions
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+ User Experience
+- Mobile-First Design: Optimized for on-the-go store walking
+- Minimalistic UI: Clean, distraction-free interface following user preferences
+- One-Task-Per-Screen: Mental simplicity with focused workflows
+- Smart Suggestions: Progressive learning system for faster data entry
 
-## Learn more
+ Technology Stack
 
-To learn more about developing your project with Expo, look at the following resources:
+- Framework: React Native with Expo
+- Navigation: Expo Router with file-based routing
+- State Management: Zustand
+- Data Persistence: AsyncStorage for local data
+- UI Components: Custom styled components with organized styling
+- Development: TypeScript for type safety
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
 
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
