@@ -75,23 +75,41 @@ export default function WelcomeScreen() {
             console.log('Captured email from authenticated user:', userEmail);
             setEmail(userEmail);
             
+            // Debug: Log the entire user object to see what's available
+            console.log('Full user object:', JSON.stringify(user, null, 2));
+            console.log('User firstName:', user?.firstName);
+            console.log('User lastName:', user?.lastName);
+            console.log('User fullName:', user?.fullName);
+            console.log('User username:', user?.username);
+            console.log('User emailAddresses:', user?.emailAddresses);
+            console.log('User primaryEmailAddress:', user?.primaryEmailAddress);
+            
             // Try to extract name from user object
             let userName = '';
             if (user?.firstName && user?.lastName) {
               userName = `${user.firstName} ${user.lastName}`;
+              console.log('Using firstName + lastName:', userName);
             } else if (user?.firstName) {
               userName = user.firstName;
+              console.log('Using firstName only:', userName);
             } else if (user?.lastName) {
               userName = user.lastName;
+              console.log('Using lastName only:', userName);
             } else if (user?.fullName) {
               userName = user.fullName;
+              console.log('Using fullName:', userName);
             } else if (user?.username) {
               userName = user.username;
+              console.log('Using username:', userName);
+            } else {
+              console.log('No name found in user object');
             }
             
             if (userName) {
               console.log('Captured name from authenticated user:', userName);
               setName(userName);
+            } else {
+              console.log('No name could be extracted from user object');
             }
             
             // Show store name input for setup completion
@@ -279,6 +297,12 @@ export default function WelcomeScreen() {
       return;
     }
 
+    // For email signup users, require name
+    if (showEmailSignup && !name.trim()) {
+      Alert.alert('Error', 'Please enter your first name');
+      return;
+    }
+
     if (showEmailSignup && !password.trim()) {
       Alert.alert('Error', 'Please enter a password');
       return;
@@ -294,6 +318,7 @@ export default function WelcomeScreen() {
     setLoading(true);
     try {
       console.log('Creating account for email:', email);
+      console.log('User name for account:', name);
       
       // Save user data for use after verification
       await saveUserData(email, name, storeName);
@@ -372,12 +397,17 @@ export default function WelcomeScreen() {
           storeName,
           name,
           nameLength: name?.length || 0,
-          nameIsEmpty: !name || name.trim() === ''
+          nameIsEmpty: !name || name.trim() === '',
+          isEmailSignup: showEmailSignup
         });
+        
+        // For email signup users, use the manually entered name
+        const finalName = showEmailSignup ? name : (name || '');
+        console.log('Final name to be saved:', finalName);
         
         // Use the new ensureUserProfile method
         try {
-          const result = await UserProfileService.ensureUserProfile(userId, email, storeName, name);
+          const result = await UserProfileService.ensureUserProfile(userId, email, storeName, finalName);
           
           if (result.error) {
             console.error('Failed to ensure user profile:', result.error);
@@ -474,7 +504,8 @@ export default function WelcomeScreen() {
               <View style={styles.emailSection}>
                 <TextInput
                   style={styles.input}
-                  placeholder="Enter your email address"
+                  placeholder="Enter your email address" 
+                  placeholderTextColor="#6B7F6B"
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
@@ -515,7 +546,7 @@ export default function WelcomeScreen() {
           ) : (
             <View style={styles.storeSection}>
               <Text style={styles.sectionTitle}>Tell us about your store</Text>
-              {(!isGoogleSSO || (isSignedIn && !name)) && (
+              {(!isGoogleSSO || (isSignedIn && !name) || showEmailSignup) && (
                 <TextInput
                   style={styles.input}
                   placeholder="Enter your first name"
@@ -593,6 +624,7 @@ const styles = StyleSheet.create({
   },
   emailSection: {
     marginBottom: 20,
+    
   },
   passwordSection: {
     marginBottom: 20,
@@ -615,6 +647,7 @@ const styles = StyleSheet.create({
     padding: 16,
     fontSize: 16,
     marginBottom: 16,
+    color: '#000000',
   },
   button: {
     backgroundColor: '#6B7F6B',

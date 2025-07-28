@@ -66,21 +66,23 @@ export default function VerifyEmailScreen() {
             
             const tempUserData = await AsyncStorage.getItem('tempUserData');
             if (tempUserData) {
-              const { email, storeName } = JSON.parse(tempUserData);
+              const { email, storeName, name } = JSON.parse(tempUserData);
               
               if (email && storeName) {
-                console.log('Saving user profile to Supabase:', { userId, email, storeName });
-                const saveResult = await UserProfileService.saveUserProfile(userId, email, storeName);
+                console.log('Saving user profile to Supabase:', { userId, email, storeName, name });
+                const saveResult = await UserProfileService.ensureUserProfile(userId, email, storeName, name);
                 
                 if (saveResult.error) {
                   console.error('Failed to save user profile:', saveResult.error);
                 } else {
                   console.log('User profile saved successfully');
+                  console.log('Profile data:', saveResult.data);
                   
                   // Verify the user was actually saved
                   const verifyResult = await UserProfileService.verifyUserProfile(userId);
                   if (verifyResult.data) {
                     console.log('User profile verified in Supabase:', verifyResult.data);
+                    console.log('Name in verified profile:', verifyResult.data.name);
                   } else {
                     console.error('Failed to verify user profile:', verifyResult.error);
                   }
@@ -112,21 +114,23 @@ export default function VerifyEmailScreen() {
           try {
             const tempUserData = await AsyncStorage.getItem('tempUserData');
             if (tempUserData) {
-              const { email, storeName } = JSON.parse(tempUserData);
+              const { email, storeName, name } = JSON.parse(tempUserData);
               
               if (email && storeName) {
                 console.log('Saving user profile with fallback approach');
-                const saveResult = await UserProfileService.saveUserProfile(userId, email, storeName);
+                const saveResult = await UserProfileService.ensureUserProfile(userId, email, storeName, name);
                 
                 if (saveResult.error) {
                   console.error('Failed to save user profile in fallback:', saveResult.error);
                 } else {
                   console.log('User profile saved successfully in fallback');
+                  console.log('Profile data:', saveResult.data);
                   
                   // Verify the user was actually saved
                   const verifyResult = await UserProfileService.verifyUserProfile(userId);
                   if (verifyResult.data) {
                     console.log('User profile verified in Supabase (fallback):', verifyResult.data);
+                    console.log('Name in verified profile:', verifyResult.data.name);
                   } else {
                     console.error('Failed to verify user profile in fallback:', verifyResult.error);
                   }
@@ -223,6 +227,7 @@ const styles = StyleSheet.create({
     padding: 16,
     fontSize: 16,
     marginBottom: 16,
+    color: '#000000',
   },
   button: {
     backgroundColor: '#6B7F6B',

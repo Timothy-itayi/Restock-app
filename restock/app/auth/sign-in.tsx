@@ -234,6 +234,7 @@ export default function SignInScreen() {
           autoCapitalize="none"
           value={emailAddress}
           placeholder="Enter your email address"
+          placeholderTextColor="#666666"
           onChangeText={(emailAddress) => setEmailAddress(emailAddress)}
           keyboardType="email-address"
         />
@@ -242,6 +243,7 @@ export default function SignInScreen() {
           style={styles.input}
           value={password}
           placeholder="Enter your password"
+          placeholderTextColor="#666666"
           secureTextEntry={true}
           onChangeText={(password) => setPassword(password)}
         />
@@ -342,6 +344,7 @@ const styles = StyleSheet.create({
     padding: 16,
     fontSize: 16,
     marginBottom: 16,
+    color: '#000000',
   },
   button: {
     backgroundColor: '#6B7F6B',
