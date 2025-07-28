@@ -1,0 +1,199 @@
+import React, { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { useSignUp } from '@clerk/clerk-expo';
+import { router } from 'expo-router';
+import { UserProfileService } from '../../backend';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+export default function VerifyEmailScreen() {
+  const [code, setCode] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { signUp, setActive, isLoaded } = useSignUp();
+
+  const handleVerifyEmail = async () => {
+    if (!code.trim()) {
+      Alert.alert('Error', 'Please enter the verification code');
+      return;
+    }
+
+    if (!isLoaded) return;
+
+    setLoading(true);
+    try {
+      console.log('Attempting email verification with code:', code);
+      
+      // Use the code the user provided to attempt verification
+      const signUpAttempt = await signUp.attemptEmailAddressVerification({
+        code,
+      });
+
+      console.log('SignUp attempt result:', JSON.stringify(signUpAttempt, null, 2));
+      console.log('SignUp resource state:', JSON.stringify(signUp, null, 2));
+
+      // If verification was completed, set the session to active
+      // and redirect the user
+      if (signUpAttempt.status === 'complete') {
+        // Get the user ID from the signUp resource
+        const userId = signUp.createdUserId;
+        
+        console.log('Verification complete. User ID:', userId);
+        console.log('Session ID:', signUpAttempt.createdSessionId);
+        
+        if (userId) {
+          // Set the session as active
+          if (signUpAttempt.createdSessionId) {
+            await setActive({ session: signUpAttempt.createdSessionId });
+          }
+          
+          // Save user data to Supabase
+          try {
+            const tempUserData = await AsyncStorage.getItem('tempUserData');
+            if (tempUserData) {
+              const { email, storeName } = JSON.parse(tempUserData);
+              
+              if (email && storeName) {
+                console.log('Saving user profile to Supabase:', { userId, email, storeName });
+                await UserProfileService.saveUserProfile(userId, email, storeName);
+                // Clear temporary data
+                await AsyncStorage.removeItem('tempUserData');
+                console.log('User profile saved successfully');
+              }
+            }
+          } catch (error) {
+            console.error('Error saving user profile:', error);
+          }
+          
+          router.replace('/(tabs)/dashboard');
+        } else {
+          console.error('No user ID available after verification');
+          Alert.alert('Error', 'Failed to get user ID. Please try again.');
+        }
+      } else {
+        console.error('Verification status not complete:', signUpAttempt.status);
+        console.error(JSON.stringify(signUpAttempt, null, 2));
+        
+        // Try alternative approach - check if we can get user info from signUp
+        const userId = signUp.createdUserId;
+        if (userId) {
+          console.log('Found user ID from signUp resource:', userId);
+          
+          // Try to save user data even if session isn't ready
+          try {
+            const tempUserData = await AsyncStorage.getItem('tempUserData');
+            if (tempUserData) {
+              const { email, storeName } = JSON.parse(tempUserData);
+              
+              if (email && storeName) {
+                console.log('Saving user profile with fallback approach');
+                await UserProfileService.saveUserProfile(userId, email, storeName);
+                await AsyncStorage.removeItem('tempUserData');
+                
+                // Try to redirect to dashboard
+                router.replace('/(tabs)/dashboard');
+                return;
+              }
+            }
+          } catch (error) {
+            console.error('Error in fallback approach:', error);
+          }
+        }
+        
+        Alert.alert('Error', 'Verification failed. Please try again.');
+      }
+    } catch (err: any) {
+      console.error('Verification error:', JSON.stringify(err, null, 2));
+      Alert.alert('Error', err.errors?.[0]?.message || 'Verification failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Verify your email</Text>
+      <Text style={styles.subtitle}>
+        We've sent a verification code to your email address
+      </Text>
+      
+      <TextInput
+        style={styles.input}
+        value={code}
+        placeholder="Enter your verification code"
+        onChangeText={(code) => setCode(code)}
+        keyboardType="number-pad"
+        autoCapitalize="none"
+      />
+      
+      <TouchableOpacity 
+        style={[styles.button, loading && styles.buttonDisabled]}
+        onPress={handleVerifyEmail}
+        disabled={loading}
+      >
+        <Text style={styles.buttonText}>
+          {loading ? 'Verifying...' : 'Verify Email'}
+        </Text>
+      </TouchableOpacity>
+      
+      <TouchableOpacity 
+        style={styles.backButton}
+        onPress={() => router.back()}
+      >
+        <Text style={styles.backButtonText}>Back</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: '#f8f9fa',
+    justifyContent: 'center',
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#7f8c8d',
+    marginBottom: 32,
+    textAlign: 'center',
+  },
+  input: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e1e8ed',
+    borderRadius: 8,
+    padding: 16,
+    fontSize: 16,
+    marginBottom: 16,
+  },
+  button: {
+    backgroundColor: '#6B7F6B',
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+  buttonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  backButton: {
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  backButtonText: {
+    color: '#6B7F6B',
+    fontSize: 16,
+  },
+}); 

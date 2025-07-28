@@ -56,6 +56,37 @@
 
 ## 🎯 PRIORITY 1: Core Backend Integration
 
+### Database Schema Implementation
+- [ ] **Set up Supabase database with complete schema**
+  - **Users Table**: Authentication and user management
+    - Fields: id (UUID, PK), email (string, unique), password_hash (Supabase Auth), created_at
+  - **Products Table**: User's restock items with defaults
+    - Fields: id (UUID, PK), user_id (FK → users.id), name (string), default_quantity (optional), default_supplier_id (FK → suppliers.id, nullable), created_at
+  - **Suppliers Table**: Contact information for ordering
+    - Fields: id (UUID, PK), user_id (FK → users.id), name (string), email (string), phone (optional), notes (optional), created_at
+  - **Restock Sessions Table**: Session tracking with status
+    - Fields: id (UUID, PK), user_id (FK → users.id), created_at (timestamp), status (draft, sent, etc.)
+  - **Restock Items Table**: Products and quantities per session
+    - Fields: id (UUID, PK), session_id (FK → restock_sessions.id), product_id (FK → products.id), supplier_id (FK → suppliers.id), quantity (number), notes (optional)
+  - **Emails Sent Table**: Email tracking and delivery status
+    - Fields: id (UUID, PK), session_id (FK → restock_sessions.id), supplier_id (FK → suppliers.id), email_content (text), sent_at (timestamp), status (pending, sent, failed), error_message (optional)
+
+### Database Setup Tasks
+- [ ] **Configure Supabase client and environment**
+  - Install Supabase SDK: `npm install @supabase/supabase-js`
+  - Set up environment variables for Supabase URL and keys
+  - Create database connection utility
+  - Implement Row Level Security (RLS) policies
+  - Add data validation and sanitization
+
+### Data Migration & Sync
+- [ ] **Implement data migration from AsyncStorage**
+  - Create migration scripts for existing local data
+  - Implement data synchronization between local and cloud
+  - Add offline-first data handling with conflict resolution
+  - Replace AsyncStorage with Supabase for production data
+  - Add data backup and recovery mechanisms
+
 ### Email Service Implementation
 - [ ] **Set up SendGrid API integration**
   - Install SendGrid SDK: `npm install @sendgrid/mail`
@@ -63,6 +94,7 @@
   - Implement email sending with proper error handling
   - Add email delivery tracking and status updates
   - Replace mock email sending in `handleSendAllEmails()`
+  - Integrate with Emails Sent table for tracking
 
 ### AI Email Generation
 - [ ] **Implement OpenAI GPT integration**
@@ -72,14 +104,7 @@
   - Implement context-aware email generation using product/supplier data
   - Replace `generatePlaceholderEmails()` with AI-powered generation
   - Add email tone customization options
-
-### Database Implementation
-- [ ] **Set up Supabase integration**
-  - Configure Supabase client in the app
-  - Create database schema for products, suppliers, sessions
-  - Implement data synchronization between local and cloud
-  - Add offline-first data handling
-  - Replace AsyncStorage with Supabase for production data
+  - Store generated emails in Emails Sent table
 
 ## 🎯 PRIORITY 2: Authentication & User Management
 
@@ -228,12 +253,21 @@
 
 ### Database Tasks
 ```
-- [ ] Set up Supabase client
-- [ ] Create database tables
-- [ ] Implement CRUD operations
-- [ ] Add data migration scripts
-- [ ] Set up real-time subscriptions
-- [ ] Add data validation
+- [ ] Set up Supabase client and environment configuration
+- [ ] Create complete database schema with 6 tables:
+  - [ ] Users table (authentication)
+  - [ ] Products table (user's restock items)
+  - [ ] Suppliers table (contact information)
+  - [ ] Restock Sessions table (session tracking)
+  - [ ] Restock Items table (products per session)
+  - [ ] Emails Sent table (email tracking)
+- [ ] Implement Row Level Security (RLS) policies
+- [ ] Create CRUD operations for all entities
+- [ ] Add data migration scripts from AsyncStorage
+- [ ] Set up real-time subscriptions for live updates
+- [ ] Add comprehensive data validation and sanitization
+- [ ] Implement offline-first data handling
+- [ ] Add data backup and recovery mechanisms
 ```
 
 ### Authentication Tasks
@@ -259,11 +293,92 @@
 - [x] Implement tab navigation with icons
 ```
 
+## 🗂️ DATABASE SCHEMA DETAILS
+
+### Entity Relationships
+```
+User
+ ├── Products (1:many)
+ │     └── default_supplier_id → Supplier
+ ├── Suppliers (1:many)
+ ├── RestockSessions (1:many)
+ │     ├── RestockItems (1:many)
+ │     │     ├── Product (many:1)
+ │     │     └── Supplier (many:1)
+ │     └── EmailsSent (1:many)
+ │           └── Supplier (many:1)
+```
+
+### Table Specifications
+
+#### 1. Users Table
+- **Purpose**: Authentication and user management
+- **Fields**:
+  - `id` (UUID, Primary Key)
+  - `email` (string, unique)
+  - `password_hash` (handled by Supabase Auth)
+  - `created_at` (timestamp)
+
+#### 2. Products Table
+- **Purpose**: Products the user restocks regularly
+- **Fields**:
+  - `id` (UUID, Primary Key)
+  - `user_id` (Foreign Key → users.id)
+  - `name` (string)
+  - `default_quantity` (optional)
+  - `default_supplier_id` (Foreign Key → suppliers.id, nullable)
+  - `created_at` (timestamp)
+- **Relationships**: Each product belongs to a user, and can be optionally mapped to a default supplier
+
+#### 3. Suppliers Table
+- **Purpose**: Who the products are ordered from
+- **Fields**:
+  - `id` (UUID, Primary Key)
+  - `user_id` (Foreign Key → users.id)
+  - `name` (string)
+  - `email` (string)
+  - `phone` (optional)
+  - `notes` (optional)
+  - `created_at` (timestamp)
+- **Relationships**: Suppliers belong to a user, and can be linked to many products
+
+#### 4. Restock Sessions Table
+- **Purpose**: Each time the user logs a restock event (before generating emails)
+- **Fields**:
+  - `id` (UUID, Primary Key)
+  - `user_id` (Foreign Key → users.id)
+  - `created_at` (timestamp)
+  - `status` (draft, sent, etc.)
+- **Relationships**: A session belongs to a user and contains multiple items
+
+#### 5. Restock Items Table
+- **Purpose**: Products and quantities logged during a session
+- **Fields**:
+  - `id` (UUID, Primary Key)
+  - `session_id` (Foreign Key → restock_sessions.id)
+  - `product_id` (Foreign Key → products.id)
+  - `supplier_id` (Foreign Key → suppliers.id)
+  - `quantity` (number)
+  - `notes` (optional)
+- **Relationships**: Each item is logged in a session, and references a product + supplier (even if product's default supplier changes later)
+
+#### 6. Emails Sent Table
+- **Purpose**: Track which supplier emails were generated and sent per session
+- **Fields**:
+  - `id` (UUID, Primary Key)
+  - `session_id` (Foreign Key → restock_sessions.id)
+  - `supplier_id` (Foreign Key → suppliers.id)
+  - `email_content` (text)
+  - `sent_at` (timestamp)
+  - `status` (pending, sent, failed)
+  - `error_message` (optional)
+- **Relationships**: Each session can trigger 1+ emails, each for a specific supplier
+
 ## 🚀 IMMEDIATE NEXT STEPS
 
-1. **Start with SendGrid integration** - This will enable real email sending
-2. **Implement OpenAI GPT wrapper** - This will provide AI-powered email generation
-3. **Set up Supabase database** - This will provide cloud data storage
+1. **Set up Supabase database schema** - This will provide the foundation for all data operations
+2. **Start with SendGrid integration** - This will enable real email sending
+3. **Implement OpenAI GPT wrapper** - This will provide AI-powered email generation
 4. **Complete dashboard implementation** - This will provide user value
 
 ## 📊 PROJECT STATUS SUMMARY
@@ -279,9 +394,9 @@
 - **Backend Integration**: Ready to implement (foundation complete)
 
 ### ⏳ Pending
-- **Email Service**: SendGrid integration
-- **AI Features**: OpenAI GPT integration
-- **Database**: Supabase cloud storage
-- **Authentication**: User management system
-- **Dashboard**: Analytics and reporting
+- **Database Schema**: Complete 6-table Supabase implementation
+- **Email Service**: SendGrid integration with email tracking
+- **AI Features**: OpenAI GPT integration for email generation
+- **Authentication**: User management system with Supabase Auth
+- **Dashboard**: Analytics and reporting with real data
 
