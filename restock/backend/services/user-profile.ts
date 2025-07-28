@@ -204,6 +204,13 @@ export class UserProfileService {
   static async ensureUserProfile(clerkUserId: string, email: string, storeName: string, name?: string) {
     try {
       console.log('Ensuring user profile exists for:', { clerkUserId, email, storeName, name });
+      console.log('Name details:', {
+        name,
+        nameType: typeof name,
+        nameLength: name?.length || 0,
+        nameIsEmpty: !name || name.trim() === '',
+        nameTrimmed: name?.trim()
+      });
       
       // First, check if user exists
       const { data: existingUser, error: checkError } = await supabase
@@ -224,6 +231,14 @@ export class UserProfileService {
 
       // User doesn't exist, create profile
       console.log('User profile does not exist, creating new profile');
+      console.log('Creating profile with data:', {
+        id: clerkUserId,
+        email,
+        name,
+        store_name: storeName,
+        nameType: typeof name,
+        nameLength: name?.length || 0
+      });
       
       const { data: newUser, error: insertError } = await supabase
         .from('users')
@@ -243,6 +258,7 @@ export class UserProfileService {
       }
 
       console.log('User profile created successfully:', newUser);
+      console.log('Created profile name field:', newUser.name);
       return { data: newUser, error: null };
     } catch (error) {
       console.error('Error ensuring user profile:', error);
