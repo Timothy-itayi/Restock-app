@@ -1,6 +1,6 @@
 import { useSignUp, useAuth, useUser } from '@clerk/clerk-expo';
 import { Link, useRouter } from 'expo-router';
-import { Text, TextInput, TouchableOpacity, View, StyleSheet, Alert } from 'react-native';
+import { Text, TextInput, TouchableOpacity, View, StyleSheet, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { UserProfileService } from '../../backend/services/user-profile';
 import React from 'react';
 import * as WebBrowser from 'expo-web-browser';
@@ -216,10 +216,24 @@ export default function SignUpScreen() {
       });
 
       // If verification was completed, set the session to active
-      // and redirect the user
+      // and redirect the user to complete setup
       if (signUpAttempt.status === 'complete') {
         await setActive({ session: signUpAttempt.createdSessionId });
-        router.replace('/(tabs)/dashboard');
+        
+        // For email signup, redirect to welcome screen to complete setup
+        // This ensures the user provides their name and store information
+        Alert.alert(
+          'Account Created Successfully!',
+          'Please complete your account setup by providing your store information.',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                router.replace('/welcome');
+              }
+            }
+          ]
+        );
       } else {
         // If the status is not complete, check why. User may need to
         // complete further steps.
@@ -262,80 +276,88 @@ export default function SignUpScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Create your account</Text>
-      <Text style={styles.subtitle}>Sign up to start managing your restock operations</Text>
-      
-      <TouchableOpacity 
-        style={styles.googleButton}
-        onPress={handleGoogleSignUp}
-        disabled={googleLoading}
+    <ScrollView contentContainerStyle={styles.scrollViewContent}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
       >
-        <Text style={styles.googleButtonText}>
-          {googleLoading ? 'Signing up...' : 'Continue with Google'}
-        </Text>
-      </TouchableOpacity>
-      
-      <View style={styles.divider}>
-        <View style={styles.dividerLine} />
-        <Text style={styles.dividerText}>or</Text>
-        <View style={styles.dividerLine} />
-      </View>
-      
-      <TextInput
-        style={styles.input}
-        autoCapitalize="none"
-        value={emailAddress}
-        placeholder="Enter your email address"
-        onChangeText={(email) => setEmailAddress(email)}
-        keyboardType="email-address"
-      />
-      
-      <TextInput
-        style={[styles.input, passwordError && styles.inputError]}
-        value={password}
-        placeholder="Create a strong password"
-        secureTextEntry={true}
-        onChangeText={handlePasswordChange}
-        autoCapitalize="none"
-      />
-      
-      {passwordError ? (
-        <Text style={styles.errorText}>{passwordError}</Text>
-      ) : (
-        <Text style={styles.helpText}>
-          Password must be at least 8 characters with uppercase, lowercase, number, and special character
-        </Text>
-      )}
-      
-      <TouchableOpacity 
-        style={[styles.button, (loading || passwordError) && styles.buttonDisabled]}
-        onPress={onSignUpPress}
-        disabled={loading || !!passwordError}
-      >
-        <Text style={styles.buttonText}>
-          {loading ? 'Creating account...' : 'Create Account'}
-        </Text>
-      </TouchableOpacity>
-      
-      <View style={styles.linkContainer}>
-        <Text style={styles.linkText}>Already have an account? </Text>
-        <Link href="/auth/sign-in" asChild>
-          <TouchableOpacity>
-            <Text style={styles.linkTextBold}>Sign in</Text>
-          </TouchableOpacity>
-        </Link>
-      </View>
-    </View>
+        <Text style={styles.title}>Create your account</Text>
+        <Text style={styles.subtitle}>Sign up to start managing your restock operations</Text>
+        
+        <TouchableOpacity 
+          style={styles.googleButton}
+          onPress={handleGoogleSignUp}
+          disabled={googleLoading}
+        >
+          <Text style={styles.googleButtonText}>
+            {googleLoading ? 'Signing up...' : 'Continue with Google'}
+          </Text>
+        </TouchableOpacity>
+        
+        <View style={styles.divider}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>or</Text>
+          <View style={styles.dividerLine} />
+        </View>
+        
+        <TextInput
+          style={styles.input}
+          autoCapitalize="none"
+          value={emailAddress}
+          placeholder="Enter your email address"
+          onChangeText={(email) => setEmailAddress(email)}
+          keyboardType="email-address"
+        />
+        
+        <TextInput
+          style={[styles.input, passwordError && styles.inputError]}
+          value={password}
+          placeholder="Create a strong password"
+          secureTextEntry={true}
+          onChangeText={handlePasswordChange}
+          autoCapitalize="none"
+        />
+        
+        {passwordError ? (
+          <Text style={styles.errorText}>{passwordError}</Text>
+        ) : (
+          <Text style={styles.helpText}>
+            Password must be at least 8 characters with uppercase, lowercase, number, and special character
+          </Text>
+        )}
+        
+        <TouchableOpacity 
+          style={[styles.button, (loading || passwordError) && styles.buttonDisabled]}
+          onPress={onSignUpPress}
+          disabled={loading || !!passwordError}
+        >
+          <Text style={styles.buttonText}>
+            {loading ? 'Creating account...' : 'Create Account'}
+          </Text>
+        </TouchableOpacity>
+        
+        <View style={styles.linkContainer}>
+          <Text style={styles.linkText}>Already have an account? </Text>
+          <Link href="/auth/sign-in" asChild>
+            <TouchableOpacity>
+              <Text style={styles.linkTextBold}>Sign in</Text>
+            </TouchableOpacity>
+          </Link>
+        </View>
+      </KeyboardAvoidingView>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  scrollViewContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
   container: {
     flex: 1,
     padding: 20,
     backgroundColor: '#f8f9fa',
-    justifyContent: 'center',
   },
   title: {
     fontSize: 28,
@@ -420,6 +442,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: 16,
   },
   linkText: {
     color: '#6B7F6B',

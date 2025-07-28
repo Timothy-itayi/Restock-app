@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, TextInput, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, StyleSheet, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { useSignUp, useAuth, useUser } from '@clerk/clerk-expo';
 import { UserProfileService } from '../backend/services/user-profile';
@@ -67,9 +67,43 @@ export default function WelcomeScreen() {
         router.replace('/(tabs)/dashboard');
       } else {
         console.log('User profile does not exist, need to complete setup');
-        // User is authenticated but no profile, show store name input
-        // We'll need to get the email from the session or redirect to profile setup
-        setShowStoreNameInput(true);
+        
+        // User is authenticated but no profile, capture their email and show setup
+        if (user) {
+          const userEmail = user.emailAddresses?.[0]?.emailAddress || user.primaryEmailAddress?.emailAddress;
+          if (userEmail) {
+            console.log('Captured email from authenticated user:', userEmail);
+            setEmail(userEmail);
+            
+            // Try to extract name from user object
+            let userName = '';
+            if (user?.firstName && user?.lastName) {
+              userName = `${user.firstName} ${user.lastName}`;
+            } else if (user?.firstName) {
+              userName = user.firstName;
+            } else if (user?.lastName) {
+              userName = user.lastName;
+            } else if (user?.fullName) {
+              userName = user.fullName;
+            } else if (user?.username) {
+              userName = user.username;
+            }
+            
+            if (userName) {
+              console.log('Captured name from authenticated user:', userName);
+              setName(userName);
+            }
+            
+            // Show store name input for setup completion
+            setShowStoreNameInput(true);
+          } else {
+            console.error('No email found from authenticated user');
+            Alert.alert('Error', 'Could not retrieve your email. Please try signing in again.');
+          }
+        } else {
+          console.error('No user object available');
+          Alert.alert('Error', 'Could not retrieve your information. Please try signing in again.');
+        }
       }
     } catch (error) {
       console.error('Error checking user profile:', error);
@@ -264,8 +298,8 @@ export default function WelcomeScreen() {
       // Save user data for use after verification
       await saveUserData(email, name, storeName);
 
-      if (showEmailSignup) {
-        // Email signup flow
+      if (showEmailSignup && !isSignedIn) {
+        // Email signup flow - user not yet authenticated
         await signUp.create({
           emailAddress: email,
           password: password,
@@ -290,51 +324,86 @@ export default function WelcomeScreen() {
             }
           ]
         );
-      } else {
+      } else if (isGoogleSSO && userId) {
         // Google SSO flow - user is already authenticated
         console.log('Google SSO flow - user already authenticated');
+        console.log('Saving user profile with data:', {
+          userId,
+          email,
+          storeName,
+          name,
+          nameLength: name?.length || 0,
+          nameIsEmpty: !name || name.trim() === ''
+        });
         
-        if (isGoogleSSO && userId) {
-          console.log('Google user authenticated:', userId);
-          console.log('Saving user profile with data:', {
-            userId,
-            email,
-            storeName,
-            name,
-            nameLength: name?.length || 0,
-            nameIsEmpty: !name || name.trim() === ''
-          });
+        // Use the new ensureUserProfile method
+        try {
+          const result = await UserProfileService.ensureUserProfile(userId, email, storeName, name);
           
-          // Use the new ensureUserProfile method
-          try {
-            const result = await UserProfileService.ensureUserProfile(userId, email, storeName, name);
-            
-            if (result.error) {
-              console.error('Failed to ensure user profile:', result.error);
-              Alert.alert('Error', 'Failed to save your profile. Please try again.');
-            } else {
-              console.log('User profile ensured successfully');
-              console.log('Profile data:', result.data);
-              
-              // Save session data for returning user detection
-              await SessionManager.saveUserSession({
-                userId,
-                email,
-                storeName,
-                wasSignedIn: true,
-                lastSignIn: Date.now(),
-              });
-              
-              // Navigate to dashboard
-              router.replace('/(tabs)/dashboard');
-            }
-          } catch (error) {
-            console.error('Error ensuring user profile:', error);
+          if (result.error) {
+            console.error('Failed to ensure user profile:', result.error);
             Alert.alert('Error', 'Failed to save your profile. Please try again.');
+          } else {
+            console.log('User profile ensured successfully');
+            console.log('Profile data:', result.data);
+            
+            // Save session data for returning user detection
+            await SessionManager.saveUserSession({
+              userId,
+              email,
+              storeName,
+              wasSignedIn: true,
+              lastSignIn: Date.now(),
+            });
+            
+            // Navigate to dashboard
+            router.replace('/(tabs)/dashboard');
           }
-        } else {
-          console.log('Google SSO - proceeding to store name input');
+        } catch (error) {
+          console.error('Error ensuring user profile:', error);
+          Alert.alert('Error', 'Failed to save your profile. Please try again.');
         }
+      } else if (isSignedIn && userId) {
+        // Email signup user who is already authenticated (from sign-up screen)
+        console.log('Email signup user already authenticated, completing setup');
+        console.log('Saving user profile with data:', {
+          userId,
+          email,
+          storeName,
+          name,
+          nameLength: name?.length || 0,
+          nameIsEmpty: !name || name.trim() === ''
+        });
+        
+        // Use the new ensureUserProfile method
+        try {
+          const result = await UserProfileService.ensureUserProfile(userId, email, storeName, name);
+          
+          if (result.error) {
+            console.error('Failed to ensure user profile:', result.error);
+            Alert.alert('Error', 'Failed to save your profile. Please try again.');
+          } else {
+            console.log('User profile ensured successfully');
+            console.log('Profile data:', result.data);
+            
+            // Save session data for returning user detection
+            await SessionManager.saveUserSession({
+              userId,
+              email,
+              storeName,
+              wasSignedIn: true,
+              lastSignIn: Date.now(),
+            });
+            
+            // Navigate to dashboard
+            router.replace('/(tabs)/dashboard');
+          }
+        } catch (error) {
+          console.error('Error ensuring user profile:', error);
+          Alert.alert('Error', 'Failed to save your profile. Please try again.');
+        }
+      } else {
+        console.log('Google SSO - proceeding to store name input');
       }
     } catch (err: any) {
       console.error(JSON.stringify(err, null, 2));
@@ -356,152 +425,161 @@ export default function WelcomeScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>Welcome to Restock</Text>
-        <Text style={styles.subtitle}>
-          Streamline your store's restocking process
-        </Text>
-        <Text style={styles.description}>
-          Create restock sessions, manage suppliers, and generate professional emails automatically.
-        </Text>
+    <ScrollView contentContainerStyle={styles.scrollViewContent}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
+      >
+        <View style={styles.content}>
+          <Text style={styles.title}>Welcome to Restock</Text>
+          <Text style={styles.subtitle}>
+            Streamline your store's restocking process
+          </Text>
+          <Text style={styles.description}>
+            Create restock sessions, manage suppliers, and generate professional emails automatically.
+          </Text>
 
-        {!showEmailSignup && !showStoreNameInput ? (
-          <View style={styles.optionsSection}>
-            <Text style={styles.sectionTitle}>Get Started</Text>
-            
-            {showReturningUserButton && (
+          {!showEmailSignup && !showStoreNameInput ? (
+            <View style={styles.optionsSection}>
+              <Text style={styles.sectionTitle}>Get Started</Text>
+              
+              {showReturningUserButton && (
+                <TouchableOpacity 
+                  style={styles.returningUserButton}
+                  onPress={handleReturningUserSignIn}
+                  disabled={loading}
+                >
+                  <Text style={styles.returningUserButtonText}>
+                    {loading ? 'Signing in...' : 'Returning User? Sign In'}
+                  </Text>
+                </TouchableOpacity>
+              )}
+              
               <TouchableOpacity 
-                style={styles.returningUserButton}
-                onPress={handleReturningUserSignIn}
+                style={styles.googleButton}
+                onPress={() => handleGoogleSignup(false)}
                 disabled={loading}
               >
-                <Text style={styles.returningUserButtonText}>
-                  {loading ? 'Signing in...' : 'Returning User? Sign In'}
+                <Text style={styles.googleButtonText}>
+                  {loading ? 'Signing in...' : 'Continue with Google'}
                 </Text>
               </TouchableOpacity>
-            )}
-            
-            <TouchableOpacity 
-              style={styles.googleButton}
-              onPress={() => handleGoogleSignup(false)}
-              disabled={loading}
-            >
-              <Text style={styles.googleButtonText}>
-                {loading ? 'Signing in...' : 'Continue with Google'}
-              </Text>
-            </TouchableOpacity>
-            
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or</Text>
-              <View style={styles.dividerLine} />
+              
+              <View style={styles.divider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>or</Text>
+                <View style={styles.dividerLine} />
+              </View>
+              
+              <View style={styles.emailSection}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your email address"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+                <TouchableOpacity 
+                  style={styles.button}
+                  onPress={handleEmailSignup}
+                >
+                  <Text style={styles.buttonText}>Continue with Email</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-            
-            <View style={styles.emailSection}>
+          ) : showEmailSignup && !showStoreNameInput ? (
+            <View style={styles.passwordSection}>
+              <Text style={styles.sectionTitle}>Create your password</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Enter your email address"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
+                placeholder="Create a password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={true}
                 autoCapitalize="none"
               />
               <TouchableOpacity 
                 style={styles.button}
-                onPress={handleEmailSignup}
+                onPress={() => setShowStoreNameInput(true)}
               >
-                <Text style={styles.buttonText}>Continue with Email</Text>
+                <Text style={styles.buttonText}>Continue</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.backButton}
+                onPress={handleBackToOptions}
+              >
+                <Text style={styles.backButtonText}>Back</Text>
               </TouchableOpacity>
             </View>
-          </View>
-        ) : showEmailSignup && !showStoreNameInput ? (
-          <View style={styles.passwordSection}>
-            <Text style={styles.sectionTitle}>Create your password</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Create a password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={true}
-              autoCapitalize="none"
-            />
-            <TouchableOpacity 
-              style={styles.button}
-              onPress={() => setShowStoreNameInput(true)}
-            >
-              <Text style={styles.buttonText}>Continue</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.backButton}
-              onPress={handleBackToOptions}
-            >
-              <Text style={styles.backButtonText}>Back</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <View style={styles.storeSection}>
-            <Text style={styles.sectionTitle}>Tell us about your store</Text>
-            {!isGoogleSSO && (
+          ) : (
+            <View style={styles.storeSection}>
+              <Text style={styles.sectionTitle}>Tell us about your store</Text>
+              {(!isGoogleSSO || (isSignedIn && !name)) && (
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your first name"
+                  value={name}
+                  onChangeText={setName}
+                  autoCapitalize="words"
+                />
+              )}
               <TextInput
                 style={styles.input}
-                placeholder="Enter your first name"
-                value={name}
-                onChangeText={setName}
+                placeholder="Enter your store name"
+                value={storeName}
+                onChangeText={setStoreName}
                 autoCapitalize="words"
               />
-            )}
-            <TextInput
-              style={styles.input}
-              placeholder="Enter your store name"
-              value={storeName}
-              onChangeText={setStoreName}
-              autoCapitalize="words"
-            />
-            <TouchableOpacity 
-              style={[styles.button, loading && styles.buttonDisabled]}
-              onPress={handleCreateAccount}
-              disabled={loading}
-            >
-              <Text style={styles.buttonText}>
-                {loading ? 'Creating Account...' : 'Create Account'}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.backButton}
-              onPress={() => setShowStoreNameInput(false)}
-            >
-              <Text style={styles.backButtonText}>Back</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
-    </View>
+              <TouchableOpacity 
+                style={[styles.button, loading && styles.buttonDisabled]}
+                onPress={handleCreateAccount}
+                disabled={loading}
+              >
+                <Text style={styles.buttonText}>
+                  {loading ? 'Creating Account...' : 'Create Account'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.backButton}
+                onPress={() => setShowStoreNameInput(false)}
+              >
+                <Text style={styles.backButtonText}>Back</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </KeyboardAvoidingView>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  scrollViewContent: {
+    flexGrow: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: '#f8f9fa',
   },
   content: {
     flex: 1,
-    justifyContent: 'center',
     padding: 20,
+    justifyContent: 'center',
   },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
     color: '#2c3e50',
-    marginBottom: 16,
+    marginBottom: 12,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 18,
+    fontSize: 20,
     color: '#6B7F6B',
     marginBottom: 16,
     textAlign: 'center',
+    fontWeight: '600',
   },
   description: {
     fontSize: 16,

@@ -1,6 +1,6 @@
 import { useSignIn, useAuth, useUser } from '@clerk/clerk-expo';
 import { Link, useRouter } from 'expo-router';
-import { Text, TextInput, TouchableOpacity, View, StyleSheet, Alert } from 'react-native';
+import { Text, TextInput, TouchableOpacity, View, StyleSheet, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import React from 'react';
 import { UserProfileService } from '../../backend/services/user-profile';
 import { SessionManager } from '../../backend/services/session-manager';
@@ -191,74 +191,81 @@ export default function SignInScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Welcome back</Text>
-      <Text style={styles.subtitle}>Sign in to your account</Text>
-      
-      {showReturningUserButton && (
+    <ScrollView contentContainerStyle={styles.container}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
+        <View style={styles.titleContainer}>
+          <Text style={styles.title}>Welcome back</Text>
+          <Text style={styles.subtitle}>Sign in to your account</Text>
+        </View>
+        
+        {showReturningUserButton && (
+          <TouchableOpacity 
+            style={styles.returningUserButton}
+            onPress={handleReturningUserSignIn}
+            disabled={loading}
+          >
+            <Text style={styles.returningUserButtonText}>
+              {loading ? 'Signing in...' : 'Returning User? Sign In'}
+            </Text>
+          </TouchableOpacity>
+        )}
+        
         <TouchableOpacity 
-          style={styles.returningUserButton}
-          onPress={handleReturningUserSignIn}
-          disabled={loading}
+          style={styles.googleButton}
+          onPress={() => handleGoogleSignIn(false)}
+          disabled={googleLoading}
         >
-          <Text style={styles.returningUserButtonText}>
-            {loading ? 'Signing in...' : 'Returning User? Sign In'}
+          <Text style={styles.googleButtonText}>
+            {googleLoading ? 'Signing in...' : 'Continue with Google'}
           </Text>
         </TouchableOpacity>
-      )}
-      
-      <TouchableOpacity 
-        style={styles.googleButton}
-        onPress={() => handleGoogleSignIn(false)}
-        disabled={googleLoading}
-      >
-        <Text style={styles.googleButtonText}>
-          {googleLoading ? 'Signing in...' : 'Continue with Google'}
-        </Text>
-      </TouchableOpacity>
-      
-      <View style={styles.divider}>
-        <View style={styles.dividerLine} />
-        <Text style={styles.dividerText}>or</Text>
-        <View style={styles.dividerLine} />
-      </View>
-      
-      <TextInput
-        style={styles.input}
-        autoCapitalize="none"
-        value={emailAddress}
-        placeholder="Enter your email address"
-        onChangeText={(emailAddress) => setEmailAddress(emailAddress)}
-        keyboardType="email-address"
-      />
-      
-      <TextInput
-        style={styles.input}
-        value={password}
-        placeholder="Enter your password"
-        secureTextEntry={true}
-        onChangeText={(password) => setPassword(password)}
-      />
-      
-      <TouchableOpacity 
-        style={[styles.button, loading && styles.buttonDisabled]}
-        onPress={onSignInPress}
-        disabled={loading}
-      >
-        <Text style={styles.buttonText}>
-          {loading ? 'Signing in...' : 'Sign In'}
-        </Text>
-      </TouchableOpacity>
-      
-      <View style={styles.linkContainer}>
-        <Text style={styles.linkText}>Don't have an account? </Text>
-        <Link href="/auth/sign-up" asChild>
-          <TouchableOpacity>
-            <Text style={styles.linkTextBold}>Sign up</Text>
-          </TouchableOpacity>
-        </Link>
-      </View>
-    </View>
+        
+        <View style={styles.divider}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>or</Text>
+          <View style={styles.dividerLine} />
+        </View>
+        
+        <TextInput
+          style={styles.input}
+          autoCapitalize="none"
+          value={emailAddress}
+          placeholder="Enter your email address"
+          onChangeText={(emailAddress) => setEmailAddress(emailAddress)}
+          keyboardType="email-address"
+        />
+        
+        <TextInput
+          style={styles.input}
+          value={password}
+          placeholder="Enter your password"
+          secureTextEntry={true}
+          onChangeText={(password) => setPassword(password)}
+        />
+        
+        <TouchableOpacity 
+          style={[styles.button, loading && styles.buttonDisabled]}
+          onPress={onSignInPress}
+          disabled={loading}
+        >
+          <Text style={styles.buttonText}>
+            {loading ? 'Signing in...' : 'Sign In'}
+          </Text>
+        </TouchableOpacity>
+        
+        <View style={styles.linkContainer}>
+          <Text style={styles.linkText}>Don't have an account? </Text>
+          <Link href="/auth/sign-up" asChild>
+            <TouchableOpacity>
+              <Text style={styles.linkTextBold}>Sign up</Text>
+            </TouchableOpacity>
+          </Link>
+        </View>
+      </KeyboardAvoidingView>
+    </ScrollView>
   );
 }
 
@@ -268,6 +275,10 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: '#f8f9fa',
     justifyContent: 'center',
+  },
+  titleContainer: {
+    alignItems: 'center',
+    marginBottom: 32,
   },
   title: {
     fontSize: 28,
@@ -351,6 +362,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: 16,
   },
   linkText: {
     color: '#6B7F6B',

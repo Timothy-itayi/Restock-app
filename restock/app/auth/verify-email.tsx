@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSignUp, useAuth } from '@clerk/clerk-expo';
 import { UserProfileService } from '../../backend/services/user-profile';
 import { supabase } from '../../backend/config/supabase';
@@ -155,38 +155,43 @@ export default function VerifyEmailScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Verify your email</Text>
-      <Text style={styles.subtitle}>
-        We've sent a verification code to your email address
-      </Text>
-      
-      <TextInput
-        style={styles.input}
-        value={code}
-        placeholder="Enter your verification code"
-        onChangeText={(code) => setCode(code)}
-        keyboardType="number-pad"
-        autoCapitalize="none"
-      />
-      
-      <TouchableOpacity 
-        style={[styles.button, loading && styles.buttonDisabled]}
-        onPress={handleVerifyEmail}
-        disabled={loading}
-      >
-        <Text style={styles.buttonText}>
-          {loading ? 'Verifying...' : 'Verify Email'}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{ flex: 1 }}
+    >
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.title}>Verify your email</Text>
+        <Text style={styles.subtitle}>
+          We've sent a verification code to your email address
         </Text>
-      </TouchableOpacity>
-      
-      <TouchableOpacity 
-        style={styles.backButton}
-        onPress={() => router.back()}
-      >
-        <Text style={styles.backButtonText}>Back</Text>
-      </TouchableOpacity>
-    </View>
+        
+        <TextInput
+          style={styles.input}
+          value={code}
+          placeholder="Enter your verification code"
+          onChangeText={(code) => setCode(code)}
+          keyboardType="number-pad"
+          autoCapitalize="none"
+        />
+        
+        <TouchableOpacity 
+          style={[styles.button, loading && styles.buttonDisabled]}
+          onPress={handleVerifyEmail}
+          disabled={loading}
+        >
+          <Text style={styles.buttonText}>
+            {loading ? 'Verifying...' : 'Verify Email'}
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <Text style={styles.backButtonText}>Back</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
