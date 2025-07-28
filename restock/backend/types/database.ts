@@ -3,6 +3,7 @@
 export interface User {
   id: string; // Clerk user ID (text, not UUID)
   email: string;
+  name?: string; // User's first name for personalized greetings
   store_name?: string;
   created_at: string;
   updated_at?: string;
@@ -57,6 +58,7 @@ export interface EmailSent {
 export interface InsertUser {
   id: string;
   email: string;
+  name?: string;
   store_name?: string;
 }
 

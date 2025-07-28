@@ -31,7 +31,7 @@ export class UserProfileService {
   /**
    * Save user profile data after Clerk authentication
    */
-  static async saveUserProfile(clerkUserId: string, email: string, storeName: string) {
+  static async saveUserProfile(clerkUserId: string, email: string, storeName: string, name?: string) {
     try {
       // First, try to insert with updated_at
       const { data, error } = await supabase
@@ -39,6 +39,7 @@ export class UserProfileService {
         .upsert({
           id: clerkUserId,
           email,
+          name,
           store_name: storeName,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
@@ -55,6 +56,7 @@ export class UserProfileService {
             .upsert({
               id: clerkUserId,
               email,
+              name,
               store_name: storeName,
               created_at: new Date().toISOString(),
             })
