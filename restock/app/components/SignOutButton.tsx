@@ -1,28 +1,51 @@
-import { useClerk } from '@clerk/clerk-expo';
-import * as Linking from 'expo-linking';
-import { Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import React from 'react';
+import { TouchableOpacity, Text, StyleSheet, Alert } from 'react-native';
+import { useAuth } from '@clerk/clerk-expo';
+import { useRouter } from 'expo-router';
+import { SessionManager } from '../../backend/services/session-manager';
 
-export const SignOutButton = () => {
-  // Use `useClerk()` to access the `signOut()` function
-  const { signOut } = useClerk();
-  
+export default function SignOutButton() {
+  const { signOut } = useAuth();
+  const router = useRouter();
+
   const handleSignOut = async () => {
-    try {
-      await signOut();
-      // Redirect to welcome page
-      Linking.openURL(Linking.createURL('/welcome'));
-    } catch (err: any) {
-      console.error(JSON.stringify(err, null, 2));
-      Alert.alert('Error', 'Failed to sign out. Please try again.');
-    }
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Clear the user session data but keep the returning user flag
+              await SessionManager.clearUserSession();
+              
+              // Sign out from Clerk
+              await signOut();
+              
+              // Navigate to welcome screen
+              router.replace('/welcome');
+            } catch (error) {
+              console.error('Error signing out:', error);
+              Alert.alert('Error', 'Failed to sign out. Please try again.');
+            }
+          },
+        },
+      ]
+    );
   };
-  
+
   return (
     <TouchableOpacity style={styles.button} onPress={handleSignOut}>
-      <Text style={styles.buttonText}>Sign out</Text>
+      <Text style={styles.buttonText}>Sign Out</Text>
     </TouchableOpacity>
   );
-};
+}
 
 const styles = StyleSheet.create({
   button: {

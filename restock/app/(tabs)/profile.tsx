@@ -1,10 +1,42 @@
-import React from "react";
-import { Text, View, StyleSheet } from "react-native";
+import React, { useState, useEffect } from "react";
+import { Text, View, StyleSheet, ActivityIndicator } from "react-native";
 import { useUser } from "@clerk/clerk-expo";
-import { SignOutButton } from "../components/SignOutButton";
+import SignOutButton from "../components/SignOutButton";
+import { UserProfileService } from "../../backend/services/user-profile";
 
 export default function ProfileScreen() {
   const { user } = useUser();
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (user?.id) {
+        try {
+          const result = await UserProfileService.getUserProfile(user.id);
+          if (result.data) {
+            setUserProfile(result.data);
+          }
+        } catch (error) {
+          console.error('Error fetching user profile:', error);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setLoading(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, [user?.id]);
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#6B7F6B" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -19,16 +51,23 @@ export default function ProfileScreen() {
         <Text style={styles.cardTitle}>Account Information</Text>
         
         <View style={styles.infoRow}>
-          <Text style={styles.label}>Email</Text>
+          <Text style={styles.label}>Name</Text>
           <Text style={styles.value}>
-            {user?.emailAddresses[0]?.emailAddress || 'Not available'}
+            {userProfile?.name || user?.firstName || 'Not set'}
           </Text>
         </View>
         
         <View style={styles.infoRow}>
-          <Text style={styles.label}>User ID</Text>
+          <Text style={styles.label}>Store Name</Text>
+          <Text style={[styles.value, styles.storeName]}>
+            {userProfile?.store_name || 'Not set'}
+          </Text>
+        </View>
+        
+        <View style={styles.infoRow}>
+          <Text style={styles.label}>Email</Text>
           <Text style={styles.value}>
-            {user?.id || 'Not available'}
+            {user?.emailAddresses[0]?.emailAddress || 'Not available'}
           </Text>
         </View>
         
@@ -96,5 +135,9 @@ const styles = StyleSheet.create({
   value: {
     fontSize: 16,
     color: '#333',
+  },
+  storeName: {
+    fontWeight: 'bold',
+    color: '#6B7F6B',
   },
 }); 
