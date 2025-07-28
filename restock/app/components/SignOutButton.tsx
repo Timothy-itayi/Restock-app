@@ -1,14 +1,14 @@
-import { useClerk } from '@clerk/clerk-expo';
-import { Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import { router } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React from 'react';
+import { TouchableOpacity, Text, StyleSheet, Alert } from 'react-native';
+import { useAuth } from '@clerk/clerk-expo';
+import { useRouter } from 'expo-router';
+import { SessionManager } from '../../backend/services/session-manager';
 
-export const SignOutButton = () => {
-  // Use `useClerk()` to access the `signOut()` function
-  const { signOut } = useClerk();
-  
+export default function SignOutButton() {
+  const { signOut } = useAuth();
+  const router = useRouter();
+
   const handleSignOut = async () => {
-    // Show confirmation dialog
     Alert.alert(
       'Sign Out',
       'Are you sure you want to sign out?',
@@ -22,18 +22,16 @@ export const SignOutButton = () => {
           style: 'destructive',
           onPress: async () => {
             try {
-              // Clear any stored user data
-              await AsyncStorage.removeItem('tempUserData');
+              // Clear the user session data but keep the returning user flag
+              await SessionManager.clearUserSession();
               
               // Sign out from Clerk
               await signOut();
               
-              console.log('User signed out successfully');
-              
               // Navigate to welcome screen
               router.replace('/welcome');
-            } catch (err: any) {
-              console.error('Sign out error:', JSON.stringify(err, null, 2));
+            } catch (error) {
+              console.error('Error signing out:', error);
               Alert.alert('Error', 'Failed to sign out. Please try again.');
             }
           },
@@ -41,13 +39,13 @@ export const SignOutButton = () => {
       ]
     );
   };
-  
+
   return (
     <TouchableOpacity style={styles.button} onPress={handleSignOut}>
-      <Text style={styles.buttonText}>Sign out</Text>
+      <Text style={styles.buttonText}>Sign Out</Text>
     </TouchableOpacity>
   );
-};
+}
 
 const styles = StyleSheet.create({
   button: {

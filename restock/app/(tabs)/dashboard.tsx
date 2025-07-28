@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Text, View, ActivityIndicator, TouchableOpacity, StyleSheet } from "react-native";
 import { dashboardStyles } from "../../styles/components/dashboard";
 import { useAuth } from "@clerk/clerk-expo";
-import { UserProfileService } from "../../backend";
+import { UserProfileService } from "../../backend/services/user-profile";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 

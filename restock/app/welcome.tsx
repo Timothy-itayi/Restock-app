@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, TextInput, StyleSheet, Alert } from 'react-native';
 import { router } from 'expo-router';
-import { useSignUp, useOAuth, useAuth } from '@clerk/clerk-expo';
-import { UserProfileService } from '../backend';
+import { useSignUp, useAuth, useUser } from '@clerk/clerk-expo';
+import { UserProfileService } from '../backend/services/user-profile';
+import { SessionManager } from '../backend/services/session-manager';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
+import { getOAuthUrl } from '../backend/config/clerk';
 
 export default function WelcomeScreen() {
   const [email, setEmail] = useState('');
@@ -15,18 +19,31 @@ export default function WelcomeScreen() {
   const [loading, setLoading] = useState(false);
   const [isGoogleSSO, setIsGoogleSSO] = useState(false);
   const [googleUserData, setGoogleUserData] = useState<any>(null);
+  const [showReturningUserButton, setShowReturningUserButton] = useState(false);
   const { signUp, setActive, isLoaded } = useSignUp();
-  const { startOAuthFlow } = useOAuth({ strategy: "oauth_google" });
   const { isSignedIn, userId } = useAuth();
+  const { user } = useUser();
 
-  // Check if user is already authenticated
+  // Check if user is already authenticated and check returning user status
   useEffect(() => {
     if (isLoaded && isSignedIn && userId) {
       console.log('User is already authenticated:', userId);
       // Check if user profile exists in Supabase
       checkUserProfile(userId);
     }
+    
+    // Check if user is a returning user
+    checkReturningUser();
   }, [isLoaded, isSignedIn, userId]);
+
+  const checkReturningUser = async () => {
+    try {
+      const returning = await SessionManager.isReturningUser();
+      setShowReturningUserButton(returning);
+    } catch (error) {
+      console.error('Error checking returning user status:', error);
+    }
+  };
 
   const checkUserProfile = async (userId: string) => {
     try {
@@ -34,6 +51,19 @@ export default function WelcomeScreen() {
       if (verifyResult.data) {
         console.log('User profile exists, redirecting to dashboard');
         console.log('Profile data:', verifyResult.data);
+        
+        // Save session data for returning user detection
+        if (user) {
+          const userEmail = user.emailAddresses?.[0]?.emailAddress || user.primaryEmailAddress?.emailAddress;
+          await SessionManager.saveUserSession({
+            userId,
+            email: userEmail || '',
+            storeName: verifyResult.data.store_name,
+            wasSignedIn: true,
+            lastSignIn: Date.now(),
+          });
+        }
+        
         router.replace('/(tabs)/dashboard');
       } else {
         console.log('User profile does not exist, need to complete setup');
@@ -45,6 +75,32 @@ export default function WelcomeScreen() {
       console.error('Error checking user profile:', error);
       // If verification fails, assume profile doesn't exist and show setup
       setShowStoreNameInput(true);
+    }
+  };
+
+  // Handle returning user sign-in
+  const handleReturningUserSignIn = async () => {
+    if (!isLoaded) return;
+
+    setLoading(true);
+    try {
+      // Get cached session data
+      const cachedSession = await SessionManager.getUserSession();
+      
+      if (cachedSession) {
+        console.log('Found cached session for returning user:', cachedSession.email);
+        
+        // Try to authenticate with cached credentials
+        // For now, we'll use Google OAuth for returning users
+        await handleGoogleSignup(true); // true indicates returning user flow
+      } else {
+        Alert.alert('Error', 'No cached session found. Please sign up normally.');
+      }
+    } catch (error) {
+      console.error('Error with returning user sign-in:', error);
+      Alert.alert('Error', 'Failed to sign in as returning user. Please try the normal sign-up process.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -65,79 +121,119 @@ export default function WelcomeScreen() {
     setShowEmailSignup(true);
   };
 
-  const handleGoogleSignup = async () => {
+  const handleGoogleSignup = async (isReturningUserFlow = false) => {
     if (!isLoaded) return;
 
     setLoading(true);
     try {
       console.log('Starting Google OAuth flow...');
       
-      const { createdSessionId, signUp, signIn } = await startOAuthFlow();
-
-      if (createdSessionId) {
-        console.log('Google OAuth successful, session created:', createdSessionId);
+      // Construct the OAuth URL for Google
+      const redirectUrl = Linking.createURL('/');
+      const oauthUrl = getOAuthUrl('oauth_google', 'sign-in', redirectUrl);
+      
+      console.log('Opening OAuth URL:', oauthUrl);
+      
+      // Open the OAuth URL in a web browser
+      const result = await WebBrowser.openAuthSessionAsync(oauthUrl, redirectUrl);
+      
+      console.log('OAuth result:', result);
+      
+      if (result.type === 'success') {
+        // OAuth was successful, check if user is now authenticated
+        console.log('OAuth successful, checking authentication...');
         
-        // Get user info from the session
-        const user = signUp?.createdUserId ? signUp : signIn;
-        
-        // Debug: Log the full user object to see its structure
-        console.log('Full user object from OAuth:', JSON.stringify(user, null, 2));
-        
-        // Try different ways to access the email
-        let userEmail = null;
-        
-        // Method 1: Try to access emailAddresses directly
-        if ((user as any)?.emailAddresses?.[0]?.emailAddress) {
-          userEmail = (user as any).emailAddresses[0].emailAddress;
-        }
-        // Method 2: Try to access email directly
-        else if ((user as any)?.emailAddress) {
-          userEmail = (user as any).emailAddress;
-        }
-        // Method 3: Try to access email from primaryEmailAddress
-        else if ((user as any)?.primaryEmailAddress?.emailAddress) {
-          userEmail = (user as any).primaryEmailAddress.emailAddress;
-        }
-        // Method 4: Try to access from user data
-        else if ((user as any)?.user?.emailAddresses?.[0]?.emailAddress) {
-          userEmail = (user as any).user.emailAddresses[0].emailAddress;
-        }
-        
-        if (userEmail) {
-          console.log('User email from Google:', userEmail);
-          
-          // Extract name from Google OAuth data
-          const userName = (user as any)?.firstName || '';
-          console.log('User name from Google:', userName);
-          
-          setEmail(userEmail);
-          setName(userName);
-          setIsGoogleSSO(true);
-          setGoogleUserData({ signUp, signIn, createdSessionId });
-          setShowStoreNameInput(true);
-        } else {
-          console.error('No email found from Google OAuth');
-          console.log('Available user data:', Object.keys(user || {}));
-          Alert.alert('Error', 'Could not retrieve email from Google. Please try again.');
-        }
+        // Wait a moment for Clerk to process the authentication
+        setTimeout(async () => {
+          try {
+            // Check if user is now authenticated
+            if (isSignedIn && userId) {
+              console.log('User authenticated after OAuth:', userId);
+              
+              // Check if this user already exists in Supabase
+              const profileResult = await UserProfileService.verifyUserProfile(userId);
+              
+              if (profileResult.data) {
+                console.log('Existing user found, redirecting to dashboard');
+                
+                // Save session data for returning user detection
+                if (user) {
+                  const userEmail = user.emailAddresses?.[0]?.emailAddress || user.primaryEmailAddress?.emailAddress;
+                  await SessionManager.saveUserSession({
+                    userId,
+                    email: userEmail || '',
+                    storeName: profileResult.data.store_name,
+                    wasSignedIn: true,
+                    lastSignIn: Date.now(),
+                  });
+                }
+                
+                router.replace('/(tabs)/dashboard');
+                return;
+              } else {
+                console.log('New user, need to complete setup');
+                
+                // For new users, try to extract email from current user
+                let userEmail = null;
+                
+                if (user?.emailAddresses?.[0]?.emailAddress) {
+                  userEmail = user.emailAddresses[0].emailAddress;
+                } else if (user?.primaryEmailAddress?.emailAddress) {
+                  userEmail = user.primaryEmailAddress.emailAddress;
+                }
+                
+                if (userEmail) {
+                  console.log('User email from Google:', userEmail);
+                  
+                  // Extract name from current user - try multiple sources
+                  let userName = '';
+                  if (user?.firstName && user?.lastName) {
+                    userName = `${user.firstName} ${user.lastName}`;
+                  } else if (user?.firstName) {
+                    userName = user.firstName;
+                  } else if (user?.lastName) {
+                    userName = user.lastName;
+                  } else if (user?.fullName) {
+                    userName = user.fullName;
+                  } else if (user?.username) {
+                    userName = user.username;
+                  }
+                  
+                  console.log('User name from Google:', userName);
+                  console.log('User object for debugging:', {
+                    firstName: user?.firstName,
+                    lastName: user?.lastName,
+                    fullName: user?.fullName,
+                    username: user?.username
+                  });
+                  
+                  setEmail(userEmail);
+                  setName(userName);
+                  setIsGoogleSSO(true);
+                  setShowStoreNameInput(true);
+                } else {
+                  console.error('No email found from Google OAuth');
+                  Alert.alert('Error', 'Could not retrieve email from Google. Please try again.');
+                }
+              }
+            } else {
+              console.log('User not authenticated after OAuth');
+              Alert.alert('Authentication Failed', 'Please try signing in with Google again.');
+            }
+          } catch (error) {
+            console.error('Error checking user after OAuth:', error);
+            Alert.alert('Error', 'Could not verify your account. Please try again.');
+          }
+        }, 2000); // Wait 2 seconds for Clerk to process
+      } else if (result.type === 'cancel') {
+        console.log('OAuth cancelled by user');
       } else {
-        console.log('Google OAuth cancelled or failed');
+        console.log('OAuth failed:', result);
+        Alert.alert('Error', 'Failed to sign in with Google. Please try again.');
       }
     } catch (err: any) {
       console.error('Google OAuth error:', JSON.stringify(err, null, 2));
-      
-      // Handle session_exists error
-      if (err.errors?.[0]?.code === 'session_exists') {
-        console.log('User is already signed in, checking profile...');
-        // User is already authenticated, check if they have a profile
-        if (isSignedIn && userId) {
-          checkUserProfile(userId);
-        } else {
-          Alert.alert('Already Signed In', 'You are already signed in. Please continue with your account setup.');
-        }
-      } else {
-        Alert.alert('Error', 'Failed to sign in with Google. Please try again.');
-      }
+      Alert.alert('Error', 'Failed to sign in with Google. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -198,42 +294,43 @@ export default function WelcomeScreen() {
         // Google SSO flow - user is already authenticated
         console.log('Google SSO flow - user already authenticated');
         
-        if (isGoogleSSO && googleUserData) {
-          // Get the current user from the session
-          await setActive({ session: googleUserData.createdSessionId });
+        if (isGoogleSSO && userId) {
+          console.log('Google user authenticated:', userId);
+          console.log('Saving user profile with data:', {
+            userId,
+            email,
+            storeName,
+            name,
+            nameLength: name?.length || 0,
+            nameIsEmpty: !name || name.trim() === ''
+          });
           
-          // For Google SSO, we need to get the user ID from the OAuth result
-          const userId = googleUserData.signUp?.createdUserId || (googleUserData.signIn as any)?.createdUserId;
-          
-          if (userId) {
-            console.log('Google user authenticated:', userId);
+          // Use the new ensureUserProfile method
+          try {
+            const result = await UserProfileService.ensureUserProfile(userId, email, storeName, name);
             
-            // Save user profile to Supabase
-            try {
-              const saveResult = await UserProfileService.saveUserProfile(userId, email, storeName, name);
+            if (result.error) {
+              console.error('Failed to ensure user profile:', result.error);
+              Alert.alert('Error', 'Failed to save your profile. Please try again.');
+            } else {
+              console.log('User profile ensured successfully');
+              console.log('Profile data:', result.data);
               
-              if (saveResult.error) {
-                console.error('Failed to save user profile:', saveResult.error);
-              } else {
-                console.log('User profile saved successfully');
-                
-                // Verify the user was actually saved
-                const verifyResult = await UserProfileService.verifyUserProfile(userId);
-                if (verifyResult.data) {
-                  console.log('User profile verified in Supabase:', verifyResult.data);
-                } else {
-                  console.error('Failed to verify user profile:', verifyResult.error);
-                }
-              }
-            } catch (error) {
-              console.error('Error saving user profile:', error);
+              // Save session data for returning user detection
+              await SessionManager.saveUserSession({
+                userId,
+                email,
+                storeName,
+                wasSignedIn: true,
+                lastSignIn: Date.now(),
+              });
+              
+              // Navigate to dashboard
+              router.replace('/(tabs)/dashboard');
             }
-            
-            // Navigate to dashboard
-            router.replace('/(tabs)/dashboard');
-          } else {
-            console.error('No user ID found after Google authentication');
-            Alert.alert('Error', 'Authentication failed. Please try again.');
+          } catch (error) {
+            console.error('Error ensuring user profile:', error);
+            Alert.alert('Error', 'Failed to save your profile. Please try again.');
           }
         } else {
           console.log('Google SSO - proceeding to store name input');
@@ -273,9 +370,21 @@ export default function WelcomeScreen() {
           <View style={styles.optionsSection}>
             <Text style={styles.sectionTitle}>Get Started</Text>
             
+            {showReturningUserButton && (
+              <TouchableOpacity 
+                style={styles.returningUserButton}
+                onPress={handleReturningUserSignIn}
+                disabled={loading}
+              >
+                <Text style={styles.returningUserButtonText}>
+                  {loading ? 'Signing in...' : 'Returning User? Sign In'}
+                </Text>
+              </TouchableOpacity>
+            )}
+            
             <TouchableOpacity 
               style={styles.googleButton}
-              onPress={handleGoogleSignup}
+              onPress={() => handleGoogleSignup(false)}
               disabled={loading}
             >
               <Text style={styles.googleButtonText}>
@@ -445,6 +554,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
+  returningUserButton: {
+    backgroundColor: '#A7B9A7',
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   buttonDisabled: {
     opacity: 0.6,
   },
@@ -455,6 +571,11 @@ const styles = StyleSheet.create({
   },
   googleButtonText: {
     color: '#2c3e50',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  returningUserButtonText: {
+    color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
   },

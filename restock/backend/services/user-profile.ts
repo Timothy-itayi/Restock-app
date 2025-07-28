@@ -33,6 +33,16 @@ export class UserProfileService {
    */
   static async saveUserProfile(clerkUserId: string, email: string, storeName: string, name?: string) {
     try {
+      console.log('saveUserProfile called with:', {
+        clerkUserId,
+        email,
+        storeName,
+        name,
+        nameType: typeof name,
+        nameLength: name?.length || 0,
+        nameIsEmpty: !name || name.trim() === ''
+      });
+      
       // First, try to insert with updated_at
       const { data, error } = await supabase
         .from('users')
@@ -64,11 +74,13 @@ export class UserProfileService {
             .single();
 
           if (retryError) throw retryError;
+          console.log('Profile saved successfully (retry):', retryData);
           return { data: retryData, error: null };
         }
         throw error;
       }
 
+      console.log('Profile saved successfully:', data);
       return { data, error: null };
     } catch (error) {
       console.error('Error saving user profile:', error);
@@ -127,7 +139,7 @@ export class UserProfileService {
         .from('users')
         .select('*')
         .eq('id', clerkUserId)
-        .single();
+        .maybeSingle(); // Use maybeSingle() instead of single()
 
       if (error) throw error;
 
@@ -147,11 +159,9 @@ export class UserProfileService {
         .from('users')
         .select('id')
         .eq('id', clerkUserId)
-        .single();
+        .maybeSingle(); // Use maybeSingle() instead of single()
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
-        throw error;
-      }
+      if (error) throw error;
 
       return { exists: !!data, error: null };
     } catch (error) {
@@ -169,14 +179,73 @@ export class UserProfileService {
         .from('users')
         .select('*')
         .eq('id', clerkUserId)
-        .single();
+        .maybeSingle(); // Use maybeSingle() instead of single()
 
       if (error) throw error;
+
+      if (!data) {
+        // User doesn't exist yet
+        console.log('User profile does not exist yet');
+        return { data: null, error: null };
+      }
 
       console.log('User profile verified:', data);
       return { data, error: null };
     } catch (error) {
       console.error('Error verifying user profile:', error);
+      return { data: null, error };
+    }
+  }
+
+  /**
+   * Ensure user profile exists - creates if doesn't exist
+   * This implements the recommended flow pattern
+   */
+  static async ensureUserProfile(clerkUserId: string, email: string, storeName: string, name?: string) {
+    try {
+      console.log('Ensuring user profile exists for:', { clerkUserId, email, storeName, name });
+      
+      // First, check if user exists
+      const { data: existingUser, error: checkError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', clerkUserId)
+        .maybeSingle();
+
+      if (checkError) {
+        console.error('Error checking existing user:', checkError);
+        throw checkError;
+      }
+
+      if (existingUser) {
+        console.log('User profile already exists:', existingUser);
+        return { data: existingUser, error: null };
+      }
+
+      // User doesn't exist, create profile
+      console.log('User profile does not exist, creating new profile');
+      
+      const { data: newUser, error: insertError } = await supabase
+        .from('users')
+        .insert({
+          id: clerkUserId,
+          email,
+          name,
+          store_name: storeName,
+          created_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error('Error creating user profile:', insertError);
+        return { data: null, error: insertError };
+      }
+
+      console.log('User profile created successfully:', newUser);
+      return { data: newUser, error: null };
+    } catch (error) {
+      console.error('Error ensuring user profile:', error);
       return { data: null, error };
     }
   }

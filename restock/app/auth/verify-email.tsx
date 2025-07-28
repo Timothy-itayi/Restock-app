@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import { useSignUp } from '@clerk/clerk-expo';
-import { router } from 'expo-router';
-import { UserProfileService, supabase } from '../../backend';
+import { useSignUp, useAuth } from '@clerk/clerk-expo';
+import { UserProfileService } from '../../backend/services/user-profile';
+import { supabase } from '../../backend/config/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
 
 export default function VerifyEmailScreen() {
   const [code, setCode] = useState('');

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Text, View, StyleSheet, ActivityIndicator } from "react-native";
 import { useUser } from "@clerk/clerk-expo";
-import { SignOutButton } from "../components/SignOutButton";
-import { UserProfileService } from "../../backend";
+import SignOutButton from "../components/SignOutButton";
+import { UserProfileService } from "../../backend/services/user-profile";
 
 export default function ProfileScreen() {
   const { user } = useUser();
