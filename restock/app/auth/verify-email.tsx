@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useSignUp } from '@clerk/clerk-expo';
 import { router } from 'expo-router';
-import { UserProfileService } from '../../backend';
+import { UserProfileService, supabase } from '../../backend';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function VerifyEmailScreen() {
@@ -47,16 +47,46 @@ export default function VerifyEmailScreen() {
           
           // Save user data to Supabase
           try {
+            // Simple connection test
+            try {
+              const { data: testData, error: testError } = await supabase
+                .from('users')
+                .select('count')
+                .limit(1);
+              
+              if (testError) {
+                console.error('Supabase connection test failed:', testError);
+              } else {
+                console.log('Supabase connection verified');
+              }
+            } catch (testError) {
+              console.error('Supabase connection error:', testError);
+            }
+            
             const tempUserData = await AsyncStorage.getItem('tempUserData');
             if (tempUserData) {
               const { email, storeName } = JSON.parse(tempUserData);
               
               if (email && storeName) {
                 console.log('Saving user profile to Supabase:', { userId, email, storeName });
-                await UserProfileService.saveUserProfile(userId, email, storeName);
+                const saveResult = await UserProfileService.saveUserProfile(userId, email, storeName);
+                
+                if (saveResult.error) {
+                  console.error('Failed to save user profile:', saveResult.error);
+                } else {
+                  console.log('User profile saved successfully');
+                  
+                  // Verify the user was actually saved
+                  const verifyResult = await UserProfileService.verifyUserProfile(userId);
+                  if (verifyResult.data) {
+                    console.log('User profile verified in Supabase:', verifyResult.data);
+                  } else {
+                    console.error('Failed to verify user profile:', verifyResult.error);
+                  }
+                }
+                
                 // Clear temporary data
                 await AsyncStorage.removeItem('tempUserData');
-                console.log('User profile saved successfully');
               }
             }
           } catch (error) {
@@ -85,7 +115,22 @@ export default function VerifyEmailScreen() {
               
               if (email && storeName) {
                 console.log('Saving user profile with fallback approach');
-                await UserProfileService.saveUserProfile(userId, email, storeName);
+                const saveResult = await UserProfileService.saveUserProfile(userId, email, storeName);
+                
+                if (saveResult.error) {
+                  console.error('Failed to save user profile in fallback:', saveResult.error);
+                } else {
+                  console.log('User profile saved successfully in fallback');
+                  
+                  // Verify the user was actually saved
+                  const verifyResult = await UserProfileService.verifyUserProfile(userId);
+                  if (verifyResult.data) {
+                    console.log('User profile verified in Supabase (fallback):', verifyResult.data);
+                  } else {
+                    console.error('Failed to verify user profile in fallback:', verifyResult.error);
+                  }
+                }
+                
                 await AsyncStorage.removeItem('tempUserData');
                 
                 // Try to redirect to dashboard

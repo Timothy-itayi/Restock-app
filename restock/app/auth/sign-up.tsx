@@ -12,6 +12,33 @@ export default function SignUpScreen() {
   const [pendingVerification, setPendingVerification] = React.useState(false);
   const [code, setCode] = React.useState('');
   const [loading, setLoading] = React.useState(false);
+  const [passwordError, setPasswordError] = React.useState('');
+
+  // Password validation function
+  const validatePassword = (password: string) => {
+    if (password.length < 8) {
+      return 'Password must be at least 8 characters long';
+    }
+    if (!/[A-Z]/.test(password)) {
+      return 'Password must contain at least one uppercase letter';
+    }
+    if (!/[a-z]/.test(password)) {
+      return 'Password must contain at least one lowercase letter';
+    }
+    if (!/\d/.test(password)) {
+      return 'Password must contain at least one number';
+    }
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+      return 'Password must contain at least one special character (!@#$%^&*)';
+    }
+    return '';
+  };
+
+  // Handle password change
+  const handlePasswordChange = (newPassword: string) => {
+    setPassword(newPassword);
+    setPasswordError(validatePassword(newPassword));
+  };
 
   // Handle submission of sign-up form
   const onSignUpPress = async () => {
@@ -22,8 +49,9 @@ export default function SignUpScreen() {
       return;
     }
 
-    if (password.length < 8) {
-      Alert.alert('Error', 'Password must be at least 8 characters long');
+    const passwordValidation = validatePassword(password);
+    if (passwordValidation) {
+      setPasswordError(passwordValidation);
       return;
     }
 
@@ -43,7 +71,22 @@ export default function SignUpScreen() {
       setPendingVerification(true);
     } catch (err: any) {
       console.error(JSON.stringify(err, null, 2));
-      Alert.alert('Error', err.errors?.[0]?.message || 'Something went wrong');
+      
+      // Handle specific password breach error
+      if (err.errors?.[0]?.code === 'form_password_pwned') {
+        Alert.alert(
+          'Password Security Issue',
+          'This password has been found in a data breach. Please choose a different, unique password that you haven\'t used elsewhere.',
+          [
+            {
+              text: 'OK',
+              onPress: () => setPassword('')
+            }
+          ]
+        );
+      } else {
+        Alert.alert('Error', err.errors?.[0]?.message || 'Something went wrong');
+      }
     } finally {
       setLoading(false);
     }
@@ -69,7 +112,7 @@ export default function SignUpScreen() {
       // and redirect the user
       if (signUpAttempt.status === 'complete') {
         await setActive({ session: signUpAttempt.createdSessionId });
-        router.replace('/(home)');
+        router.replace('/(tabs)/dashboard');
       } else {
         // If the status is not complete, check why. User may need to
         // complete further steps.
@@ -136,18 +179,26 @@ export default function SignUpScreen() {
       />
       
       <TextInput
-        style={styles.input}
+        style={[styles.input, passwordError && styles.inputError]}
         value={password}
-        placeholder="Create a password"
+        placeholder="Create a strong password"
         secureTextEntry={true}
-        onChangeText={(password) => setPassword(password)}
+        onChangeText={handlePasswordChange}
         autoCapitalize="none"
       />
       
+      {passwordError ? (
+        <Text style={styles.errorText}>{passwordError}</Text>
+      ) : (
+        <Text style={styles.helpText}>
+          Password must be at least 8 characters with uppercase, lowercase, number, and special character
+        </Text>
+      )}
+      
       <TouchableOpacity 
-        style={[styles.button, loading && styles.buttonDisabled]}
+        style={[styles.button, (loading || passwordError) && styles.buttonDisabled]}
         onPress={onSignUpPress}
-        disabled={loading}
+        disabled={loading || !!passwordError}
       >
         <Text style={styles.buttonText}>
           {loading ? 'Creating account...' : 'Create Account'}
@@ -195,6 +246,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 16,
   },
+  inputError: {
+    borderColor: '#e74c3c',
+  },
   button: {
     backgroundColor: '#6B7F6B',
     borderRadius: 8,
@@ -209,6 +263,19 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  errorText: {
+    color: '#e74c3c',
+    fontSize: 14,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  helpText: {
+    color: '#7f8c8d',
+    fontSize: 12,
+    marginBottom: 16,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
   linkContainer: {
     flexDirection: 'row',
