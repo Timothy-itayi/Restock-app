@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useRouter } from 'expo-router';
-import { useAuthContext } from '../contexts/AuthContext';
+import { useAuthContext } from '../_contexts/AuthContext';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -31,9 +31,9 @@ export default function AuthGuard({ children, requireAuth = false, requireNoAuth
     }
   }, [isAuthenticated, isLoading, isVerifying, requireAuth, requireNoAuth, router]);
 
-  // Show nothing while loading or verifying
+  // Show children while loading or verifying (let AuthVerificationGate handle loading screen)
   if (isLoading || isVerifying) {
-    return null;
+    return <>{children}</>;
   }
 
   return <>{children}</>;

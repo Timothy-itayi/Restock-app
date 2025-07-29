@@ -36,4 +36,6 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
       {children}
     </ClerkAuthContext.Provider>
   );
-}; 
+};
+
+export default ClerkAuthProvider; 

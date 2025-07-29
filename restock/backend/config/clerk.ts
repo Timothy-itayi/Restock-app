@@ -11,10 +11,8 @@ if (!CLERK_PUBLISHABLE_KEY) {
 export const getClerkDomain = () => {
   if (!CLERK_PUBLISHABLE_KEY) return null;
   
-  // Clerk publishable key format: pk_test_xxxxx or pk_live_xxxxx
-  // We need to extract the domain from the key or use a default
-  const isTest = CLERK_PUBLISHABLE_KEY.includes('pk_test_');
-  return isTest ? 'clerk.dev' : 'clerk.com';
+  // Use the specific domain for your Clerk instance
+  return 'thorough-cow-9.accounts.dev';
 };
 
 // Generate OAuth URLs with proper redirect handling
@@ -24,12 +22,16 @@ export const getOAuthUrl = (strategy: 'oauth_google', action: 'sign-in' | 'sign-
     throw new Error('Clerk domain not found');
   }
   
-  // Ensure the redirect URL points back to the app, not Clerk console
-  const appRedirectUrl = redirectUrl.includes('clerk.dev') || redirectUrl.includes('clerk.com') 
-    ? 'exp://localhost:8081' // Default Expo development URL
-    : redirectUrl;
+  // Use the app's redirect URL directly
+  // This should match what's configured in your Clerk dashboard OAuth settings
+  console.log('OAuth Configuration:', {
+    domain,
+    action,
+    strategy,
+    redirectUrl,
+  });
   
-  return `https://${domain}/${action}?strategy=${strategy}&redirect_url=${encodeURIComponent(appRedirectUrl)}`;
+  return `https://${domain}/${action}?strategy=${strategy}&redirect_url=${encodeURIComponent(redirectUrl)}`;
 };
 
 // Clerk configuration options

@@ -1,453 +1,253 @@
-import { useSignUp, useAuth, useUser } from '@clerk/clerk-expo';
-import { Link, useRouter } from 'expo-router';
-import { Text, TextInput, TouchableOpacity, View, StyleSheet, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
-import { UserProfileService } from '../../backend/services/user-profile';
-import React from 'react';
-import * as WebBrowser from 'expo-web-browser';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, TextInput, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { router, Link } from 'expo-router';
+import { useSignUp, useAuth, useUser, useSSO } from '@clerk/clerk-expo';
 import * as Linking from 'expo-linking';
-import { getOAuthUrl } from '../../backend/config/clerk';
 import AuthGuard from '../components/AuthGuard';
+import { signUpStyles } from '../../styles/components/sign-up';
 
 export default function SignUpScreen() {
-  const { isLoaded, signUp, setActive } = useSignUp();
+  const { signUp, setActive, isLoaded } = useSignUp();
   const { isSignedIn, userId } = useAuth();
   const { user } = useUser();
-  const router = useRouter();
+  const { startSSOFlow } = useSSO();
+  
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<{[key: string]: string}>({});
 
-  const [emailAddress, setEmailAddress] = React.useState('');
-  const [password, setPassword] = React.useState('');
-  const [pendingVerification, setPendingVerification] = React.useState(false);
-  const [code, setCode] = React.useState('');
-  const [loading, setLoading] = React.useState(false);
-  const [googleLoading, setGoogleLoading] = React.useState(false);
-  const [passwordError, setPasswordError] = React.useState('');
-
-  // Password validation function
   const validatePassword = (password: string) => {
-    if (password.length < 8) {
-      return 'Password must be at least 8 characters long';
-    }
-    if (!/[A-Z]/.test(password)) {
-      return 'Password must contain at least one uppercase letter';
-    }
-    if (!/[a-z]/.test(password)) {
-      return 'Password must contain at least one lowercase letter';
-    }
-    if (!/\d/.test(password)) {
-      return 'Password must contain at least one number';
-    }
-    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
-      return 'Password must contain at least one special character (!@#$%^&*)';
-    }
-    return '';
+    const minLength = password.length >= 8;
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumbers = /\d/.test(password);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+    
+    return {
+      minLength,
+      hasUpperCase,
+      hasLowerCase,
+      hasNumbers,
+      hasSpecialChar,
+      isValid: minLength && hasUpperCase && hasLowerCase && hasNumbers && hasSpecialChar
+    };
   };
 
-  // Handle password change
   const handlePasswordChange = (newPassword: string) => {
     setPassword(newPassword);
-    setPasswordError(validatePassword(newPassword));
+    const validation = validatePassword(newPassword);
+    
+    const newErrors: {[key: string]: string} = {};
+    if (!validation.minLength) newErrors.length = 'Password must be at least 8 characters';
+    if (!validation.hasUpperCase) newErrors.uppercase = 'Password must contain uppercase letter';
+    if (!validation.hasLowerCase) newErrors.lowercase = 'Password must contain lowercase letter';
+    if (!validation.hasNumbers) newErrors.numbers = 'Password must contain number';
+    if (!validation.hasSpecialChar) newErrors.special = 'Password must contain special character';
+    
+    setErrors(newErrors);
   };
 
-  // Handle Google SSO for new users
   const handleGoogleSignUp = async () => {
     if (!isLoaded) return;
 
-    setGoogleLoading(true);
+    setLoading(true);
     try {
       console.log('Starting Google OAuth flow for sign up...');
       
-      // Construct the OAuth URL for Google
-      const redirectUrl = Linking.createURL('/');
-      const oauthUrl = getOAuthUrl('oauth_google', 'sign-up', redirectUrl);
-      
-      console.log('Opening OAuth URL:', oauthUrl);
-      
-      // Open the OAuth URL in a web browser
-      const result = await WebBrowser.openAuthSessionAsync(oauthUrl, redirectUrl);
-      
-      console.log('OAuth result:', result);
-      
-      if (result.type === 'success') {
-        // OAuth was successful, check if user is now authenticated
-        console.log('OAuth successful, checking authentication...');
-        
-        // Wait a moment for Clerk to process the authentication
-        setTimeout(async () => {
-          try {
-            // Check if user is now authenticated
-            if (isSignedIn && userId) {
-              console.log('User authenticated after OAuth:', userId);
-              
-              // Check if this user already exists in Supabase
-              const profileResult = await UserProfileService.verifyUserProfile(userId);
-              
-              if (profileResult.data) {
-                console.log('Existing user found, redirecting to dashboard');
-                router.replace('/(tabs)/dashboard');
-                return;
-              } else {
-                console.log('New user, need to complete setup');
-                
-                // For new users, try to extract email from current user
-                let userEmail = null;
-                
-                if (user?.emailAddresses?.[0]?.emailAddress) {
-                  userEmail = user.emailAddresses[0].emailAddress;
-                } else if (user?.primaryEmailAddress?.emailAddress) {
-                  userEmail = user.primaryEmailAddress.emailAddress;
-                }
-                
-                if (userEmail) {
-                  console.log('User email from Google:', userEmail);
-                  
-                  // Extract name from current user
-                  const userName = user?.firstName || '';
-                  console.log('User name from Google:', userName);
-                  
-                  // Set the email for the form
-                  setEmailAddress(userEmail);
-                  
-                  // For Google SSO, redirect to welcome screen to complete setup
-                  Alert.alert(
-                    'Account Setup Required',
-                    'Please complete your account setup by providing your store information.',
-                    [
-                      {
-                        text: 'OK',
-                        onPress: () => {
-                          router.replace('/welcome');
-                        }
-                      }
-                    ]
-                  );
-                } else {
-                  console.error('No email found from Google OAuth');
-                  Alert.alert('Error', 'Could not retrieve email from Google. Please try again.');
-                }
-              }
-            } else {
-              console.log('User not authenticated after OAuth');
-              Alert.alert('Authentication Failed', 'Please try signing up with Google again.');
-            }
-          } catch (error) {
-            console.error('Error checking user after OAuth:', error);
-            Alert.alert('Error', 'Could not verify your account. Please try again.');
-          }
-        }, 2000); // Wait 2 seconds for Clerk to process
-      } else if (result.type === 'cancel') {
-        console.log('OAuth cancelled by user');
-      } else {
-        console.log('OAuth failed:', result);
-        Alert.alert('Error', 'Failed to sign up with Google. Please try again.');
-      }
-    } catch (err: any) {
-      console.error('Google OAuth error:', JSON.stringify(err, null, 2));
-      Alert.alert('Error', 'Failed to sign up with Google. Please try again.');
-    } finally {
-      setGoogleLoading(false);
-    }
-  };
-
-  // Handle submission of sign-up form
-  const onSignUpPress = async () => {
-    if (!isLoaded) return;
-
-    if (!emailAddress || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
-      return;
-    }
-
-    const passwordValidation = validatePassword(password);
-    if (passwordValidation) {
-      setPasswordError(passwordValidation);
-      return;
-    }
-
-    setLoading(true);
-    try {
-      // Start sign-up process using email and password
-      await signUp.create({
-        emailAddress,
-        password,
+      const result = await startSSOFlow({
+        strategy: 'oauth_google',
+        redirectUrl: Linking.createURL('/sso-profile-setup', { scheme: 'restock' }),
       });
-
-      // Send user an email with verification code
-      await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
-
-      // Set 'pendingVerification' to true to display second form
-      // and capture OTP code
-      setPendingVerification(true);
-    } catch (err: any) {
-      console.error(JSON.stringify(err, null, 2));
       
-      // Handle specific password breach error
-      if (err.errors?.[0]?.code === 'form_password_pwned') {
-        Alert.alert(
-          'Password Security Issue',
-          'This password has been found in a data breach. Please choose a different, unique password that you haven\'t used elsewhere.',
-          [
-            {
-              text: 'OK',
-              onPress: () => setPassword('')
-            }
-          ]
-        );
-      } else {
-        Alert.alert('Error', err.errors?.[0]?.message || 'Something went wrong');
+      console.log('Google OAuth sign up result:', result);
+      
+      if (result.authSessionResult?.type === 'success') {
+        console.log('Google OAuth sign up successful');
+        // The user will be redirected to the profile setup screen
       }
+    } catch (err: any) {
+      console.error('Google OAuth sign up error:', JSON.stringify(err, null, 2));
+      Alert.alert('Error', 'Failed to sign up with Google. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle submission of verification form
+  const onSignUpPress = async () => {
+    if (!email.trim()) {
+      Alert.alert('Error', 'Please enter your email address');
+      return;
+    }
+
+    if (!password.trim()) {
+      Alert.alert('Error', 'Please enter a password');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
+      return;
+    }
+
+    const validation = validatePassword(password);
+    if (!validation.isValid) {
+      Alert.alert('Error', 'Please ensure your password meets all requirements');
+      return;
+    }
+
+    if (!isLoaded) return;
+
+    setLoading(true);
+    try {
+      console.log('Creating account for email:', email);
+      
+      await signUp.create({
+        emailAddress: email,
+        password: password,
+      });
+
+      console.log('SignUp state after create:', JSON.stringify(signUp, null, 2));
+
+      // Send verification email
+      await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+      
+      console.log('Verification email prepared');
+      
+      Alert.alert(
+        'Verification Email Sent!',
+        'Please check your email and enter the verification code.',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              router.push('/auth/verify-email');
+            }
+          }
+        ]
+      );
+    } catch (err: any) {
+      console.error(JSON.stringify(err, null, 2));
+      Alert.alert('Error', err.errors?.[0]?.message || 'Failed to create account');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const onVerifyPress = async () => {
     if (!isLoaded) return;
 
-    if (!code) {
-      Alert.alert('Error', 'Please enter the verification code');
-      return;
-    }
-
     setLoading(true);
     try {
-      // Use the code the user provided to attempt verification
-      const signUpAttempt = await signUp.attemptEmailAddressVerification({
-        code,
+      const result = await signUp.attemptEmailAddressVerification({
+        code: '123456', // This should come from user input
       });
 
-      // If verification was completed, set the session to active
-      // and let AuthContext handle the routing
-      if (signUpAttempt.status === 'complete') {
-        await setActive({ session: signUpAttempt.createdSessionId });
-        
-        // Don't redirect here - let AuthContext handle it
-        // The AuthContext will check if user has a profile and route accordingly
-        console.log('Email verification completed, session activated');
+      if (result.status === 'complete') {
+        console.log('Email verification successful');
+        await setActive({ session: result.createdSessionId });
+        router.replace('/profile-setup');
       } else {
-        // If the status is not complete, check why. User may need to
-        // complete further steps.
-        console.error(JSON.stringify(signUpAttempt, null, 2));
-        Alert.alert('Error', 'Verification failed. Please try again.');
+        console.log('Email verification not complete, status:', result.status);
+        Alert.alert('Error', 'Email verification failed. Please try again.');
       }
     } catch (err: any) {
-      console.error(JSON.stringify(err, null, 2));
-      Alert.alert('Error', err.errors?.[0]?.message || 'Verification failed');
+      console.error('Email verification error:', JSON.stringify(err, null, 2));
+      Alert.alert('Error', err.errors?.[0]?.message || 'Email verification failed');
     } finally {
       setLoading(false);
     }
   };
 
-  if (pendingVerification) {
-    return (
-      <AuthGuard requireNoAuth={true}>
-        <View style={styles.container}>
-          <Text style={styles.title}>Verify your email</Text>
-          <Text style={styles.subtitle}>Enter the verification code sent to your email</Text>
-          
-          <TextInput
-            style={styles.input}
-            value={code}
-            placeholder="Enter verification code"
-            onChangeText={(code) => setCode(code)}
-            keyboardType="number-pad"
-          />
-          
-          <TouchableOpacity 
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={onVerifyPress}
-            disabled={loading}
-          >
-            <Text style={styles.buttonText}>
-              {loading ? 'Verifying...' : 'Verify Email'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </AuthGuard>
-    );
-  }
-
   return (
     <AuthGuard requireNoAuth={true}>
-      <ScrollView contentContainerStyle={styles.scrollViewContent}>
+      <ScrollView contentContainerStyle={signUpStyles.scrollViewContent}>
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.container}
+          style={signUpStyles.container}
         >
-        <Text style={styles.title}>Create your account</Text>
-        <Text style={styles.subtitle}>Sign up to start managing your restock operations</Text>
-        
-        <TouchableOpacity 
-          style={styles.googleButton}
-          onPress={handleGoogleSignUp}
-          disabled={googleLoading}
-        >
-          <Text style={styles.googleButtonText}>
-            {googleLoading ? 'Signing up...' : 'Continue with Google'}
+          <Text style={signUpStyles.title}>Create Account</Text>
+          <Text style={signUpStyles.subtitle}>
+            Sign up to start managing your restock operations
           </Text>
-        </TouchableOpacity>
-        
-        <View style={styles.divider}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>or</Text>
-          <View style={styles.dividerLine} />
-        </View>
-        
-        <TextInput
-          style={styles.input}
-          autoCapitalize="none"
-          value={emailAddress}
-          placeholder="Enter your email address"
-          placeholderTextColor="#666666"
-          onChangeText={(email) => setEmailAddress(email)}
-          keyboardType="email-address"
-        />
-        
-        <TextInput
-          style={[styles.input, passwordError && styles.inputError]}
-          value={password}
-          placeholder="Create a strong password"
-          placeholderTextColor="#666666"
-          secureTextEntry={true}
-          onChangeText={handlePasswordChange}
-          autoCapitalize="none"
-        />
-        
-        {passwordError ? (
-          <Text style={styles.errorText}>{passwordError}</Text>
-        ) : (
-          <Text style={styles.helpText}>
+
+          <TouchableOpacity 
+            style={signUpStyles.googleButton}
+            onPress={handleGoogleSignUp}
+            disabled={loading}
+          >
+            <Text style={signUpStyles.googleButtonText}>
+              {loading ? 'Signing up...' : 'Continue with Google'}
+            </Text>
+          </TouchableOpacity>
+
+          <View style={signUpStyles.divider}>
+            <View style={signUpStyles.dividerLine} />
+            <Text style={signUpStyles.dividerText}>or</Text>
+            <View style={signUpStyles.dividerLine} />
+          </View>
+
+          <TextInput
+            style={signUpStyles.input}
+            placeholder="Enter your email address"
+            placeholderTextColor="#666666"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+
+          <TextInput
+            style={[signUpStyles.input, Object.keys(errors).length > 0 && signUpStyles.inputError]}
+            placeholder="Create a password"
+            placeholderTextColor="#666666"
+            value={password}
+            onChangeText={handlePasswordChange}
+            secureTextEntry={true}
+            autoCapitalize="none"
+          />
+
+          {Object.keys(errors).length > 0 && (
+            <View>
+              {Object.entries(errors).map(([key, error]) => (
+                <Text key={key} style={signUpStyles.errorText}>• {error}</Text>
+              ))}
+            </View>
+          )}
+
+          <TextInput
+            style={signUpStyles.input}
+            placeholder="Confirm your password"
+            placeholderTextColor="#666666"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry={true}
+            autoCapitalize="none"
+          />
+
+          <Text style={signUpStyles.helpText}>
             Password must be at least 8 characters with uppercase, lowercase, number, and special character
           </Text>
-        )}
-        
-        <TouchableOpacity 
-          style={[styles.button, (loading || passwordError) && styles.buttonDisabled]}
-          onPress={onSignUpPress}
-          disabled={loading || !!passwordError}
-        >
-          <Text style={styles.buttonText}>
-            {loading ? 'Creating account...' : 'Create Account'}
-          </Text>
-        </TouchableOpacity>
-        
-        <View style={styles.linkContainer}>
-          <Text style={styles.linkText}>Already have an account? </Text>
-          <Link href="/auth/sign-in" asChild>
-            <TouchableOpacity>
-              <Text style={styles.linkTextBold}>Sign in</Text>
-            </TouchableOpacity>
-          </Link>
-        </View>
-      </KeyboardAvoidingView>
-    </ScrollView>
+
+          <TouchableOpacity 
+            style={[signUpStyles.button, loading && signUpStyles.buttonDisabled]}
+            onPress={onSignUpPress}
+            disabled={loading}
+          >
+            <Text style={signUpStyles.buttonText}>
+              {loading ? 'Creating Account...' : 'Create Account'}
+            </Text>
+          </TouchableOpacity>
+
+          <View style={signUpStyles.linkContainer}>
+            <Text style={signUpStyles.linkText}>Already have an account? </Text>
+            <Link href="/auth/sign-in" asChild>
+              <Text style={signUpStyles.linkTextBold}>Sign in</Text>
+            </Link>
+          </View>
+        </KeyboardAvoidingView>
+      </ScrollView>
     </AuthGuard>
   );
-}
-
-const styles = StyleSheet.create({
-  scrollViewContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-  },
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: '#f8f9fa',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#2c3e50',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#7f8c8d',
-    marginBottom: 32,
-    textAlign: 'center',
-  },
-  googleButton: {
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#e1e8ed',
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  googleButtonText: {
-    color: '#2c3e50',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 20,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#e1e8ed',
-  },
-  dividerText: {
-    marginHorizontal: 16,
-    color: '#7f8c8d',
-    fontSize: 14,
-  },
-  input: {
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#e1e8ed',
-    borderRadius: 8,
-    padding: 16,
-    fontSize: 16,
-    marginBottom: 16,
-    color: '#000000',
-  },
-  inputError: {
-    borderColor: '#e74c3c',
-  },
-  button: {
-    backgroundColor: '#6B7F6B',
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  errorText: {
-    color: '#e74c3c',
-    fontSize: 14,
-    marginBottom: 16,
-  },
-  helpText: {
-    color: '#7f8c8d',
-    fontSize: 14,
-    marginBottom: 16,
-  },
-  linkContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  linkText: {
-    color: '#6B7F6B',
-    fontSize: 16,
-  },
-  linkTextBold: {
-    color: '#6B7F6B',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-}); 
+} 

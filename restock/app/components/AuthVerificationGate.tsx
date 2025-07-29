@@ -1,6 +1,6 @@
 import React from 'react';
 import { View } from 'react-native';
-import { useAuthContext } from '../contexts/AuthContext';
+import { useAuthContext } from '../_contexts/AuthContext';
 import LoadingScreen from './LoadingScreen';
 
 interface AuthVerificationGateProps {
