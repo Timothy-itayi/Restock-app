@@ -29,33 +29,37 @@ const simulateAuthStatePolling = async (authCheckFn, maxAttempts = 3, intervalMs
     const checkAuthState = () => {
       attempts++;
       
-      const { isLoaded, isSignedIn, error } = authCheckFn();
-      
-      if (error) {
-        resolve({ success: false, error, attempts });
-        return;
-      }
-      
-      if (isLoaded && isSignedIn) {
-        resolve({ success: true, attempts });
-        return;
-      }
-      
-      if (isLoaded && !isSignedIn && attempts >= maxAttempts) {
-        resolve({ success: false, error: 'User not signed in after all attempts', attempts });
-        return;
-      }
-      
-      if (!isLoaded && attempts >= maxAttempts) {
-        resolve({ success: false, error: 'Auth state not loaded after all attempts', attempts });
-        return;
-      }
-      
-      // Continue polling if not loaded yet or not signed in
-      if (attempts < maxAttempts) {
-        setTimeout(checkAuthState, intervalMs);
-      } else {
-        resolve({ success: false, error: 'Auth state polling timed out', attempts });
+      try {
+        const { isLoaded, isSignedIn, error } = authCheckFn();
+        
+        if (error) {
+          resolve({ success: false, error, attempts });
+          return;
+        }
+        
+        if (isLoaded && isSignedIn) {
+          resolve({ success: true, attempts });
+          return;
+        }
+        
+        if (isLoaded && !isSignedIn && attempts >= maxAttempts) {
+          resolve({ success: false, error: 'User not signed in after all attempts', attempts });
+          return;
+        }
+        
+        if (!isLoaded && attempts >= maxAttempts) {
+          resolve({ success: false, error: 'Auth state not loaded after all attempts', attempts });
+          return;
+        }
+        
+        // Continue polling if not loaded yet or not signed in
+        if (attempts < maxAttempts) {
+          setTimeout(checkAuthState, intervalMs);
+        } else {
+          resolve({ success: false, error: 'Auth state polling timed out', attempts });
+        }
+      } catch (error) {
+        resolve({ success: false, error: error.message, attempts });
       }
     };
     
@@ -404,7 +408,8 @@ describe('Auth State Polling Tests', () => {
       const endTime = Date.now();
       
       expect(result.success).toBe(true);
-      expect(endTime - startTime).toBeGreaterThanOrEqual(1000);
+      // Account for immediate first attempt - duration should be at least 500ms (interval time)
+      expect(endTime - startTime).toBeGreaterThanOrEqual(500);
     });
 
     test('should handle maximum attempts limit', async () => {

@@ -7,6 +7,9 @@ import { SessionService } from "../../backend/services/sessions";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
 
+// Debug flag - set to false in production
+const DEBUG_MODE = __DEV__;
+
 interface SessionItem {
   id: string;
   quantity: number;
@@ -135,18 +138,22 @@ export default function DashboardScreen() {
   const getSupplierBreakdown = (session: UnfinishedSession) => {
     const supplierCounts: { [key: string]: number } = {};
     
-    console.log(`[Dashboard] Processing supplier breakdown for session ${session.id} with ${session.items.length} items`);
+    if (DEBUG_MODE) {
+      console.log(`[Dashboard] Processing supplier breakdown for session ${session.id} with ${session.items.length} items`);
+    }
     
     session.items.forEach(item => {
       // Access supplier name from the correct data structure (handle both array and object formats)
       const suppliers = Array.isArray(item.suppliers) ? item.suppliers[0] : item.suppliers;
       const supplierName = suppliers?.name || 'Unknown Supplier';
       
-      console.log(`[Dashboard] Item ${item.id}: supplier = ${supplierName}`, {
-        suppliers: item.suppliers,
-        suppliersType: typeof item.suppliers,
-        isArray: Array.isArray(item.suppliers)
-      });
+      if (DEBUG_MODE) {
+        console.log(`[Dashboard] Item ${item.id}: supplier = ${supplierName}`, {
+          suppliers: item.suppliers,
+          suppliersType: typeof item.suppliers,
+          isArray: Array.isArray(item.suppliers)
+        });
+      }
       
       supplierCounts[supplierName] = (supplierCounts[supplierName] || 0) + 1;
     });
@@ -157,7 +164,9 @@ export default function DashboardScreen() {
       percentage: Math.round((count / session.totalItems) * 100)
     }));
 
-    console.log(`[Dashboard] Supplier breakdown:`, breakdown);
+    if (DEBUG_MODE) {
+      console.log(`[Dashboard] Supplier breakdown:`, breakdown);
+    }
     return breakdown;
   };
 
@@ -183,9 +192,11 @@ export default function DashboardScreen() {
       supplierData[supplierId].totalQuantity += item.quantity || 0;
     });
 
-    // Calculate percentages
+    // Calculate percentages with safety check for division by zero
     Object.values(supplierData).forEach(supplier => {
-      supplier.percentage = Math.round((supplier.itemCount / session.totalItems) * 100);
+      supplier.percentage = session.totalItems > 0 
+        ? Math.round((supplier.itemCount / session.totalItems) * 100)
+        : 0;
     });
 
     return Object.values(supplierData).sort((a, b) => b.itemCount - a.itemCount);

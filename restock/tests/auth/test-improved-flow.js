@@ -223,11 +223,11 @@ describe('Improved User Flow Tests', () => {
         expect(mockUserProfileService.ensureUserProfile).toHaveBeenCalledWith(clerkUserId, email, storeName, name);
 
         if (testCase.expected === 'create') {
-          expect(result.data.id).toBe('user_123');
-          expect(result.data.email).toBe('test@example.com');
+          expect(result.data.id).toBe(testCase.clerkUserId);
+          expect(result.data.email).toBe(testCase.email);
         } else {
-          expect(result.data.id).toBe('user_123');
-          expect(result.data.email).toBe('test@example.com');
+          expect(result.data.id).toBe(testCase.clerkUserId);
+          expect(result.data.email).toBe(testCase.email);
         }
       });
     });

@@ -1,20 +1,30 @@
-/**
- * @jest-environment jsdom
- */
-
+import React from 'react';
 import { jest } from '@jest/globals';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { Keyboard } from 'react-native';
 import { useState, useEffect } from 'react';
 import { KeyboardAvoidingView, ScrollView, View, Text, TextInput, TouchableOpacity, Platform } from 'react-native';
 
+// Helper function to trigger keyboard events
+const triggerKeyboardEvent = (eventName) => {
+  const listeners = Keyboard.addListener.mock.calls
+    .filter(call => call[0] === eventName)
+    .map(call => call[1]);
+  
+  listeners.forEach(listener => {
+    if (typeof listener === 'function') {
+      listener();
+    }
+  });
+};
+
 // Mock React Native components
 jest.mock('react-native', () => ({
   ...jest.requireActual('react-native'),
   Keyboard: {
-    addListener: jest.fn(),
-    removeListener: jest.fn(),
-    dismiss: jest.fn()
+    addListener: jest.fn(() => ({
+      remove: jest.fn()
+    }))
   }
 }));
 
@@ -157,12 +167,7 @@ describe('Keyboard Handling Tests', () => {
       fireEvent(emailInput, 'focus');
       
       // Mock keyboard show event
-      const keyboardShowListener = Keyboard.addListener.mock.calls.find(
-        call => call[0] === 'keyboardDidShow'
-      );
-      if (keyboardShowListener && keyboardShowListener[1]) {
-        keyboardShowListener[1]();
-      }
+      triggerKeyboardEvent('keyboardDidShow');
       
       await waitFor(() => {
         expect(screen.getByTestId('keyboard-status')).toBeTruthy();
@@ -263,28 +268,42 @@ describe('Keyboard Handling Tests', () => {
   describe('Platform-Specific Behavior', () => {
     test('should use correct KeyboardAvoidingView behavior for iOS', () => {
       // Mock Platform.OS to be 'ios'
-      jest.doMock('react-native', () => ({
-        ...jest.requireActual('react-native'),
-        Platform: { OS: 'ios' }
-      }));
+      const originalPlatform = Platform.OS;
+      Object.defineProperty(Platform, 'OS', {
+        value: 'ios',
+        configurable: true
+      });
       
       render(<MockSignInScreen />);
       
       const keyboardAvoidingView = screen.getByTestId('keyboard-avoiding-view');
       expect(keyboardAvoidingView.props.behavior).toBe('padding');
+      
+      // Restore original Platform.OS
+      Object.defineProperty(Platform, 'OS', {
+        value: originalPlatform,
+        configurable: true
+      });
     });
 
     test('should use correct KeyboardAvoidingView behavior for Android', () => {
       // Mock Platform.OS to be 'android'
-      jest.doMock('react-native', () => ({
-        ...jest.requireActual('react-native'),
-        Platform: { OS: 'android' }
-      }));
+      const originalPlatform = Platform.OS;
+      Object.defineProperty(Platform, 'OS', {
+        value: 'android',
+        configurable: true
+      });
       
       render(<MockSignInScreen />);
       
       const keyboardAvoidingView = screen.getByTestId('keyboard-avoiding-view');
       expect(keyboardAvoidingView.props.behavior).toBe('height');
+      
+      // Restore original Platform.OS
+      Object.defineProperty(Platform, 'OS', {
+        value: originalPlatform,
+        configurable: true
+      });
     });
   });
 
@@ -332,6 +351,9 @@ describe('Keyboard Handling Tests', () => {
 
   describe('Error Handling', () => {
     test('should handle keyboard listener errors gracefully', () => {
+      // Save original mock implementation
+      const originalAddListener = Keyboard.addListener;
+      
       // Mock Keyboard.addListener to throw an error
       Keyboard.addListener.mockImplementation(() => {
         throw new Error('Keyboard listener error');
@@ -339,6 +361,9 @@ describe('Keyboard Handling Tests', () => {
       
       // Should not crash the component
       expect(() => render(<MockSignInScreen />)).not.toThrow();
+      
+      // Restore original mock implementation
+      Keyboard.addListener.mockImplementation(originalAddListener);
     });
 
     test('should handle focus/blur events without errors', () => {
@@ -361,11 +386,16 @@ describe('Keyboard Handling Tests', () => {
       // Verify listeners are added
       expect(Keyboard.addListener).toHaveBeenCalled();
       
+      // Get the subscription objects
+      const subscriptions = Keyboard.addListener.mock.results.map(result => result.value);
+      
       // Unmount component
       unmount();
       
-      // Verify listeners are removed
-      expect(Keyboard.removeListener).toHaveBeenCalled();
+      // Verify subscription remove methods are called
+      subscriptions.forEach(subscription => {
+        expect(subscription.remove).toHaveBeenCalled();
+      });
     });
 
     test('should handle rapid keyboard show/hide events', async () => {
