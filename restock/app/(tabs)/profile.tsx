@@ -27,7 +27,7 @@ export default function ProfileScreen() {
     };
 
     fetchUserProfile();
-  }, [user]);
+  }, [user?.id]);
 
   if (loading) {
     return (

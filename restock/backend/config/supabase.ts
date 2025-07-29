@@ -24,6 +24,8 @@ export const TABLES = {
   PRODUCTS: 'products',
   SUPPLIERS: 'suppliers',
   RESTOCK_SESSIONS: 'restock_sessions',
+  RESTOCK_SESSION_SUPPLIERS: 'restock_session_suppliers',
+  RESTOCK_SESSION_PRODUCTS: 'restock_session_products',
   RESTOCK_ITEMS: 'restock_items',
   EMAILS_SENT: 'emails_sent',
 } as const;

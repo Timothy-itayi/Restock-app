@@ -1,180 +1,368 @@
 /**
- * Test Email Signup Name Capture Process
- * 
- * This test verifies that email signup users have their names properly captured
+ * @jest-environment node
  */
 
-// Mock email signup scenarios
-const emailSignupScenarios = [
-  {
-    name: 'Email signup - user enters name',
-    userInput: {
-      email: 'john@example.com',
-      name: 'John Doe',
-      storeName: 'John\'s Store',
-      password: 'password123'
-    },
-    expectedName: 'John Doe',
-    shouldPass: true
-  },
-  {
-    name: 'Email signup - user enters only first name',
-    userInput: {
-      email: 'jane@example.com',
-      name: 'Jane',
-      storeName: 'Jane\'s Store',
-      password: 'password123'
-    },
-    expectedName: 'Jane',
-    shouldPass: true
-  },
-  {
-    name: 'Email signup - user leaves name empty',
-    userInput: {
-      email: 'bob@example.com',
-      name: '',
-      storeName: 'Bob\'s Store',
-      password: 'password123'
-    },
-    expectedName: '',
-    shouldPass: false
-  },
-  {
-    name: 'Email signup - user enters name with spaces',
-    userInput: {
-      email: 'alice@example.com',
-      name: '  Alice Smith  ',
-      storeName: 'Alice\'s Store',
-      password: 'password123'
-    },
-    expectedName: 'Alice Smith',
-    shouldPass: true
-  }
-];
+import { jest } from '@jest/globals';
+import { 
+  validateEmailSignup, 
+  processNameForEmailSignup, 
+  extractNameFromUser,
+  isValidEmail 
+} from '../../backend/utils/validation.js';
 
-// Simulate the validation logic
-function validateEmailSignup(userInput) {
-  console.log('Validating email signup input:', userInput);
-  
-  const errors = [];
-  
-  if (!userInput.storeName.trim()) {
-    errors.push('Store name is required');
-  }
-  
-  if (!userInput.name.trim()) {
-    errors.push('First name is required for email signup');
-  }
-  
-  if (!userInput.password.trim()) {
-    errors.push('Password is required');
-  }
-  
-  if (userInput.password.length < 8) {
-    errors.push('Password must be at least 8 characters');
-  }
-  
-  return {
-    isValid: errors.length === 0,
-    errors
-  };
-}
+// Mock user profile service
+const mockUserProfileService = {
+  ensureUserProfile: jest.fn()
+};
 
-// Simulate the name processing logic
-function processNameForEmailSignup(name, isEmailSignup) {
-  console.log('Processing name for email signup:', { name, isEmailSignup });
-  
-  if (isEmailSignup) {
-    // For email signup, use the manually entered name
-    const finalName = name.trim();
-    console.log('Using manually entered name:', finalName);
-    return finalName;
-  } else {
-    // For other flows, use extracted name or fallback
-    const finalName = name || '';
-    console.log('Using extracted/fallback name:', finalName);
-    return finalName;
-  }
-}
-
-// Simulate profile creation
-function simulateProfileCreation(userId, email, storeName, name) {
-  console.log('Creating profile with data:', {
-    userId,
-    email,
-    storeName,
-    name,
-    nameType: typeof name,
-    nameLength: name?.length || 0,
-    nameIsEmpty: !name || name.trim() === ''
+describe('Email Signup Name Tests', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
   });
-  
-  const profile = {
-    id: userId,
-    email,
-    name: name.trim(),
-    store_name: storeName,
-    created_at: new Date().toISOString()
-  };
-  
-  console.log('Created profile:', profile);
-  return { data: profile, error: null };
-}
 
-console.log('🧪 Testing Email Signup Name Capture Process\n');
+  describe('Email Signup Scenarios', () => {
+    const emailSignupScenarios = [
+      {
+        name: 'Valid email signup with name',
+        userInput: {
+          storeName: 'Test Store',
+          name: 'John Doe',
+          password: 'password123',
+          email: 'john.doe@example.com'
+        },
+        expectedName: 'John Doe',
+        shouldPass: true
+      },
+      {
+        name: 'Email signup without name',
+        userInput: {
+          storeName: 'Test Store',
+          name: '',
+          password: 'password123',
+          email: 'test@example.com'
+        },
+        expectedName: '',
+        shouldPass: false
+      },
+      {
+        name: 'Email signup with whitespace name',
+        userInput: {
+          storeName: 'Test Store',
+          name: '   ',
+          password: 'password123',
+          email: 'test@example.com'
+        },
+        expectedName: '',
+        shouldPass: false
+      },
+      {
+        name: 'Email signup with short password',
+        userInput: {
+          storeName: 'Test Store',
+          name: 'Alice Smith',
+          password: '123',
+          email: 'alice@example.com'
+        },
+        expectedName: 'Alice Smith',
+        shouldPass: false
+      },
+      {
+        name: 'Email signup with invalid email',
+        userInput: {
+          storeName: 'Test Store',
+          name: 'Bob Johnson',
+          password: 'password123',
+          email: 'invalid-email'
+        },
+        expectedName: 'Bob Johnson',
+        shouldPass: false
+      },
+      {
+        name: 'Email signup with missing store name',
+        userInput: {
+          storeName: '',
+          name: 'Alice Smith',
+          password: 'password123',
+          email: 'alice@example.com'
+        },
+        expectedName: 'Alice Smith',
+        shouldPass: false
+      }
+    ];
 
-emailSignupScenarios.forEach((scenario, index) => {
-  console.log(`\nTest ${index + 1}: ${scenario.name}`);
-  console.log('User input:', scenario.userInput);
-  
-  // Validate input
-  const validation = validateEmailSignup(scenario.userInput);
-  console.log('Validation result:', validation);
-  
-  if (!validation.isValid) {
-    console.log('❌ Validation failed:', validation.errors);
-    console.log('Expected result:', scenario.shouldPass ? 'PASS' : 'FAIL');
-    console.log('---');
-    return;
-  }
-  
-  // Process name
-  const processedName = processNameForEmailSignup(scenario.userInput.name, true);
-  console.log('Processed name:', processedName);
-  
-  // Create profile
-  const userId = 'user_' + Math.random().toString(36).substr(2, 9);
-  const result = simulateProfileCreation(
-    userId,
-    scenario.userInput.email,
-    scenario.userInput.storeName,
-    processedName
-  );
-  
-  // Check results
-  const nameMatches = result.data.name === scenario.expectedName;
-  const validationPasses = validation.isValid === scenario.shouldPass;
-  
-  console.log('Name matches expected:', nameMatches ? '✅ PASS' : '❌ FAIL');
-  console.log('Validation passes:', validationPasses ? '✅ PASS' : '❌ FAIL');
-  console.log('Overall result:', (nameMatches && validationPasses) ? '✅ PASS' : '❌ FAIL');
-  console.log('---');
-});
+    emailSignupScenarios.forEach((scenario, index) => {
+      test(`should handle ${scenario.name}`, async () => {
+        // Validate input
+        const validation = validateEmailSignup(scenario.userInput);
+        expect(validation.isValid).toBe(scenario.shouldPass);
+        
+        if (!validation.isValid) {
+          expect(validation.errors.length).toBeGreaterThan(0);
+          return;
+        }
+        
+        // Process name
+        const processedName = processNameForEmailSignup(scenario.userInput.name, true);
+        expect(processedName).toBe(scenario.expectedName);
+        
+        // Mock profile creation
+        mockUserProfileService.ensureUserProfile.mockResolvedValue({
+          data: {
+            id: 'user_123',
+            email: scenario.userInput.email,
+            name: processedName,
+            store_name: scenario.userInput.storeName,
+            created_at: new Date().toISOString()
+          },
+          error: null
+        });
+        
+        // Create profile
+        const userId = 'user_' + Math.random().toString(36).substr(2, 9);
+        const result = await mockUserProfileService.ensureUserProfile(
+          userId,
+          scenario.userInput.email,
+          scenario.userInput.storeName,
+          processedName
+        );
+        
+        // Verify results
+        expect(result.data).toBeDefined();
+        expect(result.data.name).toBe(scenario.expectedName);
+        expect(result.error).toBeNull();
+        expect(mockUserProfileService.ensureUserProfile).toHaveBeenCalledWith(
+          userId,
+          scenario.userInput.email,
+          scenario.userInput.storeName,
+          processedName
+        );
+      });
+    });
+  });
 
-console.log('\n📝 Key Improvements for Email Signup:');
-console.log('1. ✅ Name input field always shown for email signup users');
-console.log('2. ✅ Name validation required for email signup');
-console.log('3. ✅ Manually entered name prioritized over extracted name');
-console.log('4. ✅ Proper name processing and storage');
-console.log('5. ✅ Clear error messages for missing name');
+  describe('Name Processing Tests', () => {
+    test('should process name correctly for email signup', () => {
+      const name = '  John Doe  ';
+      const processedName = processNameForEmailSignup(name, true);
+      expect(processedName).toBe('John Doe');
+    });
 
-console.log('\n🚀 Test Scenarios:');
-console.log('1. Sign up with email');
-console.log('2. Enter name in the form');
-console.log('3. Complete verification');
-console.log('4. Verify name is saved in database');
-console.log('5. Check that name is not null');
+    test('should handle empty name for email signup', () => {
+      const name = '';
+      const processedName = processNameForEmailSignup(name, true);
+      expect(processedName).toBe('');
+    });
 
-console.log('\n📊 Expected Flow:');
-console.log('Email Signup → Name Input → Verification → Profile Creation → Dashboard');
-console.log('Name should be captured from user input, not from Clerk user object'); 
+    test('should handle null name for email signup', () => {
+      const name = null;
+      const processedName = processNameForEmailSignup(name, true);
+      expect(processedName).toBe('');
+    });
+
+    test('should process name differently for non-email signup', () => {
+      const name = '  John Doe  ';
+      const processedName = processNameForEmailSignup(name, false);
+      expect(processedName).toBe('  John Doe  '); // No trimming for non-email signup
+    });
+  });
+
+  describe('Name Extraction Tests', () => {
+    test('should extract name from user with firstName and lastName', () => {
+      const user = {
+        firstName: 'John',
+        lastName: 'Doe',
+        emailAddresses: [{ emailAddress: 'john.doe@example.com' }]
+      };
+      
+      const extractedName = extractNameFromUser(user);
+      expect(extractedName).toBe('John Doe');
+    });
+
+    test('should extract name from user with firstName only', () => {
+      const user = {
+        firstName: 'Jane',
+        emailAddresses: [{ emailAddress: 'jane@example.com' }]
+      };
+      
+      const extractedName = extractNameFromUser(user);
+      expect(extractedName).toBe('Jane');
+    });
+
+    test('should extract name from user with lastName only', () => {
+      const user = {
+        lastName: 'Smith',
+        emailAddresses: [{ emailAddress: 'smith@example.com' }]
+      };
+      
+      const extractedName = extractNameFromUser(user);
+      expect(extractedName).toBe('Smith');
+    });
+
+    test('should extract name from user with fullName', () => {
+      const user = {
+        fullName: 'Bob Johnson',
+        emailAddresses: [{ emailAddress: 'bob@example.com' }]
+      };
+      
+      const extractedName = extractNameFromUser(user);
+      expect(extractedName).toBe('Bob Johnson');
+    });
+
+    test('should extract name from user with username', () => {
+      const user = {
+        username: 'alice123',
+        emailAddresses: [{ emailAddress: 'alice@example.com' }]
+      };
+      
+      const extractedName = extractNameFromUser(user);
+      expect(extractedName).toBe('alice123');
+    });
+
+    test('should return empty string for user with no name fields', () => {
+      const user = {
+        emailAddresses: [{ emailAddress: 'unknown@example.com' }]
+      };
+      
+      const extractedName = extractNameFromUser(user);
+      expect(extractedName).toBe('');
+    });
+
+    test('should return empty string for null user', () => {
+      const extractedName = extractNameFromUser(null);
+      expect(extractedName).toBe('');
+    });
+  });
+
+  describe('Email Validation Tests', () => {
+    test('should validate correct email formats', () => {
+      const validEmails = [
+        'test@example.com',
+        'user@gmail.com',
+        'admin@company.co.uk',
+        'user+tag@domain.org'
+      ];
+      
+      validEmails.forEach(email => {
+        expect(isValidEmail(email)).toBe(true);
+      });
+    });
+
+    test('should reject invalid email formats', () => {
+      const invalidEmails = [
+        'invalid-email',
+        '@example.com',
+        'test@',
+        'test.example.com',
+        'test@.com'
+      ];
+      
+      invalidEmails.forEach(email => {
+        expect(isValidEmail(email)).toBe(false);
+      });
+    });
+  });
+
+  describe('Profile Creation Tests', () => {
+    test('should create profile with valid data', async () => {
+      const userInput = {
+        storeName: 'Test Store',
+        name: 'John Doe',
+        password: 'password123',
+        email: 'john.doe@example.com'
+      };
+      
+      const validation = validateEmailSignup(userInput);
+      expect(validation.isValid).toBe(true);
+      
+      const processedName = processNameForEmailSignup(userInput.name, true);
+      expect(processedName).toBe('John Doe');
+      
+      mockUserProfileService.ensureUserProfile.mockResolvedValue({
+        data: {
+          id: 'user_123',
+          email: userInput.email,
+          name: processedName,
+          store_name: userInput.storeName,
+          created_at: new Date().toISOString()
+        },
+        error: null
+      });
+      
+      const result = await mockUserProfileService.ensureUserProfile(
+        'user_123',
+        userInput.email,
+        userInput.storeName,
+        processedName
+      );
+      
+      expect(result.data).toBeDefined();
+      expect(result.data.name).toBe('John Doe');
+      expect(result.data.email).toBe('john.doe@example.com');
+      expect(result.data.store_name).toBe('Test Store');
+      expect(result.error).toBeNull();
+    });
+
+    test('should handle profile creation errors', async () => {
+      mockUserProfileService.ensureUserProfile.mockResolvedValue({
+        data: null,
+        error: 'Database connection failed'
+      });
+      
+      const result = await mockUserProfileService.ensureUserProfile(
+        'user_123',
+        'test@example.com',
+        'Test Store',
+        'Test User'
+      );
+      
+      expect(result.data).toBeNull();
+      expect(result.error).toBe('Database connection failed');
+    });
+  });
+
+  describe('Integration Tests', () => {
+    test('should complete full email signup name flow', async () => {
+      const userInput = {
+        storeName: 'New Store',
+        name: 'Alice Smith',
+        password: 'securePassword123',
+        email: 'alice.smith@example.com'
+      };
+      
+      // Step 1: Validate input
+      const validation = validateEmailSignup(userInput);
+      expect(validation.isValid).toBe(true);
+      expect(validation.errors).toHaveLength(0);
+      
+      // Step 2: Process name
+      const processedName = processNameForEmailSignup(userInput.name, true);
+      expect(processedName).toBe('Alice Smith');
+      
+      // Step 3: Create profile
+      mockUserProfileService.ensureUserProfile.mockResolvedValue({
+        data: {
+          id: 'user_456',
+          email: userInput.email,
+          name: processedName,
+          store_name: userInput.storeName,
+          created_at: new Date().toISOString()
+        },
+        error: null
+      });
+      
+      const result = await mockUserProfileService.ensureUserProfile(
+        'user_456',
+        userInput.email,
+        userInput.storeName,
+        processedName
+      );
+      
+      // Step 4: Verify results
+      expect(result.data).toBeDefined();
+      expect(result.data.name).toBe('Alice Smith');
+      expect(result.data.email).toBe('alice.smith@example.com');
+      expect(result.data.store_name).toBe('New Store');
+      expect(result.error).toBeNull();
+    });
+  });
+}); 

@@ -24,12 +24,14 @@ export const getOAuthUrl = (strategy: 'oauth_google', action: 'sign-in' | 'sign-
   
   // Use the app's redirect URL directly
   // This should match what's configured in your Clerk dashboard OAuth settings
-  console.log('OAuth Configuration:', {
-    domain,
-    action,
-    strategy,
-    redirectUrl,
-  });
+  if (process.env.NODE_ENV === 'development') {
+    console.log('OAuth Configuration:', {
+      domain,
+      action,
+      strategy,
+      redirectUrl,
+    });
+  }
   
   return `https://${domain}/${action}?strategy=${strategy}&redirect_url=${encodeURIComponent(redirectUrl)}`;
 };

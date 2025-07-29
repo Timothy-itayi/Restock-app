@@ -3,7 +3,7 @@ import { useAuth, useUser } from '@clerk/clerk-expo';
 
 interface ClerkAuthContextType {
   isSignedIn: boolean;
-  user: any;
+  user: ReturnType<typeof useUser>['user'];
   isLoading: boolean;
 }
 

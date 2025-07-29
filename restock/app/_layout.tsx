@@ -56,12 +56,10 @@ export default function RootLayout() {
       
       // Check if this is an OAuth redirect
       if (url.includes('/sso-profile-setup') || url.includes('oauth')) {
-        console.log("Root layout: OAuth deep link detected, attempting to rehydrate session");
+        console.log("Root layout: OAuth deep link detected, waiting for session hydration");
         
-        // Force a small delay to allow Clerk to process the deep link
-        setTimeout(() => {
-          console.log("Root layout: Deep link processing complete");
-        }, 1000);
+        // Instead of a fixed delay, wait for Clerk to signal session is ready
+        // This will be handled by the AuthContext which listens to Clerk's state changes
       }
     };
 
@@ -77,30 +75,6 @@ export default function RootLayout() {
     });
 
     return () => subscription.remove();
-  }, []);
-
-  // Enhanced OAuth completion detection in root layout
-  useEffect(() => {
-    const checkOAuthCompletion = async () => {
-      try {
-        const justCompletedSSO = await AsyncStorage.getItem('justCompletedSSO');
-        if (justCompletedSSO === 'true') {
-          console.log("Root layout: OAuth completion detected, ensuring session is properly hydrated");
-          
-          // Force a longer delay to ensure Clerk has time to hydrate the session
-          setTimeout(async () => {
-            console.log("Root layout: OAuth completion processing complete");
-            // The session should now be properly hydrated
-          }, 3000);
-        }
-      } catch (error) {
-        console.error("Root layout: Error checking OAuth completion:", error);
-      }
-    };
-    
-    // Check for OAuth completion every 2 seconds
-    const interval = setInterval(checkOAuthCompletion, 2000);
-    return () => clearInterval(interval);
   }, []);
 
   if (!loaded) {

@@ -23,25 +23,40 @@
 ### 2. **New ensureUserProfile Method**
 ```typescript
 static async ensureUserProfile(clerkUserId: string, email: string, storeName: string, name?: string) {
-  // 1. Check if user exists
-  const { data: existingUser } = await supabase
-    .from('users')
-    .select('*')
-    .eq('id', clerkUserId)
-    .maybeSingle();
+  try {
+    // 1. Check if user exists
+    const { data: existingUser, error: selectError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', clerkUserId)
+      .maybeSingle();
 
-  if (existingUser) {
-    return { data: existingUser, error: null };
+    if (selectError) {
+      console.error('Error checking existing user:', selectError);
+      return { data: null, error: `Failed to check user existence: ${selectError.message}` };
+    }
+
+    if (existingUser) {
+      return { data: existingUser, error: null };
+    }
+
+    // 2. Create user if doesn't exist
+    const { data: newUser, error: insertError } = await supabase
+      .from('users')
+      .insert({ id: clerkUserId, email, name, store_name: storeName })
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error('Error creating new user:', insertError);
+      return { data: null, error: `Failed to create user profile: ${insertError.message}` };
+    }
+
+    return { data: newUser, error: null };
+  } catch (error) {
+    console.error('Unexpected error in ensureUserProfile:', error);
+    return { data: null, error: `Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}` };
   }
-
-  // 2. Create user if doesn't exist
-  const { data: newUser } = await supabase
-    .from('users')
-    .insert({ id: clerkUserId, email, name, store_name: storeName })
-    .select()
-    .single();
-
-  return { data: newUser, error: null };
 }
 ```
 
@@ -188,5 +203,3 @@ LOG  User profile created successfully: { data }
 LOG  User profile exists in Supabase, setup completed
 LOG  User has completed setup, redirecting to dashboard
 ```
-
-The improved flow should now handle all edge cases gracefully and provide a much more reliable user experience! 

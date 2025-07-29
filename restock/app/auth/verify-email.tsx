@@ -50,7 +50,7 @@ export default function VerifyEmailScreen() {
       }
     } catch (err: any) {
       console.error('Email verification error:', JSON.stringify(err, null, 2));
-      Alert.alert('Error', err.errors?.[0]?.message || 'Email verification failed');
+      Alert.alert('Error', 'Email verification failed. Please check your code and try again.');
     } finally {
       setLoading(false);
     }

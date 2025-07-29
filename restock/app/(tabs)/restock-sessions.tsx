@@ -12,8 +12,71 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useAuth } from "@clerk/clerk-expo";
 import { restockSessionsStyles } from "../../styles/components/restock-sessions";
 import CustomToast from "../components/CustomToast";
+import { ProductService } from "../../backend/services/products";
+import { SupplierService } from "../../backend/services/suppliers";
+import { SessionService } from "../../backend/services/sessions";
+import type { Product as DatabaseProduct, Supplier as DatabaseSupplier, RestockSession as DatabaseRestockSession, RestockItem as DatabaseRestockItem } from "../../backend/types/database";
+
+// Enhanced logging utility
+const Logger = {
+  info: (message: string, data?: any) => {
+    console.log(`[RESTOCK-SESSIONS] ℹ️ ${message}`, data ? JSON.stringify(data, null, 2) : '');
+  },
+  success: (message: string, data?: any) => {
+    console.log(`[RESTOCK-SESSIONS] ✅ ${message}`, data ? JSON.stringify(data, null, 2) : '');
+  },
+  warning: (message: string, data?: any) => {
+    console.warn(`[RESTOCK-SESSIONS] ⚠️ ${message}`, data ? JSON.stringify(data, null, 2) : '');
+  },
+  error: (message: string, error?: any, context?: any) => {
+    console.error(`[RESTOCK-SESSIONS] ❌ ${message}`, {
+      error: error ? JSON.stringify(error, null, 2) : 'No error object',
+      context: context ? JSON.stringify(context, null, 2) : 'No context',
+      timestamp: new Date().toISOString(),
+      stack: error?.stack || 'No stack trace'
+    });
+  },
+  debug: (message: string, data?: any) => {
+    if (__DEV__) {
+      console.log(`[RESTOCK-SESSIONS] 🔍 ${message}`, data ? JSON.stringify(data, null, 2) : '');
+    }
+  }
+};
+
+// Error handling utility
+const ErrorHandler = {
+  handleAsyncStorageError: (error: any, operation: string) => {
+    Logger.error(`AsyncStorage ${operation} failed`, error, { operation });
+    return {
+      success: false,
+      error: `Failed to ${operation}: ${error?.message || 'Unknown error'}`
+    };
+  },
+
+  handleDatabaseError: (error: any, operation: string, context?: any) => {
+    Logger.error(`Database ${operation} failed`, error, { operation, context });
+    return {
+      success: false,
+      error: `Database ${operation} failed: ${error?.message || 'Unknown error'}`
+    };
+  },
+
+  handleValidationError: (field: string, value: any, rule: string) => {
+    Logger.warning(`Validation failed for ${field}`, { field, value, rule });
+    return `Invalid ${field}: ${rule}`;
+  },
+
+  handleNetworkError: (error: any, operation: string) => {
+    Logger.error(`Network ${operation} failed`, error, { operation });
+    return {
+      success: false,
+      error: `Network error during ${operation}: ${error?.message || 'Connection failed'}`
+    };
+  }
+};
 
 // Types for our data structures
 interface Product {
@@ -28,19 +91,28 @@ interface RestockSession {
   id: string;
   products: Product[];
   createdAt: Date;
+  status: 'draft' | 'sent';
 }
 
+// Database types for autocomplete
 interface StoredProduct {
+  id: string;
   name: string;
-  supplierName: string;
-  supplierEmail: string;
-  lastUsed: number;
+  default_quantity: number;
+  default_supplier_id?: string;
+  supplier?: {
+    id: string;
+    name: string;
+    email: string;
+  };
 }
 
 interface StoredSupplier {
+  id: string;
   name: string;
   email: string;
-  lastUsed: number;
+  phone?: string;
+  notes?: string;
 }
 
 interface Notification {
@@ -50,24 +122,21 @@ interface Notification {
   title?: string;
 }
 
-// Placeholder data for demonstration
-const initialProducts: StoredProduct[] = [
-  { name: "Organic Bananas", supplierName: "Fresh Farms Co.", supplierEmail: "orders@freshfarms.com", lastUsed: Date.now() },
-  { name: "Whole Grain Bread", supplierName: "Bakery Delights", supplierEmail: "supply@bakerydelights.com", lastUsed: Date.now() - 86400000 },
-  { name: "Greek Yogurt", supplierName: "Dairy Fresh", supplierEmail: "orders@dairyfresh.com", lastUsed: Date.now() - 172800000 },
-  { name: "Almond Milk", supplierName: "Nutty Beverages", supplierEmail: "supply@nuttybeverages.com", lastUsed: Date.now() - 259200000 },
-  { name: "Quinoa", supplierName: "Grain Masters", supplierEmail: "orders@grainmasters.com", lastUsed: Date.now() - 345600000 },
-];
+// Error state interface
+interface ErrorState {
+  hasError: boolean;
+  errorMessage: string;
+  errorContext?: any;
+  timestamp: Date;
+}
 
-const initialSuppliers: StoredSupplier[] = [
-  { name: "Fresh Farms Co.", email: "orders@freshfarms.com", lastUsed: Date.now() },
-  { name: "Bakery Delights", email: "supply@bakerydelights.com", lastUsed: Date.now() - 86400000 },
-  { name: "Dairy Fresh", email: "orders@dairyfresh.com", lastUsed: Date.now() - 172800000 },
-  { name: "Nutty Beverages", email: "supply@nuttybeverages.com", lastUsed: Date.now() - 259200000 },
-  { name: "Grain Masters", email: "orders@grainmasters.com", lastUsed: Date.now() - 345600000 },
-];
+// Placeholder data for demonstration (will be replaced with database data)
+const initialProducts: StoredProduct[] = [];
+const initialSuppliers: StoredSupplier[] = [];
 
 export default function RestockSessionsScreen() {
+  const { userId } = useAuth();
+  
   const [isSessionActive, setIsSessionActive] = useState(false);
   const [showAddProductForm, setShowAddProductForm] = useState(false);
   const [showEditProductForm, setShowEditProductForm] = useState(false);
@@ -75,6 +144,13 @@ export default function RestockSessionsScreen() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [notificationAnimation] = useState(new Animated.Value(0));
+  
+  // Error state
+  const [errorState, setErrorState] = useState<ErrorState>({
+    hasError: false,
+    errorMessage: '',
+    timestamp: new Date()
+  });
   
   // Custom toast state
   const [showTransitionToast, setShowTransitionToast] = useState(false);
@@ -99,12 +175,83 @@ export default function RestockSessionsScreen() {
   const [filteredProducts, setFilteredProducts] = useState<StoredProduct[]>([]);
   const [filteredSuppliers, setFilteredSuppliers] = useState<StoredSupplier[]>([]);
 
+  // Loading states
+  const [isLoadingData, setIsLoadingData] = useState(false);
+  const [isSavingProduct, setIsSavingProduct] = useState(false);
+
   // Load stored data on component mount
   useEffect(() => {
-    loadStoredData();
-  }, []);
+    if (userId) {
+      Logger.info('Component mounted, loading stored data', { userId });
+      loadStoredData();
+      loadActiveSession();
+    } else {
+      Logger.warning('Component mounted but no userId available');
+    }
+  }, [userId]);
+
+  // Load active session if user has one in progress
+  const loadActiveSession = async () => {
+    if (!userId) return;
+    
+    try {
+      Logger.info('Loading active session', { userId });
+      
+      // Get the most recent draft session
+      const sessionsResult = await SessionService.getUserSessions(userId);
+      
+      if (sessionsResult.error) {
+        Logger.error('Failed to load user sessions', sessionsResult.error, { userId });
+        return;
+      }
+      
+      const draftSession = sessionsResult.data?.find(session => session.status === 'draft');
+      
+      if (draftSession) {
+        Logger.info('Found active draft session', { sessionId: draftSession.id });
+        
+        // Load session with items
+        const sessionWithItemsResult = await SessionService.getSessionWithItems(draftSession.id);
+        
+        if (sessionWithItemsResult.error) {
+          Logger.error('Failed to load session items', sessionWithItemsResult.error, { sessionId: draftSession.id });
+          return;
+        }
+        
+        // Convert database items to local format
+        const products: Product[] = sessionWithItemsResult.data?.restock_items?.map((item: any) => ({
+          id: item.id,
+          name: item.products?.name || 'Unknown Product',
+          quantity: item.quantity,
+          supplierName: item.suppliers?.name || 'Unknown Supplier',
+          supplierEmail: item.suppliers?.email || '',
+        })) || [];
+        
+        const activeSession: RestockSession = {
+          id: draftSession.id,
+          products,
+          createdAt: new Date(draftSession.created_at),
+          status: draftSession.status as 'draft' | 'sent'
+        };
+        
+        setCurrentSession(activeSession);
+        setIsSessionActive(true);
+        
+        Logger.success('Active session loaded', { 
+          sessionId: activeSession.id, 
+          productCount: activeSession.products.length 
+        });
+      } else {
+        Logger.info('No active session found', { userId });
+      }
+    } catch (error) {
+      Logger.error('Unexpected error loading active session', error, { userId });
+    }
+  };
 
   const showNotification = (type: Notification['type'], message: string, title?: string) => {
+    Logger.info(`Showing notification`, { type, message, title });
+    
     const newNotification: Notification = {
       id: Date.now().toString(),
       type,
@@ -128,6 +275,8 @@ export default function RestockSessionsScreen() {
   };
 
   const removeNotification = (id: string) => {
+    Logger.debug(`Removing notification`, { id });
+    
     // Animate out
     Animated.timing(notificationAnimation, {
       toValue: 0,
@@ -168,107 +317,116 @@ export default function RestockSessionsScreen() {
   };
 
   const loadStoredData = async () => {
+    if (!userId) {
+      Logger.warning('Cannot load stored data: no userId');
+      return;
+    }
+    
+    setIsLoadingData(true);
+    setErrorState({ hasError: false, errorMessage: '', timestamp: new Date() });
+    
     try {
-      const storedProductsData = await AsyncStorage.getItem('storedProducts');
-      const storedSuppliersData = await AsyncStorage.getItem('storedSuppliers');
+      Logger.info('Loading stored data from database', { userId });
       
-      if (storedProductsData) {
-        setStoredProducts(JSON.parse(storedProductsData));
+      // Load products and suppliers from Supabase
+      const [productsResult, suppliersResult] = await Promise.all([
+        ProductService.getUserProducts(userId),
+        SupplierService.getUserSuppliers(userId),
+      ]);
+      
+      // Handle products result
+      if (productsResult.error) {
+        Logger.error('Failed to load products', productsResult.error, { userId });
+        setErrorState({
+          hasError: true,
+          errorMessage: `Failed to load products: ${productsResult.error}`,
+          errorContext: { operation: 'loadProducts', userId },
+          timestamp: new Date()
+        });
       } else {
-        // Initialize with placeholder data
-        setStoredProducts(initialProducts);
-        await AsyncStorage.setItem('storedProducts', JSON.stringify(initialProducts));
+        Logger.success('Products loaded successfully', { 
+          count: productsResult.data?.length || 0,
+          products: productsResult.data?.map(p => ({ id: p.id, name: p.name }))
+        });
+        setStoredProducts(productsResult.data || []);
       }
       
-      if (storedSuppliersData) {
-        setStoredSuppliers(JSON.parse(storedSuppliersData));
+      // Handle suppliers result
+      if (suppliersResult.error) {
+        Logger.error('Failed to load suppliers', suppliersResult.error, { userId });
+        setErrorState({
+          hasError: true,
+          errorMessage: `Failed to load suppliers: ${suppliersResult.error}`,
+          errorContext: { operation: 'loadSuppliers', userId },
+          timestamp: new Date()
+        });
       } else {
-        // Initialize with placeholder data
-        setStoredSuppliers(initialSuppliers);
-        await AsyncStorage.setItem('storedSuppliers', JSON.stringify(initialSuppliers));
+        Logger.success('Suppliers loaded successfully', { 
+          count: suppliersResult.data?.length || 0,
+          suppliers: suppliersResult.data?.map(s => ({ id: s.id, name: s.name }))
+        });
+        setStoredSuppliers(suppliersResult.data || []);
       }
     } catch (error) {
-      console.error('Error loading stored data:', error);
-      // Fallback to initial data
-      setStoredProducts(initialProducts);
-      setStoredSuppliers(initialSuppliers);
+      Logger.error('Unexpected error loading stored data', error, { userId });
+      setErrorState({
+        hasError: true,
+        errorMessage: `Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        errorContext: { operation: 'loadStoredData', userId },
+        timestamp: new Date()
+      });
+      
+      // Fallback to empty arrays
+      setStoredProducts([]);
+      setStoredSuppliers([]);
+    } finally {
+      setIsLoadingData(false);
     }
   };
 
-  const saveProductToDatabase = async (product: Omit<StoredProduct, 'lastUsed'>) => {
+
+
+  const startNewSession = async () => {
+    Logger.info('Starting new restock session');
+    
+    if (!userId) {
+      Logger.error('Cannot start session: no userId');
+      showNotification('error', 'User not authenticated');
+      return;
+    }
+    
     try {
-      const newProduct: StoredProduct = {
-        ...product,
-        lastUsed: Date.now(),
+      // Create session in database first
+      const sessionResult = await SessionService.createSession({
+        user_id: userId,
+        status: 'draft'
+      });
+      
+      if (sessionResult.error) {
+        Logger.error('Failed to create session in database', sessionResult.error, { userId });
+        showNotification('error', 'Failed to start session');
+        return;
+      }
+      
+      const newSession: RestockSession = {
+        id: sessionResult.data.id,
+        products: [],
+        createdAt: new Date(sessionResult.data.created_at),
+        status: sessionResult.data.status as 'draft' | 'sent'
       };
       
-      // Check if product already exists
-      const existingIndex = storedProducts.findIndex(
-        p => p.name.toLowerCase() === product.name.toLowerCase() &&
-             p.supplierName.toLowerCase() === product.supplierName.toLowerCase()
-      );
+      setCurrentSession(newSession);
+      setIsSessionActive(true);
+      showNotification('info', 'New restock session started');
       
-      let updatedProducts;
-      if (existingIndex >= 0) {
-        // Update existing product
-        updatedProducts = [...storedProducts];
-        updatedProducts[existingIndex] = newProduct;
-      } else {
-        // Add new product
-        updatedProducts = [newProduct, ...storedProducts];
-      }
-      
-      // Sort by last used (most recent first)
-      updatedProducts.sort((a, b) => b.lastUsed - a.lastUsed);
-      
-      setStoredProducts(updatedProducts);
-      await AsyncStorage.setItem('storedProducts', JSON.stringify(updatedProducts));
+      Logger.success('New session created in database', { 
+        sessionId: newSession.id,
+        databaseId: sessionResult.data.id 
+      });
     } catch (error) {
-      console.error('Error saving product to database:', error);
+      Logger.error('Unexpected error starting session', error, { userId });
+      showNotification('error', 'Failed to start session');
     }
-  };
-
-  const saveSupplierToDatabase = async (supplier: Omit<StoredSupplier, 'lastUsed'>) => {
-    try {
-      const newSupplier: StoredSupplier = {
-        ...supplier,
-        lastUsed: Date.now(),
-      };
-      
-      // Check if supplier already exists
-      const existingIndex = storedSuppliers.findIndex(
-        s => s.name.toLowerCase() === supplier.name.toLowerCase()
-      );
-      
-      let updatedSuppliers;
-      if (existingIndex >= 0) {
-        // Update existing supplier
-        updatedSuppliers = [...storedSuppliers];
-        updatedSuppliers[existingIndex] = newSupplier;
-      } else {
-        // Add new supplier
-        updatedSuppliers = [newSupplier, ...storedSuppliers];
-      }
-      
-      // Sort by last used (most recent first)
-      updatedSuppliers.sort((a, b) => b.lastUsed - a.lastUsed);
-      
-      setStoredSuppliers(updatedSuppliers);
-      await AsyncStorage.setItem('storedSuppliers', JSON.stringify(updatedSuppliers));
-    } catch (error) {
-      console.error('Error saving supplier to database:', error);
-    }
-  };
-
-  const startNewSession = () => {
-    const newSession: RestockSession = {
-      id: Date.now().toString(),
-      products: [],
-      createdAt: new Date(),
-    };
-    setCurrentSession(newSession);
-    setIsSessionActive(true);
-    showNotification('info', 'New restock session started');
   };
 
   const handleProductNameChange = (text: string) => {
@@ -278,6 +436,7 @@ export default function RestockSessionsScreen() {
         product.name.toLowerCase().includes(text.toLowerCase())
       ).slice(0, 5); // Limit to 5 suggestions
       setFilteredProducts(filtered);
+      Logger.debug('Product suggestions filtered', { input: text, suggestionsCount: filtered.length });
     } else {
       setFilteredProducts([]);
     }
@@ -290,94 +449,221 @@ export default function RestockSessionsScreen() {
         supplier.name.toLowerCase().includes(text.toLowerCase())
       ).slice(0, 5); // Limit to 5 suggestions
       setFilteredSuppliers(filtered);
+      Logger.debug('Supplier suggestions filtered', { input: text, suggestionsCount: filtered.length });
     } else {
       setFilteredSuppliers([]);
     }
   };
 
   const selectProductSuggestion = (product: StoredProduct) => {
+    Logger.info('Product suggestion selected', { productId: product.id, productName: product.name });
+    
     setProductName(product.name);
-    setSupplierName(product.supplierName);
-    setSupplierEmail(product.supplierEmail);
+    if (product.supplier) {
+      setSupplierName(product.supplier.name);
+      setSupplierEmail(product.supplier.email);
+      Logger.debug('Auto-filled supplier info from product', { 
+        supplierName: product.supplier.name, 
+        supplierEmail: product.supplier.email 
+      });
+    }
     setFilteredProducts([]);
   };
 
   const selectSupplierSuggestion = (supplier: StoredSupplier) => {
+    Logger.info('Supplier suggestion selected', { supplierId: supplier.id, supplierName: supplier.name });
+    
     setSupplierName(supplier.name);
     setSupplierEmail(supplier.email);
     setFilteredSuppliers([]);
   };
 
   const validateForm = () => {
+    Logger.debug('Validating form', { productName, quantity, supplierName, supplierEmail });
+    
     if (!productName.trim()) {
-      setErrorMessage("Please enter a product name");
+      const error = ErrorHandler.handleValidationError('productName', productName, 'required');
+      setErrorMessage(error);
       return false;
     }
     if (!quantity.trim() || parseInt(quantity) <= 0) {
-      setErrorMessage("Please enter a valid quantity");
+      const error = ErrorHandler.handleValidationError('quantity', quantity, 'must be greater than 0');
+      setErrorMessage(error);
       return false;
     }
     if (!supplierName.trim()) {
-      setErrorMessage("Please enter a supplier name");
+      const error = ErrorHandler.handleValidationError('supplierName', supplierName, 'required');
+      setErrorMessage(error);
       return false;
     }
     if (!supplierEmail.trim() || !supplierEmail.includes("@")) {
-      setErrorMessage("Please enter a valid supplier email");
+      const error = ErrorHandler.handleValidationError('supplierEmail', supplierEmail, 'must be a valid email');
+      setErrorMessage(error);
       return false;
     }
+    
+    Logger.debug('Form validation passed');
     return true;
   };
 
   const addProduct = async () => {
+    Logger.info('Adding product to session', { productName, quantity, supplierName, supplierEmail });
+    
     setErrorMessage("");
     
     if (!validateForm()) {
+      Logger.warning('Form validation failed', { errorMessage });
       return;
     }
 
-    if (!currentSession) return;
+    if (!currentSession) {
+      Logger.error('Cannot add product: no active session');
+      showNotification('error', 'No active session found');
+      return;
+    }
 
-    const newProduct: Product = {
-      id: Date.now().toString(),
-      name: productName.trim(),
-      quantity: parseInt(quantity),
-      supplierName: supplierName.trim(),
-      supplierEmail: supplierEmail.trim(),
-    };
+    if (!userId) {
+      Logger.error('Cannot add product: no userId');
+      showNotification('error', 'User not authenticated');
+      return;
+    }
 
-    const updatedSession = {
-      ...currentSession,
-      products: [...currentSession.products, newProduct],
-    };
+    try {
+      // Step 1: Ensure supplier exists (create if needed)
+      let supplierId: string;
+      const existingSupplier = storedSuppliers.find(s => 
+        s.name.toLowerCase() === supplierName.toLowerCase()
+      );
+      
+      if (existingSupplier) {
+        Logger.info('Using existing supplier', { supplierId: existingSupplier.id, supplierName });
+        supplierId = existingSupplier.id;
+      } else {
+        Logger.info('Creating new supplier', { supplierName, supplierEmail });
+        
+        const supplierResult = await SupplierService.createSupplier({
+          user_id: userId,
+          name: supplierName.trim(),
+          email: supplierEmail.trim(),
+        });
+        
+        if (supplierResult.error) {
+          Logger.error('Failed to create supplier', supplierResult.error, { supplierName, supplierEmail });
+          showNotification('error', 'Failed to create supplier');
+          return;
+        }
+        
+        supplierId = supplierResult.data.id;
+        Logger.success('Supplier created successfully', { supplierId, supplierName });
+        
+        // Add to local state for autocomplete
+        setStoredSuppliers(prev => [...prev, supplierResult.data]);
+      }
 
-    setCurrentSession(updatedSession);
-    
-    // Save to database for future autocomplete
-    await saveProductToDatabase({
-      name: newProduct.name,
-      supplierName: newProduct.supplierName,
-      supplierEmail: newProduct.supplierEmail,
-    });
-    
-    await saveSupplierToDatabase({
-      name: newProduct.supplierName,
-      email: newProduct.supplierEmail,
-    });
-    
-    // Show success notification
-    showNotification('success', `${newProduct.name} added to restock session`);
-    
-    // Reset form
-    setProductName("");
-    setQuantity("");
-    setSupplierName("");
-    setSupplierEmail("");
-    setShowAddProductForm(false);
-    setFilteredProducts([]);
-    setFilteredSuppliers([]);
+      // Step 2: Ensure product exists (create if needed)
+      let productId: string;
+      const existingProduct = storedProducts.find(p => 
+        p.name.toLowerCase() === productName.toLowerCase()
+      );
+      
+      if (existingProduct) {
+        Logger.info('Using existing product', { productId: existingProduct.id, productName });
+        productId = existingProduct.id;
+      } else {
+        Logger.info('Creating new product', { productName, supplierId });
+        
+        const productResult = await ProductService.createProduct({
+          user_id: userId,
+          name: productName.trim(),
+          default_quantity: parseInt(quantity),
+          default_supplier_id: supplierId,
+        });
+        
+        if (productResult.error) {
+          Logger.error('Failed to create product', productResult.error, { productName, supplierId });
+          showNotification('error', 'Failed to create product');
+          return;
+        }
+        
+        productId = productResult.data.id;
+        Logger.success('Product created successfully', { productId, productName });
+        
+        // Add to local state for autocomplete
+        setStoredProducts(prev => [...prev, productResult.data]);
+      }
+
+      // Step 3: Add item to restock session
+      Logger.info('Adding item to restock session', { sessionId: currentSession.id, productId, supplierId, quantity });
+      
+      const sessionItemResult = await SessionService.addSessionItem({
+        session_id: currentSession.id,
+        product_id: productId,
+        supplier_id: supplierId,
+        quantity: parseInt(quantity),
+      });
+      
+      if (sessionItemResult.error) {
+        Logger.error('Failed to add item to session', sessionItemResult.error, { 
+          sessionId: currentSession.id, 
+          productId, 
+          supplierId 
+        });
+        showNotification('error', 'Failed to add product to session');
+        return;
+      }
+      
+      Logger.success('Item added to session successfully', { 
+        itemId: sessionItemResult.data.id,
+        sessionId: currentSession.id 
+      });
+
+      // Step 4: Update local session state
+      const newProduct: Product = {
+        id: sessionItemResult.data.id, // Use the database item ID
+        name: productName.trim(),
+        quantity: parseInt(quantity),
+        supplierName: supplierName.trim(),
+        supplierEmail: supplierEmail.trim(),
+      };
+
+      const updatedSession = {
+        ...currentSession,
+        products: [...currentSession.products, newProduct],
+      };
+
+      setCurrentSession(updatedSession);
+      
+      // Show success notification
+      showNotification('success', `${newProduct.name} added to restock session`);
+      
+      // Reset form
+      setProductName("");
+      setQuantity("1");
+      setSupplierName("");
+      setSupplierEmail("");
+      setShowAddProductForm(false);
+      setFilteredProducts([]);
+      setFilteredSuppliers([]);
+      
+      Logger.success('Product added to session successfully', { 
+        productId: newProduct.id, 
+        sessionProductCount: updatedSession.products.length 
+      });
+      
+    } catch (error) {
+      Logger.error('Unexpected error adding product', error, { 
+        productName, 
+        supplierName, 
+        supplierEmail,
+        sessionId: currentSession.id 
+      });
+      showNotification('error', 'Failed to add product to session');
+    }
   };
 
   const editProduct = (product: Product) => {
+    Logger.info('Editing product', { productId: product.id, productName: product.name });
+    
     setEditingProduct(product);
     setProductName(product.name);
     setQuantity(product.quantity.toString());
@@ -389,9 +675,19 @@ export default function RestockSessionsScreen() {
   };
 
   const saveEditedProduct = async () => {
+    Logger.info('Saving edited product', { 
+      productId: editingProduct?.id, 
+      productName: editingProduct?.name 
+    });
+    
     setErrorMessage("");
     
     if (!validateForm() || !editingProduct || !currentSession) {
+      Logger.warning('Cannot save edited product: validation failed or missing data', {
+        validationPassed: validateForm(),
+        hasEditingProduct: !!editingProduct,
+        hasCurrentSession: !!currentSession
+      });
       return;
     }
 
@@ -410,6 +706,8 @@ export default function RestockSessionsScreen() {
     if (editingProduct.supplierName !== updatedProduct.supplierName) changes.push(`Supplier: "${editingProduct.supplierName}" → "${updatedProduct.supplierName}"`);
     if (editingProduct.supplierEmail !== updatedProduct.supplierEmail) changes.push(`Email: "${editingProduct.supplierEmail}" → "${updatedProduct.supplierEmail}"`);
 
+    Logger.info('Product changes detected', { changes });
+
     const updatedProducts = currentSession.products.map(p => 
       p.id === editingProduct.id ? updatedProduct : p
     );
@@ -421,17 +719,18 @@ export default function RestockSessionsScreen() {
 
     setCurrentSession(updatedSession);
     
-    // Save to database for future autocomplete
-    await saveProductToDatabase({
-      name: updatedProduct.name,
-      supplierName: updatedProduct.supplierName,
-      supplierEmail: updatedProduct.supplierEmail,
+    // Update the session item in the database
+    const updateResult = await SessionService.updateSessionItem(editingProduct.id, {
+      quantity: updatedProduct.quantity,
     });
     
-    await saveSupplierToDatabase({
-      name: updatedProduct.supplierName,
-      email: updatedProduct.supplierEmail,
-    });
+    if (updateResult.error) {
+      Logger.error('Failed to update session item', updateResult.error, { itemId: editingProduct.id });
+      showNotification('error', 'Failed to update product');
+      return;
+    }
+    
+    Logger.success('Session item updated successfully', { itemId: editingProduct.id });
     
     // Show changes notification
     if (changes.length > 0) {
@@ -443,15 +742,22 @@ export default function RestockSessionsScreen() {
     // Reset form
     setEditingProduct(null);
     setProductName("");
-    setQuantity("");
+    setQuantity("1");
     setSupplierName("");
     setSupplierEmail("");
     setShowEditProductForm(false);
     setFilteredProducts([]);
     setFilteredSuppliers([]);
+    
+    Logger.success('Product edited successfully', { 
+      productId: updatedProduct.id, 
+      changesCount: changes.length 
+    });
   };
 
   const cancelEdit = () => {
+    Logger.info('Canceling product edit');
+    
     setEditingProduct(null);
     setProductName("");
     setQuantity("1");
@@ -464,9 +770,17 @@ export default function RestockSessionsScreen() {
   };
 
   const removeProduct = (productId: string) => {
-    if (!currentSession) return;
+    if (!currentSession) {
+      Logger.error('Cannot remove product: no active session');
+      return;
+    }
 
     const productToRemove = currentSession.products.find(p => p.id === productId);
+    
+    Logger.info('Removing product from session', { 
+      productId, 
+      productName: productToRemove?.name 
+    });
     
     Alert.alert(
       "Remove Product",
@@ -476,87 +790,198 @@ export default function RestockSessionsScreen() {
         {
           text: "Remove",
           style: "destructive",
-          onPress: () => {
-            const updatedProducts = currentSession.products.filter(p => p.id !== productId);
-            setCurrentSession({
-              ...currentSession,
-              products: updatedProducts,
-            });
-            
-            showNotification('warning', `${productToRemove?.name} removed from session`);
+          onPress: async () => {
+            try {
+              Logger.info('Starting database deletion', { productId, productName: productToRemove?.name });
+              
+              // Remove from database first (with cleanup of unused products/suppliers)
+              const removeResult = await SessionService.removeSessionItemWithCleanup(productId);
+              
+              Logger.info('Database deletion result', { 
+                productId, 
+                hasError: !!removeResult.error, 
+                error: removeResult.error 
+              });
+              
+              if (removeResult.error) {
+                Logger.error('Failed to remove item from database', removeResult.error, { productId });
+                showNotification('error', 'Failed to remove product from session');
+                return;
+              }
+              
+              Logger.success('Database deletion successful', { productId });
+              
+              // Verify the item was actually deleted from database
+              const verifyResult = await SessionService.sessionItemExists(productId);
+              Logger.info('Verification after deletion', { 
+                productId, 
+                stillExists: verifyResult.exists,
+                verificationError: verifyResult.error 
+              });
+              
+              if (verifyResult.exists) {
+                Logger.warning('Item still exists in database after deletion attempt', { productId });
+                showNotification('error', 'Failed to remove product from database');
+                return;
+              }
+              
+              // Update local state
+              const updatedProducts = currentSession.products.filter(p => p.id !== productId);
+              setCurrentSession({
+                ...currentSession,
+                products: updatedProducts,
+              });
+
+              // Also remove from stored products/suppliers if they were deleted
+              // (The backend will handle this automatically, but we can refresh the lists)
+              loadStoredData();
+              
+              showNotification('warning', `${productToRemove?.name} removed from session`);
+              
+              Logger.success('Product removed from session', { 
+                productId, 
+                productName: productToRemove?.name,
+                remainingProducts: updatedProducts.length 
+              });
+            } catch (error) {
+              Logger.error('Unexpected error removing product', error, { productId });
+              showNotification('error', 'Failed to remove product from session');
+            }
           }
         }
       ]
     );
   };
 
-  const finishSession = () => {
+  const finishSession = async () => {
+    Logger.info('Finishing restock session', { 
+      sessionId: currentSession?.id,
+      productCount: currentSession?.products.length 
+    });
+    
     if (!currentSession || currentSession.products.length === 0) {
+      Logger.warning('Cannot finish session: no products added');
       showNotification('error', 'Please add at least one product before finishing');
       return;
     }
 
-    // Show transition toast instead of alert
-    setTransitionToastData({
-      type: 'info',
-      title: 'Ready to generate emails?',
-      message: `You have ${currentSession.products.length} products ready to send to ${new Set(currentSession.products.map(p => p.supplierName)).size} suppliers.`,
-    });
-    setShowTransitionToast(true);
+    try {
+      // Update session status to indicate it's ready for email generation
+      const updateResult = await SessionService.updateSession(currentSession.id, {
+        status: 'draft' // Keep as draft until emails are actually sent
+      });
+      
+      if (updateResult.error) {
+        Logger.error('Failed to update session status', updateResult.error, { sessionId: currentSession.id });
+        showNotification('error', 'Failed to prepare session for email generation');
+        return;
+      }
+      
+      Logger.success('Session status updated', { sessionId: currentSession.id, status: updateResult.data.status });
+
+      // Show transition toast instead of alert
+      setTransitionToastData({
+        type: 'info',
+        title: 'Ready to generate emails?',
+        message: `You have ${currentSession.products.length} products ready to send to ${new Set(currentSession.products.map(p => p.supplierName)).size} suppliers.`,
+      });
+      setShowTransitionToast(true);
+      
+      Logger.info('Session ready for email generation', { 
+        productCount: currentSession.products.length,
+        supplierCount: new Set(currentSession.products.map(p => p.supplierName)).size 
+      });
+    } catch (error) {
+      Logger.error('Unexpected error finishing session', error, { sessionId: currentSession.id });
+      showNotification('error', 'Failed to prepare session for email generation');
+    }
   };
 
-  const handleGenerateEmails = () => {
-    if (!currentSession) return;
+  const handleGenerateEmails = async () => {
+    if (!currentSession) {
+      Logger.error('Cannot generate emails: no active session');
+      return;
+    }
 
-    // Show success notification
-    showNotification('success', `Session completed with ${currentSession.products.length} products`);
-    
-    // Store session data for the emails screen
-    const sessionData = {
-      products: currentSession.products,
+    Logger.info('Generating emails for session', { 
       sessionId: currentSession.id,
-      createdAt: currentSession.createdAt,
-    };
-    
-    // Store the session data in AsyncStorage for the emails screen to access
-    AsyncStorage.setItem('currentEmailSession', JSON.stringify(sessionData))
-      .then(() => {
-        // Reset session
-        setCurrentSession(null);
-        setIsSessionActive(false);
-        setShowAddProductForm(false);
-        setShowEditProductForm(false);
-        setEditingProduct(null);
-        
-        // Hide the transition toast
-        setShowTransitionToast(false);
-        
-        // Navigate to the emails tab
-        router.push('/(tabs)/emails');
-      })
-      .catch((error) => {
-        console.error('Error storing session data:', error);
-        showNotification('error', 'Failed to prepare email session');
+      productCount: currentSession.products.length 
+    });
+
+    try {
+      // Get session items grouped by supplier for email generation
+      const groupedItemsResult = await SessionService.getSessionItemsBySupplier(currentSession.id);
+      
+      if (groupedItemsResult.error) {
+        Logger.error('Failed to get session items for email generation', groupedItemsResult.error, { sessionId: currentSession.id });
+        showNotification('error', 'Failed to prepare email data');
+        return;
+      }
+      
+      Logger.success('Session items retrieved for email generation', { 
+        sessionId: currentSession.id,
+        supplierCount: Object.keys(groupedItemsResult.data || {}).length 
       });
+
+      // Show success notification
+      showNotification('success', `Session completed with ${currentSession.products.length} products`);
+      
+      // Store session data for the emails screen
+      const sessionData = {
+        sessionId: currentSession.id,
+        createdAt: currentSession.createdAt,
+        groupedItems: groupedItemsResult.data,
+        products: currentSession.products, // Keep for backward compatibility
+      };
+      
+      // Store the session data in AsyncStorage for the emails screen to access
+      await AsyncStorage.setItem('currentEmailSession', JSON.stringify(sessionData));
+      
+      Logger.success('Session data stored for email generation', { sessionId: currentSession.id });
+      
+      // Reset session
+      setCurrentSession(null);
+      setIsSessionActive(false);
+      setShowAddProductForm(false);
+      setShowEditProductForm(false);
+      setEditingProduct(null);
+      
+      // Hide the transition toast
+      setShowTransitionToast(false);
+      
+      // Navigate to the emails tab
+      router.push('/(tabs)/emails');
+      
+    } catch (error) {
+      Logger.error('Failed to prepare email generation', error, { sessionId: currentSession.id });
+      showNotification('error', 'Failed to prepare email session');
+    }
   };
 
   const handleCancelTransition = () => {
+    Logger.info('Canceling email generation transition');
     setShowTransitionToast(false);
   };
 
   const incrementQuantity = () => {
     const currentQty = parseInt(quantity) || 0;
-    setQuantity((currentQty + 1).toString());
+    const newQty = currentQty + 1;
+    setQuantity(newQty.toString());
+    Logger.debug('Quantity incremented', { from: currentQty, to: newQty });
   };
 
   const decrementQuantity = () => {
     const currentQty = parseInt(quantity) || 1;
     if (currentQty > 1) {
-      setQuantity((currentQty - 1).toString());
+      const newQty = currentQty - 1;
+      setQuantity(newQty.toString());
+      Logger.debug('Quantity decremented', { from: currentQty, to: newQty });
     }
   };
 
   const cancelAddProduct = () => {
+    Logger.info('Canceling add product form');
+    
     setShowAddProductForm(false);
     setProductName("");
     setQuantity("1");
@@ -610,6 +1035,38 @@ export default function RestockSessionsScreen() {
           </TouchableOpacity>
         </View>
       </Animated.View>
+    );
+  };
+
+  // Error display component
+  const renderErrorState = () => {
+    if (!errorState.hasError) return null;
+    
+    return (
+      <View style={restockSessionsStyles.errorContainer}>
+        <Text style={restockSessionsStyles.errorTitle}>⚠️ Error Loading Data</Text>
+        <Text style={restockSessionsStyles.errorStateMessage}>{errorState.errorMessage}</Text>
+        <TouchableOpacity 
+          style={restockSessionsStyles.retryButton}
+          onPress={() => {
+            Logger.info('User retrying data load');
+            loadStoredData();
+          }}
+        >
+          <Text style={restockSessionsStyles.retryButtonText}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  // Loading indicator
+  const renderLoadingState = () => {
+    if (!isLoadingData) return null;
+    
+    return (
+      <View style={restockSessionsStyles.loadingContainer}>
+        <Text style={restockSessionsStyles.loadingText}>Loading your data...</Text>
+      </View>
     );
   };
 
@@ -932,7 +1389,16 @@ export default function RestockSessionsScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
-        {isSessionActive ? renderSessionFlow() : renderStartSection()}
+        {/* Error State */}
+        {renderErrorState()}
+        
+        {/* Loading State */}
+        {renderLoadingState()}
+        
+        {/* Main Content */}
+        {!isLoadingData && !errorState.hasError && (
+          isSessionActive ? renderSessionFlow() : renderStartSection()
+        )}
       </KeyboardAvoidingView>
 
       {/* Custom Transition Toast */}

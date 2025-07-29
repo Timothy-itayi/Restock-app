@@ -35,6 +35,21 @@ export interface RestockSession {
   status: 'draft' | 'sent';
 }
 
+export interface RestockSessionSupplier {
+  id: string;
+  restock_session_id: string;
+  supplier_id: string;
+  created_at: string;
+}
+
+export interface RestockSessionProduct {
+  id: string;
+  restock_session_id: string;
+  product_id: string;
+  quantity: number;
+  created_at: string;
+}
+
 export interface RestockItem {
   id: string;
   session_id: string;
@@ -80,6 +95,17 @@ export interface InsertSupplier {
 export interface InsertRestockSession {
   user_id: string;
   status?: 'draft' | 'sent';
+}
+
+export interface InsertRestockSessionSupplier {
+  restock_session_id: string;
+  supplier_id: string;
+}
+
+export interface InsertRestockSessionProduct {
+  restock_session_id: string;
+  product_id: string;
+  quantity: number;
 }
 
 export interface InsertRestockItem {

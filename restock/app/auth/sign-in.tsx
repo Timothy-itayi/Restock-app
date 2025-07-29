@@ -4,6 +4,7 @@ import { router, Link } from 'expo-router';
 import { useSignIn, useAuth, useUser, useSSO, useClerk } from '@clerk/clerk-expo';
 import { SessionManager } from '../../backend/services/session-manager';
 import { ClerkClientService } from '../../backend/services/clerk-client';
+import { UserProfileService } from '../../backend/services/user-profile';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Linking from 'expo-linking';
 import AuthGuard from '../components/AuthGuard';
@@ -156,9 +157,13 @@ export default function SignInScreen() {
           console.log('OAuth completion handled successfully with auth state polling');
           
           // Save session data for returning user detection
+          // Extract email from user object after OAuth completion
+          const userEmail = result.createdSessionId ? 
+            (await UserProfileService.getUserProfile(result.createdSessionId))?.data?.email || '' : '';
+          
           await SessionManager.saveUserSession({
             userId: result.createdSessionId || '',
-            email: '', // Will be filled from user object
+            email: userEmail,
             wasSignedIn: true,
             lastSignIn: Date.now(),
             lastAuthMethod: 'google',

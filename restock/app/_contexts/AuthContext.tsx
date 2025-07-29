@@ -44,13 +44,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [hasInitialized, setHasInitialized] = useState(false);
   const [previousAuthState, setPreviousAuthState] = useState<{isSignedIn: boolean, userId: string | null}>({isSignedIn: false, userId: null});
 
-  // Set navigation ready after a short delay to ensure router is mounted
+  // Set navigation ready when router is mounted
   useEffect(() => {
-    const timer = setTimeout(() => {
-      console.log('AuthContext: Setting navigation ready');
-      setIsNavigationReady(true);
-    }, 100);
-    return () => clearTimeout(timer);
+    // Use a more reliable method to detect navigation readiness
+    const checkNavigationReady = () => {
+      if (typeof router !== 'undefined') {
+        console.log('AuthContext: Navigation is ready');
+        setIsNavigationReady(true);
+      } else {
+        // Fallback: check again after a short delay
+        setTimeout(checkNavigationReady, 50);
+      }
+    };
+    
+    checkNavigationReady();
   }, []);
 
   // Fallback timeout to prevent infinite loading
@@ -64,7 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => clearTimeout(timer);
   }, [isLoading]);
 
-  // Check if user is a Google SSO user
+  // Helper functions for authentication flow
   const checkIfGoogleUser = (user: any): boolean => {
     if (!user) return false;
     
@@ -81,40 +88,172 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return hasGoogleEmail;
   };
 
+  const verifyUserProfile = async (userId: string, user: any, isGoogle: boolean) => {
+    try {
+      const profileResult = await UserProfileService.verifyUserProfile(userId);
+      
+      if (profileResult.data) {
+        // User has a profile in Supabase - they have completed setup
+        console.log('User profile exists in Supabase, setup completed');
+        
+        // Cache the verification result
+        setVerificationCache(prev => ({ ...prev, [userId]: true }));
+        setLastVerifiedUserId(userId);
+        
+        // Update local session with Supabase data
+        const userEmail = user.emailAddresses?.[0]?.emailAddress || user.primaryEmailAddress?.emailAddress;
+        
+        await SessionManager.saveUserSession({
+          userId,
+          email: userEmail || '',
+          storeName: profileResult.data.store_name,
+          wasSignedIn: true,
+          lastSignIn: Date.now(),
+          lastAuthMethod: isGoogle ? 'google' : 'email',
+        });
+        
+        setHasCompletedSetup(true);
+        return { success: true, needsSetup: false };
+      } else {
+        // User doesn't have a profile in Supabase - they need to complete setup
+        console.log('User profile does not exist in Supabase, needs setup');
+        setHasCompletedSetup(false);
+        
+        // Cache the verification result
+        setVerificationCache(prev => ({ ...prev, [userId]: false }));
+        setLastVerifiedUserId(userId);
+        return { success: true, needsSetup: true };
+      }
+    } catch (error) {
+      console.error('Error checking user profile in Supabase:', error);
+      setHasCompletedSetup(false);
+      return { success: false, needsSetup: true };
+    }
+  };
+
+  const handleAuthenticatedUser = async (userId: string, user: any) => {
+    const isGoogle = checkIfGoogleUser(user);
+    setIsGoogleUser(isGoogle);
+    
+    // Check if we've already verified this user recently
+    if (lastVerifiedUserId === userId && verificationCache[userId]) {
+      console.log('User already verified recently, skipping verification');
+      setHasCompletedSetup(true);
+      setIsLoading(false);
+      setHasInitialized(true);
+      return;
+    }
+    
+    setIsVerifying(true);
+    setLastVerificationTime(Date.now());
+    
+    const verificationResult = await verifyUserProfile(userId, user, isGoogle);
+    
+    if (verificationResult.success) {
+      if (!verificationResult.needsSetup) {
+        // User has completed setup, redirect to dashboard if on auth/welcome screen
+        const isOnAuthScreen = segments[0] === 'auth' || segments[0] === 'welcome';
+        if (isOnAuthScreen && isNavigationReady) {
+          console.log('User has completed setup, redirecting to dashboard');
+          navigateToScreen('/(tabs)/dashboard');
+        }
+      } else {
+        // User needs to complete setup
+        const justCompletedSSO = await AsyncStorage.getItem('justCompletedSSO');
+        if (justCompletedSSO === 'true') {
+          console.log('AuthContext: OAuth just completed, letting OAuth handler manage routing');
+          return;
+        }
+        
+        // Redirect to appropriate setup screen based on auth method
+        const isOnSetupScreen = segments[0] === 'profile-setup' || segments[0] === 'sso-profile-setup';
+        if (!isOnSetupScreen && isNavigationReady) {
+          if (isGoogle) {
+            console.log('Google user needs to complete setup, redirecting to sso-profile-setup');
+            navigateToScreen('/sso-profile-setup');
+          } else {
+            console.log('Email user needs to complete setup, redirecting to profile-setup');
+            navigateToScreen('/profile-setup');
+          }
+        }
+      }
+    } else {
+      // Verification failed, assume user needs to complete setup
+      const isOnSetupScreen = segments[0] === 'profile-setup' || segments[0] === 'sso-profile-setup';
+      if (!isOnSetupScreen && isNavigationReady) {
+        if (isGoogle) {
+          navigateToScreen('/sso-profile-setup');
+        } else {
+          navigateToScreen('/profile-setup');
+        }
+      }
+    }
+    
+    setIsVerifying(false);
+  };
+
+  const handleUnauthenticatedUser = async () => {
+    const isOnAuthScreen = segments[0] === 'auth' || segments[0] === 'welcome';
+    
+    // Only redirect if not already on an auth screen and this is the first initialization
+    if (!isSignedIn && !isOnAuthScreen && isNavigationReady && !hasInitialized) {
+      // Check if user was previously an SSO user
+      const session = await SessionManager.getUserSession();
+      const wasSSOUser = session?.lastAuthMethod === 'google';
+      
+      if (wasSSOUser) {
+        console.log('Previous SSO user not authenticated, redirecting to welcome back screen');
+        navigateToScreen('/auth/welcome-back');
+      } else {
+        console.log('User not authenticated and not on auth screen, redirecting to welcome');
+        navigateToScreen('/welcome');
+      }
+    } else if (!isSignedIn && isOnAuthScreen) {
+      console.log('User not authenticated but already on auth screen, allowing access');
+    }
+  };
+
+  const navigateToScreen = (screen: string) => {
+    if (isNavigationReady) {
+      setTimeout(() => {
+        router.replace(screen as any);
+      }, 100);
+    }
+  };
+
   // Detect OAuth completion
   useEffect(() => {
-    const authStateChanged = previousAuthState.isSignedIn !== isSignedIn || previousAuthState.userId !== userId;
-    
-    if (authStateChanged && isLoaded) {
-      console.log('AuthContext: Authentication state changed:', {
-        previous: previousAuthState,
-        current: { isSignedIn, userId },
-        isLoaded
-      });
+    const handleAuthStateChange = async () => {
+      const authStateChanged = previousAuthState.isSignedIn !== isSignedIn || previousAuthState.userId !== userId;
       
-      if (!previousAuthState.isSignedIn && isSignedIn && userId) {
-        console.log('AuthContext: User just became authenticated (likely OAuth completion)');
-        console.log('AuthContext: Forcing fresh authentication check');
-        // Reset initialization to force a fresh check
-        setHasInitialized(false);
-        setLastVerifiedUserId(null);
-        setVerificationCache({});
-        setLastVerificationTime(0); // Reset verification time to allow immediate check
+      if (authStateChanged && isLoaded) {
+        console.log('AuthContext: Authentication state changed:', {
+          previous: previousAuthState,
+          current: { isSignedIn, userId },
+          isLoaded
+        });
         
-        // Check if this is a fresh OAuth completion
-        const checkOAuthCompletion = async () => {
+        if (!previousAuthState.isSignedIn && isSignedIn && userId) {
+          console.log('AuthContext: User just became authenticated (likely OAuth completion)');
+          console.log('AuthContext: Forcing fresh authentication check');
+          // Reset initialization to force a fresh check
+          setHasInitialized(false);
+          setLastVerifiedUserId(null);
+          setVerificationCache({});
+          setLastVerificationTime(0); // Reset verification time to allow immediate check
+          
+          // Check if this is a fresh OAuth completion
           const justCompletedSSO = await AsyncStorage.getItem('justCompletedSSO');
           if (justCompletedSSO === 'true') {
             console.log('AuthContext: OAuth just completed, letting OAuth handler manage routing');
-            return;
           }
-        };
+        }
         
-        checkOAuthCompletion();
+        setPreviousAuthState({ isSignedIn, userId });
       }
-      
-      setPreviousAuthState({ isSignedIn, userId });
-    }
+    };
+    
+    handleAuthStateChange();
   }, [isSignedIn, userId, isLoaded, previousAuthState]);
 
   useEffect(() => {
@@ -161,137 +300,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         if (isSignedIn && userId && user) {
           console.log('AuthContext: User is authenticated:', userId);
-          console.log('AuthContext: User object:', user);
-          
-          // Check if this is a Google SSO user
-          const isGoogle = checkIfGoogleUser(user);
-          setIsGoogleUser(isGoogle);
-          
-          // Check if we've already verified this user recently
-          if (lastVerifiedUserId === userId && verificationCache[userId]) {
-            console.log('User already verified recently, skipping verification');
-            setHasCompletedSetup(true);
-            setIsLoading(false);
-            setHasInitialized(true);
-            return;
-          }
-          
-          setIsVerifying(true);
-          setLastVerificationTime(Date.now());
-          
-          // Check if user has a profile in Supabase (this is the source of truth)
-          try {
-            const profileResult = await UserProfileService.verifyUserProfile(userId);
-            
-            if (profileResult.data) {
-              // User has a profile in Supabase - they have completed setup
-              console.log('User profile exists in Supabase, setup completed');
-              
-              // Cache the verification result
-              setVerificationCache(prev => ({ ...prev, [userId]: true }));
-              setLastVerifiedUserId(userId);
-              
-              // Update local session with Supabase data
-              const userEmail = user.emailAddresses?.[0]?.emailAddress || user.primaryEmailAddress?.emailAddress;
-              
-              await SessionManager.saveUserSession({
-                userId,
-                email: userEmail || '',
-                storeName: profileResult.data.store_name,
-                wasSignedIn: true,
-                lastSignIn: Date.now(),
-                lastAuthMethod: isGoogle ? 'google' : 'email',
-              });
-              
-              setHasCompletedSetup(true);
-              
-              // Redirect to dashboard if on auth/welcome screen
-              const isOnAuthScreen = segments[0] === 'auth' || segments[0] === 'welcome';
-              if (isOnAuthScreen && isNavigationReady) {
-                console.log('User has completed setup, redirecting to dashboard');
-                // Add small delay to ensure navigation is ready
-                setTimeout(() => {
-                  router.replace('/(tabs)/dashboard');
-                }, 100);
-              }
-            } else {
-              // User doesn't have a profile in Supabase - they need to complete setup
-              console.log('User profile does not exist in Supabase, needs setup');
-              setHasCompletedSetup(false);
-              
-              // Cache the verification result
-              setVerificationCache(prev => ({ ...prev, [userId]: false }));
-              setLastVerifiedUserId(userId);
-              
-              // Check if this is a fresh OAuth completion (don't override if user just completed OAuth)
-              const justCompletedSSO = await AsyncStorage.getItem('justCompletedSSO');
-              if (justCompletedSSO === 'true') {
-                console.log('AuthContext: OAuth just completed, letting OAuth handler manage routing');
-                return;
-              }
-              
-              // Redirect to appropriate setup screen based on auth method
-              const isOnSetupScreen = segments[0] === 'profile-setup' || segments[0] === 'sso-profile-setup';
-              if (!isOnSetupScreen && isNavigationReady) {
-                if (isGoogle) {
-                  console.log('Google user needs to complete setup, redirecting to sso-profile-setup');
-                  setTimeout(() => {
-                    router.replace('/sso-profile-setup');
-                  }, 100);
-                } else {
-                  console.log('Email user needs to complete setup, redirecting to profile-setup');
-                  setTimeout(() => {
-                    router.replace('/profile-setup');
-                  }, 100);
-                }
-              } else if (isOnSetupScreen) {
-                console.log('User is on setup screen, allowing access');
-                // Don't redirect away from setup screens - let user complete setup
-              }
-            }
-          } catch (error) {
-            console.error('Error checking user profile in Supabase:', error);
-            // If verification fails, assume user needs to complete setup
-            setHasCompletedSetup(false);
-            const isOnSetupScreen = segments[0] === 'profile-setup' || segments[0] === 'sso-profile-setup';
-            if (!isOnSetupScreen && isNavigationReady) {
-              if (isGoogle) {
-                setTimeout(() => {
-                  router.replace('/sso-profile-setup');
-                }, 100);
-              } else {
-                setTimeout(() => {
-                  router.replace('/profile-setup');
-                }, 100);
-              }
-            }
-          } finally {
-            setIsVerifying(false);
-          }
+          await handleAuthenticatedUser(userId, user);
         } else {
-          // User is not authenticated
-          const isOnAuthScreen = segments[0] === 'auth' || segments[0] === 'welcome';
-          
-          // Only redirect if not already on an auth screen and this is the first initialization
-          if (!isSignedIn && !isOnAuthScreen && isNavigationReady && !hasInitialized) {
-            // Check if user was previously an SSO user
-            const session = await SessionManager.getUserSession();
-            const wasSSOUser = session?.lastAuthMethod === 'google';
-            
-            if (wasSSOUser) {
-              console.log('Previous SSO user not authenticated, redirecting to welcome back screen');
-              setTimeout(() => {
-                router.replace('/auth/welcome-back');
-              }, 100);
-            } else {
-              console.log('User not authenticated and not on auth screen, redirecting to welcome');
-              setTimeout(() => {
-                router.replace('/welcome');
-              }, 100);
-            }
-          } else if (!isSignedIn && isOnAuthScreen) {
-            console.log('User not authenticated but already on auth screen, allowing access');
-          }
+          console.log('AuthContext: User is not authenticated');
+          await handleUnauthenticatedUser();
         }
       } catch (error) {
         console.error('Error in auth check:', error);

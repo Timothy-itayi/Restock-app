@@ -5,9 +5,12 @@ import { StyleSheet } from "react-native";
 export const dashboardStyles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
     backgroundColor: "#F8F9FA",
+  },
+  contentContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 40,
   },
   title: {
     fontSize: 24,

@@ -135,30 +135,7 @@ export default function SignUpScreen() {
     }
   };
 
-  const onVerifyPress = async () => {
-    if (!isLoaded) return;
 
-    setLoading(true);
-    try {
-      const result = await signUp.attemptEmailAddressVerification({
-        code: '123456', // This should come from user input
-      });
-
-      if (result.status === 'complete') {
-        console.log('Email verification successful');
-        await setActive({ session: result.createdSessionId });
-        router.replace('/profile-setup');
-      } else {
-        console.log('Email verification not complete, status:', result.status);
-        Alert.alert('Error', 'Email verification failed. Please try again.');
-      }
-    } catch (err: any) {
-      console.error('Email verification error:', JSON.stringify(err, null, 2));
-      Alert.alert('Error', err.errors?.[0]?.message || 'Email verification failed');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <AuthGuard requireNoAuth={true}>

@@ -56,8 +56,8 @@ This directory contains all authentication-related tests for the Restock app, in
 ### Run All Auth Tests
 ```bash
 node tests/auth/test-auth.js
-node tests/auth/test-sso-flow.js
-node tests/auth/test-email-flow.js
+node tests/auth/test-clerk-integration.js
+node tests/auth/test-email-signup-flow.js
 ```
 
 ### Run Specific Test Categories

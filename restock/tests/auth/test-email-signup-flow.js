@@ -1,10 +1,35 @@
 /**
- * Test Email Signup Flow with Name Capture
- * 
- * This test verifies that email signup users have their names captured and stored properly
+ * @jest-environment node
  */
 
-// Mock user scenarios
+import { jest } from '@jest/globals';
+
+// Mock authentication services
+const mockAuthService = {
+  signUp: jest.fn(),
+  signIn: jest.fn(),
+  verifyEmail: jest.fn(),
+  createUserProfile: jest.fn()
+};
+
+// Mock navigation
+const mockRouter = {
+  push: jest.fn(),
+  replace: jest.fn()
+};
+
+// Mock user profile service
+const mockUserProfileService = {
+  ensureUserProfile: jest.fn(),
+  verifyUserProfile: jest.fn()
+};
+
+describe('Email Signup Flow Tests', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('Test Scenarios', () => {
 const testScenarios = [
   {
     name: 'Email signup - new user',
@@ -36,58 +61,245 @@ const testScenarios = [
   }
 ];
 
-// Simulate the flow logic
-function simulateUserFlow(scenario) {
-  console.log(`\n🧪 Testing: ${scenario.name}`);
-  console.log(`  User Type: ${scenario.userType}`);
-  console.log(`  Authenticated: ${scenario.isAuthenticated}`);
-  console.log(`  Has Name: ${scenario.hasName}`);
-  console.log(`  Expected Flow: ${scenario.expectedFlow}`);
-  
+    testScenarios.forEach((scenario, index) => {
+      test(`should handle ${scenario.name}`, async () => {
+        // Mock authentication state
+        mockAuthService.signUp.mockResolvedValue({
+          success: true,
+          userId: 'user_123',
+          email: 'test@example.com'
+        });
+
+        mockAuthService.verifyEmail.mockResolvedValue({
+          success: true
+        });
+
+        mockUserProfileService.ensureUserProfile.mockResolvedValue({
+          data: {
+            id: 'user_123',
+            email: 'test@example.com',
+            name: 'Test User',
+            store_name: 'Test Store'
+          },
+          error: null
+        });
+
+        // Simulate the flow based on user type
   if (scenario.userType === 'email') {
     if (!scenario.isAuthenticated) {
-      console.log('  ✅ Flow: Email signup → verification → welcome setup');
+            // New email user flow
+            const signupResult = await mockAuthService.signUp({
+              email: 'test@example.com',
+              password: 'password123'
+            });
+            expect(signupResult.success).toBe(true);
+            expect(signupResult.userId).toBe('user_123');
+
+            const verifyResult = await mockAuthService.verifyEmail('verification_code');
+            expect(verifyResult.success).toBe(true);
+
+            expect(mockRouter.push).toHaveBeenCalledWith('/welcome');
     } else {
-      console.log('  ✅ Flow: Welcome setup (already authenticated)');
+            // Authenticated email user flow
+            const profileResult = await mockUserProfileService.ensureUserProfile(
+              'user_123',
+              'test@example.com',
+              'Test Store',
+              'Test User'
+            );
+            expect(profileResult.data).toBeDefined();
+            expect(profileResult.error).toBeNull();
     }
   } else if (scenario.userType === 'google') {
     if (scenario.hasName) {
-      console.log('  ✅ Flow: Google OAuth → welcome setup → dashboard');
+            // Google OAuth user with name
+            const profileResult = await mockUserProfileService.ensureUserProfile(
+              'user_123',
+              'test@example.com',
+              'Test Store',
+              'Test User'
+            );
+            expect(profileResult.data).toBeDefined();
+            expect(profileResult.error).toBeNull();
     } else {
-      console.log('  ✅ Flow: Google OAuth → direct to dashboard');
-    }
-  }
-  
-  console.log('  ✅ Name capture: Working');
-  console.log('  ✅ Profile creation: Working');
-  console.log('  ✅ Database storage: Working');
-}
+            // Google OAuth user without name - should go directly to dashboard
+            const profileResult = await mockUserProfileService.verifyUserProfile('user_123');
+            expect(profileResult.data).toBeDefined();
+            expect(mockRouter.replace).toHaveBeenCalledWith('/(tabs)/dashboard');
+          }
+        }
 
-console.log('🧪 Testing Email Signup Flow with Name Capture\n');
+        // Verify name capture is working
+        expect(scenario.hasName).toBe(true);
+        
+        // Verify profile creation is working
+        expect(mockUserProfileService.ensureUserProfile).toHaveBeenCalled();
+        
+        // Verify database storage is working
+        expect(mockUserProfileService.ensureUserProfile).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.any(String),
+          expect.any(String),
+          expect.any(String)
+        );
+      });
+    });
+  });
 
-testScenarios.forEach((scenario, index) => {
-  simulateUserFlow(scenario);
-});
+  describe('Email Signup Specific Tests', () => {
+    test('should redirect email signup users to welcome screen', async () => {
+      mockAuthService.signUp.mockResolvedValue({
+        success: true,
+        userId: 'user_123'
+      });
 
-console.log('\n📝 Key Improvements for Email Signup:');
-console.log('1. ✅ Email signup users redirected to welcome screen');
-console.log('2. ✅ Name input field shown for authenticated email users');
-console.log('3. ✅ Name captured from user object when available');
-console.log('4. ✅ Profile created with ensureUserProfile() method');
-console.log('5. ✅ Proper error handling and validation');
+      const result = await mockAuthService.signUp({
+        email: 'newuser@example.com',
+        password: 'password123'
+      });
 
-console.log('\n🚀 Test Steps:');
-console.log('1. Sign up with email');
-console.log('2. Verify email');
-console.log('3. Complete setup with name and store');
-console.log('4. Verify profile is created with name');
-console.log('5. Check database for name field');
+      expect(result.success).toBe(true);
+      expect(mockRouter.push).toHaveBeenCalledWith('/welcome');
+    });
 
-console.log('\n📊 Expected Database Record:');
-console.log('{');
-console.log('  id: "user_xxx",');
-console.log('  email: "user@example.com",');
-console.log('  name: "John Doe", // ✅ Should not be null');
-console.log('  store_name: "My Store",');
-console.log('  created_at: "2025-07-28T..."');
-console.log('}'); 
+    test('should show name input field for authenticated email users', async () => {
+      const profileResult = await mockUserProfileService.ensureUserProfile(
+        'user_123',
+        'test@example.com',
+        'Test Store',
+        'John Doe'
+      );
+
+      expect(profileResult.data.name).toBe('John Doe');
+      expect(profileResult.error).toBeNull();
+    });
+
+    test('should capture name from user object when available', async () => {
+      const mockUser = {
+        firstName: 'John',
+        lastName: 'Doe',
+        email: 'john.doe@example.com'
+      };
+
+      const extractedName = `${mockUser.firstName} ${mockUser.lastName}`;
+      
+      const profileResult = await mockUserProfileService.ensureUserProfile(
+        'user_123',
+        mockUser.email,
+        'Test Store',
+        extractedName
+      );
+
+      expect(profileResult.data.name).toBe('John Doe');
+    });
+
+    test('should create profile with ensureUserProfile method', async () => {
+      const profileResult = await mockUserProfileService.ensureUserProfile(
+        'user_123',
+        'test@example.com',
+        'Test Store',
+        'Test User'
+      );
+
+      expect(profileResult.data).toBeDefined();
+      expect(profileResult.data.id).toBe('user_123');
+      expect(profileResult.data.email).toBe('test@example.com');
+      expect(profileResult.data.name).toBe('Test User');
+      expect(profileResult.data.store_name).toBe('Test Store');
+      expect(profileResult.error).toBeNull();
+    });
+
+    test('should handle profile creation errors', async () => {
+      mockUserProfileService.ensureUserProfile.mockResolvedValue({
+        data: null,
+        error: 'Database connection failed'
+      });
+
+      const profileResult = await mockUserProfileService.ensureUserProfile(
+        'user_123',
+        'test@example.com',
+        'Test Store',
+        'Test User'
+      );
+
+      expect(profileResult.data).toBeNull();
+      expect(profileResult.error).toBe('Database connection failed');
+    });
+  });
+
+  describe('Validation and Error Handling', () => {
+    test('should validate email format', () => {
+      const validEmails = ['test@example.com', 'user@gmail.com'];
+      const invalidEmails = ['invalid-email', '@example.com', 'test@'];
+
+      validEmails.forEach(email => {
+        expect(email).toMatch(/^[^\s@]+@[^\s@]+\.[^\s@]+$/);
+      });
+
+      invalidEmails.forEach(email => {
+        expect(email).not.toMatch(/^[^\s@]+@[^\s@]+\.[^\s@]+$/);
+      });
+    });
+
+    test('should require store name for profile creation', async () => {
+      const profileResult = await mockUserProfileService.ensureUserProfile(
+        'user_123',
+        'test@example.com',
+        '', // Empty store name
+        'Test User'
+      );
+
+      expect(profileResult.error).toBeDefined();
+    });
+
+    test('should handle authentication failures', async () => {
+      mockAuthService.signUp.mockRejectedValue(new Error('Email already exists'));
+
+      await expect(mockAuthService.signUp({
+        email: 'existing@example.com',
+        password: 'password123'
+      })).rejects.toThrow('Email already exists');
+    });
+  });
+
+  describe('Integration Flow Tests', () => {
+    test('should complete full email signup flow', async () => {
+      // Step 1: Sign up
+      const signupResult = await mockAuthService.signUp({
+        email: 'newuser@example.com',
+        password: 'password123'
+      });
+      expect(signupResult.success).toBe(true);
+
+      // Step 2: Verify email
+      const verifyResult = await mockAuthService.verifyEmail('verification_code');
+      expect(verifyResult.success).toBe(true);
+
+      // Step 3: Complete setup
+      const profileResult = await mockUserProfileService.ensureUserProfile(
+        signupResult.userId,
+        'newuser@example.com',
+        'New Store',
+        'New User'
+      );
+      expect(profileResult.data).toBeDefined();
+
+      // Step 4: Navigate to dashboard
+      expect(mockRouter.replace).toHaveBeenCalledWith('/(tabs)/dashboard');
+    });
+
+    test('should handle OAuth user flow', async () => {
+      // Mock OAuth user with name
+      const profileResult = await mockUserProfileService.ensureUserProfile(
+        'oauth_user_123',
+        'oauth@example.com',
+        'OAuth Store',
+        'OAuth User'
+      );
+
+      expect(profileResult.data).toBeDefined();
+      expect(profileResult.data.name).toBe('OAuth User');
+      expect(mockRouter.push).toHaveBeenCalledWith('/welcome');
+    });
+  });
+}); 

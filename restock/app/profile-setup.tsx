@@ -46,20 +46,37 @@ export default function ProfileSetupScreen() {
       console.log('Creating user profile for:', userId);
       console.log('Profile data:', { name, storeName });
       
-      // Get user email from Clerk
-      const userEmail = user?.emailAddresses?.[0]?.emailAddress || user?.primaryEmailAddress?.emailAddress;
+      // Get user email from Clerk with robust validation
+      const userEmail = user?.emailAddresses?.[0]?.emailAddress || 
+                       user?.primaryEmailAddress?.emailAddress ||
+                       user?.emailAddresses?.[1]?.emailAddress;
       
-      if (!userEmail) {
-        Alert.alert('Error', 'Could not get user email. Please try again.');
+      if (!userEmail || !userEmail.includes('@')) {
+        console.error('No valid email found for user:', userId);
+        Alert.alert('Error', 'Could not retrieve your email address. Please contact support.');
         return;
       }
 
-      // Create user profile in Supabase
-      const result = await UserProfileService.ensureUserProfile(userId, userEmail, storeName, name);
+      // Create user profile in Supabase with proper error handling
+      let result;
+      try {
+        result = await UserProfileService.ensureUserProfile(userId, userEmail, storeName, name);
+      } catch (error) {
+        console.error('Network or unexpected error creating profile:', error);
+        Alert.alert('Error', 'Network error while creating your profile. Please check your connection and try again.');
+        return;
+      }
+      
+      if (!result) {
+        console.error('No result returned from profile creation');
+        Alert.alert('Error', 'Failed to create your profile. Please try again.');
+        return;
+      }
       
       if (result.error) {
         console.error('Failed to create user profile:', result.error);
         Alert.alert('Error', 'Failed to create your profile. Please try again.');
+        return;
       } else {
         console.log('User profile created successfully');
         console.log('Profile data:', result.data);
