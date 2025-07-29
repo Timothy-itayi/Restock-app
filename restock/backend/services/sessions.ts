@@ -626,6 +626,8 @@ export class SessionService {
    */
   static async getUnfinishedSessions(userId: string) {
     try {
+      console.log(`[SessionService] Getting unfinished sessions for user: ${userId}`);
+      
       const { data, error } = await supabase
         .from(TABLES.RESTOCK_SESSIONS)
         .select(`
@@ -635,11 +637,13 @@ export class SessionService {
           restock_items (
             id,
             quantity,
-            products (
+            product_id,
+            supplier_id,
+            products!product_id (
               id,
               name
             ),
-            suppliers (
+            suppliers!supplier_id (
               id,
               name
             )
@@ -650,8 +654,11 @@ export class SessionService {
         .order('created_at', { ascending: false });
 
       if (error) {
+        console.error(`[SessionService] Error fetching unfinished sessions:`, error);
         return { data: null, error };
       }
+
+      console.log(`[SessionService] Raw session data:`, JSON.stringify(data, null, 2));
 
       // Process the data to add summary information
       const processedSessions = data?.map(session => {
@@ -659,23 +666,36 @@ export class SessionService {
         const totalItems = items.length;
         const totalQuantity = items.reduce((sum, item) => sum + (item.quantity || 0), 0);
         
+        console.log(`[SessionService] Processing session ${session.id} with ${items.length} items`);
+        
         // Get unique suppliers
         const uniqueSuppliers = new Set();
         items.forEach(item => {
-          if ((item.suppliers as any)?.id) {
-            uniqueSuppliers.add((item.suppliers as any).id);
+          console.log(`[SessionService] Item ${item.id}:`, {
+            product_id: item.product_id,
+            supplier_id: item.supplier_id,
+            products: item.products,
+            suppliers: item.suppliers
+          });
+          
+          // Handle both array and object formats
+          const suppliers = Array.isArray(item.suppliers) ? item.suppliers[0] : item.suppliers;
+          if (suppliers?.id) {
+            uniqueSuppliers.add(suppliers.id);
           }
         });
 
         // Get unique products
         const uniqueProducts = new Set();
         items.forEach(item => {
-          if ((item.products as any)?.id) {
-            uniqueProducts.add((item.products as any).id);
+          // Handle both array and object formats
+          const products = Array.isArray(item.products) ? item.products[0] : item.products;
+          if (products?.id) {
+            uniqueProducts.add(products.id);
           }
         });
 
-        return {
+        const processedSession = {
           id: session.id,
           createdAt: session.created_at,
           status: session.status,
@@ -685,10 +705,32 @@ export class SessionService {
           uniqueProducts: uniqueProducts.size,
           items: items
         };
+
+        console.log(`[SessionService] Processed session:`, {
+          id: processedSession.id,
+          totalItems: processedSession.totalItems,
+          totalQuantity: processedSession.totalQuantity,
+          uniqueSuppliers: processedSession.uniqueSuppliers,
+          uniqueProducts: processedSession.uniqueProducts,
+          items: processedSession.items.map(item => {
+            const products = Array.isArray(item.products) ? item.products[0] : item.products;
+            const suppliers = Array.isArray(item.suppliers) ? item.suppliers[0] : item.suppliers;
+            return {
+              id: item.id,
+              quantity: item.quantity,
+              productName: products?.name || 'Unknown Product',
+              supplierName: suppliers?.name || 'Unknown Supplier'
+            };
+          })
+        });
+
+        return processedSession;
       });
 
+      console.log(`[SessionService] Returning ${processedSessions?.length || 0} processed sessions`);
       return { data: processedSessions, error: null };
     } catch (error) {
+      console.error(`[SessionService] Exception in getUnfinishedSessions:`, error);
       return { data: null, error };
     }
   }

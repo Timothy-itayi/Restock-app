@@ -31,6 +31,14 @@ interface UnfinishedSession {
   items: SessionItem[];
 }
 
+interface SupplierInfo {
+  id: string;
+  name: string;
+  itemCount: number;
+  totalQuantity: number;
+  percentage: number;
+}
+
 export default function DashboardScreen() {
   const [userName, setUserName] = useState<string>("");
   const [storeName, setStoreName] = useState<string>("");
@@ -127,16 +135,72 @@ export default function DashboardScreen() {
   const getSupplierBreakdown = (session: UnfinishedSession) => {
     const supplierCounts: { [key: string]: number } = {};
     
+    console.log(`[Dashboard] Processing supplier breakdown for session ${session.id} with ${session.items.length} items`);
+    
     session.items.forEach(item => {
-      const supplierName = item.suppliers?.[0]?.name || 'Unknown Supplier';
+      // Access supplier name from the correct data structure (handle both array and object formats)
+      const suppliers = Array.isArray(item.suppliers) ? item.suppliers[0] : item.suppliers;
+      const supplierName = suppliers?.name || 'Unknown Supplier';
+      
+      console.log(`[Dashboard] Item ${item.id}: supplier = ${supplierName}`, {
+        suppliers: item.suppliers,
+        suppliersType: typeof item.suppliers,
+        isArray: Array.isArray(item.suppliers)
+      });
+      
       supplierCounts[supplierName] = (supplierCounts[supplierName] || 0) + 1;
     });
 
-    return Object.entries(supplierCounts).map(([name, count]) => ({
+    const breakdown = Object.entries(supplierCounts).map(([name, count]) => ({
       name,
       count,
       percentage: Math.round((count / session.totalItems) * 100)
     }));
+
+    console.log(`[Dashboard] Supplier breakdown:`, breakdown);
+    return breakdown;
+  };
+
+  const getDetailedSupplierBreakdown = (session: UnfinishedSession): SupplierInfo[] => {
+    const supplierData: { [key: string]: SupplierInfo } = {};
+    
+    session.items.forEach(item => {
+      const suppliers = Array.isArray(item.suppliers) ? item.suppliers[0] : item.suppliers;
+      const supplierName = suppliers?.name || 'Unknown Supplier';
+      const supplierId = suppliers?.id || 'unknown';
+      
+      if (!supplierData[supplierId]) {
+        supplierData[supplierId] = {
+          id: supplierId,
+          name: supplierName,
+          itemCount: 0,
+          totalQuantity: 0,
+          percentage: 0
+        };
+      }
+      
+      supplierData[supplierId].itemCount += 1;
+      supplierData[supplierId].totalQuantity += item.quantity || 0;
+    });
+
+    // Calculate percentages
+    Object.values(supplierData).forEach(supplier => {
+      supplier.percentage = Math.round((supplier.itemCount / session.totalItems) * 100);
+    });
+
+    return Object.values(supplierData).sort((a, b) => b.itemCount - a.itemCount);
+  };
+
+  const getSessionSuppliersList = (session: UnfinishedSession): string[] => {
+    const suppliers = new Set<string>();
+    
+    session.items.forEach(item => {
+      const suppliersData = Array.isArray(item.suppliers) ? item.suppliers[0] : item.suppliers;
+      const supplierName = suppliersData?.name || 'Unknown Supplier';
+      suppliers.add(supplierName);
+    });
+
+    return Array.from(suppliers).sort();
   };
 
   const getSupplierColor = (index: number) => {
@@ -205,6 +269,7 @@ export default function DashboardScreen() {
           
           {unfinishedSessions.map((session, index) => {
             const supplierBreakdown = getSupplierBreakdown(session);
+            const detailedSupplierBreakdown = getDetailedSupplierBreakdown(session);
             const totalQuantity = session.totalQuantity;
             
             return (
@@ -215,8 +280,13 @@ export default function DashboardScreen() {
                       Session #{index + 1} • {formatDate(session.createdAt)}
                     </Text>
                     <Text style={styles.sessionSubtitle}>
-                      {session.totalItems} items • {totalQuantity} total quantity
+                      {session.totalItems} items • {totalQuantity} total quantity • {session.uniqueSuppliers} suppliers
                     </Text>
+                    {session.uniqueSuppliers > 0 && (
+                      <Text style={styles.sessionSuppliers}>
+                        Suppliers: {getSessionSuppliersList(session).join(', ')}
+                      </Text>
+                    )}
                   </View>
                   <TouchableOpacity 
                     style={styles.continueButton}
@@ -252,10 +322,10 @@ export default function DashboardScreen() {
                     <Text style={styles.chartLabel}>View by Supplier</Text>
                   </View>
 
-                  {/* Breakdown List */}
+                  {/* Detailed Breakdown List */}
                   <View style={styles.breakdownList}>
-                    {supplierBreakdown.map((supplier, idx) => (
-                      <View key={supplier.name} style={styles.breakdownItem}>
+                    {detailedSupplierBreakdown.map((supplier, idx) => (
+                      <View key={supplier.id} style={styles.breakdownItem}>
                         <View style={styles.breakdownItemHeader}>
                           <View 
                             style={[
@@ -272,7 +342,7 @@ export default function DashboardScreen() {
                             {supplier.percentage}% of items
                           </Text>
                           <Text style={styles.breakdownItemCount}>
-                            {supplier.count} items
+                            {supplier.itemCount} items ({supplier.totalQuantity} total)
                           </Text>
                         </View>
                       </View>
@@ -408,6 +478,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#7f8c8d',
     marginTop: 2,
+  },
+  sessionSuppliers: {
+    fontSize: 12,
+    color: '#6B7F6B',
+    marginTop: 4,
+    fontStyle: 'italic',
   },
   continueButton: {
     backgroundColor: '#6B7F6B',
