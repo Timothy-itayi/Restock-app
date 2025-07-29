@@ -3,37 +3,37 @@ import { StyleSheet } from "react-native";
 export const emailsStyles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#FEFDF9", // Warm paper background like restock sessions
   },
   header: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#FDFBF3", // Slightly warmer paper
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#E5E5E5",
+    borderBottomColor: "#DEE2E6", // Light grey border
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: "600",
-    color: "#000000",
+    color: "#212529", // Dark text
     textAlign: "center",
   },
   headerSubtitle: {
     fontSize: 14,
-    color: "#000000",
+    color: "#6C757D", // Grey text
     marginTop: 4,
     textAlign: "center",
   },
   emailSummary: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: "#F8F9FA",
+    backgroundColor: "#FDFBF3", // Slightly warmer paper
     borderBottomWidth: 1,
-    borderBottomColor: "#E5E5E5",
+    borderBottomColor: "#DEE2E6", // Light grey border
   },
   summaryText: {
     fontSize: 14,
-    color: "#000000",
+    color: "#6C757D", // Grey text
     textAlign: "center",
   },
   emailList: {
@@ -63,6 +63,9 @@ export const emailsStyles = StyleSheet.create({
   emailDetails: {
     flex: 1,
     marginRight: 12,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   emailSubject: {
     fontSize: 16,
@@ -70,6 +73,7 @@ export const emailsStyles = StyleSheet.create({
     color: "#000000",
     marginBottom: 6,
     lineHeight: 22,
+    flex: 1,
   },
   emailSupplier: {
     fontSize: 14,
@@ -86,7 +90,7 @@ export const emailsStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginTop: 12,
-    justifyContent: "space-between",
+    justifyContent: "flex-end",
   },
   editButton: {
     backgroundColor: "#000000",
@@ -100,6 +104,42 @@ export const emailsStyles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 14,
     fontWeight: "500",
+  },
+  // Edit icon button
+  editIconButton: {
+    backgroundColor: "#F97316", // Orange for edit
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#F97316",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  // Notepad divider line
+  notepadDivider: {
+    height: 1,
+    backgroundColor: "#F0F0F0", // Light grey line like notepad paper
+    marginVertical: 8,
+    marginHorizontal: -8, // Extend slightly beyond padding
+  },
+  // Email info row container
+  emailInfoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  // Email info label (category)
+  emailInfoLabel: {
+    fontSize: 14,
+    color: "#212529",
+    fontWeight: "600", // Semi-bold for category
+  },
+  // Email info value
+  emailInfoValue: {
+    fontSize: 14,
+    color: "#495057", // Dark grey for values
+    fontWeight: "400", // Regular weight for values
   },
   regenerateButton: {
     backgroundColor: "#F8F9FA",
@@ -127,28 +167,28 @@ export const emailsStyles = StyleSheet.create({
     color: "#000000",
   },
   statusDraft: {
-    backgroundColor: "#F8F9FA",
+    backgroundColor: "#6C757D", // Grey for draft
   },
   statusDraftText: {
-    color: "#000000",
+    color: "#FFFFFF", // White text on grey background
   },
   statusSending: {
-    backgroundColor: "#FFF3E0",
+    backgroundColor: "#F97316", // Orange/brown for in-progress
   },
   statusSendingText: {
-    color: "#000000",
+    color: "#FFFFFF", // White text on orange background
   },
   statusSent: {
-    backgroundColor: "#E8F5E8",
+    backgroundColor: "#22C55E", // Green for sent
   },
   statusSentText: {
-    color: "#000000",
+    color: "#FFFFFF", // White text on green background
   },
   statusFailed: {
-    backgroundColor: "#FFEBEE",
+    backgroundColor: "#EF4444", // Red for failed
   },
   statusFailedText: {
-    color: "#000000",
+    color: "#FFFFFF", // White text on red background
   },
   modalOverlay: {
     flex: 1,
@@ -331,14 +371,14 @@ export const emailsStyles = StyleSheet.create({
     fontWeight: "500",
   },
   sendAllButton: {
-    backgroundColor: "#000000",
+    backgroundColor: "#22C55E", // Green like restock sessions
     marginHorizontal: 16,
     marginVertical: 16,
     paddingVertical: 12,
     borderRadius: 6,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#000000",
+    borderColor: "#22C55E", // Green border
   },
   sendAllButtonText: {
     color: "#FFFFFF",

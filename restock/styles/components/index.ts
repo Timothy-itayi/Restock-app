@@ -11,4 +11,5 @@ export { signUpStyles } from './sign-up';
 export { verifyEmailStyles } from './verify-email';
 export { loadingScreenStyles } from './loading-screen';
 export { signOutButtonStyles } from './sign-out-button';
-export { profileStyles } from './profile'; 
+export { profileStyles } from './profile';
+export { toastStyles } from './toast'; 

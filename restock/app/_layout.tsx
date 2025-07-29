@@ -9,6 +9,7 @@ import { AuthProvider } from "./_contexts/AuthContext";
 import AuthVerificationGate from "./components/AuthVerificationGate";
 import * as Linking from 'expo-linking';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import '../global.css';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();

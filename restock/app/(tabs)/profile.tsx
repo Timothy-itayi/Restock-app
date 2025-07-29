@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { useUser } from '@clerk/clerk-expo';
 import { UserProfileService } from '../../backend/services/user-profile';
 import SignOutButton from '../components/SignOutButton';
 import { profileStyles } from '../../styles/components/profile';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function ProfileScreen() {
   const { user } = useUser();
@@ -38,50 +39,85 @@ export default function ProfileScreen() {
   }
 
   return (
-    <View style={profileStyles.container}>
+    <ScrollView style={profileStyles.container} showsVerticalScrollIndicator={false}>
+      {/* Header */}
       <View style={profileStyles.header}>
-        <Text style={profileStyles.title}>Profile</Text>
-        <Text style={profileStyles.subtitle}>Manage your account settings</Text>
+        <Text style={profileStyles.headerTitle}>Account</Text>
+        <TouchableOpacity style={profileStyles.settingsButton}>
+          <Ionicons name="settings-outline" size={24} color="#6C757D" />
+        </TouchableOpacity>
       </View>
 
-      {/* User Info */}
-      <View style={profileStyles.card}>
-        <Text style={profileStyles.cardTitle}>Account Information</Text>
+      {/* Profile Section */}
+      <View style={profileStyles.profileSection}>
+        <Image 
+          source={require('../../assets/images/user_name.png')}
+          style={profileStyles.profileImage}
+          resizeMode="contain"
+        />
         
-        <View style={profileStyles.infoRow}>
-          <Text style={profileStyles.label}>Name</Text>
-          <Text style={profileStyles.value}>
+        <View style={profileStyles.profileInfo}>
+          <Text style={profileStyles.userName}>
             {userProfile?.name || user?.firstName || 'Not set'}
           </Text>
-        </View>
-        
-        <View style={profileStyles.infoRow}>
-          <Text style={profileStyles.label}>Store Name</Text>
-          <Text style={[profileStyles.value, profileStyles.storeName]}>
-            {userProfile?.store_name || 'Not set'}
-          </Text>
-        </View>
-        
-        <View style={profileStyles.infoRow}>
-          <Text style={profileStyles.label}>Email</Text>
-          <Text style={profileStyles.value}>
+          <Text style={profileStyles.userEmail}>
             {user?.emailAddresses[0]?.emailAddress || 'Not available'}
           </Text>
         </View>
-        
-        <View style={profileStyles.infoRow}>
-          <Text style={profileStyles.label}>Member Since</Text>
-          <Text style={profileStyles.value}>
-            {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Not available'}
-          </Text>
+      </View>
+
+      {/* Store Plan Card */}
+      <View style={profileStyles.planCard}>
+        <View style={profileStyles.planHeader}>
+          <View style={profileStyles.planIcon}>
+            <Image 
+              source={require('../../assets/images/keys.png')}
+              style={profileStyles.planIconImage}
+              resizeMode="contain"
+            />
+          </View>
+          <View style={profileStyles.planInfo}>
+            <Text style={profileStyles.planLabel}>Your store</Text>
+            <Text style={profileStyles.planName}>
+              {userProfile?.store_name || 'Not set'}
+            </Text>
+          </View>
         </View>
       </View>
 
-      {/* Actions */}
-      <View style={profileStyles.card}>
-        <Text style={profileStyles.cardTitle}>Actions</Text>
+      {/* Stats Cards */}
+      <View style={profileStyles.statsContainer}>
+        <View style={profileStyles.statCard}>
+          <View style={profileStyles.statIconRestock}>
+            <Image 
+              source={require('../../assets/images/restock_session.png')}
+              style={profileStyles.statIconImage}
+              resizeMode="contain"
+            />
+          </View>
+          <Text style={profileStyles.statTitle}>Restock Sessions</Text>
+          <Text style={profileStyles.statValue}>12</Text>
+          <Text style={profileStyles.statDescription}>This month</Text>
+        </View>
+        
+        <View style={profileStyles.statCard}>
+          <View style={profileStyles.statIconEmail}>
+            <Image 
+              source={require('../../assets/images/email_sent.png')}
+              style={profileStyles.statIconImage}
+              resizeMode="contain"
+            />
+          </View>
+          <Text style={profileStyles.statTitle}>Emails Sent</Text>
+          <Text style={profileStyles.statValue}>48</Text>
+          <Text style={profileStyles.statDescription}>This month</Text>
+        </View>
+      </View>
+
+      {/* Sign Out */}
+      <View style={profileStyles.signOutSection}>
         <SignOutButton />
       </View>
-    </View>
+    </ScrollView>
   );
 } 

@@ -18,6 +18,7 @@ import CustomToast from "../components/CustomToast";
 import { ProductService } from "../../backend/services/products";
 import { SupplierService } from "../../backend/services/suppliers";
 import { SessionService } from "../../backend/services/sessions";
+import { Ionicons } from "@expo/vector-icons";
 import type { Product as DatabaseProduct, Supplier as DatabaseSupplier, RestockSession as DatabaseRestockSession, RestockItem as DatabaseRestockItem } from "../../backend/types/database";
 
 // Enhanced logging utility
@@ -1073,6 +1074,10 @@ export default function RestockSessionsScreen() {
   const renderStartSection = () => (
     <View style={restockSessionsStyles.startSection}>
       <Text style={restockSessionsStyles.startPrompt}>What do you want to restock?</Text>
+      <Text style={restockSessionsStyles.instructions}>
+        Walk around your store with this digital notepad and add products that need restocking. 
+        Each product will be organized by supplier for easy email generation.
+      </Text>
       <TouchableOpacity style={restockSessionsStyles.startButton} onPress={startNewSession}>
         <Text style={restockSessionsStyles.startButtonText}>Start New Restock</Text>
       </TouchableOpacity>
@@ -1168,12 +1173,12 @@ export default function RestockSessionsScreen() {
         </View>
 
         <View style={restockSessionsStyles.inputGroup}>
-          <Text style={restockSessionsStyles.inputLabel}>Supplier Email *</Text>
+          <Text style={restockSessionsStyles.inputLabel}>Supplier Email</Text>
           <TextInput
             style={restockSessionsStyles.textInput}
             value={supplierEmail}
             onChangeText={setSupplierEmail}
-            placeholder="supplier@example.com"
+            placeholder="Enter supplier email"
             keyboardType="email-address"
             autoCapitalize="none"
           />
@@ -1181,10 +1186,10 @@ export default function RestockSessionsScreen() {
 
         <View style={restockSessionsStyles.formButtons}>
           <TouchableOpacity style={restockSessionsStyles.cancelButton} onPress={cancelAddProduct}>
-            <Text style={[restockSessionsStyles.buttonText, restockSessionsStyles.cancelButtonText]}>Cancel</Text>
+            <Text style={restockSessionsStyles.cancelButtonText}>Cancel</Text>
           </TouchableOpacity>
           <TouchableOpacity style={restockSessionsStyles.saveButton} onPress={addProduct}>
-            <Text style={[restockSessionsStyles.buttonText, restockSessionsStyles.saveButtonText]}>Add Product</Text>
+            <Text style={restockSessionsStyles.saveButtonText}>Add Product</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -1211,24 +1216,11 @@ export default function RestockSessionsScreen() {
           <Text style={restockSessionsStyles.inputLabel}>Product Name</Text>
           <TextInput
             style={restockSessionsStyles.textInput}
-            value={productName}
-            onChangeText={handleProductNameChange}
+            value={editingProduct?.name || ''}
+            onChangeText={(text) => setEditingProduct(prev => prev ? { ...prev, name: text } : null)}
             placeholder="Enter product name"
             autoFocus
           />
-          {filteredProducts.length > 0 && (
-            <View style={{ marginTop: 8 }}>
-              {filteredProducts.map((product, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={restockSessionsStyles.suggestionItem}
-                  onPress={() => selectProductSuggestion(product)}
-                >
-                  <Text style={restockSessionsStyles.suggestionText}>{product.name}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
         </View>
 
         <View style={restockSessionsStyles.inputGroup}>
@@ -1236,20 +1228,31 @@ export default function RestockSessionsScreen() {
           <View style={restockSessionsStyles.quantityContainer}>
             <TouchableOpacity
               style={restockSessionsStyles.quantityButton}
-              onPress={decrementQuantity}
+              onPress={() => {
+                if (editingProduct && editingProduct.quantity > 1) {
+                  setEditingProduct({ ...editingProduct, quantity: editingProduct.quantity - 1 });
+                }
+              }}
             >
               <Text style={restockSessionsStyles.quantityButtonText}>−</Text>
             </TouchableOpacity>
             <TextInput
               style={restockSessionsStyles.quantityInput}
-              value={quantity}
-              onChangeText={setQuantity}
+              value={editingProduct?.quantity?.toString() || '1'}
+              onChangeText={(text) => {
+                const num = parseInt(text) || 1;
+                setEditingProduct(prev => prev ? { ...prev, quantity: num } : null);
+              }}
               placeholder="1"
               keyboardType="numeric"
             />
             <TouchableOpacity
               style={restockSessionsStyles.quantityButton}
-              onPress={incrementQuantity}
+              onPress={() => {
+                if (editingProduct) {
+                  setEditingProduct({ ...editingProduct, quantity: editingProduct.quantity + 1 });
+                }
+              }}
             >
               <Text style={restockSessionsStyles.quantityButtonText}>+</Text>
             </TouchableOpacity>
@@ -1260,32 +1263,19 @@ export default function RestockSessionsScreen() {
           <Text style={restockSessionsStyles.inputLabel}>Supplier Name</Text>
           <TextInput
             style={restockSessionsStyles.textInput}
-            value={supplierName}
-            onChangeText={handleSupplierNameChange}
+            value={editingProduct?.supplierName || ''}
+            onChangeText={(text) => setEditingProduct(prev => prev ? { ...prev, supplierName: text } : null)}
             placeholder="Enter supplier name"
           />
-          {filteredSuppliers.length > 0 && (
-            <View style={{ marginTop: 8 }}>
-              {filteredSuppliers.map((supplier, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={restockSessionsStyles.suggestionItem}
-                  onPress={() => selectSupplierSuggestion(supplier)}
-                >
-                  <Text style={restockSessionsStyles.suggestionText}>{supplier.name}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
         </View>
 
         <View style={restockSessionsStyles.inputGroup}>
-          <Text style={restockSessionsStyles.inputLabel}>Supplier Email *</Text>
+          <Text style={restockSessionsStyles.inputLabel}>Supplier Email</Text>
           <TextInput
             style={restockSessionsStyles.textInput}
-            value={supplierEmail}
-            onChangeText={setSupplierEmail}
-            placeholder="supplier@example.com"
+            value={editingProduct?.supplierEmail || ''}
+            onChangeText={(text) => setEditingProduct(prev => prev ? { ...prev, supplierEmail: text } : null)}
+            placeholder="Enter supplier email"
             keyboardType="email-address"
             autoCapitalize="none"
           />
@@ -1293,10 +1283,10 @@ export default function RestockSessionsScreen() {
 
         <View style={restockSessionsStyles.formButtons}>
           <TouchableOpacity style={restockSessionsStyles.cancelButton} onPress={cancelEdit}>
-            <Text style={[restockSessionsStyles.buttonText, restockSessionsStyles.cancelButtonText]}>Cancel</Text>
+            <Text style={restockSessionsStyles.cancelButtonText}>Cancel</Text>
           </TouchableOpacity>
           <TouchableOpacity style={restockSessionsStyles.saveButton} onPress={saveEditedProduct}>
-            <Text style={[restockSessionsStyles.buttonText, restockSessionsStyles.saveButtonText]}>Save Changes</Text>
+            <Text style={restockSessionsStyles.saveButtonText}>Save Changes</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -1304,77 +1294,101 @@ export default function RestockSessionsScreen() {
   );
 
   const renderProductList = () => (
-    <ScrollView style={restockSessionsStyles.productList} showsVerticalScrollIndicator={false}>
-      {currentSession?.products.map((product) => (
-        <View key={product.id} style={restockSessionsStyles.productItem}>
-          <View style={restockSessionsStyles.productHeader}>
-            <Text style={restockSessionsStyles.productName}>{product.name}</Text>
-            <Text style={restockSessionsStyles.productQuantity}>Qty: {product.quantity}</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+    <ScrollView 
+      style={restockSessionsStyles.productList}
+      contentContainerStyle={restockSessionsStyles.productListContent}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+    >
+      {currentSession && currentSession.products.length > 0 ? (
+        currentSession.products.map((product, index) => (
+          <View key={product.id} style={restockSessionsStyles.productItem}>
+            <View style={restockSessionsStyles.productHeader}>
+              <Text style={restockSessionsStyles.productName}>{product.name}</Text>
+              <Text style={restockSessionsStyles.productQuantity}>Qty: {product.quantity}</Text>
               <TouchableOpacity
-                style={restockSessionsStyles.editButton}
+                style={restockSessionsStyles.editIconButton}
                 onPress={() => editProduct(product)}
               >
-                <Text style={restockSessionsStyles.editButtonText}>Edit</Text>
+                <Ionicons name="pencil" size={16} color="#FFFFFF" />
               </TouchableOpacity>
               <TouchableOpacity
-                style={restockSessionsStyles.deleteButton}
+                style={restockSessionsStyles.deleteIconButton}
                 onPress={() => removeProduct(product.id)}
               >
-                <Text style={restockSessionsStyles.deleteButtonText}>Delete</Text>
+                <Ionicons name="trash" size={16} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
+            
+            {/* Notepad divider line */}
+            <View style={restockSessionsStyles.notepadDivider} />
+            
+            <View style={restockSessionsStyles.productInfoRow}>
+              <Text style={restockSessionsStyles.productInfoLabel}>Supplier: </Text>
+              <Text style={restockSessionsStyles.productInfoValue}>{product.supplierName}</Text>
+            </View>
+            
+            {/* Notepad divider line */}
+            <View style={restockSessionsStyles.notepadDivider} />
+            
+            {product.supplierEmail && (
+              <View style={restockSessionsStyles.productInfoRow}>
+                <Text style={restockSessionsStyles.productInfoLabel}>Email: </Text>
+                <Text style={restockSessionsStyles.productInfoValue}>{product.supplierEmail}</Text>
+              </View>
+            )}
           </View>
-          <Text style={restockSessionsStyles.productSupplier}>
-            Supplier: {product.supplierName}
-          </Text>
-          <Text style={restockSessionsStyles.productEmail}>
-            Email: {product.supplierEmail}
-          </Text>
-        </View>
-      ))}
-      
-      {currentSession?.products.length === 0 && (
+        ))
+      ) : (
         <View style={restockSessionsStyles.emptyState}>
           <Text style={restockSessionsStyles.emptyStateText}>
-            No products added yet. Tap "Add Product" to get started.
+            No products added yet. Tap the + button to add your first product.
           </Text>
         </View>
       )}
+      
+      {/* Integrated Add Product button */}
+      <TouchableOpacity 
+        style={restockSessionsStyles.integratedAddButton}
+        onPress={() => setShowAddProductForm(true)}
+      >
+        <Text style={restockSessionsStyles.integratedAddButtonIcon}>+</Text>
+        <Text style={restockSessionsStyles.integratedAddButtonText}>Add Product</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 
   const renderSessionFlow = () => (
     <View style={restockSessionsStyles.sessionContainer}>
-      <View style={restockSessionsStyles.sessionHeader}>
-        <Text style={restockSessionsStyles.sessionTitle}>Restock Session</Text>
-        <TouchableOpacity style={restockSessionsStyles.finishButton} onPress={finishSession}>
-          <Text style={restockSessionsStyles.finishButtonText}>Finish</Text>
-        </TouchableOpacity>
-      </View>
-
+      {/* Session summary */}
       {currentSession && currentSession.products.length > 0 && (
         <View style={restockSessionsStyles.sessionSummary}>
           <Text style={restockSessionsStyles.summaryText}>
-            {currentSession.products.length} product{currentSession.products.length !== 1 ? 's' : ''} added
+            {currentSession.products.length} product{currentSession.products.length !== 1 ? 's' : ''} added • 
+            Ready to generate supplier emails
           </Text>
         </View>
       )}
 
+      {/* Start section with instructions */}
+      <View style={restockSessionsStyles.addProductSection}>
+        <Text style={restockSessionsStyles.addProductInstructions}>
+          Walk around your store and add products that need restocking
+        </Text>
+      </View>
+      
+      {/* Main content area */}
       {showAddProductForm ? renderAddProductForm() : 
-       showEditProductForm ? renderEditProductForm() : (
-        <>
-          <View style={restockSessionsStyles.addProductSection}>
-            <TouchableOpacity
-              style={restockSessionsStyles.addProductButton}
-              onPress={() => setShowAddProductForm(true)}
-            >
-              <Text style={restockSessionsStyles.addProductButtonText}>+ Add Product</Text>
-            </TouchableOpacity>
-          </View>
+       showEditProductForm ? renderEditProductForm() : 
+       renderProductList()}
 
-          {renderProductList()}
-        </>
+      {/* Bottom finish section */}
+      {currentSession && currentSession.products.length > 0 && !showAddProductForm && !showEditProductForm && (
+        <View style={restockSessionsStyles.bottomFinishSection}>
+          <TouchableOpacity style={restockSessionsStyles.bottomFinishButton} onPress={finishSession}>
+            <Text style={restockSessionsStyles.bottomFinishButtonText}>Finish & Generate Emails</Text>
+          </TouchableOpacity>
+        </View>
       )}
     </View>
   );
@@ -1421,6 +1435,17 @@ export default function RestockSessionsScreen() {
         ]}
         autoDismiss={false}
         onDismiss={() => setShowTransitionToast(false)}
+      />
+
+      {/* Demo Success Toast - Remove this in production */}
+      <CustomToast
+        visible={false} // Set to true to see the new design
+        type="success"
+        title="Task created"
+        message="Your restock session has been successfully created and is ready for use."
+        autoDismiss={true}
+        duration={4000}
+        onDismiss={() => {}}
       />
     </View>
   );

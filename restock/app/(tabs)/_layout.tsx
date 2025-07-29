@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import { SignedIn } from "@clerk/clerk-expo";
-import { tabBarOptions } from "../../styles/components/tabs";
+import { tabBarOptions, tabScreenOptions } from "../../styles/components/tabs";
 import { useEffect } from "react";
 
 export default function TabLayout() {
@@ -24,36 +24,52 @@ export default function TabLayout() {
         <Tabs.Screen
           name="dashboard"
           options={{
-            title: "Dashboard",
+            title: tabScreenOptions.dashboard.title,
             tabBarIcon: ({ color, size }) => (
-              <Ionicons name="home" size={size} color={color} />
+              <Ionicons 
+                name={tabScreenOptions.dashboard.tabBarIcon({ color, size }).name as any} 
+                size={size} 
+                color={color} 
+              />
             ),
           }}
         />
         <Tabs.Screen
           name="restock-sessions"
           options={{
-            title: "Restock Sessions",
+            title: tabScreenOptions.restockSessions.title,
             tabBarIcon: ({ color, size }) => (
-              <Ionicons name="list" size={size} color={color} />
+              <Ionicons 
+                name={tabScreenOptions.restockSessions.tabBarIcon({ color, size }).name as any} 
+                size={size} 
+                color={color} 
+              />
             ),
           }}
         />
         <Tabs.Screen
           name="emails"
           options={{
-            title: "Emails",
+            title: tabScreenOptions.emails.title,
             tabBarIcon: ({ color, size }) => (
-              <Ionicons name="mail" size={size} color={color} />
+              <Ionicons 
+                name={tabScreenOptions.emails.tabBarIcon({ color, size }).name as any} 
+                size={size} 
+                color={color} 
+              />
             ),
           }}
         />
         <Tabs.Screen
           name="profile"
           options={{
-            title: "Profile",
+            title: tabScreenOptions.profile.title,
             tabBarIcon: ({ color, size }) => (
-              <Ionicons name="person" size={size} color={color} />
+              <Ionicons 
+                name={tabScreenOptions.profile.tabBarIcon({ color, size }).name as any} 
+                size={size} 
+                color={color} 
+              />
             ),
           }}
         />

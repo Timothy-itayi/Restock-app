@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 import { emailsStyles } from "../../styles/components/emails";
+import { Ionicons } from "@expo/vector-icons";
 
 // Types for email data
 interface EmailDraft {
@@ -368,16 +369,13 @@ export default function EmailsScreen() {
 
   return (
     <View style={emailsStyles.container}>
-      {/* Header */}
-      <View style={emailsStyles.header}>
-        <Text style={emailsStyles.headerTitle}>Email Drafts</Text>
-        <Text style={emailsStyles.headerSubtitle}>
-          {emailSession.emails.length} emails ready to send
-        </Text>
-      </View>
+    
 
       {/* Email Summary */}
       <View style={emailsStyles.emailSummary}>
+      <Text style={emailsStyles.headerSubtitle}>
+          {emailSession.emails.length} emails ready to send
+        </Text>
         <Text style={emailsStyles.summaryText}>
           Emails auto-generated using your saved supplier data
         </Text>
@@ -390,24 +388,39 @@ export default function EmailsScreen() {
             <View style={emailsStyles.emailCardHeader}>
               <View style={emailsStyles.emailDetails}>
                 <Text style={emailsStyles.emailSubject}>{email.subject}</Text>
-                <Text style={emailsStyles.emailSupplier}>
-                  To: {email.supplierName} ({email.supplierEmail})
-                </Text>
+                <TouchableOpacity
+                  style={emailsStyles.editIconButton}
+                  onPress={() => handleEditEmail(email)}
+                >
+                  <Ionicons name="pencil" size={16} color="#FFFFFF" />
+                </TouchableOpacity>
               </View>
             </View>
+            
+            {/* Notepad divider line */}
+            <View style={emailsStyles.notepadDivider} />
+            
+            <View style={emailsStyles.emailInfoRow}>
+              <Text style={emailsStyles.emailInfoLabel}>To: </Text>
+              <Text style={emailsStyles.emailInfoValue}>{email.supplierName}</Text>
+            </View>
+            
+            {/* Notepad divider line */}
+            <View style={emailsStyles.notepadDivider} />
+            
+            <View style={emailsStyles.emailInfoRow}>
+              <Text style={emailsStyles.emailInfoLabel}>Email: </Text>
+              <Text style={emailsStyles.emailInfoValue}>{email.supplierEmail}</Text>
+            </View>
+            
+            {/* Notepad divider line */}
+            <View style={emailsStyles.notepadDivider} />
             
             <Text style={emailsStyles.emailPreview} numberOfLines={3}>
               {email.body}
             </Text>
             
             <View style={emailsStyles.emailActions}>
-              <TouchableOpacity
-                style={emailsStyles.editButton}
-                onPress={() => handleEditEmail(email)}
-              >
-                <Text style={emailsStyles.editButtonText}>Edit</Text>
-              </TouchableOpacity>
-              
               <View style={[emailsStyles.statusBadge, getStatusStyle(email.status)]}>
                 <Text style={[emailsStyles.statusText, getStatusTextStyle(email.status)]}>
                   {getStatusText(email.status)}
