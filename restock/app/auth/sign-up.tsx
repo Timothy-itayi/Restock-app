@@ -6,6 +6,7 @@ import React from 'react';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { getOAuthUrl } from '../../backend/config/clerk';
+import AuthGuard from '../components/AuthGuard';
 
 export default function SignUpScreen() {
   const { isLoaded, signUp, setActive } = useSignUp();
@@ -216,24 +217,13 @@ export default function SignUpScreen() {
       });
 
       // If verification was completed, set the session to active
-      // and redirect the user to complete setup
+      // and let AuthContext handle the routing
       if (signUpAttempt.status === 'complete') {
         await setActive({ session: signUpAttempt.createdSessionId });
         
-        // For email signup, redirect to welcome screen to complete setup
-        // This ensures the user provides their name and store information
-        Alert.alert(
-          'Account Created Successfully!',
-          'Please complete your account setup by providing your store information.',
-          [
-            {
-              text: 'OK',
-              onPress: () => {
-                router.replace('/welcome');
-              }
-            }
-          ]
-        );
+        // Don't redirect here - let AuthContext handle it
+        // The AuthContext will check if user has a profile and route accordingly
+        console.log('Email verification completed, session activated');
       } else {
         // If the status is not complete, check why. User may need to
         // complete further steps.
@@ -250,37 +240,40 @@ export default function SignUpScreen() {
 
   if (pendingVerification) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.title}>Verify your email</Text>
-        <Text style={styles.subtitle}>Enter the verification code sent to your email</Text>
-        
-        <TextInput
-          style={styles.input}
-          value={code}
-          placeholder="Enter verification code"
-          onChangeText={(code) => setCode(code)}
-          keyboardType="number-pad"
-        />
-        
-        <TouchableOpacity 
-          style={[styles.button, loading && styles.buttonDisabled]}
-          onPress={onVerifyPress}
-          disabled={loading}
-        >
-          <Text style={styles.buttonText}>
-            {loading ? 'Verifying...' : 'Verify Email'}
-          </Text>
-        </TouchableOpacity>
-      </View>
+      <AuthGuard requireNoAuth={true}>
+        <View style={styles.container}>
+          <Text style={styles.title}>Verify your email</Text>
+          <Text style={styles.subtitle}>Enter the verification code sent to your email</Text>
+          
+          <TextInput
+            style={styles.input}
+            value={code}
+            placeholder="Enter verification code"
+            onChangeText={(code) => setCode(code)}
+            keyboardType="number-pad"
+          />
+          
+          <TouchableOpacity 
+            style={[styles.button, loading && styles.buttonDisabled]}
+            onPress={onVerifyPress}
+            disabled={loading}
+          >
+            <Text style={styles.buttonText}>
+              {loading ? 'Verifying...' : 'Verify Email'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </AuthGuard>
     );
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollViewContent}>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.container}
-      >
+    <AuthGuard requireNoAuth={true}>
+      <ScrollView contentContainerStyle={styles.scrollViewContent}>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.container}
+        >
         <Text style={styles.title}>Create your account</Text>
         <Text style={styles.subtitle}>Sign up to start managing your restock operations</Text>
         
@@ -305,6 +298,7 @@ export default function SignUpScreen() {
           autoCapitalize="none"
           value={emailAddress}
           placeholder="Enter your email address"
+          placeholderTextColor="#666666"
           onChangeText={(email) => setEmailAddress(email)}
           keyboardType="email-address"
         />
@@ -313,6 +307,7 @@ export default function SignUpScreen() {
           style={[styles.input, passwordError && styles.inputError]}
           value={password}
           placeholder="Create a strong password"
+          placeholderTextColor="#666666"
           secureTextEntry={true}
           onChangeText={handlePasswordChange}
           autoCapitalize="none"
@@ -346,6 +341,7 @@ export default function SignUpScreen() {
         </View>
       </KeyboardAvoidingView>
     </ScrollView>
+    </AuthGuard>
   );
 }
 

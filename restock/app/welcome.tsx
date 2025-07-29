@@ -8,6 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { getOAuthUrl } from '../backend/config/clerk';
+import AuthGuard from './components/AuthGuard';
 
 export default function WelcomeScreen() {
   const [email, setEmail] = useState('');
@@ -30,6 +31,9 @@ export default function WelcomeScreen() {
       console.log('User is already authenticated:', userId);
       // Check if user profile exists in Supabase
       checkUserProfile(userId);
+    } else if (isLoaded && !isSignedIn) {
+      // User is not authenticated, this is fine for welcome screen
+      console.log('User not authenticated, welcome screen is appropriate');
     }
     
     // Check if user is a returning user
@@ -455,19 +459,20 @@ export default function WelcomeScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollViewContent}>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.container}
-      >
-        <View style={styles.content}>
-          <Text style={styles.title}>Welcome to Restock</Text>
-          <Text style={styles.subtitle}>
-            Streamline your store's restocking process
-          </Text>
-          <Text style={styles.description}>
-            Create restock sessions, manage suppliers, and generate professional emails automatically.
-          </Text>
+    <AuthGuard requireNoAuth={true}>
+      <ScrollView contentContainerStyle={styles.scrollViewContent}>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.container}
+        >
+          <View style={styles.content}>
+            <Text style={styles.title}>Welcome to Restock</Text>
+            <Text style={styles.subtitle}>
+              Streamline your store's restocking process
+            </Text>
+            <Text style={styles.description}>
+              Create restock sessions, manage suppliers, and generate professional emails automatically.
+            </Text>
 
           {!showEmailSignup && !showStoreNameInput ? (
             <View style={styles.optionsSection}>
@@ -484,6 +489,13 @@ export default function WelcomeScreen() {
                   </Text>
                 </TouchableOpacity>
               )}
+              
+              <TouchableOpacity 
+                style={styles.signInLink}
+                onPress={() => router.push('/auth/sign-in')}
+              >
+                <Text style={styles.signInLinkText}>Already have an account? Sign in</Text>
+              </TouchableOpacity>
               
               <TouchableOpacity 
                 style={styles.googleButton}
@@ -525,6 +537,7 @@ export default function WelcomeScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="Create a password"
+                placeholderTextColor="#666666"
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={true}
@@ -550,6 +563,7 @@ export default function WelcomeScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder="Enter your first name"
+                  placeholderTextColor="#666666"
                   value={name}
                   onChangeText={setName}
                   autoCapitalize="words"
@@ -558,6 +572,7 @@ export default function WelcomeScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="Enter your store name"
+                placeholderTextColor="#666666"
                 value={storeName}
                 onChangeText={setStoreName}
                 autoCapitalize="words"
@@ -582,6 +597,7 @@ export default function WelcomeScreen() {
         </View>
       </KeyboardAvoidingView>
     </ScrollView>
+    </AuthGuard>
   );
 }
 
@@ -712,5 +728,15 @@ const styles = StyleSheet.create({
   backButtonText: {
     color: '#6B7F6B',
     fontSize: 16,
+  },
+  signInLink: {
+    alignItems: 'center',
+    padding: 12,
+    marginTop: 8,
+  },
+  signInLinkText: {
+    color: '#6B7F6B',
+    fontSize: 16,
+    textDecorationLine: 'underline',
   },
 }); 

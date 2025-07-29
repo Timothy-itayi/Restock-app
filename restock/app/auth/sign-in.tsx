@@ -7,6 +7,7 @@ import { SessionManager } from '../../backend/services/session-manager';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { getOAuthUrl } from '../../backend/config/clerk';
+import AuthGuard from '../components/AuthGuard';
 
 export default function SignInScreen() {
   const { signIn, setActive, isLoaded } = useSignIn();
@@ -191,11 +192,12 @@ export default function SignInScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
-      >
+    <AuthGuard requireNoAuth={true}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
         <View style={styles.titleContainer}>
           <Text style={styles.title}>Welcome back</Text>
           <Text style={styles.subtitle}>Sign in to your account</Text>
@@ -268,6 +270,7 @@ export default function SignInScreen() {
         </View>
       </KeyboardAvoidingView>
     </ScrollView>
+    </AuthGuard>
   );
 }
 

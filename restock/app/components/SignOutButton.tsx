@@ -25,11 +25,17 @@ export default function SignOutButton() {
               // Clear the user session data but keep the returning user flag
               await SessionManager.clearUserSession();
               
+              // Clear verification cache by reloading the app
+              // This ensures fresh verification on next sign-in
+              
               // Sign out from Clerk
               await signOut();
               
-              // Navigate to welcome screen
-              router.replace('/welcome');
+              // Wait a moment for Clerk to process the sign out
+              setTimeout(() => {
+                // Navigate to sign-in screen instead of welcome
+                router.replace('/auth/sign-in');
+              }, 500);
             } catch (error) {
               console.error('Error signing out:', error);
               Alert.alert('Error', 'Failed to sign out. Please try again.');

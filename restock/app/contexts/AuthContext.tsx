@@ -7,6 +7,7 @@ import { UserProfileService } from '../../backend/services/user-profile';
 interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
+  isVerifying: boolean;
   user: any;
   userId: string | null;
   hasCompletedSetup: boolean;
@@ -15,6 +16,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   isLoading: true,
+  isVerifying: false,
   user: null,
   userId: null,
   hasCompletedSetup: false,
@@ -29,15 +31,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const segments = useSegments();
   
   const [isLoading, setIsLoading] = useState(true);
+  const [isVerifying, setIsVerifying] = useState(false);
   const [hasCompletedSetup, setHasCompletedSetup] = useState(false);
+  const [lastVerifiedUserId, setLastVerifiedUserId] = useState<string | null>(null);
+  const [verificationCache, setVerificationCache] = useState<{[key: string]: boolean}>({});
+  const [lastVerificationTime, setLastVerificationTime] = useState<number>(0);
 
   useEffect(() => {
     if (!isLoaded) return;
+
+    // Clear cache if user signed out
+    if (!isSignedIn && lastVerifiedUserId) {
+      console.log('User signed out, clearing verification cache');
+      setLastVerifiedUserId(null);
+      setVerificationCache({});
+      setLastVerificationTime(0);
+      setHasCompletedSetup(false);
+      return;
+    }
+
+    // Don't re-verify if user is already authenticated and verified
+    if (isSignedIn && userId && lastVerifiedUserId === userId && verificationCache[userId]) {
+      console.log('User already verified, skipping re-verification');
+      return;
+    }
+
+    // Prevent verification from running too frequently (within 5 seconds)
+    const now = Date.now();
+    if (isSignedIn && userId && (now - lastVerificationTime) < 5000) {
+      console.log('Verification ran recently, skipping');
+      return;
+    }
 
     const checkAuthAndSetup = async () => {
       try {
         if (isSignedIn && userId) {
           console.log('User is authenticated:', userId);
+          
+          // Check if we've already verified this user recently
+          if (lastVerifiedUserId === userId && verificationCache[userId]) {
+            console.log('User already verified recently, skipping verification');
+            setHasCompletedSetup(true);
+            setIsLoading(false);
+            return;
+          }
+          
+          setIsVerifying(true);
+          setLastVerificationTime(Date.now());
           
           // First, check if user has a profile in Supabase (this is the source of truth)
           try {
@@ -46,6 +86,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (profileResult.data) {
               // User has a profile in Supabase - they have completed setup
               console.log('User profile exists in Supabase, setup completed');
+              
+              // Cache the verification result
+              setVerificationCache(prev => ({ ...prev, [userId]: true }));
+              setLastVerifiedUserId(userId);
               
               // Update local session with Supabase data
               if (user) {
@@ -72,6 +116,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               console.log('User profile does not exist in Supabase, needs setup');
               setHasCompletedSetup(false);
               
+              // Cache the verification result
+              setVerificationCache(prev => ({ ...prev, [userId]: false }));
+              setLastVerifiedUserId(userId);
+              
               // Redirect to welcome if not already there
               const isOnSetupScreen = segments[0] === 'welcome';
               if (!isOnSetupScreen) {
@@ -87,6 +135,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (!isOnSetupScreen) {
               router.replace('/welcome');
             }
+          } finally {
+            setIsVerifying(false);
           }
         } else {
           // User is not authenticated
@@ -98,6 +148,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (error) {
         console.error('Error in auth check:', error);
+        setIsVerifying(false);
       } finally {
         setIsLoading(false);
       }
@@ -109,6 +160,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value = {
     isAuthenticated: isSignedIn || false,
     isLoading,
+    isVerifying,
     user,
     userId: userId || null,
     hasCompletedSetup,
