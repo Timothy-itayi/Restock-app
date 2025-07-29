@@ -5,6 +5,7 @@ import { UserProfileService } from '../../backend/services/user-profile';
 import { supabase } from '../../backend/config/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
+import AuthGuard from '../components/AuthGuard';
 
 export default function VerifyEmailScreen() {
   const [code, setCode] = useState('');
@@ -159,11 +160,12 @@ export default function VerifyEmailScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{ flex: 1 }}
-    >
-      <ScrollView contentContainerStyle={styles.container}>
+    <AuthGuard requireNoAuth={true}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
+        <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.title}>Verify your email</Text>
         <Text style={styles.subtitle}>
           We've sent a verification code to your email address
@@ -173,6 +175,7 @@ export default function VerifyEmailScreen() {
           style={styles.input}
           value={code}
           placeholder="Enter your verification code"
+          placeholderTextColor="#666666"
           onChangeText={(code) => setCode(code)}
           keyboardType="number-pad"
           autoCapitalize="none"
@@ -196,6 +199,7 @@ export default function VerifyEmailScreen() {
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
+    </AuthGuard>
   );
 }
 

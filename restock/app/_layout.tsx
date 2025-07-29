@@ -6,6 +6,7 @@ import { ClerkProvider } from "@clerk/clerk-expo";
 import { tokenCache } from "@clerk/clerk-expo/token-cache";
 import { CLERK_PUBLISHABLE_KEY } from "../backend/config/clerk";
 import { AuthProvider } from "./contexts/AuthContext";
+import AuthVerificationGate from "./components/AuthVerificationGate";
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -35,36 +36,38 @@ export default function RootLayout() {
       tokenCache={tokenCache}
     >
       <AuthProvider>
-        <Stack
-          screenOptions={{
-            headerStyle: {
-              backgroundColor: "#f8f9fa",
-            },
-            headerTintColor: "#2c3e50",
-            headerTitleStyle: {
-              fontWeight: "600",
-            },
-          }}
-        >
-          <Stack.Screen
-            name="(tabs)"
-            options={{  
-              headerShown: false,
+        <AuthVerificationGate>
+          <Stack
+            screenOptions={{
+              headerStyle: {
+                backgroundColor: "#f8f9fa",
+              },
+              headerTintColor: "#2c3e50",
+              headerTitleStyle: {
+                fontWeight: "600",
+              },
             }}
-          />
-          <Stack.Screen
-            name="(auth)"
-            options={{
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="welcome"
-            options={{
-              headerShown: false,
-            }}
-          />
-        </Stack>
+          >
+            <Stack.Screen
+              name="(tabs)"
+              options={{  
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="(auth)"
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="welcome"
+              options={{
+                headerShown: false,
+              }}
+            />
+          </Stack>
+        </AuthVerificationGate>
       </AuthProvider>
     </ClerkProvider>
   );
