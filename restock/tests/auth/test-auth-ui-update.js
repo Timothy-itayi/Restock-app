@@ -42,7 +42,7 @@ const MockSignUpScreen = () => {
     if (!storeName.trim()) newErrors.storeName = 'Store name is required';
     if (!email.trim()) newErrors.email = 'Email is required';
     if (!password.trim()) newErrors.password = 'Password is required';
-    if (password.length < 6) newErrors.password = 'Password must be at least 6 characters';
+    if (password.length < 8) newErrors.password = 'Password must be at least 8 characters';
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -166,7 +166,7 @@ describe('Auth UI Update Tests', () => {
       
       await waitFor(() => {
         expect(screen.getByTestId('password-error')).toBeTruthy();
-        expect(screen.getByText('Password must be at least 6 characters')).toBeTruthy();
+        expect(screen.getByText('Password must be at least 8 characters')).toBeTruthy();
       });
     });
 
@@ -222,8 +222,8 @@ describe('Auth UI Update Tests', () => {
     test('should have professional card layout', () => {
       render(<MockSignUpScreen />);
       
-      const screen = screen.getByTestId('signup-screen');
-      expect(screen).toBeTruthy();
+      const signupScreen = screen.getByTestId('signup-screen');
+      expect(signupScreen).toBeTruthy();
     });
 
     test('should handle loading states', () => {
