@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Text, View, ActivityIndicator, TouchableOpacity, StyleSheet, ScrollView, RefreshControl } from "react-native";
+import { Text, View, ActivityIndicator, TouchableOpacity, StyleSheet, ScrollView, RefreshControl, Image } from "react-native";
 import { dashboardStyles } from "../../styles/components/dashboard";
 import { useAuth } from "@clerk/clerk-expo";
 import { UserProfileService } from "../../backend/services/user-profile";
@@ -215,7 +215,21 @@ export default function DashboardScreen() {
   };
 
   const getSupplierColor = (index: number) => {
-    const colors = ['#8B4513', '#FF8C00', '#20B2AA', '#9370DB', '#228B22'];
+    // Vibrant colors similar to financial app categories - teal, olive green, orange, purple, golden-brown
+    const colors = [
+      '#14B8A6', // Teal
+      '#84CC16', // Olive green  
+      '#F97316', // Orange
+      '#8B5CF6', // Purple
+      '#EAB308', // Golden-brown/mustard
+      '#EC4899', // Pink
+      '#06B6D4', // Cyan
+      '#10B981', // Emerald
+      '#F59E0B', // Amber
+      '#6366F1', // Indigo
+      '#EF4444', // Red
+      '#8B5A2B', // Brown
+    ];
     return colors[index % colors.length];
   };
 
@@ -241,14 +255,10 @@ export default function DashboardScreen() {
   if (loading) {
     return (
       <View style={dashboardStyles.container}>
-        <ActivityIndicator size="large" color="#6B7F6B" />
+        <ActivityIndicator size="large" color="#6C757D" />
       </View>
     );
   }
-
-  const greeting = storeName 
-    ? `Hello ${userName}! Welcome to your restocking dashboard for ${storeName}`
-    : `Hello ${userName}! Welcome to your restocking dashboard`;
 
   return (
     <ScrollView 
@@ -256,26 +266,60 @@ export default function DashboardScreen() {
       contentContainerStyle={dashboardStyles.contentContainer}
       showsVerticalScrollIndicator={false}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#6B7F6B']} />
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#6C757D']} />
       }
     >
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={dashboardStyles.title}>Dashboard</Text>
-        <Text style={dashboardStyles.subtitle}>{greeting}</Text>
+      {/* Welcome Message */}
+      <View style={dashboardStyles.welcomeSection}>
+        <Text style={dashboardStyles.welcomeTitle}>
+          Hello, <Text style={dashboardStyles.userName}>{userName}</Text>!
+        </Text>
+        <Text style={dashboardStyles.welcomeSubtitle}>
+          Welcome to your restocking dashboard{storeName ? ` for ${storeName}` : ''}
+        </Text>
+      </View>
+
+      {/* Quick Actions - Now First */}
+      <View style={dashboardStyles.section}>
+        <Text style={dashboardStyles.sectionTitle}>Quick Actions</Text>
+        <View style={dashboardStyles.actionGrid}>
+          <TouchableOpacity 
+            style={dashboardStyles.actionCard}
+            onPress={() => router.push('/(tabs)/restock-sessions')}
+          >
+            <View style={dashboardStyles.actionIconContainer}>
+              <Image 
+                source={require('../../assets/images/new_restock_session.png')}
+                style={dashboardStyles.actionIcon}
+                resizeMode="contain"
+                onError={(error) => console.log('Image loading error:', error)}
+              />
+            </View>
+            <Text style={dashboardStyles.actionText}>New Restock Session</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={dashboardStyles.actionCard}
+            onPress={() => router.push('/(tabs)/emails')}
+          >
+            <View style={dashboardStyles.actionIconContainer}>
+              <Image 
+                source={require('../../assets/images/email_sent.png')}
+                style={dashboardStyles.actionIcon}
+                resizeMode="contain"
+                onError={(error) => console.log('Image loading error:', error)}
+              />
+            </View>
+            <Text style={dashboardStyles.actionText}>View Emails</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Unfinished Sessions */}
       {unfinishedSessions.length > 0 && (
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Unfinished Sessions</Text>
-            <TouchableOpacity 
-              style={styles.viewAllButton}
-              onPress={() => router.push('/(tabs)/restock-sessions')}
-            >
-              <Text style={styles.viewAllText}>View All</Text>
-            </TouchableOpacity>
+        <View style={dashboardStyles.section}>
+          <View style={dashboardStyles.sectionHeader}>
+            <Text style={dashboardStyles.sectionTitle}>Unfinished Sessions</Text>
           </View>
           
           {unfinishedSessions.map((session, index) => {
@@ -284,44 +328,39 @@ export default function DashboardScreen() {
             const totalQuantity = session.totalQuantity;
             
             return (
-              <View key={session.id} style={styles.sessionCard}>
-                <View style={styles.sessionHeader}>
-                  <View style={styles.sessionInfo}>
-                    <Text style={styles.sessionTitle}>
+              <View key={session.id} style={dashboardStyles.sessionCard}>
+                <View style={dashboardStyles.sessionHeader}>
+                  <View style={dashboardStyles.sessionInfo}>
+                    <Text style={dashboardStyles.sessionTitle}>
                       Session #{index + 1} • {formatDate(session.createdAt)}
                     </Text>
-                    <Text style={styles.sessionSubtitle}>
+                    <Text style={dashboardStyles.sessionSubtitle}>
                       {session.totalItems} items • {totalQuantity} total quantity • {session.uniqueSuppliers} suppliers
                     </Text>
-                    {session.uniqueSuppliers > 0 && (
-                      <Text style={styles.sessionSuppliers}>
-                        Suppliers: {getSessionSuppliersList(session).join(', ')}
-                      </Text>
-                    )}
                   </View>
                   <TouchableOpacity 
-                    style={styles.continueButton}
+                    style={dashboardStyles.continueButton}
                     onPress={() => router.push('/(tabs)/restock-sessions')}
                   >
-                    <Text style={styles.continueButtonText}>Continue</Text>
+                    <Text style={dashboardStyles.continueButtonText}>Continue</Text>
                   </TouchableOpacity>
                 </View>
 
                 {/* Visual Breakdown */}
-                <View style={styles.breakdownContainer}>
-                  <View style={styles.breakdownHeader}>
-                    <Text style={styles.breakdownTitle}>SUPPLIER BREAKDOWN</Text>
-                    <Text style={styles.breakdownTotal}>{session.uniqueSuppliers} suppliers</Text>
+                <View style={dashboardStyles.breakdownContainer}>
+                  <View style={dashboardStyles.breakdownHeader}>
+                    <Text style={dashboardStyles.breakdownTitle}>SUPPLIER BREAKDOWN</Text>
+                    <Text style={dashboardStyles.breakdownTotal}>{session.uniqueSuppliers} suppliers</Text>
                   </View>
                   
                   {/* Visual Chart */}
-                  <View style={styles.chartContainer}>
-                    <View style={styles.chart}>
+                  <View style={dashboardStyles.chartContainer}>
+                    <View style={dashboardStyles.chart}>
                       {supplierBreakdown.map((supplier, idx) => (
                         <View 
                           key={supplier.name}
                           style={[
-                            styles.chartSegment,
+                            dashboardStyles.chartSegment,
                             { 
                               backgroundColor: getSupplierColor(idx),
                               flex: supplier.count
@@ -330,29 +369,29 @@ export default function DashboardScreen() {
                         />
                       ))}
                     </View>
-                    <Text style={styles.chartLabel}>View by Supplier</Text>
+                    <Text style={dashboardStyles.chartLabel}>View by Supplier</Text>
                   </View>
 
                   {/* Detailed Breakdown List */}
-                  <View style={styles.breakdownList}>
+                  <View style={dashboardStyles.breakdownList}>
                     {detailedSupplierBreakdown.map((supplier, idx) => (
-                      <View key={supplier.id} style={styles.breakdownItem}>
-                        <View style={styles.breakdownItemHeader}>
+                      <View key={supplier.id} style={dashboardStyles.breakdownItem}>
+                        <View style={dashboardStyles.breakdownItemHeader}>
                           <View 
                             style={[
-                              styles.breakdownItemIcon, 
+                              dashboardStyles.breakdownItemIcon, 
                               { backgroundColor: getSupplierColor(idx) }
                             ]}
                           >
                             <Ionicons name="business" size={12} color="white" />
                           </View>
-                          <Text style={styles.breakdownItemName}>{supplier.name}</Text>
+                          <Text style={dashboardStyles.breakdownItemName}>{supplier.name}</Text>
                         </View>
-                        <View style={styles.breakdownItemStats}>
-                          <Text style={styles.breakdownItemPercentage}>
+                        <View style={dashboardStyles.breakdownItemStats}>
+                          <Text style={dashboardStyles.breakdownItemPercentage}>
                             {supplier.percentage}% of items
                           </Text>
-                          <Text style={styles.breakdownItemCount}>
+                          <Text style={dashboardStyles.breakdownItemCount}>
                             {supplier.itemCount} items ({supplier.totalQuantity} total)
                           </Text>
                         </View>
@@ -366,64 +405,42 @@ export default function DashboardScreen() {
         </View>
       )}
 
-      {/* Quick Actions */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
-        <View style={styles.actionGrid}>
-          <TouchableOpacity 
-            style={styles.actionCard}
-            onPress={() => router.push('/(tabs)/restock-sessions')}
-          >
-            <Ionicons name="add-circle" size={32} color="#6B7F6B" />
-            <Text style={styles.actionText}>New Restock Session</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.actionCard}
-            onPress={() => router.push('/(tabs)/emails')}
-          >
-            <Ionicons name="mail" size={32} color="#6B7F6B" />
-            <Text style={styles.actionText}>View Emails</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
       {/* Stats */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Overview</Text>
-        <View style={styles.statsGrid}>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{unfinishedSessions.length}</Text>
-            <Text style={styles.statLabel}>Active Sessions</Text>
+      <View style={dashboardStyles.section}>
+        <Text style={dashboardStyles.sectionTitle}>Overview</Text>
+        <View style={dashboardStyles.statsGrid}>
+          <View style={dashboardStyles.statCard}>
+            <Text style={dashboardStyles.statNumber}>{unfinishedSessions.length}</Text>
+            <Text style={dashboardStyles.statLabel}>Active Sessions</Text>
           </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>
+          <View style={dashboardStyles.statCard}>
+            <Text style={dashboardStyles.statNumber}>
               {unfinishedSessions.reduce((sum, session) => sum + session.uniqueProducts, 0)}
             </Text>
-            <Text style={styles.statLabel}>Products</Text>
+            <Text style={dashboardStyles.statLabel}>Products</Text>
           </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>
+          <View style={dashboardStyles.statCard}>
+            <Text style={dashboardStyles.statNumber}>
               {unfinishedSessions.reduce((sum, session) => sum + session.uniqueSuppliers, 0)}
             </Text>
-            <Text style={styles.statLabel}>Suppliers</Text>
+            <Text style={dashboardStyles.statLabel}>Suppliers</Text>
           </View>
         </View>
       </View>
 
       {/* Empty State */}
       {!sessionsLoading && unfinishedSessions.length === 0 && (
-        <View style={styles.emptyState}>
-          <Ionicons name="checkmark-circle" size={48} color="#6B7F6B" />
-          <Text style={styles.emptyStateTitle}>All caught up!</Text>
-          <Text style={styles.emptyStateText}>
+        <View style={dashboardStyles.emptyState}>
+          <Ionicons name="checkmark-circle" size={48} color="#6C757D" />
+          <Text style={dashboardStyles.emptyStateTitle}>All caught up!</Text>
+          <Text style={dashboardStyles.emptyStateText}>
             No unfinished restock sessions. Ready to start a new one?
           </Text>
           <TouchableOpacity 
-            style={styles.startNewButton}
+            style={dashboardStyles.startNewButton}
             onPress={() => router.push('/(tabs)/restock-sessions')}
           >
-            <Text style={styles.startNewButtonText}>Start New Session</Text>
+            <Text style={dashboardStyles.startNewButtonText}>Start New Session</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -431,247 +448,4 @@ export default function DashboardScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  header: {
-    marginBottom: 30,
-  },
-  section: {
-    marginBottom: 25,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#2c3e50',
-  },
-  viewAllButton: {
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    backgroundColor: '#e0e0e0',
-    borderRadius: 8,
-  },
-  viewAllText: {
-    fontSize: 14,
-    color: '#3498db',
-    fontWeight: '500',
-  },
-  sessionCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  sessionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  sessionInfo: {
-    flex: 1,
-  },
-  sessionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2c3e50',
-  },
-  sessionSubtitle: {
-    fontSize: 14,
-    color: '#7f8c8d',
-    marginTop: 2,
-  },
-  sessionSuppliers: {
-    fontSize: 12,
-    color: '#6B7F6B',
-    marginTop: 4,
-    fontStyle: 'italic',
-  },
-  continueButton: {
-    backgroundColor: '#6B7F6B',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-  },
-  continueButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  breakdownContainer: {
-    marginTop: 15,
-  },
-  breakdownHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  breakdownTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#2c3e50',
-  },
-  breakdownTotal: {
-    fontSize: 14,
-    color: '#7f8c8d',
-  },
-  chartContainer: {
-    marginBottom: 15,
-  },
-  chart: {
-    flexDirection: 'row',
-    height: 10,
-    backgroundColor: '#e0e0e0',
-    borderRadius: 5,
-    overflow: 'hidden',
-  },
-  chartSegment: {
-    borderRadius: 5,
-  },
-  chartLabel: {
-    fontSize: 12,
-    color: '#7f8c8d',
-    textAlign: 'center',
-    marginTop: 5,
-  },
-  breakdownList: {
-    marginTop: 10,
-  },
-  breakdownItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  breakdownItemHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  breakdownItemIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  breakdownItemName: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#2c3e50',
-  },
-  breakdownItemStats: {
-    alignItems: 'flex-end',
-  },
-  breakdownItemPercentage: {
-    fontSize: 12,
-    color: '#7f8c8d',
-    marginBottom: 2,
-  },
-  breakdownItemCount: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#6B7F6B',
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 50,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 12,
-    marginTop: 20,
-    marginHorizontal: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  emptyStateTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#2c3e50',
-    marginTop: 15,
-  },
-  emptyStateText: {
-    fontSize: 16,
-    color: '#7f8c8d',
-    textAlign: 'center',
-    marginTop: 5,
-    marginBottom: 20,
-  },
-  startNewButton: {
-    backgroundColor: '#6B7F6B',
-    paddingVertical: 12,
-    paddingHorizontal: 30,
-    borderRadius: 8,
-  },
-  startNewButtonText: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  actionGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  actionCard: {
-    backgroundColor: '#ffffff',
-    padding: 20,
-    borderRadius: 12,
-    alignItems: 'center',
-    flex: 1,
-    marginHorizontal: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  actionText: {
-    marginTop: 8,
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#2c3e50',
-    textAlign: 'center',
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  statCard: {
-    backgroundColor: '#ffffff',
-    padding: 20,
-    borderRadius: 12,
-    alignItems: 'center',
-    flex: 1,
-    marginHorizontal: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#6B7F6B',
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#7f8c8d',
-    marginTop: 4,
-    textAlign: 'center',
-  },
-}); 
+ 
