@@ -88,6 +88,54 @@ export class SupplierService {
   }
 
   /**
+   * Check if a supplier is being used in any sessions
+   */
+  static async isSupplierUsedInSessions(supplierId: string) {
+    try {
+      const { count, error } = await supabase
+        .from(TABLES.RESTOCK_ITEMS)
+        .select('*', { count: 'exact', head: true })
+        .eq('supplier_id', supplierId);
+
+      return { isUsed: (count || 0) > 0, count: count || 0, error };
+    } catch (error) {
+      return { isUsed: false, count: 0, error };
+    }
+  }
+
+  /**
+   * Check if a supplier is being used in any session suppliers
+   */
+  static async isSupplierUsedInSessionSuppliers(supplierId: string) {
+    try {
+      const { count, error } = await supabase
+        .from(TABLES.RESTOCK_SESSION_SUPPLIERS)
+        .select('*', { count: 'exact', head: true })
+        .eq('supplier_id', supplierId);
+
+      return { isUsed: (count || 0) > 0, count: count || 0, error };
+    } catch (error) {
+      return { isUsed: false, count: 0, error };
+    }
+  }
+
+  /**
+   * Check if a supplier is being used as default supplier for any products
+   */
+  static async isSupplierUsedAsDefault(supplierId: string) {
+    try {
+      const { count, error } = await supabase
+        .from(TABLES.PRODUCTS)
+        .select('*', { count: 'exact', head: true })
+        .eq('default_supplier_id', supplierId);
+
+      return { isUsed: (count || 0) > 0, count: count || 0, error };
+    } catch (error) {
+      return { isUsed: false, count: 0, error };
+    }
+  }
+
+  /**
    * Search suppliers by name (for autocomplete)
    */
   static async searchSuppliers(userId: string, searchTerm: string) {
@@ -147,9 +195,9 @@ export class SupplierService {
         .eq('session_id', sessionId);
 
       // Remove duplicates and extract supplier data
-      const uniqueSuppliers = data?.reduce((acc: any[], item) => {
+      const uniqueSuppliers = data?.reduce((acc: any[], item: any) => {
         const supplier = item.suppliers;
-        if (supplier && !acc.find(s => s.id === supplier.id)) {
+        if (supplier && !acc.find((s: any) => s.id === supplier.id)) {
           acc.push(supplier);
         }
         return acc;

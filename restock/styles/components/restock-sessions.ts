@@ -379,4 +379,53 @@ export const restockSessionsStyles = StyleSheet.create({
   notificationErrorIcon: {
     backgroundColor: "#6B7F6B",
   },
+  // Error handling styles
+  errorContainer: {
+    backgroundColor: "#FFEBEE",
+    borderWidth: 1,
+    borderColor: "#B23A00",
+    borderRadius: 12,
+    padding: 20,
+    margin: 20,
+    alignItems: "center",
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#B23A00",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  errorStateMessage: {
+    fontSize: 14,
+    color: "#B23A00",
+    textAlign: "center",
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  retryButton: {
+    backgroundColor: "#B23A00",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#B23A00",
+  },
+  retryButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  // Loading styles
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: "#000000",
+    textAlign: "center",
+  },
 }); 

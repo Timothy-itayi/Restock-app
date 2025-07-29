@@ -6,6 +6,7 @@ export interface UserSession {
   storeName?: string;
   wasSignedIn: boolean;
   lastSignIn: number;
+  lastAuthMethod?: 'google' | 'email';
 }
 
 export class SessionManager {

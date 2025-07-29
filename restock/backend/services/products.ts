@@ -102,6 +102,38 @@ export class ProductService {
   }
 
   /**
+   * Check if a product is being used in any sessions
+   */
+  static async isProductUsedInSessions(productId: string) {
+    try {
+      const { count, error } = await supabase
+        .from(TABLES.RESTOCK_ITEMS)
+        .select('*', { count: 'exact', head: true })
+        .eq('product_id', productId);
+
+      return { isUsed: (count || 0) > 0, count: count || 0, error };
+    } catch (error) {
+      return { isUsed: false, count: 0, error };
+    }
+  }
+
+  /**
+   * Check if a product is being used in any session products
+   */
+  static async isProductUsedInSessionProducts(productId: string) {
+    try {
+      const { count, error } = await supabase
+        .from(TABLES.RESTOCK_SESSION_PRODUCTS)
+        .select('*', { count: 'exact', head: true })
+        .eq('product_id', productId);
+
+      return { isUsed: (count || 0) > 0, count: count || 0, error };
+    } catch (error) {
+      return { isUsed: false, count: 0, error };
+    }
+  }
+
+  /**
    * Search products by name (for autocomplete)
    */
   static async searchProducts(userId: string, searchTerm: string) {

@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, TextInput, StyleSheet, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { router } from 'expo-router';
-import { useSignUp, useAuth, useUser } from '@clerk/clerk-expo';
+import { useSignUp, useSignIn, useAuth, useUser, useSSO, useClerk } from '@clerk/clerk-expo';
 import { UserProfileService } from '../backend/services/user-profile';
 import { SessionManager } from '../backend/services/session-manager';
+import { ClerkClientService } from '../backend/services/clerk-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
-import { getOAuthUrl } from '../backend/config/clerk';
 import AuthGuard from './components/AuthGuard';
+import { useAuthContext } from './_contexts/AuthContext';
+import { welcomeStyles } from '../styles/components/welcome';
 
 export default function WelcomeScreen() {
   const [email, setEmail] = useState('');
@@ -21,116 +22,354 @@ export default function WelcomeScreen() {
   const [isGoogleSSO, setIsGoogleSSO] = useState(false);
   const [googleUserData, setGoogleUserData] = useState<any>(null);
   const [showReturningUserButton, setShowReturningUserButton] = useState(false);
+  const [lastAuthMethod, setLastAuthMethod] = useState<'google' | 'email' | null>(null);
+  const [isOAuthInProgress, setIsOAuthInProgress] = useState(false);
+  const [oauthStartTime, setOauthStartTime] = useState<number | null>(null);
   const { signUp, setActive, isLoaded } = useSignUp();
+  const { signIn } = useSignIn();
   const { isSignedIn, userId } = useAuth();
   const { user } = useUser();
+  const clerk = useClerk();
+  const { isGoogleUser } = useAuthContext();
 
-  // Check if user is already authenticated and check returning user status
+  // Check if user is a returning user on component mount
   useEffect(() => {
+    checkReturningUser();
+  }, []);
+
+  // Handle authentication state changes
+  useEffect(() => {
+    console.log('Welcome screen auth state changed:', { isLoaded, isSignedIn, userId });
+    
     if (isLoaded && isSignedIn && userId) {
-      console.log('User is already authenticated:', userId);
-      // Check if user profile exists in Supabase
-      checkUserProfile(userId);
+      console.log('User is already authenticated on welcome screen:', userId);
+      console.log('User object:', user);
+      
+      // Check if this is a fresh OAuth completion
+      const checkOAuthCompletion = async () => {
+        const justCompletedSSO = await AsyncStorage.getItem('justCompletedSSO');
+        console.log('Checking OAuth completion flag:', justCompletedSSO);
+        
+        if (justCompletedSSO === 'true') {
+          console.log('OAuth just completed, routing to sso-profile-setup');
+          await AsyncStorage.removeItem('justCompletedSSO');
+          
+          // Check if user is a Google user
+          if (user) {
+            const userEmail = user.emailAddresses?.[0]?.emailAddress || user.primaryEmailAddress?.emailAddress;
+            const isGoogleUser = userEmail?.includes('@gmail.com') || userEmail?.includes('@googlemail.com') || userEmail?.includes('@google.com');
+            
+            if (isGoogleUser) {
+              console.log('OAuth user is Google user, immediately routing to sso-profile-setup');
+              router.replace('/sso-profile-setup');
+            } else {
+              console.log('OAuth user is not Google user, routing to profile-setup');
+              router.replace('/profile-setup');
+            }
+          }
+        } else {
+          console.log('Not a fresh OAuth completion, letting AuthContext handle routing');
+        }
+      };
+      
+      checkOAuthCompletion();
     } else if (isLoaded && !isSignedIn) {
-      // User is not authenticated, this is fine for welcome screen
       console.log('User not authenticated, welcome screen is appropriate');
     }
+  }, [isLoaded, isSignedIn, userId, user]);
+
+  // Enhanced OAuth completion detection with session refresh
+  useEffect(() => {
+    const detectOAuthCompletion = async () => {
+      if (!isOAuthInProgress || !oauthStartTime) return;
+      
+      const elapsed = Date.now() - oauthStartTime;
+      console.log('OAuth progress check:', { elapsed, isSignedIn, userId, isLoaded });
+      
+      // If OAuth has been in progress for more than 5 seconds and user is authenticated
+      if (elapsed > 5000 && isSignedIn && userId) {
+        console.log('OAuth completion detected - user authenticated after OAuth');
+        setIsOAuthInProgress(false);
+        setOauthStartTime(null);
+        
+        // Use the new auth state polling service
+        const authSuccess = await ClerkClientService.handleOAuthCompletion(() => ({
+          isLoaded,
+          isSignedIn
+        }));
+        
+        if (authSuccess) {
+          console.log('OAuth completion handled successfully with auth state polling');
+          
+          // Check if user is a Google user and route immediately
+          if (user) {
+            const userEmail = user.emailAddresses?.[0]?.emailAddress || user.primaryEmailAddress?.emailAddress;
+            const isGoogleUser = userEmail?.includes('@gmail.com') || userEmail?.includes('@googlemail.com') || userEmail?.includes('@google.com');
+            
+            if (isGoogleUser) {
+              console.log('OAuth user is Google user, immediately routing to sso-profile-setup');
+              router.replace('/sso-profile-setup');
+            } else {
+              console.log('OAuth user is not Google user, immediately routing to profile-setup');
+              router.replace('/profile-setup');
+            }
+          }
+        } else {
+          console.log('OAuth completion failed - session refresh unsuccessful');
+          Alert.alert('Authentication Error', 'Failed to complete authentication. Please try again.');
+        }
+      }
+    };
     
-    // Check if user is a returning user
-    checkReturningUser();
-  }, [isLoaded, isSignedIn, userId]);
+    if (isOAuthInProgress) {
+      const interval = setInterval(detectOAuthCompletion, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [isOAuthInProgress, oauthStartTime, isSignedIn, userId, user, clerk]);
+
+  // Force session refresh after OAuth completion with retry logic
+  useEffect(() => {
+    const forceSessionRefresh = async () => {
+      if (!isOAuthInProgress || !oauthStartTime) return;
+      
+      const elapsed = Date.now() - oauthStartTime;
+      
+      // If OAuth has been in progress for more than 10 seconds but user is not authenticated
+      if (elapsed > 10000 && !isSignedIn) {
+        console.log('OAuth in progress but user not authenticated, attempting session refresh');
+        
+        try {
+                            // Use the new auth state polling service
+          const authSuccess = await ClerkClientService.pollForAuthState(() => ({
+            isLoaded: Boolean(isLoaded),
+            isSignedIn: Boolean(isSignedIn)
+          }), 3, 1000);
+          
+          if (authSuccess) {
+            console.log('Auth state polling successful, user now authenticated');
+            setIsOAuthInProgress(false);
+            setOauthStartTime(null);
+            
+            // Handle OAuth completion
+            const oauthSuccess = await ClerkClientService.handleOAuthCompletion(() => ({
+          isLoaded: Boolean(isLoaded),
+          isSignedIn: Boolean(isSignedIn)
+        }));
+            
+            if (oauthSuccess && user) {
+              const userEmail = user.emailAddresses?.[0]?.emailAddress || user.primaryEmailAddress?.emailAddress;
+              const isGoogleUser = userEmail?.includes('@gmail.com') || userEmail?.includes('@googlemail.com') || userEmail?.includes('@google.com');
+              
+              if (isGoogleUser) {
+                console.log('Session refresh: Google user authenticated, routing to sso-profile-setup');
+                router.replace('/sso-profile-setup');
+              } else {
+                console.log('Session refresh: Non-Google user authenticated, routing to profile-setup');
+                router.replace('/profile-setup');
+              }
+            }
+          } else {
+            console.log('Session refresh failed after retries');
+          }
+        } catch (error) {
+          console.error('Error during session refresh:', error);
+        }
+      }
+    };
+    
+    if (isOAuthInProgress) {
+      const interval = setInterval(forceSessionRefresh, 2000);
+      return () => clearInterval(interval);
+    }
+  }, [isOAuthInProgress, oauthStartTime, isSignedIn, userId, user, clerk]);
+
+  // Session restoration mechanism for OAuth completion
+  useEffect(() => {
+    const restoreSession = async () => {
+      try {
+        const justCompletedSSO = await AsyncStorage.getItem('justCompletedSSO');
+        console.log('Session restoration check:', { isSignedIn, userId, justCompletedSSO });
+        
+        if (justCompletedSSO === 'true' && !isSignedIn) {
+          console.log('OAuth completed but session not restored, attempting manual restoration');
+          
+          // Use the new auth state polling service
+          const authSuccess = await ClerkClientService.pollForAuthState(() => ({
+            isLoaded: isLoaded || false,
+            isSignedIn: isSignedIn || false
+          }), 3, 2000);
+          
+          if (authSuccess) {
+            console.log('Session restoration successful');
+            await AsyncStorage.removeItem('justCompletedSSO');
+            
+            if (user) {
+              const userEmail = user.emailAddresses?.[0]?.emailAddress || user.primaryEmailAddress?.emailAddress;
+              const isGoogleUser = userEmail?.includes('@gmail.com') || userEmail?.includes('@googlemail.com') || userEmail?.includes('@google.com');
+              
+              if (isGoogleUser) {
+                console.log('Session restored: Google user, routing to sso-profile-setup');
+                router.replace('/sso-profile-setup');
+              } else {
+                console.log('Session restored: Non-Google user, routing to profile-setup');
+                router.replace('/profile-setup');
+              }
+            }
+          } else {
+            console.log('Session restoration failed, user still not authenticated');
+          }
+        }
+      } catch (error) {
+        console.error('Error in session restoration:', error);
+      }
+    };
+    
+    restoreSession();
+  }, [isSignedIn, userId, isLoaded, user, clerk]);
+
+  // Monitor OAuth flow state with improved timeout
+  useEffect(() => {
+    const checkOAuthState = () => {
+      console.log('OAuth state check:', {
+        isOAuthInProgress,
+        isSignedIn,
+        userId,
+        isLoaded,
+        loading,
+        oauthStartTime: oauthStartTime ? Date.now() - oauthStartTime : null
+      });
+    };
+
+    if (isOAuthInProgress) {
+      // Check OAuth state every 2 seconds while in progress
+      const interval = setInterval(checkOAuthState, 2000);
+      return () => clearInterval(interval);
+    }
+  }, [isOAuthInProgress, isSignedIn, userId, isLoaded, loading, oauthStartTime]);
+
+  // Enhanced timeout mechanism for OAuth
+  useEffect(() => {
+    if (!isOAuthInProgress || !oauthStartTime) return;
+    
+    const timeout = setTimeout(async () => {
+      const elapsed = Date.now() - oauthStartTime;
+      console.log('OAuth timeout check - elapsed time:', elapsed);
+      
+      if (!isSignedIn && elapsed > 60000) { // 60 second timeout
+        console.log('OAuth timeout: User still not authenticated after 60 seconds');
+        setIsOAuthInProgress(false);
+        setOauthStartTime(null);
+        
+        // Clear OAuth flags
+        await ClerkClientService.clearOAuthFlags();
+        
+        Alert.alert(
+          'OAuth Timeout', 
+          'The OAuth flow did not complete. This might be due to network issues or the OAuth provider taking too long to respond. Please try again.',
+          [
+            {
+              text: 'Try Again',
+              onPress: () => {
+                // Allow user to try again
+                setIsOAuthInProgress(false);
+                setOauthStartTime(null);
+              }
+            },
+            {
+              text: 'Cancel',
+              style: 'cancel'
+            }
+          ]
+        );
+      }
+    }, 60000); // 60 second timeout
+    
+    return () => clearTimeout(timeout);
+  }, [isOAuthInProgress, oauthStartTime, isSignedIn]);
+
+  // Handle deep link returns from OAuth with improved detection
+  useEffect(() => {
+    const handleDeepLink = async () => {
+      try {
+        // Check if we have a pending OAuth session
+        const justCompletedSSO = await AsyncStorage.getItem('justCompletedSSO');
+        if (justCompletedSSO === 'true' && isSignedIn && userId) {
+          console.log('Deep link detected with OAuth completion, user is authenticated');
+          await AsyncStorage.removeItem('justCompletedSSO');
+          
+          // Check if user is a Google user
+          if (user) {
+            const userEmail = user.emailAddresses?.[0]?.emailAddress || user.primaryEmailAddress?.emailAddress;
+            const isGoogleUser = userEmail?.includes('@gmail.com') || userEmail?.includes('@googlemail.com') || userEmail?.includes('@google.com');
+            
+            if (isGoogleUser) {
+              console.log('Deep link: Google user authenticated, routing to sso-profile-setup');
+              router.replace('/sso-profile-setup');
+            } else {
+              console.log('Deep link: Non-Google user authenticated, routing to profile-setup');
+              router.replace('/profile-setup');
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error handling deep link:', error);
+      }
+    };
+
+    // Check for deep link on mount and when auth state changes
+    handleDeepLink();
+  }, [isSignedIn, userId, user]);
+
+  // Force refresh mechanism for OAuth completion
+  useEffect(() => {
+    const checkOAuthRefresh = async () => {
+      try {
+        const justCompletedSSO = await AsyncStorage.getItem('justCompletedSSO');
+        if (justCompletedSSO === 'true' && !isSignedIn) {
+          console.log('OAuth completion detected but user not authenticated, forcing refresh');
+          // Force a small delay and then check again
+          setTimeout(async () => {
+            const refreshedJustCompletedSSO = await AsyncStorage.getItem('justCompletedSSO');
+            if (refreshedJustCompletedSSO === 'true' && isSignedIn && userId) {
+              console.log('OAuth refresh successful, user now authenticated');
+              await AsyncStorage.removeItem('justCompletedSSO');
+              
+              if (user) {
+                const userEmail = user.emailAddresses?.[0]?.emailAddress || user.primaryEmailAddress?.emailAddress;
+                const isGoogleUser = userEmail?.includes('@gmail.com') || userEmail?.includes('@googlemail.com') || userEmail?.includes('@google.com');
+                
+                if (isGoogleUser) {
+                  console.log('OAuth refresh: Google user authenticated, routing to sso-profile-setup');
+                  router.replace('/sso-profile-setup');
+                } else {
+                  console.log('OAuth refresh: Non-Google user authenticated, routing to profile-setup');
+                  router.replace('/profile-setup');
+                }
+              }
+            }
+          }, 2000); // 2 second delay for refresh
+        }
+      } catch (error) {
+        console.error('Error checking OAuth refresh:', error);
+      }
+    };
+    
+    checkOAuthRefresh();
+  }, [isSignedIn, userId, user]);
 
   const checkReturningUser = async () => {
     try {
       const returning = await SessionManager.isReturningUser();
       setShowReturningUserButton(returning);
-    } catch (error) {
-      console.error('Error checking returning user status:', error);
-    }
-  };
-
-  const checkUserProfile = async (userId: string) => {
-    try {
-      const verifyResult = await UserProfileService.verifyUserProfile(userId);
-      if (verifyResult.data) {
-        console.log('User profile exists, redirecting to dashboard');
-        console.log('Profile data:', verifyResult.data);
-        
-        // Save session data for returning user detection
-        if (user) {
-          const userEmail = user.emailAddresses?.[0]?.emailAddress || user.primaryEmailAddress?.emailAddress;
-          await SessionManager.saveUserSession({
-            userId,
-            email: userEmail || '',
-            storeName: verifyResult.data.store_name,
-            wasSignedIn: true,
-            lastSignIn: Date.now(),
-          });
-        }
-        
-        router.replace('/(tabs)/dashboard');
-      } else {
-        console.log('User profile does not exist, need to complete setup');
-        
-        // User is authenticated but no profile, capture their email and show setup
-        if (user) {
-          const userEmail = user.emailAddresses?.[0]?.emailAddress || user.primaryEmailAddress?.emailAddress;
-          if (userEmail) {
-            console.log('Captured email from authenticated user:', userEmail);
-            setEmail(userEmail);
-            
-            // Debug: Log the entire user object to see what's available
-            console.log('Full user object:', JSON.stringify(user, null, 2));
-            console.log('User firstName:', user?.firstName);
-            console.log('User lastName:', user?.lastName);
-            console.log('User fullName:', user?.fullName);
-            console.log('User username:', user?.username);
-            console.log('User emailAddresses:', user?.emailAddresses);
-            console.log('User primaryEmailAddress:', user?.primaryEmailAddress);
-            
-            // Try to extract name from user object
-            let userName = '';
-            if (user?.firstName && user?.lastName) {
-              userName = `${user.firstName} ${user.lastName}`;
-              console.log('Using firstName + lastName:', userName);
-            } else if (user?.firstName) {
-              userName = user.firstName;
-              console.log('Using firstName only:', userName);
-            } else if (user?.lastName) {
-              userName = user.lastName;
-              console.log('Using lastName only:', userName);
-            } else if (user?.fullName) {
-              userName = user.fullName;
-              console.log('Using fullName:', userName);
-            } else if (user?.username) {
-              userName = user.username;
-              console.log('Using username:', userName);
-            } else {
-              console.log('No name found in user object');
-            }
-            
-            if (userName) {
-              console.log('Captured name from authenticated user:', userName);
-              setName(userName);
-            } else {
-              console.log('No name could be extracted from user object');
-            }
-            
-            // Show store name input for setup completion
-            setShowStoreNameInput(true);
-          } else {
-            console.error('No email found from authenticated user');
-            Alert.alert('Error', 'Could not retrieve your email. Please try signing in again.');
-          }
-        } else {
-          console.error('No user object available');
-          Alert.alert('Error', 'Could not retrieve your information. Please try signing in again.');
-        }
+      
+      // Get the last authentication method
+      const session = await SessionManager.getUserSession();
+      if (session?.lastAuthMethod) {
+        setLastAuthMethod(session.lastAuthMethod);
+        console.log('Last auth method:', session.lastAuthMethod);
       }
     } catch (error) {
-      console.error('Error checking user profile:', error);
-      // If verification fails, assume profile doesn't exist and show setup
-      setShowStoreNameInput(true);
+      console.error('Error checking returning user status:', error);
     }
   };
 
@@ -177,119 +416,90 @@ export default function WelcomeScreen() {
     setShowEmailSignup(true);
   };
 
+  const { startSSOFlow } = useSSO();
+
   const handleGoogleSignup = async (isReturningUserFlow = false) => {
     if (!isLoaded) return;
 
+    // Check if user is already authenticated
+    if (isSignedIn && userId) {
+      console.log('User is already authenticated, AuthContext will handle routing');
+      return;
+    }
+
     setLoading(true);
+    setIsOAuthInProgress(true);
+    setOauthStartTime(Date.now());
+    
     try {
       console.log('Starting Google OAuth flow...');
+      console.log('Current auth state:', { isSignedIn, userId, isLoaded });
+      console.log('Clerk isLoaded:', isLoaded);
       
-      // Construct the OAuth URL for Google
-      const redirectUrl = Linking.createURL('/');
-      const oauthUrl = getOAuthUrl('oauth_google', 'sign-in', redirectUrl);
+      // Set a flag that OAuth is starting
+      await AsyncStorage.setItem('justCompletedSSO', 'false');
       
-      console.log('Opening OAuth URL:', oauthUrl);
-      
-      // Open the OAuth URL in a web browser
-      const result = await WebBrowser.openAuthSessionAsync(oauthUrl, redirectUrl);
-      
-      console.log('OAuth result:', result);
-      
-      if (result.type === 'success') {
-        // OAuth was successful, check if user is now authenticated
-        console.log('OAuth successful, checking authentication...');
-        
-        // Wait a moment for Clerk to process the authentication
-        setTimeout(async () => {
-          try {
-            // Check if user is now authenticated
-            if (isSignedIn && userId) {
-              console.log('User authenticated after OAuth:', userId);
-              
-              // Check if this user already exists in Supabase
-              const profileResult = await UserProfileService.verifyUserProfile(userId);
-              
-              if (profileResult.data) {
-                console.log('Existing user found, redirecting to dashboard');
-                
-                // Save session data for returning user detection
-                if (user) {
-                  const userEmail = user.emailAddresses?.[0]?.emailAddress || user.primaryEmailAddress?.emailAddress;
-                  await SessionManager.saveUserSession({
-                    userId,
-                    email: userEmail || '',
-                    storeName: profileResult.data.store_name,
-                    wasSignedIn: true,
-                    lastSignIn: Date.now(),
-                  });
-                }
-                
-                router.replace('/(tabs)/dashboard');
-                return;
-              } else {
-                console.log('New user, need to complete setup');
-                
-                // For new users, try to extract email from current user
-                let userEmail = null;
-                
-                if (user?.emailAddresses?.[0]?.emailAddress) {
-                  userEmail = user.emailAddresses[0].emailAddress;
-                } else if (user?.primaryEmailAddress?.emailAddress) {
-                  userEmail = user.primaryEmailAddress.emailAddress;
-                }
-                
-                if (userEmail) {
-                  console.log('User email from Google:', userEmail);
-                  
-                  // Extract name from current user - try multiple sources
-                  let userName = '';
-                  if (user?.firstName && user?.lastName) {
-                    userName = `${user.firstName} ${user.lastName}`;
-                  } else if (user?.firstName) {
-                    userName = user.firstName;
-                  } else if (user?.lastName) {
-                    userName = user.lastName;
-                  } else if (user?.fullName) {
-                    userName = user.fullName;
-                  } else if (user?.username) {
-                    userName = user.username;
-                  }
-                  
-                  console.log('User name from Google:', userName);
-                  console.log('User object for debugging:', {
-                    firstName: user?.firstName,
-                    lastName: user?.lastName,
-                    fullName: user?.fullName,
-                    username: user?.username
-                  });
-                  
-                  setEmail(userEmail);
-                  setName(userName);
-                  setIsGoogleSSO(true);
-                  setShowStoreNameInput(true);
-                } else {
-                  console.error('No email found from Google OAuth');
-                  Alert.alert('Error', 'Could not retrieve email from Google. Please try again.');
-                }
-              }
-            } else {
-              console.log('User not authenticated after OAuth');
-              Alert.alert('Authentication Failed', 'Please try signing in with Google again.');
-            }
-          } catch (error) {
-            console.error('Error checking user after OAuth:', error);
-            Alert.alert('Error', 'Could not verify your account. Please try again.');
-          }
-        }, 2000); // Wait 2 seconds for Clerk to process
-      } else if (result.type === 'cancel') {
-        console.log('OAuth cancelled by user');
-      } else {
-        console.log('OAuth failed:', result);
-        Alert.alert('Error', 'Failed to sign in with Google. Please try again.');
+      // Test if startSSOFlow is available
+      if (!startSSOFlow) {
+        console.error('startSSOFlow is not available');
+        Alert.alert('Error', 'OAuth flow is not available. Please try again.');
+        return;
       }
+      
+      // Use Clerk's useSSO hook for native OAuth flow
+      console.log('Calling startSSOFlow with strategy: oauth_google');
+      console.log('Redirect URL:', Linking.createURL('/sso-profile-setup', { scheme: 'restock' }));
+      
+      const result = await startSSOFlow({
+        strategy: 'oauth_google',
+        redirectUrl: Linking.createURL('/sso-profile-setup', { scheme: 'restock' }),
+      });
+      
+      console.log('startSSOFlow result:', result);
+      console.log('OAuth flow initiated - user will be redirected to Google');
+      console.log('OAuth flow started - waiting for completion...');
+      
+      // Check if the OAuth flow created a session
+      if (result.authSessionResult?.type === 'success') {
+        console.log('OAuth flow successful, session created');
+        console.log('Session ID:', result.createdSessionId);
+        
+        // Set the created session as active - this is crucial for OAuth completion
+        if (result.createdSessionId) {
+          console.log('Setting created session as active...');
+          await setActive({ session: result.createdSessionId });
+          console.log('Session set as active successfully');
+        }
+        
+        // Use the new auth state polling service to handle OAuth completion
+        const oauthSuccess = await ClerkClientService.handleOAuthCompletion(() => ({
+          isLoaded: Boolean(isLoaded),
+          isSignedIn: Boolean(isSignedIn)
+        }));
+        
+        if (oauthSuccess) {
+          console.log('OAuth completion handled successfully with auth state polling');
+        } else {
+          console.log('OAuth completion failed - auth state polling unsuccessful');
+        }
+      }
+      
+      // The timeout is now handled by the useEffect above
+      console.log('OAuth flow initiated successfully, monitoring for completion...');
+      
     } catch (err: any) {
       console.error('Google OAuth error:', JSON.stringify(err, null, 2));
+      console.error('OAuth error details:', {
+        message: err.message,
+        code: err.code,
+        status: err.status,
+        errors: err.errors
+      });
       Alert.alert('Error', 'Failed to sign in with Google. Please try again.');
+      setIsOAuthInProgress(false);
+      setOauthStartTime(null);
+      // Clear OAuth flags on error
+      await ClerkClientService.clearOAuthFlags();
     } finally {
       setLoading(false);
     }
@@ -353,9 +563,9 @@ export default function WelcomeScreen() {
             }
           ]
         );
-      } else if (isGoogleSSO && userId) {
-        // Google SSO flow - user is already authenticated
-        console.log('Google SSO flow - user already authenticated');
+      } else if ((isGoogleSSO || isSignedIn) && userId) {
+        // Google SSO flow or authenticated user - user is already authenticated
+        console.log('Google SSO flow or authenticated user - user already authenticated');
         console.log('Saving user profile with data:', {
           userId,
           email,
@@ -383,6 +593,7 @@ export default function WelcomeScreen() {
               storeName,
               wasSignedIn: true,
               lastSignIn: Date.now(),
+              lastAuthMethod: isGoogleSSO ? 'google' : 'email',
             });
             
             // Navigate to dashboard
@@ -392,7 +603,7 @@ export default function WelcomeScreen() {
           console.error('Error ensuring user profile:', error);
           Alert.alert('Error', 'Failed to save your profile. Please try again.');
         }
-      } else if (isSignedIn && userId) {
+      } else if (isSignedIn && userId && !isGoogleSSO) {
         // Email signup user who is already authenticated (from sign-up screen)
         console.log('Email signup user already authenticated, completing setup');
         console.log('Saving user profile with data:', {
@@ -460,82 +671,150 @@ export default function WelcomeScreen() {
 
   return (
     <AuthGuard requireNoAuth={true}>
-      <ScrollView contentContainerStyle={styles.scrollViewContent}>
+      <ScrollView contentContainerStyle={welcomeStyles.scrollViewContent}>
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.container}
+          style={welcomeStyles.container}
         >
-          <View style={styles.content}>
-            <Text style={styles.title}>Welcome to Restock</Text>
-            <Text style={styles.subtitle}>
-              Streamline your store's restocking process
-            </Text>
-            <Text style={styles.description}>
-              Create restock sessions, manage suppliers, and generate professional emails automatically.
-            </Text>
+          <View style={welcomeStyles.content}>
+                      {lastAuthMethod === 'google' ? (
+            <>
+              <Text style={welcomeStyles.title}>Welcome back!</Text>
+              <Text style={welcomeStyles.subtitle}>
+                Sign in with Google to continue
+              </Text>
+              <Text style={welcomeStyles.description}>
+                We'll get you back to managing your restock operations in no time.
+              </Text>
+            </>
+          ) : lastAuthMethod === 'email' ? (
+            <>
+              <Text style={welcomeStyles.title}>Welcome back!</Text>
+              <Text style={welcomeStyles.subtitle}>
+                Sign in with your email
+              </Text>
+              <Text style={welcomeStyles.description}>
+                Enter your credentials to continue managing your restock operations.
+              </Text>
+            </>
+          ) : (
+            <>
+              <Text style={welcomeStyles.title}>Welcome to Restock</Text>
+              <Text style={welcomeStyles.subtitle}>
+                Streamline your store's restocking process
+              </Text>
+              <Text style={welcomeStyles.description}>
+                Create restock sessions, manage suppliers, and generate professional emails automatically.
+              </Text>
+            </>
+          )}
 
           {!showEmailSignup && !showStoreNameInput ? (
-            <View style={styles.optionsSection}>
-              <Text style={styles.sectionTitle}>Get Started</Text>
-              
-              {showReturningUserButton && (
-                <TouchableOpacity 
-                  style={styles.returningUserButton}
-                  onPress={handleReturningUserSignIn}
-                  disabled={loading}
-                >
-                  <Text style={styles.returningUserButtonText}>
-                    {loading ? 'Signing in...' : 'Returning User? Sign In'}
-                  </Text>
-                </TouchableOpacity>
+            <View style={welcomeStyles.optionsSection}>
+              {lastAuthMethod === 'google' ? (
+                // Google-focused UI for returning Google users
+                <>
+                  <Text style={welcomeStyles.sectionTitle}>Sign In</Text>
+                  
+                  <TouchableOpacity 
+                    style={[welcomeStyles.googleButton, welcomeStyles.primaryButton]}
+                    onPress={() => handleGoogleSignup(false)}
+                    disabled={loading}
+                  >
+                    <Text style={[welcomeStyles.googleButtonText, welcomeStyles.primaryButtonText]}>
+                      {loading ? 'Signing in...' : 'Continue with Google'}
+                    </Text>
+                  </TouchableOpacity>
+                  
+                  <View style={welcomeStyles.divider}>
+                    <View style={welcomeStyles.dividerLine} />
+                    <Text style={welcomeStyles.dividerText}>or</Text>
+                    <View style={welcomeStyles.dividerLine} />
+                  </View>
+                  
+                  <TouchableOpacity 
+                    style={welcomeStyles.secondaryButton}
+                    onPress={() => router.push('/auth/sign-in')}
+                  >
+                    <Text style={welcomeStyles.secondaryButtonText}>Sign in with Email</Text>
+                  </TouchableOpacity>
+                </>
+              ) : lastAuthMethod === 'email' ? (
+                // Email-focused UI for returning email users
+                <>
+                  <Text style={welcomeStyles.sectionTitle}>Sign In</Text>
+                  
+                  <TouchableOpacity 
+                    style={[welcomeStyles.button, welcomeStyles.primaryButton]}
+                    onPress={() => router.push('/auth/sign-in')}
+                  >
+                    <Text style={[welcomeStyles.buttonText, welcomeStyles.primaryButtonText]}>
+                      Sign in with Email
+                    </Text>
+                  </TouchableOpacity>
+                  
+                  <View style={welcomeStyles.divider}>
+                    <View style={welcomeStyles.dividerLine} />
+                    <Text style={welcomeStyles.dividerText}>or</Text>
+                    <View style={welcomeStyles.dividerLine} />
+                  </View>
+                  
+                  <TouchableOpacity 
+                    style={welcomeStyles.googleButton}
+                    onPress={() => handleGoogleSignup(false)}
+                    disabled={loading}
+                  >
+                    <Text style={welcomeStyles.googleButtonText}>
+                      {loading ? 'Signing in...' : 'Continue with Google'}
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                // Default UI for new users
+                <>
+                  <Text style={welcomeStyles.sectionTitle}>Get Started</Text>
+                  
+                  <TouchableOpacity 
+                    style={welcomeStyles.googleButton}
+                    onPress={() => handleGoogleSignup(false)}
+                    disabled={loading}
+                  >
+                    <Text style={welcomeStyles.googleButtonText}>
+                      {loading ? 'Signing in...' : 'Continue with Google'}
+                    </Text>
+                  </TouchableOpacity>
+                  
+                  <View style={welcomeStyles.divider}>
+                    <View style={welcomeStyles.dividerLine} />
+                    <Text style={welcomeStyles.dividerText}>or</Text>
+                    <View style={welcomeStyles.dividerLine} />
+                  </View>
+                  
+                  <View style={welcomeStyles.emailSection}>
+                    <TextInput
+                      style={welcomeStyles.input}
+                      placeholder="Enter your email address" 
+                      placeholderTextColor="#6B7F6B"
+                      value={email}
+                      onChangeText={setEmail}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                    />
+                    <TouchableOpacity 
+                      style={welcomeStyles.button}
+                      onPress={handleEmailSignup}
+                    >
+                      <Text style={welcomeStyles.buttonText}>Continue with Email</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
               )}
-              
-              <TouchableOpacity 
-                style={styles.signInLink}
-                onPress={() => router.push('/auth/sign-in')}
-              >
-                <Text style={styles.signInLinkText}>Already have an account? Sign in</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={styles.googleButton}
-                onPress={() => handleGoogleSignup(false)}
-                disabled={loading}
-              >
-                <Text style={styles.googleButtonText}>
-                  {loading ? 'Signing in...' : 'Continue with Google'}
-                </Text>
-              </TouchableOpacity>
-              
-              <View style={styles.divider}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>or</Text>
-                <View style={styles.dividerLine} />
-              </View>
-              
-              <View style={styles.emailSection}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter your email address" 
-                  placeholderTextColor="#6B7F6B"
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                />
-                <TouchableOpacity 
-                  style={styles.button}
-                  onPress={handleEmailSignup}
-                >
-                  <Text style={styles.buttonText}>Continue with Email</Text>
-                </TouchableOpacity>
-              </View>
             </View>
           ) : showEmailSignup && !showStoreNameInput ? (
-            <View style={styles.passwordSection}>
-              <Text style={styles.sectionTitle}>Create your password</Text>
+            <View style={welcomeStyles.passwordSection}>
+              <Text style={welcomeStyles.sectionTitle}>Create your password</Text>
               <TextInput
-                style={styles.input}
+                style={welcomeStyles.input}
                 placeholder="Create a password"
                 placeholderTextColor="#666666"
                 value={password}
@@ -544,24 +823,24 @@ export default function WelcomeScreen() {
                 autoCapitalize="none"
               />
               <TouchableOpacity 
-                style={styles.button}
+                style={welcomeStyles.button}
                 onPress={() => setShowStoreNameInput(true)}
               >
-                <Text style={styles.buttonText}>Continue</Text>
+                <Text style={welcomeStyles.buttonText}>Continue</Text>
               </TouchableOpacity>
               <TouchableOpacity 
-                style={styles.backButton}
+                style={welcomeStyles.backButton}
                 onPress={handleBackToOptions}
               >
-                <Text style={styles.backButtonText}>Back</Text>
+                <Text style={welcomeStyles.backButtonText}>Back</Text>
               </TouchableOpacity>
             </View>
           ) : (
-            <View style={styles.storeSection}>
-              <Text style={styles.sectionTitle}>Tell us about your store</Text>
+            <View style={welcomeStyles.storeSection}>
+              <Text style={welcomeStyles.sectionTitle}>Tell us about your store</Text>
               {(!isGoogleSSO || (isSignedIn && !name) || showEmailSignup) && (
                 <TextInput
-                  style={styles.input}
+                  style={welcomeStyles.input}
                   placeholder="Enter your first name"
                   placeholderTextColor="#666666"
                   value={name}
@@ -570,7 +849,7 @@ export default function WelcomeScreen() {
                 />
               )}
               <TextInput
-                style={styles.input}
+                style={welcomeStyles.input}
                 placeholder="Enter your store name"
                 placeholderTextColor="#666666"
                 value={storeName}
@@ -578,19 +857,19 @@ export default function WelcomeScreen() {
                 autoCapitalize="words"
               />
               <TouchableOpacity 
-                style={[styles.button, loading && styles.buttonDisabled]}
+                style={[welcomeStyles.button, loading && welcomeStyles.buttonDisabled]}
                 onPress={handleCreateAccount}
                 disabled={loading}
               >
-                <Text style={styles.buttonText}>
+                <Text style={welcomeStyles.buttonText}>
                   {loading ? 'Creating Account...' : 'Create Account'}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity 
-                style={styles.backButton}
+                style={welcomeStyles.backButton}
                 onPress={() => setShowStoreNameInput(false)}
               >
-                <Text style={styles.backButtonText}>Back</Text>
+                <Text style={welcomeStyles.backButtonText}>Back</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -599,144 +878,4 @@ export default function WelcomeScreen() {
     </ScrollView>
     </AuthGuard>
   );
-}
-
-const styles = StyleSheet.create({
-  scrollViewContent: {
-    flexGrow: 1,
-  },
-  container: {
-    flex: 1,
-    backgroundColor: '#f8f9fa',
-  },
-  content: {
-    flex: 1,
-    padding: 20,
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#2c3e50',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 20,
-    color: '#6B7F6B',
-    marginBottom: 16,
-    textAlign: 'center',
-    fontWeight: '600',
-  },
-  description: {
-    fontSize: 16,
-    color: '#7f8c8d',
-    marginBottom: 40,
-    textAlign: 'center',
-    lineHeight: 24,
-  },
-  optionsSection: {
-    marginBottom: 20,
-  },
-  emailSection: {
-    marginBottom: 20,
-    
-  },
-  passwordSection: {
-    marginBottom: 20,
-  },
-  storeSection: {
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#2c3e50',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  input: {
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#e1e8ed',
-    borderRadius: 8,
-    padding: 16,
-    fontSize: 16,
-    marginBottom: 16,
-    color: '#000000',
-  },
-  button: {
-    backgroundColor: '#6B7F6B',
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  googleButton: {
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#e1e8ed',
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  returningUserButton: {
-    backgroundColor: '#A7B9A7',
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  googleButtonText: {
-    color: '#2c3e50',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  returningUserButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 20,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#e1e8ed',
-  },
-  dividerText: {
-    marginHorizontal: 16,
-    color: '#7f8c8d',
-    fontSize: 14,
-  },
-  backButton: {
-    alignItems: 'center',
-    padding: 12,
-  },
-  backButtonText: {
-    color: '#6B7F6B',
-    fontSize: 16,
-  },
-  signInLink: {
-    alignItems: 'center',
-    padding: 12,
-    marginTop: 8,
-  },
-  signInLinkText: {
-    color: '#6B7F6B',
-    fontSize: 16,
-    textDecorationLine: 'underline',
-  },
-}); 
+} 
