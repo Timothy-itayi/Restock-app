@@ -40,6 +40,8 @@ export class ClerkClientService {
     // If user is already signed in and loaded, no polling needed
     if (isLoaded && isSignedIn) {
       console.log('ClerkClientService: User already signed in, OAuth polling not needed');
+      // Clear any lingering OAuth flags since user is already authenticated
+      await this.clearOAuthFlags();
       return false;
     }
     
@@ -109,34 +111,22 @@ export class ClerkClientService {
   static async handleOAuthCompletion(
     authCheckFn: () => { isLoaded: boolean; isSignedIn: boolean }
   ): Promise<boolean> {
-    console.log('ClerkClientService: Handling OAuth completion with auth state polling...');
+    console.log('ClerkClientService: Handling OAuth completion...');
     
     try {
-      // Check if polling is actually needed
-      const pollingNeeded = await this.isOAuthPollingNeeded(authCheckFn);
-      if (!pollingNeeded) {
-        console.log('ClerkClientService: OAuth polling not needed, returning success');
+      // First, check if user is already authenticated
+      const { isLoaded, isSignedIn } = authCheckFn();
+      if (isLoaded && isSignedIn) {
+        console.log('ClerkClientService: User already authenticated, OAuth completion successful');
         await AsyncStorage.setItem('justCompletedSSO', 'true');
         await AsyncStorage.removeItem('oauthProcessing');
         return true;
       }
       
-      // Set a flag that OAuth is being processed
-      await AsyncStorage.setItem('oauthProcessing', 'true');
-      
-      // Poll for auth state changes
-      const authSuccess = await this.pollForAuthState(authCheckFn, 5, 1000);
-      
-      if (authSuccess) {
-        console.log('ClerkClientService: OAuth completion handled successfully');
-        await AsyncStorage.setItem('justCompletedSSO', 'true');
-        await AsyncStorage.removeItem('oauthProcessing');
-        return true;
-      } else {
-        console.log('ClerkClientService: OAuth completion failed - auth state polling unsuccessful');
-        await AsyncStorage.removeItem('oauthProcessing');
-        return false;
-      }
+      // If user is not authenticated, we don't need to poll - OAuth likely failed
+      console.log('ClerkClientService: User not authenticated, OAuth completion failed');
+      await AsyncStorage.removeItem('oauthProcessing');
+      return false;
     } catch (error) {
       console.error('ClerkClientService: Error handling OAuth completion:', error);
       await AsyncStorage.removeItem('oauthProcessing');
@@ -177,5 +167,41 @@ export class ClerkClientService {
   static async onSignOut(): Promise<void> {
     console.log('ClerkClientService: User signing out, clearing OAuth flags');
     await this.clearOAuthFlags();
+  }
+
+  /**
+   * Initialize OAuth flags on app startup
+   * This should be called when the app starts to clear any lingering flags
+   */
+  static async initializeOAuthFlags(): Promise<void> {
+    try {
+      console.log('ClerkClientService: Initializing OAuth flags on app startup');
+      await this.clearOAuthFlags();
+      console.log('ClerkClientService: OAuth flags initialized successfully');
+    } catch (error) {
+      console.error('ClerkClientService: Error initializing OAuth flags:', error);
+    }
+  }
+
+  /**
+   * Check if user is already authenticated and clear OAuth flags if so
+   * This should be called when auth screens load to prevent unnecessary polling
+   */
+  static async checkAndClearOAuthFlagsIfAuthenticated(
+    authCheckFn: () => { isLoaded: boolean; isSignedIn: boolean }
+  ): Promise<void> {
+    try {
+      const { isLoaded, isSignedIn } = authCheckFn();
+      console.log('ClerkClientService: Checking if user is already authenticated:', { isLoaded, isSignedIn });
+      
+      if (isLoaded && isSignedIn) {
+        console.log('ClerkClientService: User is already authenticated, clearing OAuth flags');
+        await this.clearOAuthFlags();
+      } else {
+        console.log('ClerkClientService: User not authenticated, keeping OAuth flags');
+      }
+    } catch (error) {
+      console.error('ClerkClientService: Error checking auth state for OAuth flags:', error);
+    }
   }
 } 

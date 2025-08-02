@@ -171,6 +171,36 @@ export class UserProfileService {
   }
 
   /**
+   * Check if user has completed profile setup (has store_name)
+   */
+  static async hasCompletedProfileSetup(clerkUserId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('store_name')
+        .eq('id', clerkUserId)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      // User has completed setup if they have a store_name
+      const hasCompletedSetup = !!(data && data.store_name && data.store_name.trim() !== '');
+      
+      console.log('Profile setup check:', {
+        userId: clerkUserId,
+        hasStoreName: !!(data && data.store_name),
+        storeName: data?.store_name,
+        hasCompletedSetup
+      });
+
+      return { hasCompletedSetup, error: null };
+    } catch (error) {
+      console.error('Error checking profile setup completion:', error);
+      return { hasCompletedSetup: false, error };
+    }
+  }
+
+  /**
    * Verify user profile was saved successfully
    */
   static async verifyUserProfile(clerkUserId: string) {

@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { emailsStyles } from "../../styles/components/emails";
 import { Ionicons } from "@expo/vector-icons";
+import { EmailsSkeleton } from '../components/skeleton';
 
 // Types for email data
 interface EmailDraft {
@@ -86,6 +87,16 @@ export default function EmailsScreen() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [progressAnimation] = useState(new Animated.Value(0));
   const [isLoading, setIsLoading] = useState(true);
+  const [minLoadingTime, setMinLoadingTime] = useState(true);
+
+  // Minimum loading time to prevent flicker
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setMinLoadingTime(false);
+    }, 300); // 300ms minimum loading time
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   // Load session data from AsyncStorage
   useEffect(() => {
@@ -134,6 +145,11 @@ export default function EmailsScreen() {
 
     loadSessionData();
   }, []);
+
+  // Show skeleton until email session is loaded and minimum time has passed
+  if (isLoading || !emailSession || minLoadingTime) {
+    return <EmailsSkeleton />;
+  }
 
   const handleEditEmail = (email: EmailDraft) => {
     setEditingEmail(email);
@@ -292,29 +308,6 @@ export default function EmailsScreen() {
         <TouchableOpacity style={emailsStyles.doneButton} onPress={handleDone}>
           <Text style={emailsStyles.doneButtonText}>Done</Text>
         </TouchableOpacity>
-      </View>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <View style={emailsStyles.container}>
-        <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1 }}>
-          <Text style={{ fontSize: 18, color: '#666666', marginBottom: 8 }}>
-            Preparing your emails...
-          </Text>
-          <Text style={{ fontSize: 14, color: '#999999', textAlign: 'center' }}>
-            Generating email drafts from your restock session
-          </Text>
-        </View>
-      </View>
-    );
-  }
-
-  if (!emailSession) {
-    return (
-      <View style={emailsStyles.container}>
-        <Text>No email session data found.</Text>
       </View>
     );
   }

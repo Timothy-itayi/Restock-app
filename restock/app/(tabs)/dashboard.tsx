@@ -6,6 +6,7 @@ import { UserProfileService } from "../../backend/services/user-profile";
 import { SessionService } from "../../backend/services/sessions";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
+import { DashboardSkeleton } from "../components/skeleton";
 
 // Debug flag - set to false in production
 const DEBUG_MODE = __DEV__;
@@ -49,7 +50,20 @@ export default function DashboardScreen() {
   const [unfinishedSessions, setUnfinishedSessions] = useState<UnfinishedSession[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const { userId } = useAuth();
+  const [minLoadingTime, setMinLoadingTime] = useState(true);
+  const { userId, isSignedIn } = useAuth();
+
+  // Show skeleton until both profile and sessions are loaded, plus minimum loading time
+  const isDataReady = !loading && !sessionsLoading && !minLoadingTime;
+
+  // Minimum loading time to prevent flicker
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setMinLoadingTime(false);
+    }, 300); // 300ms minimum loading time
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -71,7 +85,11 @@ export default function DashboardScreen() {
           setLoading(false);
         }
       } else {
-        setLoading(false);
+        // Don't set loading to false immediately if userId is not available yet
+        // This prevents flicker when the component first mounts
+        if (isSignedIn === false) {
+          setLoading(false);
+        }
       }
     };
 
@@ -88,13 +106,32 @@ export default function DashboardScreen() {
           setSessionsLoading(false);
         }
       } else {
-        setSessionsLoading(false);
+        // Don't set sessionsLoading to false immediately if userId is not available yet
+        if (isSignedIn === false) {
+          setSessionsLoading(false);
+        }
       }
     };
 
     fetchUserProfile();
     fetchUnfinishedSessions();
-  }, [userId]);
+  }, [userId, isSignedIn]);
+
+  // Fallback timeout to prevent infinite loading
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (loading) {
+        console.log('Dashboard: Fallback timeout - setting loading to false');
+        setLoading(false);
+      }
+      if (sessionsLoading) {
+        console.log('Dashboard: Fallback timeout - setting sessionsLoading to false');
+        setSessionsLoading(false);
+      }
+    }, 3000); // 3 second timeout
+    
+    return () => clearTimeout(timer);
+  }, [loading, sessionsLoading]);
 
   // Refresh data when user returns to dashboard
   useFocusEffect(
@@ -250,14 +287,10 @@ export default function DashboardScreen() {
     } finally {
       setRefreshing(false);
     }
-  };
+      };
 
-  if (loading) {
-    return (
-      <View style={dashboardStyles.container}>
-        <ActivityIndicator size="large" color="#6C757D" />
-      </View>
-    );
+  if (!isDataReady) {
+    return <DashboardSkeleton />;
   }
 
   return (

@@ -19,6 +19,7 @@ import { ProductService } from "../../backend/services/products";
 import { SupplierService } from "../../backend/services/suppliers";
 import { SessionService } from "../../backend/services/sessions";
 import { Ionicons } from "@expo/vector-icons";
+import { RestockSessionsSkeleton } from "../components/skeleton";
 import type { Product as DatabaseProduct, Supplier as DatabaseSupplier, RestockSession as DatabaseRestockSession, RestockItem as DatabaseRestockItem } from "../../backend/types/database";
 
 // Enhanced logging utility
@@ -138,6 +139,7 @@ const initialSuppliers: StoredSupplier[] = [];
 export default function RestockSessionsScreen() {
   const { userId } = useAuth();
   
+  // Initialize all state as null/empty to prevent default content rendering
   const [isSessionActive, setIsSessionActive] = useState(false);
   const [showAddProductForm, setShowAddProductForm] = useState(false);
   const [showEditProductForm, setShowEditProductForm] = useState(false);
@@ -168,7 +170,7 @@ export default function RestockSessionsScreen() {
   const [supplierEmail, setSupplierEmail] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
-  // Database state
+  // Database state - initialize as empty arrays
   const [storedProducts, setStoredProducts] = useState<StoredProduct[]>([]);
   const [storedSuppliers, setStoredSuppliers] = useState<StoredSupplier[]>([]);
 
@@ -177,8 +179,31 @@ export default function RestockSessionsScreen() {
   const [filteredSuppliers, setFilteredSuppliers] = useState<StoredSupplier[]>([]);
 
   // Loading states
-  const [isLoadingData, setIsLoadingData] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(true);
   const [isSavingProduct, setIsSavingProduct] = useState(false);
+  const [minLoadingTime, setMinLoadingTime] = useState(true);
+  const [hasLoaded, setHasLoaded] = useState(false);
+
+  // Show skeleton until data is loaded, minimum time has passed, and initial load is complete
+  const isDataReady = !isLoadingData && !minLoadingTime && hasLoaded;
+
+  // Minimum loading time to prevent flicker
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setMinLoadingTime(false);
+    }, 500); // Increased to 500ms for more stability
+    
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Component initialization
+  useEffect(() => {
+    const initTimer = setTimeout(() => {
+      setHasLoaded(true);
+    }, 100); // Small delay to ensure proper initialization
+    
+    return () => clearTimeout(initTimer);
+  }, []);
 
   // Load stored data on component mount
   useEffect(() => {
@@ -188,6 +213,9 @@ export default function RestockSessionsScreen() {
       loadActiveSession();
     } else {
       Logger.warning('Component mounted but no userId available');
+      // If no userId, still need to stop loading to prevent infinite skeleton
+      setIsLoadingData(false);
+      setHasLoaded(true);
     }
   }, [userId]);
 
@@ -344,6 +372,7 @@ export default function RestockSessionsScreen() {
           errorContext: { operation: 'loadProducts', userId },
           timestamp: new Date()
         });
+        setStoredProducts([]); // Set empty array instead of null
       } else {
         Logger.success('Products loaded successfully', { 
           count: productsResult.data?.length || 0,
@@ -361,6 +390,7 @@ export default function RestockSessionsScreen() {
           errorContext: { operation: 'loadSuppliers', userId },
           timestamp: new Date()
         });
+        setStoredSuppliers([]); // Set empty array instead of null
       } else {
         Logger.success('Suppliers loaded successfully', { 
           count: suppliersResult.data?.length || 0,
@@ -382,6 +412,7 @@ export default function RestockSessionsScreen() {
       setStoredSuppliers([]);
     } finally {
       setIsLoadingData(false);
+      setHasLoaded(true);
     }
   };
 
@@ -1062,13 +1093,9 @@ export default function RestockSessionsScreen() {
 
   // Loading indicator
   const renderLoadingState = () => {
-    if (!isLoadingData) return null;
+    if (isDataReady) return null;
     
-    return (
-      <View style={restockSessionsStyles.loadingContainer}>
-        <Text style={restockSessionsStyles.loadingText}>Loading your data...</Text>
-      </View>
-    );
+    return <RestockSessionsSkeleton />;
   };
 
   const renderStartSection = () => (
@@ -1410,7 +1437,7 @@ export default function RestockSessionsScreen() {
         {renderLoadingState()}
         
         {/* Main Content */}
-        {!isLoadingData && !errorState.hasError && (
+        {isDataReady && !errorState.hasError && (
           isSessionActive ? renderSessionFlow() : renderStartSection()
         )}
       </KeyboardAvoidingView>

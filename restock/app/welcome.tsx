@@ -37,6 +37,45 @@ export default function WelcomeScreen() {
     checkReturningUser();
   }, []);
 
+  // Check and clear OAuth flags if user is already authenticated
+  useEffect(() => {
+    const checkOAuthFlags = async () => {
+      if (isLoaded) {
+        await ClerkClientService.checkAndClearOAuthFlagsIfAuthenticated(() => ({
+          isLoaded: Boolean(isLoaded),
+          isSignedIn: Boolean(isSignedIn)
+        }));
+      }
+    };
+    
+    checkOAuthFlags();
+  }, [isLoaded, isSignedIn]);
+
+  // Clear OAuth flags when user is already authenticated and not on auth screens
+  useEffect(() => {
+    const clearOAuthFlagsIfAuthenticated = async () => {
+      if (isLoaded && isSignedIn && userId) {
+        console.log('User is authenticated, clearing any lingering OAuth flags');
+        await ClerkClientService.clearOAuthFlags();
+        // Also clear local OAuth state
+        setIsOAuthInProgress(false);
+        setOauthStartTime(null);
+      }
+    };
+    
+    clearOAuthFlagsIfAuthenticated();
+  }, [isLoaded, isSignedIn, userId]);
+
+  // Immediate OAuth flag cleanup when user becomes authenticated
+  useEffect(() => {
+    if (isLoaded && isSignedIn && userId && (isOAuthInProgress || oauthStartTime)) {
+      console.log('User just became authenticated, immediately clearing OAuth state');
+      setIsOAuthInProgress(false);
+      setOauthStartTime(null);
+      ClerkClientService.clearOAuthFlags().catch(console.error);
+    }
+  }, [isLoaded, isSignedIn, userId, isOAuthInProgress, oauthStartTime]);
+
   // Handle authentication state changes
   useEffect(() => {
     console.log('Welcome screen auth state changed:', { isLoaded, isSignedIn, userId });
@@ -80,8 +119,20 @@ export default function WelcomeScreen() {
 
   // Enhanced OAuth completion detection with session refresh
   useEffect(() => {
+    // Don't run any OAuth logic if user is already authenticated
+    if (isLoaded && isSignedIn && userId) {
+      console.log('User already authenticated, skipping all OAuth completion logic');
+      return;
+    }
+    
     const detectOAuthCompletion = async () => {
       if (!isOAuthInProgress || !oauthStartTime) return;
+      
+      // Don't run if user is already authenticated and not on auth screens
+      if (isSignedIn && userId && !isOAuthInProgress) {
+        console.log('User already authenticated, skipping OAuth completion detection');
+        return;
+      }
       
       const elapsed = Date.now() - oauthStartTime;
       console.log('OAuth progress check:', { elapsed, isSignedIn, userId, isLoaded });
@@ -92,31 +143,21 @@ export default function WelcomeScreen() {
         setIsOAuthInProgress(false);
         setOauthStartTime(null);
         
-        // Use the new auth state polling service
-        const authSuccess = await ClerkClientService.handleOAuthCompletion(() => ({
-          isLoaded,
-          isSignedIn
-        }));
+        // Since user is already authenticated, OAuth completion is successful
+        console.log('OAuth completion successful - user already authenticated');
         
-        if (authSuccess) {
-          console.log('OAuth completion handled successfully with auth state polling');
+        // Check if user is a Google user and route immediately
+        if (user) {
+          const userEmail = user.emailAddresses?.[0]?.emailAddress || user.primaryEmailAddress?.emailAddress;
+          const isGoogleUser = userEmail?.includes('@gmail.com') || userEmail?.includes('@googlemail.com') || userEmail?.includes('@google.com');
           
-          // Check if user is a Google user and route immediately
-          if (user) {
-            const userEmail = user.emailAddresses?.[0]?.emailAddress || user.primaryEmailAddress?.emailAddress;
-            const isGoogleUser = userEmail?.includes('@gmail.com') || userEmail?.includes('@googlemail.com') || userEmail?.includes('@google.com');
-            
-            if (isGoogleUser) {
-              console.log('OAuth user is Google user, immediately routing to sso-profile-setup');
-              router.replace('/sso-profile-setup');
-            } else {
-              console.log('OAuth user is not Google user, immediately routing to profile-setup');
-              router.replace('/profile-setup');
-            }
+          if (isGoogleUser) {
+            console.log('OAuth user is Google user, immediately routing to sso-profile-setup');
+            router.replace('/sso-profile-setup');
+          } else {
+            console.log('OAuth user is not Google user, immediately routing to profile-setup');
+            router.replace('/profile-setup');
           }
-        } else {
-          console.log('OAuth completion failed - session refresh unsuccessful');
-          Alert.alert('Authentication Error', 'Failed to complete authentication. Please try again.');
         }
       }
     };
@@ -125,12 +166,26 @@ export default function WelcomeScreen() {
       const interval = setInterval(detectOAuthCompletion, 1000);
       return () => clearInterval(interval);
     }
-  }, [isOAuthInProgress, oauthStartTime, isSignedIn, userId, user, clerk]);
+  }, [isOAuthInProgress, oauthStartTime, isSignedIn, userId, user, clerk, isLoaded]);
 
   // Force session refresh after OAuth completion with retry logic
   useEffect(() => {
+    // Don't run any OAuth logic if user is already authenticated
+    if (isLoaded && isSignedIn && userId) {
+      console.log('User already authenticated, skipping all force session refresh logic');
+      return;
+    }
+    
     const forceSessionRefresh = async () => {
       if (!isOAuthInProgress || !oauthStartTime) return;
+      
+      // Don't run if user is already authenticated
+      if (isSignedIn && userId) {
+        console.log('User already authenticated, skipping force session refresh');
+        setIsOAuthInProgress(false);
+        setOauthStartTime(null);
+        return;
+      }
       
       const elapsed = Date.now() - oauthStartTime;
       
@@ -139,24 +194,18 @@ export default function WelcomeScreen() {
         console.log('OAuth in progress but user not authenticated, attempting session refresh');
         
         try {
-                            // Use the new auth state polling service
-          const authSuccess = await ClerkClientService.pollForAuthState(() => ({
+          // Use the improved OAuth completion handler instead of direct polling
+          const oauthSuccess = await ClerkClientService.handleOAuthCompletion(() => ({
             isLoaded: Boolean(isLoaded),
             isSignedIn: Boolean(isSignedIn)
-          }), 3, 1000);
+          }));
           
-          if (authSuccess) {
+          if (oauthSuccess) {
             console.log('Auth state polling successful, user now authenticated');
             setIsOAuthInProgress(false);
             setOauthStartTime(null);
             
-            // Handle OAuth completion
-            const oauthSuccess = await ClerkClientService.handleOAuthCompletion(() => ({
-          isLoaded: Boolean(isLoaded),
-          isSignedIn: Boolean(isSignedIn)
-        }));
-            
-            if (oauthSuccess && user) {
+            if (user) {
               const userEmail = user.emailAddresses?.[0]?.emailAddress || user.primaryEmailAddress?.emailAddress;
               const isGoogleUser = userEmail?.includes('@gmail.com') || userEmail?.includes('@googlemail.com') || userEmail?.includes('@google.com');
               
@@ -181,25 +230,37 @@ export default function WelcomeScreen() {
       const interval = setInterval(forceSessionRefresh, 2000);
       return () => clearInterval(interval);
     }
-  }, [isOAuthInProgress, oauthStartTime, isSignedIn, userId, user, clerk]);
+  }, [isOAuthInProgress, oauthStartTime, isSignedIn, userId, user, clerk, isLoaded]);
 
   // Session restoration mechanism for OAuth completion
   useEffect(() => {
+    // Don't run any OAuth logic if user is already authenticated
+    if (isLoaded && isSignedIn && userId) {
+      console.log('User already authenticated, skipping all session restoration logic');
+      return;
+    }
+    
     const restoreSession = async () => {
       try {
+        // Don't run if user is already authenticated
+        if (isSignedIn && userId) {
+          console.log('User already authenticated, skipping session restoration');
+          return;
+        }
+        
         const justCompletedSSO = await AsyncStorage.getItem('justCompletedSSO');
         console.log('Session restoration check:', { isSignedIn, userId, justCompletedSSO });
         
         if (justCompletedSSO === 'true' && !isSignedIn) {
           console.log('OAuth completed but session not restored, attempting manual restoration');
           
-          // Use the new auth state polling service
-          const authSuccess = await ClerkClientService.pollForAuthState(() => ({
+          // Use the improved OAuth completion handler instead of direct polling
+          const oauthSuccess = await ClerkClientService.handleOAuthCompletion(() => ({
             isLoaded: isLoaded || false,
             isSignedIn: isSignedIn || false
-          }), 3, 2000);
+          }));
           
-          if (authSuccess) {
+          if (oauthSuccess) {
             console.log('Session restoration successful');
             await AsyncStorage.removeItem('justCompletedSSO');
             
@@ -471,16 +532,23 @@ export default function WelcomeScreen() {
           console.log('Session set as active successfully');
         }
         
-        // Use the new auth state polling service to handle OAuth completion
-        const oauthSuccess = await ClerkClientService.handleOAuthCompletion(() => ({
-          isLoaded: Boolean(isLoaded),
-          isSignedIn: Boolean(isSignedIn)
-        }));
-        
-        if (oauthSuccess) {
-          console.log('OAuth completion handled successfully with auth state polling');
+        // Check if user is already authenticated before polling
+        if (isSignedIn && userId) {
+          console.log('User already authenticated after OAuth, skipping polling');
+          await AsyncStorage.setItem('justCompletedSSO', 'true');
+          await AsyncStorage.removeItem('oauthProcessing');
         } else {
-          console.log('OAuth completion failed - auth state polling unsuccessful');
+          // Use the new auth state polling service to handle OAuth completion
+          const oauthSuccess = await ClerkClientService.handleOAuthCompletion(() => ({
+            isLoaded: Boolean(isLoaded),
+            isSignedIn: Boolean(isSignedIn)
+          }));
+          
+          if (oauthSuccess) {
+            console.log('OAuth completion handled successfully with auth state polling');
+          } else {
+            console.log('OAuth completion failed - auth state polling unsuccessful');
+          }
         }
       }
       
