@@ -25,6 +25,20 @@ export default function WelcomeBackScreen() {
     checkReturningUserData();
   }, []);
 
+  // Check and clear OAuth flags if user is already authenticated
+  useEffect(() => {
+    const checkOAuthFlags = async () => {
+      if (isLoaded) {
+        await ClerkClientService.checkAndClearOAuthFlagsIfAuthenticated(() => ({
+          isLoaded: Boolean(isLoaded),
+          isSignedIn: Boolean(isSignedIn)
+        }));
+      }
+    };
+    
+    checkOAuthFlags();
+  }, [isLoaded, isSignedIn]);
+
   const checkReturningUserData = async () => {
     try {
       // Get the last authentication method and user data
@@ -70,30 +84,22 @@ export default function WelcomeBackScreen() {
           console.log('Session set as active successfully');
         }
         
-        // Use the new auth state polling service to handle OAuth completion
-        const oauthSuccess = await ClerkClientService.handleOAuthCompletion(() => ({
-          isLoaded: Boolean(isLoaded),
-          isSignedIn: Boolean(isSignedIn)
-        }));
+        // Since OAuth was successful and we have a session ID, authentication is complete
+        console.log('OAuth completion successful - session created:', result.createdSessionId);
+        await AsyncStorage.setItem('justCompletedSSO', 'true');
+        await AsyncStorage.removeItem('oauthProcessing');
         
-        if (oauthSuccess) {
-          console.log('OAuth completion handled successfully with auth state polling');
-          
-          // Save session data for returning user detection
-          await SessionManager.saveUserSession({
-            userId: result.createdSessionId || '',
-            email: lastUserEmail || '',
-            wasSignedIn: true,
-            lastSignIn: Date.now(),
-            lastAuthMethod: 'google',
-          });
-          
-          // Navigate to dashboard
-          router.replace('/(tabs)/dashboard');
-        } else {
-          console.log('OAuth completion failed - auth state polling unsuccessful');
-          Alert.alert('Authentication Error', 'Failed to complete authentication. Please try again.');
-        }
+        // Save session data for returning user detection
+        await SessionManager.saveUserSession({
+          userId: result.createdSessionId || '',
+          email: lastUserEmail || '',
+          wasSignedIn: true,
+          lastSignIn: Date.now(),
+          lastAuthMethod: 'google',
+        });
+        
+        // Navigate to dashboard
+        router.replace('/(tabs)/dashboard');
       }
     } catch (err: any) {
       console.error('Google OAuth sign in error:', JSON.stringify(err, null, 2));

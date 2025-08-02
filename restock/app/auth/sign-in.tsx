@@ -28,6 +28,20 @@ export default function SignInScreen() {
     checkReturningUser();
   }, []);
 
+  // Check and clear OAuth flags if user is already authenticated
+  useEffect(() => {
+    const checkOAuthFlags = async () => {
+      if (isLoaded) {
+        await ClerkClientService.checkAndClearOAuthFlagsIfAuthenticated(() => ({
+          isLoaded: Boolean(isLoaded),
+          isSignedIn: Boolean(isSignedIn)
+        }));
+      }
+    };
+    
+    checkOAuthFlags();
+  }, [isLoaded, isSignedIn]);
+
   const checkReturningUser = async () => {
     try {
       const returning = await SessionManager.isReturningUser();
@@ -147,14 +161,11 @@ export default function SignInScreen() {
           console.log('Session set as active successfully');
         }
         
-        // Use the new auth state polling service to handle OAuth completion
-        const oauthSuccess = await ClerkClientService.handleOAuthCompletion(() => ({
-          isLoaded: Boolean(isLoaded),
-          isSignedIn: Boolean(isSignedIn)
-        }));
-        
-        if (oauthSuccess) {
-          console.log('OAuth completion handled successfully with auth state polling');
+        // Check if user is already authenticated before polling
+        if (isSignedIn && userId) {
+          console.log('User already authenticated after OAuth, skipping polling');
+          await AsyncStorage.setItem('justCompletedSSO', 'true');
+          await AsyncStorage.removeItem('oauthProcessing');
           
           // Save session data for returning user detection
           // Extract email from user object after OAuth completion
@@ -172,8 +183,34 @@ export default function SignInScreen() {
           // Navigate to dashboard
           router.replace('/(tabs)/dashboard');
         } else {
-          console.log('OAuth completion failed - session refresh unsuccessful');
-          Alert.alert('Authentication Error', 'Failed to complete authentication. Please try again.');
+          // Use the new auth state polling service to handle OAuth completion
+          const oauthSuccess = await ClerkClientService.handleOAuthCompletion(() => ({
+            isLoaded: Boolean(isLoaded),
+            isSignedIn: Boolean(isSignedIn)
+          }));
+          
+          if (oauthSuccess) {
+            console.log('OAuth completion handled successfully with auth state polling');
+            
+            // Save session data for returning user detection
+            // Extract email from user object after OAuth completion
+            const userEmail = result.createdSessionId ? 
+              (await UserProfileService.getUserProfile(result.createdSessionId))?.data?.email || '' : '';
+            
+            await SessionManager.saveUserSession({
+              userId: result.createdSessionId || '',
+              email: userEmail,
+              wasSignedIn: true,
+              lastSignIn: Date.now(),
+              lastAuthMethod: 'google',
+            });
+            
+            // Navigate to dashboard
+            router.replace('/(tabs)/dashboard');
+          } else {
+            console.log('OAuth completion failed - session refresh unsuccessful');
+            Alert.alert('Authentication Error', 'Failed to complete authentication. Please try again.');
+          }
         }
       }
     } catch (err: any) {

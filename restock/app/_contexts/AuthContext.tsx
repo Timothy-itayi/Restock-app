@@ -3,6 +3,7 @@ import { useAuth, useUser } from '@clerk/clerk-expo';
 import { useRouter, useSegments } from 'expo-router';
 import { SessionManager } from '../../backend/services/session-manager';
 import { UserProfileService } from '../../backend/services/user-profile';
+import { ClerkClientService } from '../../backend/services/clerk-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface AuthContextType {
@@ -58,6 +59,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
     
     checkNavigationReady();
+  }, []);
+
+  // Initialize OAuth flags on app startup
+  useEffect(() => {
+    const initializeApp = async () => {
+      try {
+        console.log('AuthContext: Initializing app and clearing OAuth flags');
+        await ClerkClientService.initializeOAuthFlags();
+      } catch (error) {
+        console.error('AuthContext: Error initializing app:', error);
+      }
+    };
+    
+    initializeApp();
   }, []);
 
   // Fallback timeout to prevent infinite loading
