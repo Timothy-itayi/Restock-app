@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert } from 'react-native';
 import { useUser } from '@clerk/clerk-expo';
 import { UserProfileService } from '../../backend/services/user-profile';
+import { SessionService } from '../../backend/services/sessions';
+import { EmailService } from '../../backend/services/emails';
+import { useAuthContext } from '../_contexts/AuthContext';
 import SignOutButton from '../components/SignOutButton';
 import { profileStyles } from '../../styles/components/profile';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,9 +12,12 @@ import { ProfileSkeleton } from '../components/skeleton';
 
 export default function ProfileScreen() {
   const { user } = useUser();
+  const { userId } = useAuthContext();
   const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [minLoadingTime, setMinLoadingTime] = useState(true);
+  const [sessionCount, setSessionCount] = useState(0);
+  const [emailCount, setEmailCount] = useState(0);
 
   // Show skeleton until both user and profile data are loaded, plus minimum loading time
   const isDataReady = !loading && user && userProfile !== null && !minLoadingTime;
@@ -50,6 +56,39 @@ export default function ProfileScreen() {
     fetchUserProfile();
   }, [user?.id, user]);
 
+  // Fetch session and email counts
+  useEffect(() => {
+    const fetchStats = async () => {
+      if (!userId) return;
+
+      try {
+        // Get session count
+        const sessionsResult = await SessionService.getUserSessions(userId);
+        if (sessionsResult.data) {
+          setSessionCount(sessionsResult.data.length);
+        }
+
+        // Get email count
+        const emailsResult = await EmailService.getUserEmails(userId);
+        if (emailsResult.data) {
+          setEmailCount(emailsResult.data.length);
+        }
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      }
+    };
+
+    fetchStats();
+  }, [userId]);
+
+  const handleSettingsPress = () => {
+    Alert.alert(
+      'Settings',
+      'Settings functionality coming soon!',
+      [{ text: 'OK' }]
+    );
+  };
+
   if (!isDataReady) {
     return <ProfileSkeleton />;
   }
@@ -59,7 +98,7 @@ export default function ProfileScreen() {
       {/* Header */}
       <View style={profileStyles.header}>
         <Text style={profileStyles.headerTitle}>Account</Text>
-        <TouchableOpacity style={profileStyles.settingsButton}>
+        <TouchableOpacity style={profileStyles.settingsButton} onPress={handleSettingsPress}>
           <Ionicons name="settings-outline" size={24} color="#6C757D" />
         </TouchableOpacity>
       </View>
@@ -112,8 +151,8 @@ export default function ProfileScreen() {
             />
           </View>
           <Text style={profileStyles.statTitle}>Restock Sessions</Text>
-          <Text style={profileStyles.statValue}>12</Text>
-          <Text style={profileStyles.statDescription}>This month</Text>
+          <Text style={profileStyles.statValue}>{sessionCount}</Text>
+          <Text style={profileStyles.statDescription}>Total sessions</Text>
         </View>
         
         <View style={profileStyles.statCard}>
@@ -125,8 +164,8 @@ export default function ProfileScreen() {
             />
           </View>
           <Text style={profileStyles.statTitle}>Emails Sent</Text>
-          <Text style={profileStyles.statValue}>48</Text>
-          <Text style={profileStyles.statDescription}>This month</Text>
+          <Text style={profileStyles.statValue}>{emailCount}</Text>
+          <Text style={profileStyles.statDescription}>Total emails</Text>
         </View>
       </View>
 

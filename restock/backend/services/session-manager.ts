@@ -12,6 +12,7 @@ export interface UserSession {
 export class SessionManager {
   private static readonly SESSION_KEY = 'user_session';
   private static readonly RETURNING_USER_KEY = 'returning_user_flag';
+  private static readonly RETURNING_USER_DATA_KEY = 'returning_user_data';
 
   /**
    * Save user session data
@@ -72,16 +73,14 @@ export class SessionManager {
       const currentSession = await this.getUserSession();
       
       if (currentSession) {
-        // Save essential data for returning user (email and auth method)
+        // Save essential data for returning user (email and auth method only)
         const returningUserData = {
           email: currentSession.email,
           lastAuthMethod: currentSession.lastAuthMethod,
-          wasSignedIn: false, // Mark as signed out
-          lastSignIn: currentSession.lastSignIn, // Keep last sign-in time
         };
         
-        // Save the returning user data
-        await AsyncStorage.setItem('returning_user_data', JSON.stringify(returningUserData));
+        // Save the returning user data using the class constant
+        await AsyncStorage.setItem(this.RETURNING_USER_DATA_KEY, JSON.stringify(returningUserData));
         console.log('Saved returning user data:', returningUserData);
       }
       
@@ -98,7 +97,7 @@ export class SessionManager {
    */
   static async getReturningUserData(): Promise<{ email: string; lastAuthMethod: 'google' | 'email' } | null> {
     try {
-      const returningUserData = await AsyncStorage.getItem('returning_user_data');
+      const returningUserData = await AsyncStorage.getItem(this.RETURNING_USER_DATA_KEY);
       return returningUserData ? JSON.parse(returningUserData) : null;
     } catch (error) {
       console.error('Error getting returning user data:', error);
@@ -111,7 +110,7 @@ export class SessionManager {
    */
   static async clearReturningUserData(): Promise<void> {
     try {
-      await AsyncStorage.removeItem('returning_user_data');
+      await AsyncStorage.removeItem(this.RETURNING_USER_DATA_KEY);
       console.log('Cleared returning user data after successful sign-in');
     } catch (error) {
       console.error('Error clearing returning user data:', error);

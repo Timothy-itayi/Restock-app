@@ -2,18 +2,46 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SessionManager } from './session-manager';
 import { UserProfileService } from './user-profile';
 
+export interface SignInResult {
+  status: 'complete' | 'needs_first_factor' | 'needs_second_factor' | 'needs_new_password' | 'missing_requirements';
+  createdSessionId?: string;
+  firstFactorVerification?: {
+    status: string;
+    strategy: string;
+  };
+  secondFactorVerification?: {
+    status: string;
+    strategy: string;
+  };
+  [key: string]: any; // Allow for additional properties
+}
+
+export interface EmailAuthConfig {
+  sessionHydrationDelay?: number; // Delay in milliseconds for session hydration
+}
+
 export class EmailAuthService {
+  // Default configuration values
+  private static readonly DEFAULT_CONFIG: Required<EmailAuthConfig> = {
+    sessionHydrationDelay: 500, // Default 500ms delay
+  };
+
   /**
    * Handle email/password sign-in without OAuth interference
    */
   static async handleEmailSignIn(
-    signInResult: any,
+    signInResult: SignInResult,
     userEmail: string,
     triggerAuthCheck: () => void,
-    setActive?: (params: { session: string }) => Promise<void>
+    setActive?: (params: { session: string }) => Promise<void>,
+    config?: EmailAuthConfig
   ): Promise<void> {
     try {
       console.log('📧 EmailAuthService: Handling email sign-in');
+      
+      // Merge provided config with defaults
+      const finalConfig = { ...this.DEFAULT_CONFIG, ...config };
+      console.log('📧 EmailAuthService: Using session hydration delay:', finalConfig.sessionHydrationDelay, 'ms');
       
       if (signInResult.status === 'complete') {
         console.log('✅ EmailAuthService: Sign-in successful');
@@ -25,9 +53,9 @@ export class EmailAuthService {
           await setActive({ session: signInResult.createdSessionId });
           console.log('📧 EmailAuthService: Session set as active successfully');
           
-          // Add a small delay to allow Clerk to hydrate the session
+          // Add a configurable delay to allow Clerk to hydrate the session
           console.log('📧 EmailAuthService: Waiting for session hydration...');
-          await new Promise(resolve => setTimeout(resolve, 500));
+          await new Promise(resolve => setTimeout(resolve, finalConfig.sessionHydrationDelay));
           console.log('📧 EmailAuthService: Session hydration delay completed');
         } else if (signInResult.createdSessionId) {
           console.log('⚠️ EmailAuthService: setActive function not provided, session may not hydrate properly');
