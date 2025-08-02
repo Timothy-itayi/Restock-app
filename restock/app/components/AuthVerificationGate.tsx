@@ -1,7 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
 import { useAuthContext } from '../_contexts/AuthContext';
-import LoadingScreen from './LoadingScreen';
+import { DashboardSkeleton, WelcomeSkeleton } from './skeleton';
 
 interface AuthVerificationGateProps {
   children: React.ReactNode;
@@ -12,11 +12,8 @@ export default function AuthVerificationGate({ children }: AuthVerificationGateP
 
   // Show loading screen while Clerk is loading or while we're verifying authentication
   if (isLoading || isVerifying) {
-    return (
-      <LoadingScreen 
-        message={isVerifying ? "Setting up your dashboard..." : "Loading..."} 
-      />
-    );
+    // Use DashboardSkeleton for dashboard setup, WelcomeSkeleton for initial loading
+    return isVerifying ? <DashboardSkeleton /> : <WelcomeSkeleton />;
   }
 
   return <>{children}</>;

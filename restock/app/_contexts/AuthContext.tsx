@@ -168,7 +168,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!verificationResult.needsSetup) {
         // User has completed setup, redirect to dashboard if on auth/welcome screen
         const isOnAuthScreen = segments[0] === 'auth' || segments[0] === 'welcome';
-        if (isOnAuthScreen && isNavigationReady) {
+        const isOnTabs = segments[0] === '(tabs)';
+        console.log('AuthContext: Checking navigation - segments:', segments, 'isOnAuthScreen:', isOnAuthScreen, 'isOnTabs:', isOnTabs);
+        
+        // Only redirect if on auth/welcome screen and NOT on tabs
+        if (isOnAuthScreen && !isOnTabs && isNavigationReady) {
           console.log('User has completed setup, redirecting to dashboard');
           navigateToScreen('/(tabs)/dashboard');
         }
@@ -308,6 +312,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const now = Date.now();
     if (isSignedIn && userId && (now - lastVerificationTime) < 5000) {
       console.log('Verification ran recently, skipping');
+      return;
+    }
+
+    // Don't run verification if user is already on tabs (to prevent unwanted redirects)
+    const isOnTabs = segments[0] === '(tabs)';
+    if (isSignedIn && userId && isOnTabs) {
+      console.log('User is already on tabs, skipping verification to prevent unwanted redirects');
+      // Set as initialized to prevent future interference
+      setHasInitialized(true);
       return;
     }
 

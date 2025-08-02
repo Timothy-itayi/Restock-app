@@ -5,11 +5,25 @@ import { UserProfileService } from '../../backend/services/user-profile';
 import SignOutButton from '../components/SignOutButton';
 import { profileStyles } from '../../styles/components/profile';
 import { Ionicons } from '@expo/vector-icons';
+import { ProfileSkeleton } from '../components/skeleton';
 
 export default function ProfileScreen() {
   const { user } = useUser();
   const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [minLoadingTime, setMinLoadingTime] = useState(true);
+
+  // Show skeleton until both user and profile data are loaded, plus minimum loading time
+  const isDataReady = !loading && user && userProfile !== null && !minLoadingTime;
+
+  // Minimum loading time to prevent flicker
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setMinLoadingTime(false);
+    }, 300); // 300ms minimum loading time
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -18,24 +32,26 @@ export default function ProfileScreen() {
           const result = await UserProfileService.verifyUserProfile(user.id);
           if (result.data) {
             setUserProfile(result.data);
+          } else {
+            setUserProfile(null);
           }
         } catch (error) {
           console.error('Error fetching user profile:', error);
+          setUserProfile(null);
         } finally {
           setLoading(false);
         }
+      } else if (user === null) {
+        // User is not available, stop loading
+        setLoading(false);
       }
     };
 
     fetchUserProfile();
-  }, [user?.id]);
+  }, [user?.id, user]);
 
-  if (loading) {
-    return (
-      <View style={profileStyles.container}>
-        <Text>Loading profile...</Text>
-      </View>
-    );
+  if (!isDataReady) {
+    return <ProfileSkeleton />;
   }
 
   return (
