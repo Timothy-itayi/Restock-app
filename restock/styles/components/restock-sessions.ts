@@ -1,4 +1,5 @@
 import { StyleSheet } from "react-native";
+import { typography } from "../typography";
 
 // Notepad Color Palette with semantic button colors
 // Primary: Industrial Grey (#6C757D)
@@ -25,6 +26,7 @@ export const restockSessionsStyles = StyleSheet.create({
   
   // Welcome prompt with instructions
   startPrompt: {
+    fontFamily: 'Satoshi-Bold',
     fontSize: 24,
     fontWeight: "600",
     color: "#212529",
@@ -34,6 +36,7 @@ export const restockSessionsStyles = StyleSheet.create({
   
   // Instructions text
   instructions: {
+    fontFamily: 'Satoshi-Regular',
     fontSize: 16,
     color: "#6C757D",
     textAlign: "center",
@@ -53,6 +56,7 @@ export const restockSessionsStyles = StyleSheet.create({
   },
   
   startButtonText: {
+    fontFamily: 'Satoshi-Bold',
     color: "#FFFFFF",
     fontSize: 18,
     fontWeight: "600",
@@ -87,6 +91,7 @@ export const restockSessionsStyles = StyleSheet.create({
   },
   
   finishButtonText: {
+    fontFamily: 'Satoshi-Bold',
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
@@ -104,6 +109,7 @@ export const restockSessionsStyles = StyleSheet.create({
   },
   
   summaryText: {
+    fontFamily: 'Satoshi-Regular',
     fontSize: 14,
     color: "#212529",
     textAlign: "center",
@@ -120,6 +126,7 @@ export const restockSessionsStyles = StyleSheet.create({
   
   // Instructions for adding products
   addProductInstructions: {
+    fontFamily: 'Satoshi-Italic',
     fontSize: 14,
     color: "#6C757D",
     textAlign: "center",
@@ -155,6 +162,7 @@ export const restockSessionsStyles = StyleSheet.create({
   },
   
   addProductButtonText: {
+    fontFamily: 'Satoshi-Bold',
     color: "#FFFFFF",
     fontSize: 20,
     fontWeight: "600",
@@ -205,6 +213,7 @@ export const restockSessionsStyles = StyleSheet.create({
   
   // Product info label (category)
   productInfoLabel: {
+    fontFamily: 'Satoshi-Bold',
     fontSize: 14,
     color: "#212529",
     fontWeight: "600", // Semi-bold for category
@@ -212,6 +221,7 @@ export const restockSessionsStyles = StyleSheet.create({
   
   // Product info value
   productInfoValue: {
+    fontFamily: 'Satoshi-Regular',
     fontSize: 14,
     color: "#495057", // Dark grey for values
     fontWeight: "400", // Regular weight for values
@@ -227,15 +237,14 @@ export const restockSessionsStyles = StyleSheet.create({
   
   // Product name
   productName: {
-    fontSize: 16,
-    fontWeight: "600",
+    ...typography.productName,
     color: "#212529",
     flex: 1,
   },
   
   // Product quantity
   productQuantity: {
-    fontSize: 14,
+    ...typography.bodySmall,
     color: "#212529",
     fontWeight: "500",
     marginRight: 12,
@@ -253,6 +262,7 @@ export const restockSessionsStyles = StyleSheet.create({
   },
   
   editButtonText: {
+    ...typography.buttonText,
     color: "#FFFFFF",
     fontSize: 12,
     fontWeight: "600",
@@ -282,6 +292,7 @@ export const restockSessionsStyles = StyleSheet.create({
   },
   
   deleteButtonText: {
+    ...typography.buttonText,
     color: "#FFFFFF",
     fontSize: 12,
     fontWeight: "500",
@@ -301,14 +312,14 @@ export const restockSessionsStyles = StyleSheet.create({
   
   // Product supplier info
   productSupplier: {
-    fontSize: 14,
+    ...typography.bodySmall,
     color: "#212529",
     marginBottom: 4,
     fontWeight: "600", // Semi-bold for category
   },
   
   productEmail: {
-    fontSize: 14,
+    ...typography.bodySmall,
     color: "#495057", // Dark grey for values
     fontWeight: "400", // Regular weight for values
   },
@@ -322,8 +333,7 @@ export const restockSessionsStyles = StyleSheet.create({
   
   // Form title
   formTitle: {
-    fontSize: 20,
-    fontWeight: "600",
+    ...typography.subsectionHeader,
     color: "#212529",
     marginBottom: 24,
     textAlign: "center",
@@ -336,32 +346,31 @@ export const restockSessionsStyles = StyleSheet.create({
   
   // Input label
   inputLabel: {
-    fontSize: 16,
-    fontWeight: "500",
+    ...typography.productName,
     color: "#212529",
     marginBottom: 8,
   },
   
   // Text input with notepad style
   textInput: {
+    ...typography.bodyMedium,
     borderWidth: 1,
     borderColor: "#DEE2E6", // Light grey border
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    fontSize: 16,
     backgroundColor: "#FFFFFF", // Pure white background
     color: "#212529",
   },
   
   // Quantity input
   quantityInput: {
+    ...typography.bodyMedium,
     borderWidth: 1,
     borderColor: "#DEE2E6", // Light grey border
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    fontSize: 16,
     backgroundColor: "#FFFFFF", // Pure white background
     color: "#212529",
     textAlign: "center",
@@ -389,7 +398,7 @@ export const restockSessionsStyles = StyleSheet.create({
   },
   
   quantityButtonText: {
-    fontSize: 18,
+    ...typography.bodyLarge,
     fontWeight: "600",
     color: "#212529",
   },
@@ -406,7 +415,7 @@ export const restockSessionsStyles = StyleSheet.create({
   },
   
   suggestionText: {
-    fontSize: 14,
+    ...typography.bodySmall,
     color: "#212529",
   },
   
@@ -441,7 +450,7 @@ export const restockSessionsStyles = StyleSheet.create({
   },
   
   buttonText: {
-    fontSize: 16,
+    ...typography.buttonText,
     fontWeight: "600",
   },
   
@@ -462,7 +471,7 @@ export const restockSessionsStyles = StyleSheet.create({
   },
   
   emptyStateText: {
-    fontSize: 16,
+    ...typography.bodyMedium,
     color: "#212529",
     textAlign: "center",
     lineHeight: 24,
@@ -486,7 +495,7 @@ export const restockSessionsStyles = StyleSheet.create({
   },
   
   integratedAddButtonText: {
-    fontSize: 16,
+    ...typography.productName,
     color: "#6C757D", // Grey color like the reference
     fontWeight: "500",
   },
@@ -502,8 +511,8 @@ export const restockSessionsStyles = StyleSheet.create({
   },
   
   errorText: {
+    ...typography.bodySmall,
     color: "#EF4444", // Red text
-    fontSize: 14,
     textAlign: "center",
   },
   
@@ -556,8 +565,8 @@ export const restockSessionsStyles = StyleSheet.create({
   },
   
   bottomFinishButtonText: {
+    ...typography.bodyLarge,
     color: "#FFFFFF",
-    fontSize: 18,
     fontWeight: "600",
   },
   
@@ -595,7 +604,7 @@ export const restockSessionsStyles = StyleSheet.create({
   
   notificationText: {
     flex: 1,
-    fontSize: 13,
+    ...typography.bodySmall,
     fontWeight: "500",
     color: "#FFFFFF",
   },
@@ -605,7 +614,7 @@ export const restockSessionsStyles = StyleSheet.create({
   },
   
   notificationCloseText: {
-    fontSize: 16,
+    ...typography.buttonText,
     color: "#FFFFFF",
     fontWeight: "600",
   },
@@ -655,7 +664,7 @@ export const restockSessionsStyles = StyleSheet.create({
   },
   
   errorTitle: {
-    fontSize: 18,
+    ...typography.bodyLarge,
     fontWeight: "600",
     color: "#EF4444", // Red text
     marginBottom: 8,
@@ -663,7 +672,7 @@ export const restockSessionsStyles = StyleSheet.create({
   },
   
   errorStateMessage: {
-    fontSize: 14,
+    ...typography.bodySmall,
     color: "#EF4444", // Red text
     textAlign: "center",
     marginBottom: 16,
@@ -680,8 +689,8 @@ export const restockSessionsStyles = StyleSheet.create({
   },
   
   retryButtonText: {
+    ...typography.buttonText,
     color: "#FFFFFF",
-    fontSize: 16,
     fontWeight: "600",
   },
   
@@ -694,7 +703,7 @@ export const restockSessionsStyles = StyleSheet.create({
   },
   
   loadingText: {
-    fontSize: 16,
+    ...typography.bodyMedium,
     color: "#212529",
     textAlign: "center",
   },

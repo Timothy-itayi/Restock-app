@@ -33,6 +33,23 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
+      ],
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "./assets/fonts/Satoshi/Satoshi-Black.otf",
+            "./assets/fonts/Satoshi/Satoshi-BlackItalic.otf",
+            "./assets/fonts/Satoshi/Satoshi-Bold.otf",
+            "./assets/fonts/Satoshi/Satoshi-BoldItalic.otf",
+            "./assets/fonts/Satoshi/Satoshi-Medium.otf",
+            "./assets/fonts/Satoshi/Satoshi-MediumItalic.otf",
+            "./assets/fonts/Satoshi/Satoshi-Regular.otf",
+            "./assets/fonts/Satoshi/Satoshi-Italic.otf",
+            "./assets/fonts/Satoshi/Satoshi-Light.otf",
+            "./assets/fonts/Satoshi/Satoshi-LightItalic.otf"
+          ]
+        }
       ]
     ],
     "experiments": {

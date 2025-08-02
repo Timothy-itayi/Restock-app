@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { fontFamily } from '../typography';
 
 export const profileStyles = StyleSheet.create({
   container: {
@@ -16,6 +17,7 @@ export const profileStyles = StyleSheet.create({
     paddingTop: 40,
   },
   headerTitle: {
+    fontFamily: fontFamily.satoshiBold,
     fontSize: 28,
     fontWeight: '600',
     color: '#212529',
@@ -45,12 +47,14 @@ export const profileStyles = StyleSheet.create({
     flex: 1,
   },
   userName: {
+    fontFamily: fontFamily.satoshiBold,
     fontSize: 20,
     fontWeight: '600',
     color: '#212529',
     marginBottom: 4,
   },
   userEmail: {
+    fontFamily: fontFamily.satoshi,
     fontSize: 14,
     color: '#6C757D',
   },
@@ -90,17 +94,20 @@ export const profileStyles = StyleSheet.create({
     flex: 1,
   },
   planLabel: {
+    fontFamily: fontFamily.satoshi,
     fontSize: 14,
     color: '#6C757D',
     marginBottom: 4,
   },
   planName: {
+    fontFamily: 'Satoshi-Bold',
     fontSize: 18,
     fontWeight: '600',
     color: '#212529',
     marginBottom: 4,
   },
   planDescription: {
+    fontFamily: 'Satoshi-Regular',
     fontSize: 14,
     color: '#6C757D',
   },
@@ -164,17 +171,20 @@ export const profileStyles = StyleSheet.create({
     height: 32,
   },
   statTitle: {
+    fontFamily: 'Satoshi-Regular',
     fontSize: 14,
     color: '#6C757D',
     marginBottom: 8,
   },
   statValue: {
+    fontFamily: 'Satoshi-Black',
     fontSize: 24,
     fontWeight: '700',
     color: '#212529',
     marginBottom: 4,
   },
   statDescription: {
+    fontFamily: 'Satoshi-Light',
     fontSize: 12,
     color: '#6C757D',
   },
@@ -218,12 +228,14 @@ export const profileStyles = StyleSheet.create({
     flex: 1,
   },
   settingTitle: {
+    fontFamily: 'Satoshi-Medium',
     fontSize: 16,
     fontWeight: '500',
     color: '#212529',
     marginBottom: 4,
   },
   settingDescription: {
+    fontFamily: 'Satoshi-Regular',
     fontSize: 14,
     color: '#6C757D',
   },

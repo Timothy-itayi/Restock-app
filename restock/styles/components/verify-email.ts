@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { typography } from '../typography';
 
 export const verifyEmailStyles = StyleSheet.create({
   container: {
@@ -8,25 +9,24 @@ export const verifyEmailStyles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    ...typography.appTitle,
     color: '#2c3e50',
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 16,
+    ...typography.bodyMedium,
     color: '#7f8c8d',
     marginBottom: 32,
     textAlign: 'center',
   },
   input: {
+    ...typography.bodyMedium,
     backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: '#e1e8ed',
     borderRadius: 8,
     padding: 16,
-    fontSize: 16,
     marginBottom: 16,
     color: '#000000',
   },
@@ -41,8 +41,8 @@ export const verifyEmailStyles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
+    ...typography.buttonText,
     color: '#ffffff',
-    fontSize: 16,
     fontWeight: '600',
   },
   backButton: {
@@ -50,7 +50,7 @@ export const verifyEmailStyles = StyleSheet.create({
     marginTop: 16,
   },
   backButtonText: {
+    ...typography.bodyMedium,
     color: '#6B7F6B',
-    fontSize: 16,
   },
 }); 

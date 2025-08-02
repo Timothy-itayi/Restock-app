@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { typography } from '../typography';
 
 export const welcomeBackStyles = StyleSheet.create({
   container: {
@@ -13,14 +14,13 @@ export const welcomeBackStyles = StyleSheet.create({
     marginBottom: 40,
   },
   title: {
-    fontSize: 32,
-    fontWeight: '700',
+    ...typography.appTitle,
     color: '#2c3e50',
     marginBottom: 12,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 16,
+    ...typography.bodyMedium,
     color: '#666666',
     textAlign: 'center',
     lineHeight: 24,
@@ -37,7 +37,7 @@ export const welcomeBackStyles = StyleSheet.create({
     borderColor: '#e9ecef',
   },
   methodLabel: {
-    fontSize: 14,
+    ...typography.bodySmall,
     color: '#6B7F6B',
     fontWeight: '500',
   },
@@ -58,8 +58,8 @@ export const welcomeBackStyles = StyleSheet.create({
     elevation: 3,
   },
   googleButtonText: {
+    ...typography.buttonText,
     color: '#ffffff',
-    fontSize: 16,
     fontWeight: '600',
   },
   divider: {
@@ -73,8 +73,8 @@ export const welcomeBackStyles = StyleSheet.create({
     backgroundColor: '#e9ecef',
   },
   dividerText: {
+    ...typography.bodySmall,
     marginHorizontal: 16,
-    fontSize: 14,
     color: '#666666',
     fontWeight: '500',
   },
@@ -97,8 +97,8 @@ export const welcomeBackStyles = StyleSheet.create({
     elevation: 1,
   },
   secondaryButtonText: {
+    ...typography.buttonText,
     color: '#6B7F6B',
-    fontSize: 16,
     fontWeight: '600',
   },
   linkButton: {
@@ -107,8 +107,8 @@ export const welcomeBackStyles = StyleSheet.create({
     alignItems: 'center',
   },
   linkButtonText: {
+    ...typography.bodySmall,
     color: '#6B7F6B',
-    fontSize: 14,
     fontWeight: '500',
     textDecorationLine: 'underline',
   },

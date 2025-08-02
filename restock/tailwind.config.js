@@ -102,6 +102,13 @@ module.exports = {
       fontFamily: {
         'sans': ['System', 'sans-serif'],
         'mono': ['SpaceMono-Regular', 'monospace'],
+        'satoshi': ['Satoshi-Regular', 'sans-serif'],
+        'satoshi-black': ['Satoshi-Black', 'sans-serif'],
+        'satoshi-bold': ['Satoshi-Bold', 'sans-serif'],
+        'satoshi-medium': ['Satoshi-Medium', 'sans-serif'],
+        'satoshi-light': ['Satoshi-Light', 'sans-serif'],
+        'satoshi-thin': ['Satoshi-Thin', 'sans-serif'],
+        'satoshi-italic': ['Satoshi-Italic', 'sans-serif'],
       },
       spacing: {
         '18': '4.5rem',

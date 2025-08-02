@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { typography } from '../typography';
 
 export const signUpStyles = StyleSheet.create({
   scrollViewContent: {
@@ -11,14 +12,13 @@ export const signUpStyles = StyleSheet.create({
     backgroundColor: '#f8f9fa',
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    ...typography.appTitle,
     color: '#2c3e50',
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 16,
+    ...typography.bodyMedium,
     color: '#7f8c8d',
     marginBottom: 32,
     textAlign: 'center',
@@ -33,8 +33,8 @@ export const signUpStyles = StyleSheet.create({
     marginBottom: 16,
   },
   googleButtonText: {
+    ...typography.buttonText,
     color: '#2c3e50',
-    fontSize: 16,
     fontWeight: '600',
   },
   divider: {
@@ -48,17 +48,17 @@ export const signUpStyles = StyleSheet.create({
     backgroundColor: '#e1e8ed',
   },
   dividerText: {
+    ...typography.bodySmall,
     marginHorizontal: 16,
     color: '#7f8c8d',
-    fontSize: 14,
   },
   input: {
+    ...typography.bodyMedium,
     backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: '#e1e8ed',
     borderRadius: 8,
     padding: 16,
-    fontSize: 16,
     marginBottom: 16,
     color: '#000000',
   },
@@ -76,18 +76,18 @@ export const signUpStyles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
+    ...typography.buttonText,
     color: '#ffffff',
-    fontSize: 16,
     fontWeight: '600',
   },
   errorText: {
+    ...typography.bodySmall,
     color: '#e74c3c',
-    fontSize: 14,
     marginBottom: 16,
   },
   helpText: {
+    ...typography.bodySmall,
     color: '#7f8c8d',
-    fontSize: 14,
     marginBottom: 16,
   },
   linkContainer: {
@@ -97,12 +97,12 @@ export const signUpStyles = StyleSheet.create({
     marginTop: 16,
   },
   linkText: {
+    ...typography.bodyMedium,
     color: '#6B7F6B',
-    fontSize: 16,
   },
   linkTextBold: {
+    ...typography.productName,
     color: '#6B7F6B',
-    fontSize: 16,
     fontWeight: '600',
   },
 }); 
