@@ -1,12 +1,12 @@
 import React from 'react';
-import { View, StyleSheet, Animated } from 'react-native';
+import { View, StyleSheet, Animated, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 interface SkeletonBoxProps {
   width?: number | `${number}%`;
   height?: number;
   borderRadius?: number;
-  style?: any;
+  style?: ViewStyle;
   backgroundColor?: string;
 }
 
