@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, Alert, ScrollView, KeyboardAvoidingView, Platform, TextInput } from 'react-native';
 import { router, Link } from 'expo-router';
 import { useSignIn, useAuth, useUser, useSSO, useClerk } from '@clerk/clerk-expo';
 import { SessionManager } from '../../backend/services/session-manager';
-import { ClerkClientService } from '../../backend/services/clerk-client';
+import { EmailAuthService } from '../../backend/services/email-auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Linking from 'expo-linking';
 import AuthGuard from '../components/AuthGuard';
 import { welcomeBackStyles } from '../../styles/components/welcome-back';
+import { useAuthContext } from '../_contexts/AuthContext';
 
 export default function WelcomeBackScreen() {
   const { signIn, setActive, isLoaded } = useSignIn();
@@ -15,10 +16,16 @@ export default function WelcomeBackScreen() {
   const { user } = useUser();
   const { startSSOFlow } = useSSO();
   const clerk = useClerk();
+  const { triggerAuthCheck } = useAuthContext();
   
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [emailLoading, setEmailLoading] = useState(false);
   const [lastAuthMethod, setLastAuthMethod] = useState<'google' | 'email' | null>(null);
   const [lastUserEmail, setLastUserEmail] = useState<string>('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showEmailForm, setShowEmailForm] = useState(false);
 
   // Check returning user data on component mount
   useEffect(() => {
@@ -29,10 +36,9 @@ export default function WelcomeBackScreen() {
   useEffect(() => {
     const checkOAuthFlags = async () => {
       if (isLoaded) {
-        await ClerkClientService.checkAndClearOAuthFlagsIfAuthenticated(() => ({
-          isLoaded: Boolean(isLoaded),
-          isSignedIn: Boolean(isSignedIn)
-        }));
+        // Only check OAuth flags for OAuth users, not email/password users
+        // This prevents interference with email/password authentication flow
+        console.log('Skipping OAuth flag check for welcome-back screen');
       }
     };
     
@@ -41,15 +47,29 @@ export default function WelcomeBackScreen() {
 
   const checkReturningUserData = async () => {
     try {
-      // Get the last authentication method and user data
-      const session = await SessionManager.getUserSession();
-      if (session?.lastAuthMethod) {
-        setLastAuthMethod(session.lastAuthMethod);
-        setLastUserEmail(session.email || '');
+      // Get the returning user data (email and auth method)
+      const returningUserData = await SessionManager.getReturningUserData();
+      
+      if (returningUserData) {
+        setLastAuthMethod(returningUserData.lastAuthMethod);
+        setLastUserEmail(returningUserData.email);
+        setEmail(returningUserData.email); // Pre-fill email for returning users
         console.log('Found returning user data:', { 
-          method: session.lastAuthMethod, 
-          email: session.email 
+          method: returningUserData.lastAuthMethod, 
+          email: returningUserData.email 
         });
+      } else {
+        // Fallback to old method for backward compatibility
+        const session = await SessionManager.getUserSession();
+        if (session?.lastAuthMethod) {
+          setLastAuthMethod(session.lastAuthMethod);
+          setLastUserEmail(session.email || '');
+          setEmail(session.email || ''); // Pre-fill email for returning users
+          console.log('Found returning user data (fallback):', { 
+            method: session.lastAuthMethod, 
+            email: session.email 
+          });
+        }
       }
     } catch (error) {
       console.error('Error checking returning user data:', error);
@@ -59,7 +79,7 @@ export default function WelcomeBackScreen() {
   const handleSignBackInWithGoogle = async () => {
     if (!isLoaded) return;
 
-    setLoading(true);
+    setGoogleLoading(true);
     try {
       console.log('Starting Google OAuth flow for returning user...');
       
@@ -105,7 +125,42 @@ export default function WelcomeBackScreen() {
       console.error('Google OAuth sign in error:', JSON.stringify(err, null, 2));
       Alert.alert('Error', 'Failed to sign in with Google. Please try again.');
     } finally {
-      setLoading(false);
+      setGoogleLoading(false);
+    }
+  };
+
+  const handleEmailSignIn = async () => {
+    if (!email.trim()) {
+      Alert.alert('Error', 'Please enter your email address');
+      return;
+    }
+
+    if (!password.trim()) {
+      Alert.alert('Error', 'Please enter your password');
+      return;
+    }
+
+    if (!isLoaded) return;
+
+    setEmailLoading(true);
+    try {
+      console.log('📧 Attempting to sign in with email:', email);
+      
+      const result = await signIn.create({
+        identifier: email,
+        password: password,
+      });
+
+      console.log('📧 SignIn result:', result);
+
+      // Use the dedicated EmailAuthService to handle the authentication flow
+      await EmailAuthService.handleEmailSignIn(result, email, triggerAuthCheck, setActive);
+      
+    } catch (err: any) {
+      console.error('❌ Sign in error:', JSON.stringify(err, null, 2));
+      Alert.alert('Error', err.errors?.[0]?.message || 'Failed to sign in');
+    } finally {
+      setEmailLoading(false);
     }
   };
 
@@ -117,6 +172,10 @@ export default function WelcomeBackScreen() {
   const handleBackToSignIn = () => {
     // Navigate back to the regular sign-in screen
     router.replace('/auth/sign-in');
+  };
+
+  const toggleEmailForm = () => {
+    setShowEmailForm(!showEmailForm);
   };
 
   return (
@@ -133,23 +192,129 @@ export default function WelcomeBackScreen() {
             </Text>
           </View>
 
-          {lastAuthMethod === 'google' && (
+          {lastAuthMethod && (
             <View style={welcomeBackStyles.methodContainer}>
               <Text style={welcomeBackStyles.methodLabel}>
-                You last signed in with Google
+                You last signed in with {lastAuthMethod === 'google' ? 'Google' : 'email'}
               </Text>
             </View>
           )}
 
-          <TouchableOpacity 
-            style={welcomeBackStyles.googleButton}
-            onPress={handleSignBackInWithGoogle}
-            disabled={loading}
-          >
-            <Text style={welcomeBackStyles.googleButtonText}>
-              {loading ? 'Signing in...' : 'Sign Back In with Google'}
-            </Text>
-          </TouchableOpacity>
+          {/* Show appropriate sign-in method based on last auth method */}
+          {lastAuthMethod === 'google' ? (
+            <TouchableOpacity 
+              style={welcomeBackStyles.googleButton}
+              onPress={handleSignBackInWithGoogle}
+              disabled={googleLoading}
+            >
+              <Text style={welcomeBackStyles.googleButtonText}>
+                {googleLoading ? 'Signing in...' : 'Sign Back In with Google'}
+              </Text>
+            </TouchableOpacity>
+          ) : lastAuthMethod === 'email' ? (
+            <View>
+              {!showEmailForm ? (
+                <TouchableOpacity 
+                  style={welcomeBackStyles.emailButton}
+                  onPress={toggleEmailForm}
+                  disabled={googleLoading || emailLoading}
+                >
+                  <Text style={welcomeBackStyles.emailButtonText}>
+                    Sign Back In with Email
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <View style={welcomeBackStyles.emailFormContainer}>
+                  <TextInput
+                    style={welcomeBackStyles.input}
+                    placeholder="Enter your email address"
+                    placeholderTextColor="#666666"
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                  />
+
+                  <TextInput
+                    style={welcomeBackStyles.input}
+                    placeholder="Enter your password"
+                    placeholderTextColor="#666666"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry={true}
+                    autoCapitalize="none"
+                  />
+
+                  <TouchableOpacity 
+                    style={[welcomeBackStyles.button, emailLoading && welcomeBackStyles.buttonDisabled]}
+                    onPress={handleEmailSignIn}
+                    disabled={emailLoading}
+                  >
+                    <Text style={welcomeBackStyles.buttonText}>
+                      {emailLoading ? 'Signing in...' : 'Sign In'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          ) : (
+            // No previous auth method - show both options
+            <View>
+              <TouchableOpacity 
+                style={welcomeBackStyles.googleButton}
+                onPress={handleSignBackInWithGoogle}
+                disabled={googleLoading}
+              >
+                <Text style={welcomeBackStyles.googleButtonText}>
+                  {googleLoading ? 'Signing in...' : 'Continue with Google'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={welcomeBackStyles.emailButton}
+                onPress={toggleEmailForm}
+                disabled={googleLoading || emailLoading}
+              >
+                <Text style={welcomeBackStyles.emailButtonText}>
+                  Continue with Email
+                </Text>
+              </TouchableOpacity>
+
+              {showEmailForm && (
+                <View style={welcomeBackStyles.emailFormContainer}>
+                  <TextInput
+                    style={welcomeBackStyles.input}
+                    placeholder="Enter your email address"
+                    placeholderTextColor="#666666"
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                  />
+
+                  <TextInput
+                    style={welcomeBackStyles.input}
+                    placeholder="Enter your password"
+                    placeholderTextColor="#666666"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry={true}
+                    autoCapitalize="none"
+                  />
+
+                  <TouchableOpacity 
+                    style={[welcomeBackStyles.button, emailLoading && welcomeBackStyles.buttonDisabled]}
+                    onPress={handleEmailSignIn}
+                    disabled={emailLoading}
+                  >
+                    <Text style={welcomeBackStyles.buttonText}>
+                      {emailLoading ? 'Signing in...' : 'Sign In'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          )}
 
           <View style={welcomeBackStyles.divider}>
             <View style={welcomeBackStyles.dividerLine} />
@@ -160,7 +325,7 @@ export default function WelcomeBackScreen() {
           <TouchableOpacity 
             style={welcomeBackStyles.secondaryButton}
             onPress={handleSignUpWithDifferentEmail}
-            disabled={loading}
+            disabled={googleLoading || emailLoading}
           >
             <Text style={welcomeBackStyles.secondaryButtonText}>
               Not signed up yet?
@@ -170,7 +335,7 @@ export default function WelcomeBackScreen() {
           <TouchableOpacity 
             style={welcomeBackStyles.linkButton}
             onPress={handleBackToSignIn}
-            disabled={loading}
+            disabled={googleLoading || emailLoading}
           >
             <Text style={welcomeBackStyles.linkButtonText}>
               Back to Sign In

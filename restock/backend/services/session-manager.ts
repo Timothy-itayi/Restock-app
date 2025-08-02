@@ -52,7 +52,7 @@ export class SessionManager {
   }
 
   /**
-   * Clear user session data
+   * Clear user session data but preserve returning user info
    */
   static async clearUserSession(): Promise<void> {
     try {
@@ -60,6 +60,61 @@ export class SessionManager {
       // Don't remove returning user flag on logout - keep it for future sessions
     } catch (error) {
       console.error('Error clearing user session:', error);
+    }
+  }
+
+  /**
+   * Sign out while preserving returning user data
+   */
+  static async signOutPreservingUserData(): Promise<void> {
+    try {
+      // Get current session data before clearing
+      const currentSession = await this.getUserSession();
+      
+      if (currentSession) {
+        // Save essential data for returning user (email and auth method)
+        const returningUserData = {
+          email: currentSession.email,
+          lastAuthMethod: currentSession.lastAuthMethod,
+          wasSignedIn: false, // Mark as signed out
+          lastSignIn: currentSession.lastSignIn, // Keep last sign-in time
+        };
+        
+        // Save the returning user data
+        await AsyncStorage.setItem('returning_user_data', JSON.stringify(returningUserData));
+        console.log('Saved returning user data:', returningUserData);
+      }
+      
+      // Clear the main session but keep returning user flag
+      await AsyncStorage.removeItem(this.SESSION_KEY);
+      await AsyncStorage.setItem(this.RETURNING_USER_KEY, 'true');
+    } catch (error) {
+      console.error('Error preserving user data on sign out:', error);
+    }
+  }
+
+  /**
+   * Get returning user data (for welcome-back screen)
+   */
+  static async getReturningUserData(): Promise<{ email: string; lastAuthMethod: 'google' | 'email' } | null> {
+    try {
+      const returningUserData = await AsyncStorage.getItem('returning_user_data');
+      return returningUserData ? JSON.parse(returningUserData) : null;
+    } catch (error) {
+      console.error('Error getting returning user data:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Clear returning user data (called after successful sign-in)
+   */
+  static async clearReturningUserData(): Promise<void> {
+    try {
+      await AsyncStorage.removeItem('returning_user_data');
+      console.log('Cleared returning user data after successful sign-in');
+    } catch (error) {
+      console.error('Error clearing returning user data:', error);
     }
   }
 
