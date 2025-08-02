@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { typography } from '../typography';
 
 export const signInStyles = StyleSheet.create({
   container: {
@@ -12,14 +13,13 @@ export const signInStyles = StyleSheet.create({
     marginBottom: 32,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    ...typography.appTitle,
     color: '#2c3e50',
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 16,
+    ...typography.bodyMedium,
     color: '#7f8c8d',
     marginBottom: 32,
     textAlign: 'center',
@@ -32,8 +32,8 @@ export const signInStyles = StyleSheet.create({
     marginBottom: 16,
   },
   returningUserButtonText: {
+    ...typography.buttonText,
     color: '#ffffff',
-    fontSize: 16,
     fontWeight: '600',
   },
   googleButton: {
@@ -46,8 +46,8 @@ export const signInStyles = StyleSheet.create({
     marginBottom: 16,
   },
   googleButtonText: {
+    ...typography.buttonText,
     color: '#2c3e50',
-    fontSize: 16,
     fontWeight: '600',
   },
   divider: {
@@ -61,17 +61,17 @@ export const signInStyles = StyleSheet.create({
     backgroundColor: '#e1e8ed',
   },
   dividerText: {
+    ...typography.bodySmall,
     marginHorizontal: 16,
     color: '#7f8c8d',
-    fontSize: 14,
   },
   input: {
+    ...typography.bodyMedium,
     backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: '#e1e8ed',
     borderRadius: 8,
     padding: 16,
-    fontSize: 16,
     marginBottom: 16,
     color: '#000000',
   },
@@ -86,8 +86,8 @@ export const signInStyles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
+    ...typography.buttonText,
     color: '#ffffff',
-    fontSize: 16,
     fontWeight: '600',
   },
   linkContainer: {
@@ -97,12 +97,12 @@ export const signInStyles = StyleSheet.create({
     marginTop: 16,
   },
   linkText: {
+    ...typography.bodyMedium,
     color: '#6B7F6B',
-    fontSize: 16,
   },
   linkTextBold: {
+    ...typography.productName,
     color: '#6B7F6B',
-    fontSize: 16,
     fontWeight: '600',
   },
   linkButton: {
@@ -112,8 +112,8 @@ export const signInStyles = StyleSheet.create({
     marginBottom: 16,
   },
   linkButtonText: {
+    ...typography.bodySmall,
     color: '#6B7F6B',
-    fontSize: 14,
     fontWeight: '500',
     textDecorationLine: 'underline',
   },

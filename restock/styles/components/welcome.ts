@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { fontFamily } from '../typography';
 
 export const welcomeStyles = StyleSheet.create({
   scrollViewContent: {
@@ -14,6 +15,7 @@ export const welcomeStyles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
+    fontFamily: fontFamily.satoshiBlack,
     fontSize: 32,
     fontWeight: 'bold',
     color: '#2c3e50',
@@ -21,6 +23,7 @@ export const welcomeStyles = StyleSheet.create({
     textAlign: 'center',
   },
   subtitle: {
+    fontFamily: fontFamily.satoshiBold,
     fontSize: 20,
     color: '#6B7F6B',
     marginBottom: 16,
@@ -28,6 +31,7 @@ export const welcomeStyles = StyleSheet.create({
     fontWeight: '600',
   },
   description: {
+    fontFamily: fontFamily.satoshi,
     fontSize: 16,
     color: '#7f8c8d',
     marginBottom: 40,
@@ -47,6 +51,7 @@ export const welcomeStyles = StyleSheet.create({
     marginBottom: 20,
   },
   sectionTitle: {
+    fontFamily: fontFamily.satoshiBold,
     fontSize: 20,
     fontWeight: '600',
     color: '#2c3e50',
@@ -54,6 +59,7 @@ export const welcomeStyles = StyleSheet.create({
     textAlign: 'center',
   },
   input: {
+    fontFamily: fontFamily.satoshi,
     backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: '#e1e8ed',
@@ -90,16 +96,19 @@ export const welcomeStyles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
+    fontFamily: fontFamily.satoshiBold,
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
   },
   googleButtonText: {
+    fontFamily: 'Satoshi-Bold',
     color: '#2c3e50',
     fontSize: 16,
     fontWeight: '600',
   },
   returningUserButtonText: {
+    fontFamily: 'Satoshi-Bold',
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
@@ -115,6 +124,7 @@ export const welcomeStyles = StyleSheet.create({
     backgroundColor: '#e1e8ed',
   },
   dividerText: {
+    fontFamily: 'Satoshi-Regular',
     marginHorizontal: 16,
     color: '#7f8c8d',
     fontSize: 14,
@@ -124,6 +134,7 @@ export const welcomeStyles = StyleSheet.create({
     padding: 12,
   },
   backButtonText: {
+    fontFamily: 'Satoshi-Regular',
     color: '#6B7F6B',
     fontSize: 16,
   },
@@ -133,6 +144,7 @@ export const welcomeStyles = StyleSheet.create({
     marginTop: 8,
   },
   signInLinkText: {
+    fontFamily: 'Satoshi-Regular',
     color: '#6B7F6B',
     fontSize: 16,
     textDecorationLine: 'underline',
@@ -143,6 +155,7 @@ export const welcomeStyles = StyleSheet.create({
     borderColor: '#6B7F6B',
   },
   primaryButtonText: {
+    fontFamily: 'Satoshi-Bold',
     color: '#ffffff',
     fontWeight: '700',
   },
@@ -156,6 +169,7 @@ export const welcomeStyles = StyleSheet.create({
     marginBottom: 16,
   },
   secondaryButtonText: {
+    fontFamily: 'Satoshi-Bold',
     color: '#6B7F6B',
     fontSize: 16,
     fontWeight: '600',

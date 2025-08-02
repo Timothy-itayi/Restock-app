@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { typography } from '../typography';
 
 export const ssoProfileSetupStyles = StyleSheet.create({
   scrollViewContent: {
@@ -14,14 +15,13 @@ export const ssoProfileSetupStyles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
+    ...typography.appTitle,
     color: '#2c3e50',
     marginBottom: 12,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 18,
+    ...typography.bodyLarge,
     color: '#6B7F6B',
     marginBottom: 40,
     textAlign: 'center',
@@ -31,19 +31,18 @@ export const ssoProfileSetupStyles = StyleSheet.create({
     marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    ...typography.subsectionHeader,
     color: '#2c3e50',
     marginBottom: 12,
     marginTop: 20,
   },
   input: {
+    ...typography.bodyMedium,
     backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: '#e1e8ed',
     borderRadius: 8,
     padding: 16,
-    fontSize: 16,
     marginBottom: 16,
     color: '#000000',
   },
@@ -58,8 +57,8 @@ export const ssoProfileSetupStyles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
+    ...typography.buttonText,
     color: '#ffffff',
-    fontSize: 16,
     fontWeight: '600',
   },
 }); 

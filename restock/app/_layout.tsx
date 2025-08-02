@@ -36,7 +36,16 @@ const createTokenCache = () => {
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
-    // You can add custom fonts here if needed
+    'Satoshi-Black': require('../assets/fonts/Satoshi/Satoshi-Black.otf'),
+    'Satoshi-BlackItalic': require('../assets/fonts/Satoshi/Satoshi-BlackItalic.otf'),
+    'Satoshi-Bold': require('../assets/fonts/Satoshi/Satoshi-Bold.otf'),
+    'Satoshi-BoldItalic': require('../assets/fonts/Satoshi/Satoshi-BoldItalic.otf'),
+    'Satoshi-Medium': require('../assets/fonts/Satoshi/Satoshi-Medium.otf'),
+    'Satoshi-MediumItalic': require('../assets/fonts/Satoshi/Satoshi-MediumItalic.otf'),
+    'Satoshi-Regular': require('../assets/fonts/Satoshi/Satoshi-Regular.otf'),
+    'Satoshi-Italic': require('../assets/fonts/Satoshi/Satoshi-Italic.otf'),
+    'Satoshi-Light': require('../assets/fonts/Satoshi/Satoshi-Light.otf'),
+    'Satoshi-LightItalic': require('../assets/fonts/Satoshi/Satoshi-LightItalic.otf'),
   });
 
   useEffect(() => {

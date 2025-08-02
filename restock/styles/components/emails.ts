@@ -13,12 +13,14 @@ export const emailsStyles = StyleSheet.create({
     borderBottomColor: "#DEE2E6", // Light grey border
   },
   headerTitle: {
+    fontFamily: 'Satoshi-Bold',
     fontSize: 20,
     fontWeight: "600",
     color: "#212529", // Dark text
     textAlign: "center",
   },
   headerSubtitle: {
+    fontFamily: 'Satoshi-Regular',
     fontSize: 14,
     color: "#6C757D", // Grey text
     marginTop: 4,
@@ -32,6 +34,7 @@ export const emailsStyles = StyleSheet.create({
     borderBottomColor: "#DEE2E6", // Light grey border
   },
   summaryText: {
+    fontFamily: 'Satoshi-Regular',
     fontSize: 14,
     color: "#6C757D", // Grey text
     textAlign: "center",
@@ -68,6 +71,7 @@ export const emailsStyles = StyleSheet.create({
     alignItems: "center",
   },
   emailSubject: {
+    fontFamily: 'Satoshi-Bold',
     fontSize: 16,
     fontWeight: "600",
     color: "#000000",
@@ -76,11 +80,13 @@ export const emailsStyles = StyleSheet.create({
     flex: 1,
   },
   emailSupplier: {
+    fontFamily: 'Satoshi-Medium',
     fontSize: 14,
     color: "#000000",
     marginBottom: 4,
   },
   emailPreview: {
+    fontFamily: 'Satoshi-Regular',
     fontSize: 14,
     color: "#000000",
     lineHeight: 20,
@@ -101,6 +107,7 @@ export const emailsStyles = StyleSheet.create({
     borderColor: "#000000",
   },
   editButtonText: {
+    fontFamily: 'Satoshi-Medium',
     color: "#FFFFFF",
     fontSize: 14,
     fontWeight: "500",
@@ -131,12 +138,14 @@ export const emailsStyles = StyleSheet.create({
   },
   // Email info label (category)
   emailInfoLabel: {
+    fontFamily: 'Satoshi-Bold',
     fontSize: 14,
     color: "#212529",
     fontWeight: "600", // Semi-bold for category
   },
   // Email info value
   emailInfoValue: {
+    fontFamily: 'Satoshi-Regular',
     fontSize: 14,
     color: "#495057", // Dark grey for values
     fontWeight: "400", // Regular weight for values
@@ -150,6 +159,7 @@ export const emailsStyles = StyleSheet.create({
     borderRadius: 6,
   },
   regenerateButtonText: {
+    fontFamily: 'Satoshi-Medium',
     color: "#000000",
     fontSize: 14,
     fontWeight: "500",
@@ -162,6 +172,7 @@ export const emailsStyles = StyleSheet.create({
     borderColor: "#E5E5E5",
   },
   statusText: {
+    fontFamily: 'Satoshi-Medium',
     fontSize: 12,
     fontWeight: "500",
     color: "#000000",
@@ -211,6 +222,7 @@ export const emailsStyles = StyleSheet.create({
     borderBottomColor: "#E5E5E5",
   },
   modalTitle: {
+    fontFamily: 'Satoshi-Bold',
     fontSize: 18,
     fontWeight: "600",
     color: "#000000",
@@ -219,6 +231,7 @@ export const emailsStyles = StyleSheet.create({
     padding: 16,
   },
   modalInput: {
+    fontFamily: 'Satoshi-Regular',
     borderWidth: 1,
     borderColor: "#E5E5E5",
     borderRadius: 6,
@@ -229,6 +242,7 @@ export const emailsStyles = StyleSheet.create({
     color: "#000000",
   },
   modalTextArea: {
+    fontFamily: 'Satoshi-Regular',
     borderWidth: 1,
     borderColor: "#E5E5E5",
     borderRadius: 6,
@@ -254,6 +268,7 @@ export const emailsStyles = StyleSheet.create({
     borderWidth: 1,
   },
   modalButtonText: {
+    fontFamily: 'Satoshi-Medium',
     fontSize: 14,
     fontWeight: "500",
   },
@@ -291,6 +306,7 @@ export const emailsStyles = StyleSheet.create({
     borderColor: "#E5E5E5",
   },
   sendingTitle: {
+    fontFamily: 'Satoshi-Bold',
     fontSize: 18,
     fontWeight: "600",
     color: "#000000",
@@ -311,6 +327,7 @@ export const emailsStyles = StyleSheet.create({
     borderRadius: 2,
   },
   progressText: {
+    fontFamily: 'Satoshi-Regular',
     fontSize: 14,
     color: "#000000",
   },
@@ -333,6 +350,7 @@ export const emailsStyles = StyleSheet.create({
     borderColor: "#E5E5E5",
   },
   successTitle: {
+    fontFamily: 'Satoshi-Bold',
     fontSize: 24,
     fontWeight: "600",
     color: "#000000",
@@ -340,6 +358,7 @@ export const emailsStyles = StyleSheet.create({
     textAlign: "center",
   },
   successText: {
+    fontFamily: 'Satoshi-Regular',
     fontSize: 16,
     color: "#000000",
     textAlign: "center",
@@ -355,6 +374,7 @@ export const emailsStyles = StyleSheet.create({
     borderColor: "#000000",
   },
   doneButtonText: {
+    fontFamily: 'Satoshi-Medium',
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "500",
@@ -366,6 +386,7 @@ export const emailsStyles = StyleSheet.create({
     zIndex: 10,
   },
   backButtonText: {
+    fontFamily: 'Satoshi-Medium',
     fontSize: 16,
     color: "#000000",
     fontWeight: "500",
@@ -381,6 +402,7 @@ export const emailsStyles = StyleSheet.create({
     borderColor: "#22C55E", // Green border
   },
   sendAllButtonText: {
+    fontFamily: 'Satoshi-Medium',
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "500",
@@ -392,6 +414,7 @@ export const emailsStyles = StyleSheet.create({
     padding: 20,
   },
   emptyStateText: {
+    fontFamily: 'Satoshi-Regular',
     fontSize: 16,
     color: "#000000",
     textAlign: "center",

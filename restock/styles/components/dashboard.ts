@@ -1,6 +1,7 @@
 
 
 import { StyleSheet } from "react-native";
+import { fontFamily } from "../typography";
 
 export const dashboardStyles = StyleSheet.create({
   container: {
@@ -17,6 +18,7 @@ export const dashboardStyles = StyleSheet.create({
     paddingTop: 8,
   },
   welcomeTitle: {
+    fontFamily: fontFamily.satoshi,
     fontSize: 28,
     fontWeight: '400',
     color: '#000000',
@@ -24,9 +26,11 @@ export const dashboardStyles = StyleSheet.create({
     marginBottom: 8,
   },
   userName: {
+    fontFamily: fontFamily.satoshiBold,
     fontWeight: '700',
   },
   welcomeSubtitle: {
+    fontFamily: fontFamily.satoshi,
     fontSize: 16,
     color: '#6C757D',
     lineHeight: 22,
@@ -41,6 +45,7 @@ export const dashboardStyles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
+    fontFamily: fontFamily.satoshiBold,
     fontSize: 18,
     fontWeight: '600',
     color: '#000000',
@@ -52,6 +57,7 @@ export const dashboardStyles = StyleSheet.create({
     borderRadius: 6,
   },
   viewAllText: {
+    fontFamily: fontFamily.satoshiMedium,
     fontSize: 14,
     color: '#6C757D',
     fontWeight: '500',
@@ -79,6 +85,7 @@ export const dashboardStyles = StyleSheet.create({
   },
   actionText: {
     marginTop: 8,
+    fontFamily: fontFamily.satoshiMedium,
     fontSize: 13,
     fontWeight: '500',
     color: '#000000',
@@ -120,12 +127,14 @@ export const dashboardStyles = StyleSheet.create({
     flex: 1,
   },
   sessionTitle: {
+    fontFamily: fontFamily.satoshiBold,
     fontSize: 16,
     fontWeight: '600',
     color: '#000000',
     marginBottom: 4,
   },
   sessionSubtitle: {
+    fontFamily: fontFamily.satoshi,
     fontSize: 14,
     color: '#6C757D',
   },
@@ -136,6 +145,7 @@ export const dashboardStyles = StyleSheet.create({
     borderRadius: 6,
   },
   continueButtonText: {
+    fontFamily: fontFamily.satoshiBold,
     color: '#ffffff',
     fontSize: 14,
     fontWeight: '600',
@@ -150,12 +160,14 @@ export const dashboardStyles = StyleSheet.create({
     marginBottom: 12,
   },
   breakdownTitle: {
+    fontFamily: fontFamily.satoshiBold,
     fontSize: 14,
     fontWeight: '600',
     color: '#000000',
     letterSpacing: 0.5,
   },
   breakdownTotal: {
+    fontFamily: fontFamily.satoshi,
     fontSize: 14,
     color: '#6C757D',
   },
@@ -173,6 +185,7 @@ export const dashboardStyles = StyleSheet.create({
     borderRadius: 4,
   },
   chartLabel: {
+    fontFamily: fontFamily.satoshiLight,
     fontSize: 12,
     color: '#6C757D',
     textAlign: 'center',
@@ -202,6 +215,7 @@ export const dashboardStyles = StyleSheet.create({
     marginRight: 12,
   },
   breakdownItemName: {
+    fontFamily: fontFamily.satoshiMedium,
     fontSize: 14,
     fontWeight: '500',
     color: '#000000',
@@ -210,11 +224,13 @@ export const dashboardStyles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   breakdownItemPercentage: {
+    fontFamily: fontFamily.satoshiLight,
     fontSize: 12,
     color: '#6C757D',
     marginBottom: 2,
   },
   breakdownItemCount: {
+    fontFamily: fontFamily.satoshiBold,
     fontSize: 13,
     fontWeight: '600',
     color: '#6C757D',
@@ -241,12 +257,14 @@ export const dashboardStyles = StyleSheet.create({
     elevation: 1,
   },
   statNumber: {
+    fontFamily: fontFamily.satoshiBlack,
     fontSize: 24,
     fontWeight: '700',
     color: '#6C757D',
     marginBottom: 4,
   },
   statLabel: {
+    fontFamily: fontFamily.satoshiMedium,
     fontSize: 12,
     color: '#6C757D',
     textAlign: 'center',
@@ -263,6 +281,7 @@ export const dashboardStyles = StyleSheet.create({
     borderColor: '#DEE2E6',
   },
   emptyStateTitle: {
+    fontFamily: fontFamily.satoshiBold,
     fontSize: 20,
     fontWeight: '600',
     color: '#000000',
@@ -270,6 +289,7 @@ export const dashboardStyles = StyleSheet.create({
     marginBottom: 8,
   },
   emptyStateText: {
+    fontFamily: fontFamily.satoshi,
     fontSize: 16,
     color: '#6C757D',
     textAlign: 'center',
@@ -283,6 +303,7 @@ export const dashboardStyles = StyleSheet.create({
     borderRadius: 8,
   },
   startNewButtonText: {
+    fontFamily: fontFamily.satoshiBold,
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
@@ -298,6 +319,7 @@ export const dashboardStyles = StyleSheet.create({
     marginBottom: 24,
   },
   title: {
+    fontFamily: fontFamily.satoshiBlack,
     fontSize: 28,
     fontWeight: "700",
     color: "#262626",
@@ -305,6 +327,7 @@ export const dashboardStyles = StyleSheet.create({
     lineHeight: 34,
   },
   subtitle: {
+    fontFamily: fontFamily.satoshi,
     fontSize: 16,
     color: "#737373",
     textAlign: "center",
@@ -324,6 +347,7 @@ export const dashboardStyles = StyleSheet.create({
     elevation: 2,
   },
   cardTitle: {
+    fontFamily: fontFamily.satoshiBold,
     fontSize: 18,
     fontWeight: "600",
     color: "#262626",
@@ -335,11 +359,13 @@ export const dashboardStyles = StyleSheet.create({
     marginBottom: 8,
   },
   legacyStatLabel: {
+    fontFamily: fontFamily.satoshiMedium,
     fontSize: 14,
     color: "#737373",
     fontWeight: "500",
   },
   statValue: {
+    fontFamily: fontFamily.satoshiBold,
     fontSize: 14,
     color: "#262626",
     fontWeight: "600",
@@ -353,6 +379,7 @@ export const dashboardStyles = StyleSheet.create({
     marginTop: 16,
   },
   primaryButtonText: {
+    fontFamily: fontFamily.satoshiBold,
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
@@ -368,6 +395,7 @@ export const dashboardStyles = StyleSheet.create({
     marginTop: 12,
   },
   secondaryButtonText: {
+    fontFamily: fontFamily.satoshiBold,
     color: "#14B8A6",
     fontSize: 16,
     fontWeight: "600",

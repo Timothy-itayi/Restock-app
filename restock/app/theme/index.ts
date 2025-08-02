@@ -127,6 +127,19 @@ export const borderRadius = {
 };
 
 export const typography = {
+  // Font families using Satoshi
+  fonts: {
+    black: 'Satoshi-Black',
+    bold: 'Satoshi-Bold',
+    medium: 'Satoshi-Medium',
+    regular: 'Satoshi-Regular',
+    light: 'Satoshi-Light',
+    italic: 'Satoshi-Italic',
+    lightItalic: 'Satoshi-LightItalic',
+    mediumItalic: 'Satoshi-MediumItalic',
+    boldItalic: 'Satoshi-BoldItalic',
+    blackItalic: 'Satoshi-BlackItalic',
+  },
   sizes: {
     xs: 12,
     sm: 14,
@@ -139,16 +152,116 @@ export const typography = {
     '5xl': 48,
   },
   weights: {
+    thin: '100',
+    light: '300',
     normal: '400',
     medium: '500',
     semibold: '600',
     bold: '700',
-    extrabold: '800',
+    black: '900',
   },
   lineHeights: {
     tight: 1.2,
     normal: 1.4,
     relaxed: 1.6,
+    loose: 1.8,
+  },
+  // Typography variants following CMS design principles
+  variants: {
+    // App Title - Black weight for maximum impact
+    appTitle: {
+      fontFamily: 'Satoshi-Black',
+      fontSize: 32,
+      lineHeight: 40,
+      fontWeight: '900',
+    },
+    // Section Headers - Bold weight for clear hierarchy
+    sectionHeader: {
+      fontFamily: 'Satoshi-Bold',
+      fontSize: 24,
+      lineHeight: 32,
+      fontWeight: '700',
+    },
+    // Subsection Headers - Bold weight, smaller size
+    subsectionHeader: {
+      fontFamily: 'Satoshi-Bold',
+      fontSize: 20,
+      lineHeight: 28,
+      fontWeight: '700',
+    },
+    // Product Names & Buttons - Medium weight for readability
+    productName: {
+      fontFamily: 'Satoshi-Medium',
+      fontSize: 16,
+      lineHeight: 24,
+      fontWeight: '500',
+    },
+    buttonText: {
+      fontFamily: 'Satoshi-Medium',
+      fontSize: 16,
+      lineHeight: 24,
+      fontWeight: '500',
+    },
+    // Body Text - Regular weight for main content
+    bodyLarge: {
+      fontFamily: 'Satoshi-Regular',
+      fontSize: 18,
+      lineHeight: 28,
+      fontWeight: '400',
+    },
+    bodyMedium: {
+      fontFamily: 'Satoshi-Regular',
+      fontSize: 16,
+      lineHeight: 24,
+      fontWeight: '400',
+    },
+    bodySmall: {
+      fontFamily: 'Satoshi-Regular',
+      fontSize: 14,
+      lineHeight: 20,
+      fontWeight: '400',
+    },
+    // Caption & Metadata - Light weight for subtle information
+    caption: {
+      fontFamily: 'Satoshi-Light',
+      fontSize: 12,
+      lineHeight: 16,
+      fontWeight: '300',
+    },
+    metadata: {
+      fontFamily: 'Satoshi-Light',
+      fontSize: 11,
+      lineHeight: 14,
+      fontWeight: '300',
+    },
+    // Emphasis & Notes - Italic for user-entered content
+    emphasis: {
+      fontFamily: 'Satoshi-Italic',
+      fontSize: 16,
+      lineHeight: 24,
+      fontWeight: '400',
+      fontStyle: 'italic',
+    },
+    noteText: {
+      fontFamily: 'Satoshi-Italic',
+      fontSize: 14,
+      lineHeight: 20,
+      fontWeight: '400',
+      fontStyle: 'italic',
+    },
+    // Legal & System Text - Light weight for minimal presence
+    legalText: {
+      fontFamily: 'Satoshi-Light',
+      fontSize: 10,
+      lineHeight: 12,
+      fontWeight: '300',
+    },
+    systemTag: {
+      fontFamily: 'Satoshi-Light',
+      fontSize: 9,
+      lineHeight: 11,
+      fontWeight: '300',
+    },
   },
 };
 

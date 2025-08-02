@@ -1,4 +1,5 @@
 import { StyleSheet } from "react-native";
+import { typography } from "../typography";
 
 // Tabs styling using the unified semantic color system
 export const tabsStyles = StyleSheet.create({
@@ -27,7 +28,7 @@ export const tabsStyles = StyleSheet.create({
   
   // Tab label styles
   tabLabel: {
-    fontSize: 12,
+    ...typography.caption,
     fontWeight: "500",
     marginTop: 4,
   },
@@ -90,14 +91,14 @@ export const tabBarOptions = {
   
   // Header title styling
   headerTitleStyle: {
+    ...typography.subsectionHeader,
     fontWeight: "600" as const,
-    fontSize: 18,
     color: "#000000", // Black text
   },
   
   // Tab label styling
   tabBarLabelStyle: {
-    fontSize: 12,
+    ...typography.caption,
     fontWeight: "500" as const,
     marginTop: 4,
   },

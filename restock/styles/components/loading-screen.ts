@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { typography } from '../typography';
 
 export const loadingScreenStyles = StyleSheet.create({
   container: {
@@ -10,7 +11,7 @@ export const loadingScreenStyles = StyleSheet.create({
   },
   message: {
     marginTop: 20,
-    fontSize: 16,
+    ...typography.bodyMedium,
     color: '#2c3e50',
     textAlign: 'center',
     lineHeight: 24,

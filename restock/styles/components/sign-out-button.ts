@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { typography } from '../typography';
 
 export const signOutButtonStyles = StyleSheet.create({
   button: {
@@ -10,8 +11,8 @@ export const signOutButtonStyles = StyleSheet.create({
     marginVertical: 10,
   },
   buttonText: {
+    ...typography.buttonText,
     color: '#ffffff',
-    fontSize: 16,
     fontWeight: '600',
   },
 }); 

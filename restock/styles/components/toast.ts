@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { typography } from '../typography';
 
 export const toastStyles = StyleSheet.create({
   // Main container - modern card-like design
@@ -57,15 +58,14 @@ export const toastStyles = StyleSheet.create({
 
   // Text styles
   toastText: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...typography.productName,
     color: '#1F2937',
     lineHeight: 22,
     flex: 1,
   },
 
   toastSubtext: {
-    fontSize: 14,
+    ...typography.bodySmall,
     color: '#6B7280',
     lineHeight: 20,
     marginTop: 2,
@@ -104,6 +104,7 @@ export const toastStyles = StyleSheet.create({
 
   // Button text styles
   toastButtonText: {
+    ...typography.buttonText,
     fontSize: 14,
     fontWeight: '500',
   },
@@ -154,7 +155,7 @@ export const toastStyles = StyleSheet.create({
   },
 
   closeButtonText: {
-    fontSize: 16,
+    ...typography.buttonText,
     color: '#6B7280',
     fontWeight: '500',
   },

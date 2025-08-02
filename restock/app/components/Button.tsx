@@ -70,7 +70,7 @@ const Button: React.FC<ButtonProps> = ({
   };
 
   const getTextClasses = () => {
-    const baseClasses = 'font-medium text-center';
+    const baseClasses = 'font-satoshi-medium text-center';
     
     switch (variant) {
       case 'navigation':
