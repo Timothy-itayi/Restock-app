@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ScrollView, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView, Platform } from 'react-native';
 import { FormState, StoredProduct, StoredSupplier, Product } from '../utils/types';
 import { restockSessionsStyles } from '../../../../styles/components/restock-sessions';
 
@@ -25,12 +25,9 @@ interface ProductFormProps {
   // Action handlers
   onSubmit: () => void;
   onCancel: () => void;
-  
-  // Edit-specific handlers
-  onEditProductChange?: (field: keyof Product, value: string | number) => void;
 }
 
-export const ProductForm: React.FC<ProductFormProps> = ({
+const ProductFormComponent: React.FC<ProductFormProps> = ({
   mode,
   formState,
   filteredProducts,
@@ -45,183 +42,185 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   onSelectProductSuggestion,
   onSelectSupplierSuggestion,
   onSubmit,
-  onCancel,
-  onEditProductChange
+  onCancel
 }) => {
   const isEditMode = mode === 'edit';
   const title = isEditMode ? 'Edit Product' : 'Add Product';
   const submitText = isEditMode ? 'Save Changes' : 'Add Product';
 
-  // For edit mode, we use editingProduct values, for add mode we use formState
-  const productName = isEditMode ? editingProduct?.name || '' : formState.productName;
-  const quantity = isEditMode ? editingProduct?.quantity?.toString() || '1' : formState.quantity;
-  const supplierName = isEditMode ? editingProduct?.supplierName || '' : formState.supplierName;
-  const supplierEmail = isEditMode ? editingProduct?.supplierEmail || '' : formState.supplierEmail;
+  // Use formState for both edit and add modes since editProduct() populates formState
+  const productName = formState.productName;
+  const quantity = formState.quantity;
+  const supplierName = formState.supplierName;
+  const supplierEmail = formState.supplierEmail;
 
-  const handleProductNameChange = (text: string) => {
-    if (isEditMode && onEditProductChange) {
-      onEditProductChange('name', text);
-    } else {
-      onProductNameChange(text);
-    }
-  };
+  // Use the same handlers for both add and edit modes since formState is used for both
+  const handleProductNameChange = React.useCallback((text: string) => {
+    onProductNameChange(text);
+  }, [onProductNameChange]);
 
-  const handleQuantityChange = (text: string) => {
-    if (isEditMode && onEditProductChange) {
-      const num = parseInt(text) || 1;
-      onEditProductChange('quantity', num);
-    } else {
-      onQuantityChange(text);
-    }
-  };
+  const handleQuantityChange = React.useCallback((text: string) => {
+    onQuantityChange(text);
+  }, [onQuantityChange]);
 
-  const handleSupplierNameChange = (text: string) => {
-    if (isEditMode && onEditProductChange) {
-      onEditProductChange('supplierName', text);
-    } else {
-      onSupplierNameChange(text);
-    }
-  };
+  const handleSupplierNameChange = React.useCallback((text: string) => {
+    onSupplierNameChange(text);
+  }, [onSupplierNameChange]);
 
-  const handleSupplierEmailChange = (text: string) => {
-    if (isEditMode && onEditProductChange) {
-      onEditProductChange('supplierEmail', text);
-    } else {
-      onSupplierEmailChange(text);
-    }
-  };
+  const handleSupplierEmailChange = React.useCallback((text: string) => {
+    onSupplierEmailChange(text);
+  }, [onSupplierEmailChange]);
 
-  const handleIncrementQuantity = () => {
-    if (isEditMode && onEditProductChange && editingProduct) {
-      onEditProductChange('quantity', editingProduct.quantity + 1);
-    } else {
-      onIncrementQuantity();
-    }
-  };
+  const handleIncrementQuantity = React.useCallback(() => {
+    onIncrementQuantity();
+  }, [onIncrementQuantity]);
 
-  const handleDecrementQuantity = () => {
-    if (isEditMode && onEditProductChange && editingProduct && editingProduct.quantity > 1) {
-      onEditProductChange('quantity', editingProduct.quantity - 1);
-    } else {
-      onDecrementQuantity();
-    }
-  };
+  const handleDecrementQuantity = React.useCallback(() => {
+    onDecrementQuantity();
+  }, [onDecrementQuantity]);
 
   return (
-    <ScrollView 
+    <KeyboardAvoidingView 
       style={{ flex: 1 }}
-      contentContainerStyle={{ paddingBottom: 100 }}
-      showsVerticalScrollIndicator={false}
-      keyboardShouldPersistTaps="handled"
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
     >
-      <View style={restockSessionsStyles.formContainer}>
-        <Text style={restockSessionsStyles.formTitle}>{title}</Text>
-        
-        {formState.errorMessage ? (
-          <View style={restockSessionsStyles.errorMessage}>
-            <Text style={restockSessionsStyles.errorText}>{formState.errorMessage}</Text>
-          </View>
-        ) : null}
-
-        <View style={restockSessionsStyles.inputGroup}>
-          <Text style={restockSessionsStyles.inputLabel}>Product Name</Text>
-          <TextInput
-            style={restockSessionsStyles.textInput}
-            value={productName}
-            onChangeText={handleProductNameChange}
-            placeholder="Enter product name"
-            autoFocus={!isEditMode}
-          />
-          {!isEditMode && filteredProducts.length > 0 && (
-            <View style={{ marginTop: 8 }}>
-              {filteredProducts.map((product, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={restockSessionsStyles.suggestionItem}
-                  onPress={() => onSelectProductSuggestion(product)}
-                >
-                  <Text style={restockSessionsStyles.suggestionText}>{product.name}</Text>
-                </TouchableOpacity>
-              ))}
+      <ScrollView 
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: 100 }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+      >
+        <View style={restockSessionsStyles.formContainer}>
+          <Text style={restockSessionsStyles.formTitle}>{title}</Text>
+          
+          {formState.errorMessage ? (
+            <View style={restockSessionsStyles.errorMessage}>
+              <Text style={restockSessionsStyles.errorText}>{formState.errorMessage}</Text>
             </View>
-          )}
-        </View>
+          ) : null}
 
-        <View style={restockSessionsStyles.inputGroup}>
-          <Text style={restockSessionsStyles.inputLabel}>Quantity to Order</Text>
-          <View style={restockSessionsStyles.quantityContainer}>
-            <TouchableOpacity
-              style={restockSessionsStyles.quantityButton}
-              onPress={handleDecrementQuantity}
-            >
-              <Text style={restockSessionsStyles.quantityButtonText}>−</Text>
-            </TouchableOpacity>
+          <View style={restockSessionsStyles.inputGroup}>
+            <Text style={restockSessionsStyles.inputLabel}>Product Name</Text>
             <TextInput
-              style={restockSessionsStyles.quantityInput}
-              value={quantity}
-              onChangeText={handleQuantityChange}
-              placeholder="1"
-              keyboardType="numeric"
+              style={restockSessionsStyles.textInput}
+              value={productName}
+              onChangeText={handleProductNameChange}
+              placeholder="Enter product name"
+              autoCapitalize="words"
+              autoCorrect={false}
+              returnKeyType="next"
+              blurOnSubmit={false}
+              enablesReturnKeyAutomatically={true}
             />
-            <TouchableOpacity
-              style={restockSessionsStyles.quantityButton}
-              onPress={handleIncrementQuantity}
+            {!isEditMode && filteredProducts.length > 0 && (
+              <View style={{ marginTop: 8 }}>
+                {filteredProducts.map((product, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={restockSessionsStyles.suggestionItem}
+                    onPress={() => onSelectProductSuggestion(product)}
+                  >
+                    <Text style={restockSessionsStyles.suggestionText}>{product.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
+
+          <View style={restockSessionsStyles.inputGroup}>
+            <Text style={restockSessionsStyles.inputLabel}>Quantity to Order</Text>
+            <View style={restockSessionsStyles.quantityContainer}>
+              <TouchableOpacity
+                style={restockSessionsStyles.quantityButton}
+                onPress={handleDecrementQuantity}
+              >
+                <Text style={restockSessionsStyles.quantityButtonText}>−</Text>
+              </TouchableOpacity>
+              <TextInput
+                style={restockSessionsStyles.quantityInput}
+                value={quantity}
+                onChangeText={handleQuantityChange}
+                placeholder="1"
+                keyboardType="numeric"
+                returnKeyType="next"
+                blurOnSubmit={false}
+                enablesReturnKeyAutomatically={true}
+              />
+              <TouchableOpacity
+                style={restockSessionsStyles.quantityButton}
+                onPress={handleIncrementQuantity}
+              >
+                <Text style={restockSessionsStyles.quantityButtonText}>+</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={restockSessionsStyles.inputGroup}>
+            <Text style={restockSessionsStyles.inputLabel}>Supplier Name</Text>
+            <TextInput
+              style={restockSessionsStyles.textInput}
+              value={supplierName}
+              onChangeText={handleSupplierNameChange}
+              placeholder="Enter supplier name"
+              autoCapitalize="words"
+              autoCorrect={false}
+              returnKeyType="next"
+              blurOnSubmit={false}
+              enablesReturnKeyAutomatically={true}
+            />
+            {!isEditMode && filteredSuppliers.length > 0 && (
+              <View style={{ marginTop: 8 }}>
+                {filteredSuppliers.map((supplier, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={restockSessionsStyles.suggestionItem}
+                    onPress={() => onSelectSupplierSuggestion(supplier)}
+                  >
+                    <Text style={restockSessionsStyles.suggestionText}>{supplier.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
+
+          <View style={restockSessionsStyles.inputGroup}>
+            <Text style={restockSessionsStyles.inputLabel}>Supplier Email</Text>
+            <TextInput
+              style={restockSessionsStyles.textInput}
+              value={supplierEmail}
+              onChangeText={handleSupplierEmailChange}
+              placeholder="Enter supplier email"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="done"
+              blurOnSubmit={true}
+              enablesReturnKeyAutomatically={true}
+            />
+          </View>
+
+          <View style={restockSessionsStyles.formButtons}>
+            <TouchableOpacity 
+              style={restockSessionsStyles.cancelButton} 
+              onPress={onCancel}
             >
-              <Text style={restockSessionsStyles.quantityButtonText}>+</Text>
+              <Text style={restockSessionsStyles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={restockSessionsStyles.saveButton} 
+              onPress={onSubmit}
+            >
+              <Text style={restockSessionsStyles.saveButtonText}>{submitText}</Text>
             </TouchableOpacity>
           </View>
         </View>
-
-        <View style={restockSessionsStyles.inputGroup}>
-          <Text style={restockSessionsStyles.inputLabel}>Supplier Name</Text>
-          <TextInput
-            style={restockSessionsStyles.textInput}
-            value={supplierName}
-            onChangeText={handleSupplierNameChange}
-            placeholder="Enter supplier name"
-          />
-          {!isEditMode && filteredSuppliers.length > 0 && (
-            <View style={{ marginTop: 8 }}>
-              {filteredSuppliers.map((supplier, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={restockSessionsStyles.suggestionItem}
-                  onPress={() => onSelectSupplierSuggestion(supplier)}
-                >
-                  <Text style={restockSessionsStyles.suggestionText}>{supplier.name}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-        </View>
-
-        <View style={restockSessionsStyles.inputGroup}>
-          <Text style={restockSessionsStyles.inputLabel}>Supplier Email</Text>
-          <TextInput
-            style={restockSessionsStyles.textInput}
-            value={supplierEmail}
-            onChangeText={handleSupplierEmailChange}
-            placeholder="Enter supplier email"
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-        </View>
-
-        <View style={restockSessionsStyles.formButtons}>
-          <TouchableOpacity 
-            style={restockSessionsStyles.cancelButton} 
-            onPress={onCancel}
-          >
-            <Text style={restockSessionsStyles.cancelButtonText}>Cancel</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={restockSessionsStyles.saveButton} 
-            onPress={onSubmit}
-          >
-            <Text style={restockSessionsStyles.saveButtonText}>{submitText}</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
+
+// Export the memoized component
+const ProductForm = React.memo(ProductFormComponent);
+export { ProductForm };

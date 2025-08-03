@@ -48,19 +48,25 @@ export const ProductList: React.FC<ProductListProps> = ({
             <View style={restockSessionsStyles.notepadDivider} />
             
             <View style={restockSessionsStyles.productInfoRow}>
-              <Text style={restockSessionsStyles.productInfoLabel}>Supplier: </Text>
+              <Text style={restockSessionsStyles.productInfoLabel}>Name: </Text>
+              <Text style={restockSessionsStyles.productInfoValue}>{product.name}</Text>
+            </View>
+            
+            {/* Notepad divider line */}
+            <View style={restockSessionsStyles.notepadDivider} />
+            
+            <View style={restockSessionsStyles.productInfoRow}>
+              <Text style={restockSessionsStyles.productInfoLabel}>Supplier Name: </Text>
               <Text style={restockSessionsStyles.productInfoValue}>{product.supplierName}</Text>
             </View>
             
             {/* Notepad divider line */}
             <View style={restockSessionsStyles.notepadDivider} />
             
-            {product.supplierEmail && (
-              <View style={restockSessionsStyles.productInfoRow}>
-                <Text style={restockSessionsStyles.productInfoLabel}>Email: </Text>
-                <Text style={restockSessionsStyles.productInfoValue}>{product.supplierEmail}</Text>
-              </View>
-            )}
+            <View style={restockSessionsStyles.productInfoRow}>
+              <Text style={restockSessionsStyles.productInfoLabel}>Supplier Email: </Text>
+              <Text style={restockSessionsStyles.productInfoValue}>{product.supplierEmail || 'Not specified'}</Text>
+            </View>
           </View>
         ))
       ) : (

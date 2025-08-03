@@ -115,10 +115,7 @@ export default function EmailsSkeleton() {
         </View>
       </View>
 
-      {/* Bottom Actions */}
-      <View style={emailsStyles.sendAllButton}>
-        <SkeletonBox width="100%" height={48} borderRadius={12} />
-      </View>
+  
     </View>
   );
 }

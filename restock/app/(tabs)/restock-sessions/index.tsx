@@ -379,8 +379,26 @@ const RestockSessionsContent: React.FC = () => {
         sessionId: currentSession.id,
         createdAt: currentSession.createdAt,
         groupedItems: groupedItemsResult.data,
-        products: currentSession.products, // Keep for backward compatibility
+        products: currentSession.products.map(product => ({
+          id: product.id,
+          name: product.name,
+          quantity: product.quantity,
+          supplierName: product.supplierName,
+          supplierEmail: product.supplierEmail,
+        })),
       };
+      
+      // Log the complete session data for debugging
+      Logger.info('Session data prepared for email generation', {
+        sessionId: currentSession.id,
+        productCount: sessionData.products.length,
+        products: sessionData.products.map(p => ({
+          name: p.name,
+          quantity: p.quantity,
+          supplierName: p.supplierName,
+          supplierEmail: p.supplierEmail,
+        }))
+      });
       
       // Store the session data in AsyncStorage for the emails screen to access
       await AsyncStorage.setItem('currentEmailSession', JSON.stringify(sessionData));
@@ -416,12 +434,6 @@ const RestockSessionsContent: React.FC = () => {
     handleSupplierNameChange(text, storedSuppliers);
   };
 
-  const handleEditProductChange = (field: keyof any, value: string | number) => {
-    if (editingProduct) {
-      // This is a simplified version - in a real implementation you'd want to handle this properly
-      updateFormField(field as any, value.toString());
-    }
-  };
 
   // Render different screens based on state
   const renderMainContent = () => {
@@ -480,7 +492,6 @@ const RestockSessionsContent: React.FC = () => {
               onSelectSupplierSuggestion={selectSupplierSuggestion}
               onSubmit={handleSaveEditedProduct}
               onCancel={cancelEdit}
-              onEditProductChange={handleEditProductChange}
             />
           ) : (
             <ProductList
