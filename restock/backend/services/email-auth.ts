@@ -3,14 +3,14 @@ import { SessionManager } from './session-manager';
 import { UserProfileService } from './user-profile';
 
 export interface SignInResult {
-  status: 'complete' | 'needs_first_factor' | 'needs_second_factor' | 'needs_new_password' | 'missing_requirements';
-  createdSessionId?: string;
+  status: 'complete' | 'needs_first_factor' | 'needs_second_factor' | 'needs_new_password' | 'missing_requirements' | 'needs_identifier' | null;
+  createdSessionId?: string | null;
   firstFactorVerification?: {
-    status: string;
+    status: string | null;
     strategy: string;
   };
   secondFactorVerification?: {
-    status: string;
+    status: string | null;
     strategy: string;
   };
   [key: string]: any; // Allow for additional properties

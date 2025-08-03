@@ -154,7 +154,7 @@ export default function WelcomeBackScreen() {
       console.log('📧 SignIn result:', result);
 
       // Use the dedicated EmailAuthService to handle the authentication flow
-      await EmailAuthService.handleEmailSignIn(result, email, triggerAuthCheck, setActive);
+      await EmailAuthService.handleEmailSignIn(result as any, email, triggerAuthCheck, setActive);
       
     } catch (err: any) {
       console.error('❌ Sign in error:', JSON.stringify(err, null, 2));
