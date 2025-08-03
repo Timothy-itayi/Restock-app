@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { router } from "expo-router";
+// import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
@@ -13,6 +13,9 @@ import {
 import { emailsStyles } from "../../styles/components/emails";
 import { Ionicons } from "@expo/vector-icons";
 import { EmailsSkeleton } from '../components/skeleton';
+import { useAuth } from "@clerk/clerk-expo";
+import { EmailGenerator } from "../../backend/services/ai";
+import type { GenerationProgress } from "../../backend/services/ai/types";
 
 // Types for email data
 interface EmailDraft {
@@ -36,18 +39,63 @@ interface SessionData {
   products: any[];
   sessionId: string;
   createdAt: Date;
+  groupedItems?: any; // Add groupedItems property
 }
 
-// Placeholder email generation function
-const generatePlaceholderEmails = (products: any[]): EmailDraft[] => {
+// AI-powered email generation function
+const generateAIEmails = async (
+  sessionData: any, // Session data from AsyncStorage
+  userId: string,
+  onProgress?: (progress: GenerationProgress) => void
+): Promise<EmailDraft[]> => {
+  try {
+    console.log('🤖 Starting AI email generation...');
+    const emailGenerator = new EmailGenerator();
+    
+    onProgress?.({
+      step: 'initializing',
+      progress: 5,
+      message: 'Initializing AI email generator...'
+    });
+
+    const generatedEmails = await emailGenerator.generateEmailsForSession(
+      sessionData, // Pass the full session data
+      userId,
+      {},
+      onProgress
+    );
+
+    console.log(`✅ Generated ${generatedEmails.length} emails successfully`);
+
+    // Convert GeneratedEmail to EmailDraft format
+    return generatedEmails.map((email: any, index: number) => ({
+      id: `email-${index}`,
+      supplierName: email.supplierName || 'Supplier',
+      supplierEmail: email.supplierEmail || 'supplier@example.com',
+      subject: email.subject,
+      body: email.body,
+      status: 'draft' as const,
+      products: [], // Will be populated from session data
+    }));
+  } catch (error) {
+    console.error('❌ AI email generation failed:', error);
+    throw error;
+  }
+};
+
+// Fallback email generation function (simple templates)
+const generateFallbackEmails = (products: any[]): EmailDraft[] => {
+  console.log('🔄 Using fallback email generation...');
+  
   // Group products by supplier
   const supplierGroups: { [key: string]: any[] } = {};
   
   products.forEach(product => {
-    if (!supplierGroups[product.supplierName]) {
-      supplierGroups[product.supplierName] = [];
+    const supplierName = product.supplierName || 'Unknown Supplier';
+    if (!supplierGroups[supplierName]) {
+      supplierGroups[supplierName] = [];
     }
-    supplierGroups[product.supplierName].push(product);
+    supplierGroups[supplierName].push(product);
   });
 
   // Generate email drafts for each supplier
@@ -57,7 +105,7 @@ const generatePlaceholderEmails = (products: any[]): EmailDraft[] => {
     return {
       id: `email-${index}`,
       supplierName,
-      supplierEmail: supplierProducts[0].supplierEmail,
+      supplierEmail: supplierProducts[0].supplierEmail || 'supplier@example.com',
       subject: `Restock Order from Greenfields Grocery`,
       body: `Hi ${supplierName} team,\n\nWe hope you're doing well! We'd like to place a restock order for the following items:\n\n${productList}\n\nPlease confirm availability at your earliest convenience.\n\nThank you as always for your continued support.\n\nBest regards,\nGreenfields Grocery`,
       status: 'draft' as const,
@@ -77,6 +125,7 @@ const mockProducts = [
 ];
 
 export default function EmailsScreen() {
+  const { userId } = useAuth();
   const [emailSession, setEmailSession] = useState<EmailSession | null>(null);
   const [showEmailEditor, setShowEmailEditor] = useState(false);
   const [editingEmail, setEditingEmail] = useState<EmailDraft | null>(null);
@@ -85,9 +134,9 @@ export default function EmailsScreen() {
   const [isSending, setIsSending] = useState(false);
   const [sendingProgress, setSendingProgress] = useState(0);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [progressAnimation] = useState(new Animated.Value(0));
   const [isLoading, setIsLoading] = useState(true);
   const [minLoadingTime, setMinLoadingTime] = useState(true);
+  const [aiGenerationProgress, setAiGenerationProgress] = useState<GenerationProgress | null>(null);
 
   // Minimum loading time to prevent flicker
   useEffect(() => {
@@ -105,22 +154,68 @@ export default function EmailsScreen() {
         setIsLoading(true);
         const sessionDataString = await AsyncStorage.getItem('currentEmailSession');
         
-        if (sessionDataString) {
-          const sessionData: SessionData = JSON.parse(sessionDataString);
-          const emails = generatePlaceholderEmails(sessionData.products);
+        if (sessionDataString && userId) {
+          let sessionData: SessionData;
           
-          setEmailSession({
-            id: sessionData.sessionId,
-            emails,
-            totalProducts: sessionData.products.length,
-            createdAt: new Date(sessionData.createdAt),
+          try {
+            sessionData = JSON.parse(sessionDataString);
+          } catch (parseError) {
+            console.error('Failed to parse session data:', parseError);
+            throw new Error('Invalid session data format');
+          }
+          
+          console.log('📦 Loaded session data:', {
+            sessionId: sessionData.sessionId,
+            productCount: sessionData.products?.length || 0,
+            hasGroupedItems: !!sessionData.groupedItems
           });
           
-          // Clear the session data from storage after loading
-          await AsyncStorage.removeItem('currentEmailSession');
+          // Validate session data structure
+          if (!sessionData.products || sessionData.products.length === 0) {
+            throw new Error('No products found in session');
+          }
+          
+          try {
+            // Use AI to generate emails
+            console.log('🚀 Attempting AI email generation...');
+            const emails = await generateAIEmails(
+              sessionData, // Pass the full session data
+              userId,
+              (progress) => {
+                console.log('📊 AI Generation Progress:', progress);
+                setAiGenerationProgress(progress);
+              }
+            );
+            
+            setEmailSession({
+              id: sessionData.sessionId,
+              emails,
+              totalProducts: sessionData.products.length,
+              createdAt: new Date(sessionData.createdAt),
+            });
+            
+            console.log('✅ AI email generation completed successfully');
+            
+            // Clear the session data from storage after loading
+            await AsyncStorage.removeItem('currentEmailSession');
+          } catch (aiError) {
+            console.error('❌ AI email generation failed, using fallback:', aiError);
+            // Fallback to simple template generation
+            const emails = generateFallbackEmails(sessionData.products);
+            setEmailSession({
+              id: sessionData.sessionId,
+              emails,
+              totalProducts: sessionData.products.length,
+              createdAt: new Date(sessionData.createdAt),
+            });
+            
+            // Clear the session data from storage after loading
+            await AsyncStorage.removeItem('currentEmailSession');
+          }
         } else {
+          console.log('📭 No session data found, using mock data');
           // Fallback to mock data if no session data found
-          const emails = generatePlaceholderEmails(mockProducts);
+          const emails = generateFallbackEmails(mockProducts);
           setEmailSession({
             id: Date.now().toString(),
             emails,
@@ -129,9 +224,9 @@ export default function EmailsScreen() {
           });
         }
       } catch (error) {
-        console.error('Error loading session data:', error);
+        console.error('❌ Error loading session data:', error);
         // Fallback to mock data on error
-        const emails = generatePlaceholderEmails(mockProducts);
+        const emails = generateFallbackEmails(mockProducts);
         setEmailSession({
           id: Date.now().toString(),
           emails,
@@ -144,11 +239,51 @@ export default function EmailsScreen() {
     };
 
     loadSessionData();
-  }, []);
+  }, [userId]);
 
   // Show skeleton until email session is loaded and minimum time has passed
   if (isLoading || !emailSession || minLoadingTime) {
     return <EmailsSkeleton />;
+  }
+
+  // Show AI generation progress
+  if (aiGenerationProgress && aiGenerationProgress.step !== 'complete') {
+    return (
+      <View style={emailsStyles.container}>
+        <View style={emailsStyles.header}>
+          <Text style={emailsStyles.headerTitle}>Generating AI Emails</Text>
+        </View>
+        
+        <View style={emailsStyles.progressContainer}>
+          <View style={emailsStyles.progressIcon}>
+            <Text style={{ color: '#6B7F6B', fontSize: 32 }}>🤖</Text>
+          </View>
+          
+          <Text style={emailsStyles.progressTitle}>
+            {aiGenerationProgress.message}
+          </Text>
+          
+          {aiGenerationProgress.currentSupplier && (
+            <Text style={emailsStyles.progressSubtitle}>
+              Working on: {aiGenerationProgress.currentSupplier}
+            </Text>
+          )}
+          
+          <View style={emailsStyles.progressBar}>
+            <Animated.View 
+              style={[
+                emailsStyles.progressFill,
+                { width: `${aiGenerationProgress.progress}%` }
+              ]} 
+            />
+          </View>
+          
+          <Text style={emailsStyles.progressText}>
+            {aiGenerationProgress.progress.toFixed(0)}% Complete
+          </Text>
+        </View>
+      </View>
+    );
   }
 
   const handleEditEmail = (email: EmailDraft) => {
@@ -185,27 +320,6 @@ export default function EmailsScreen() {
     setEditBody("");
   };
 
-  const handleRegenerateEmail = (emailId: string) => {
-    if (!emailSession) return;
-
-    const emailToRegenerate = emailSession.emails.find(email => email.id === emailId);
-    if (!emailToRegenerate) return;
-
-    // Regenerate the email content
-    const productList = emailToRegenerate.products.map(p => `• ${p}`).join('\n');
-    const newBody = `Hi ${emailToRegenerate.supplierName} team,\n\nWe hope you're doing well! We'd like to place a restock order for the following items:\n\n${productList}\n\nPlease confirm availability at your earliest convenience.\n\nThank you as always for your continued support.\n\nBest regards,\nGreenfields Grocery`;
-
-    const updatedEmails = emailSession.emails.map(email =>
-      email.id === emailId
-        ? { ...email, body: newBody }
-        : email
-    );
-
-    setEmailSession({
-      ...emailSession,
-      emails: updatedEmails,
-    });
-  };
 
   const handleSendAllEmails = () => {
     if (!emailSession) return;
@@ -241,24 +355,11 @@ export default function EmailsScreen() {
     );
   };
 
-  const handleBackToSessions = () => {
-    Alert.alert(
-      "Leave Email Review",
-      "Are you sure you want to go back? Your email drafts will be saved.",
-      [
-        { text: "Cancel", style: "cancel" },
-        { text: "Go Back", onPress: () => {
-          // Navigate back to restock sessions tab
-          router.push('/(tabs)/restock-sessions');
-        }}
-      ]
-    );
-  };
 
   const handleDone = () => {
     setShowSuccess(false);
     // Reset the session
-    const emails = generatePlaceholderEmails(mockProducts);
+            const emails = generateFallbackEmails(mockProducts);
     setEmailSession({
       id: Date.now().toString(),
       emails,

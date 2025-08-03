@@ -118,24 +118,6 @@ const Button: React.FC<ButtonProps> = ({
     textClassName,
   ].filter(Boolean).join(' ');
 
-  const getButtonColor = () => {
-    switch (variant) {
-      case 'navigation':
-      case 'quickAction':
-      case 'auth':
-        return theme.colors.buttons.navigation;
-      case 'edit':
-        return theme.colors.buttons.edit;
-      case 'signOut':
-        return theme.colors.buttons.signOut;
-      case 'primary':
-        return theme.colors.buttons.primary;
-      case 'secondary':
-        return theme.colors.buttons.secondary;
-      default:
-        return theme.colors.buttons.primary;
-    }
-  };
 
   return (
     <TouchableOpacity

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import {
     Animated,
     Text,
@@ -15,9 +15,9 @@ interface ToastAction {
 }
 
 interface CustomToastProps {
-  visible: boolean;
-  type: 'success' | 'info' | 'warning' | 'error';
-  title: string;
+  visible?: boolean;
+  type?: 'success' | 'info' | 'warning' | 'error';
+  title?: string;
   message?: string;
   actions?: ToastAction[];
   onDismiss?: () => void;
@@ -25,18 +25,36 @@ interface CustomToastProps {
   duration?: number;
 }
 
-const CustomToast: React.FC<CustomToastProps> = ({
-  visible,
-  type,
-  title,
-  message,
-  actions,
-  onDismiss,
-  autoDismiss = true,
-  duration = 5000,
-}) => {
+const CustomToast: React.FC<CustomToastProps> = (props) => {
+  const {
+    visible = false,
+    type = 'info',
+    title = '',
+    message = '',
+    actions,
+    onDismiss,
+    autoDismiss = true,
+    duration = 5000,
+  } = props || {};
   const slideAnim = useRef(new Animated.Value(-200)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
+
+  const hideToast = useCallback(() => {
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: -200,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      onDismiss?.();
+    });
+  }, [slideAnim, opacityAnim, onDismiss]);
 
   const getToastClasses = () => {
     const baseClasses = "absolute top-15 left-4 right-4 bg-neutral-50 rounded-2xl p-4 mx-4 shadow-medium border border-neutral-200 z-50";
@@ -98,24 +116,7 @@ const CustomToast: React.FC<CustomToastProps> = ({
     } else {
       hideToast();
     }
-  }, [visible]);
-
-  const hideToast = () => {
-    Animated.parallel([
-      Animated.timing(slideAnim, {
-        toValue: -200,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacityAnim, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      onDismiss?.();
-    });
-  };
+  }, [visible, autoDismiss, actions, duration, hideToast, slideAnim, opacityAnim]);
 
   if (!visible) return null;
 

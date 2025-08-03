@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Alert, ScrollView, KeyboardAvoidingView, Platform, TextInput } from 'react-native';
 import { router, Link } from 'expo-router';
-import { useSignIn, useAuth, useUser, useSSO, useClerk } from '@clerk/clerk-expo';
+import { useSignIn, useAuth, useSSO } from '@clerk/clerk-expo';
 import { SessionManager } from '../../backend/services/session-manager';
 import { EmailAuthService } from '../../backend/services/email-auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -12,13 +12,10 @@ import { useAuthContext } from '../_contexts/AuthContext';
 
 export default function WelcomeBackScreen() {
   const { signIn, setActive, isLoaded } = useSignIn();
-  const { isSignedIn, userId } = useAuth();
-  const { user } = useUser();
+  const { isSignedIn } = useAuth();
   const { startSSOFlow } = useSSO();
-  const clerk = useClerk();
   const { triggerAuthCheck } = useAuthContext();
   
-  const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [emailLoading, setEmailLoading] = useState(false);
   const [lastAuthMethod, setLastAuthMethod] = useState<'google' | 'email' | null>(null);

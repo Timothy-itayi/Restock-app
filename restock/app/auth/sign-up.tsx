@@ -1,15 +1,13 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, TextInput, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { router, Link } from 'expo-router';
-import { useSignUp, useAuth, useUser, useSSO } from '@clerk/clerk-expo';
+import { useSignUp, useSSO } from '@clerk/clerk-expo';
 import * as Linking from 'expo-linking';
 import AuthGuard from '../components/AuthGuard';
 import { signUpStyles } from '../../styles/components/sign-up';
 
 export default function SignUpScreen() {
-  const { signUp, setActive, isLoaded } = useSignUp();
-  const { isSignedIn, userId } = useAuth();
-  const { user } = useUser();
+  const { signUp, isLoaded } = useSignUp();
   const { startSSOFlow } = useSSO();
   
   const [email, setEmail] = useState('');
