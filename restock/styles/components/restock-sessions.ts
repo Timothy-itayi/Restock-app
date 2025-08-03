@@ -735,6 +735,114 @@ export const restockSessionsStyles = StyleSheet.create({
     color: "#FFFFFF",
     fontWeight: "600",
   },
+
+  // Email Ready Section
+  emailReadySection: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "#FDFBF3", // Slightly warmer paper
+    borderTopWidth: 1,
+    borderTopColor: "#DEE2E6", // Light grey border
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    paddingBottom: 34, // Account for safe area
+  },
+
+  emailReadyHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+
+  emailReadyTitle: {
+    ...typography.subsectionHeader,
+    color: "#212529",
+    fontWeight: "600",
+    marginLeft: 8,
+  },
+
+  emailReadySummary: {
+    marginBottom: 16,
+  },
+
+  emailReadyDescription: {
+    ...typography.body,
+    color: "#6C757D",
+    marginBottom: 12,
+    lineHeight: 20,
+  },
+
+  emailReadyStats: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 8,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: "#E9ECEF",
+  },
+
+  emailReadyStat: {
+    alignItems: "center",
+  },
+
+  emailReadyStatNumber: {
+    ...typography.h3,
+    color: "#212529",
+    fontWeight: "700",
+    marginBottom: 2,
+  },
+
+  emailReadyStatLabel: {
+    ...typography.caption,
+    color: "#6C757D",
+    fontWeight: "500",
+  },
+
+  emailReadyActions: {
+    flexDirection: "row",
+    gap: 12,
+  },
+
+  emailReadySecondaryButton: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#DEE2E6",
+  },
+
+  emailReadySecondaryButtonText: {
+    ...typography.body,
+    color: "#6C757D",
+    fontWeight: "600",
+  },
+
+  emailReadyPrimaryButton: {
+    flex: 2,
+    backgroundColor: "#22C55E", // Green for primary action
+    paddingVertical: 14,
+    borderRadius: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#22C55E",
+  },
+
+  emailReadyButtonIcon: {
+    marginRight: 8,
+  },
+
+  emailReadyPrimaryButtonText: {
+    ...typography.body,
+    color: "#FFFFFF",
+    fontWeight: "600",
+  },
   
   // Notification styles
   notificationContainer: {

@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, View } from "react-native";
 import { SessionService } from "../../../backend/services/sessions";
 import { RestockSessionsSkeleton } from "../../components/skeleton";
-import CustomToast from "../../components/CustomToast";
+import { ConfirmationDialog } from "../../components/ConfirmationDialog";
 import { restockSessionsStyles } from "../../../styles/components/restock-sessions";
 import { RestockSessionProvider, useRestockSessionContext } from "./context/RestockSessionContext";
 import {
@@ -14,11 +14,12 @@ import {
   ProductList,
   SessionHeader,
   FinishSection,
-  NotificationRenderer,
-  ErrorDisplay
+  // NotificationRenderer,
+  // ErrorDisplay
 } from "./components";
 import { Logger } from "./utils/logger";
 import { useAuth } from "@clerk/clerk-expo";
+import { Product } from "./utils/types";
 
 // Main screen component that uses the context
 const RestockSessionsContent: React.FC = () => {
@@ -37,6 +38,7 @@ const RestockSessionsContent: React.FC = () => {
     currentSession,
     isSessionActive,
     showSessionSelection,
+    isLoadingSessions,
     isDataReady,
     errorState,
     formState,
@@ -78,13 +80,11 @@ const RestockSessionsContent: React.FC = () => {
     loadAllSessions
   } = useRestockSessionContext();
 
-  // Local state for transition toast
-  const [showTransitionToast, setShowTransitionToast] = useState(false);
-  const [transitionToastData, setTransitionToastData] = useState({
-    type: 'info' as const,
-    title: '',
-    message: '',
-  });
+  // Local state for confirmation dialog
+  const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
+
+  // Additional loading state to ensure content is fully ready
+  const [isContentReady, setIsContentReady] = useState(false);
 
   // Session management functions
   const handleStartNewSession = React.useCallback(async () => {
@@ -111,6 +111,21 @@ const RestockSessionsContent: React.FC = () => {
       loadAllSessions();
     }
   }, [isDataReady, loadAllSessions]);
+
+  // Set content ready after both data and sessions are loaded with additional delay
+  React.useEffect(() => {
+    if (isDataReady && !isLoadingSessions) {
+      console.log('[RestockSessions] Data and sessions loaded, adding delay before showing content');
+      const timer = setTimeout(() => {
+        console.log('[RestockSessions] Setting content ready to true');
+        setIsContentReady(true);
+      }, 800); // Additional 800ms delay to ensure everything is settled
+      
+      return () => clearTimeout(timer);
+    } else {
+      setIsContentReady(false);
+    }
+  }, [isDataReady, isLoadingSessions]);
 
   // Debug effect to monitor state changes
   React.useEffect(() => {
@@ -179,7 +194,87 @@ const RestockSessionsContent: React.FC = () => {
   };
 
   // Product management functions
-  const handleAddProduct = async () => {
+  const handleRemoveProduct = React.useCallback((productId: string) => {
+    if (!currentSession) {
+      Logger.error('Cannot remove product: no active session');
+      return;
+    }
+
+    const productToRemove = currentSession.products.find(p => p.id === productId);
+    
+    Logger.info('Removing product from session', { 
+      productId, 
+      productName: productToRemove?.name 
+    });
+    
+    Alert.alert(
+      "Remove Product",
+      `Are you sure you want to remove "${productToRemove?.name}"?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              Logger.info('Starting database deletion', { productId, productName: productToRemove?.name });
+              
+              // Optimistically update UI first for better UX
+              const updatedProducts = currentSession.products.filter(p => p.id !== productId);
+              updateCurrentSession({
+                ...currentSession,
+                products: updatedProducts,
+              });
+              
+              // Remove from database (with cleanup of unused products/suppliers)
+              const removeResult = await SessionService.removeSessionItemWithCleanup(productId);
+              
+              Logger.info('Database deletion result', { 
+                productId, 
+                hasError: !!removeResult.error, 
+                error: removeResult.error 
+              });
+              
+              if (removeResult.error) {
+                Logger.error('Failed to remove item from database', removeResult.error, { productId });
+                // Revert the optimistic update on error
+                updateCurrentSession(currentSession);
+                showNotification('error', 'Failed to remove product from session');
+                return;
+              }
+              
+              Logger.success('Database deletion successful', { productId });
+              
+              // Show success notification
+              showNotification('warning', `${productToRemove?.name} removed from session`);
+              
+              Logger.success('Product removed from session', { 
+                productId, 
+                productName: productToRemove?.name,
+                remainingProducts: updatedProducts.length 
+              });
+            } catch (error) {
+              Logger.error('Unexpected error removing product', error, { productId });
+              // Revert the optimistic update on error
+              updateCurrentSession(currentSession);
+              showNotification('error', 'Failed to remove product from session');
+            }
+          }
+        }
+      ]
+    );
+  }, [currentSession, updateCurrentSession, showNotification]);
+
+  const handleEditProduct = React.useCallback((product: Product) => {
+    editProduct(product);
+  }, [editProduct]);
+
+  const handleAddProduct = React.useCallback(() => {
+    setShowAddProductForm(true);
+  }, [setShowAddProductForm]);
+
+  // Product management functions
+  const handleSubmitAddProduct = React.useCallback(async () => {
     if (!currentSession) return;
     
     const result = await addProduct(
@@ -201,7 +296,7 @@ const RestockSessionsContent: React.FC = () => {
     } else {
       showNotification('error', result.error || 'Failed to add product');
     }
-  };
+  }, [currentSession, addProduct, storedProducts, storedSuppliers, updateStoredProducts, updateStoredSuppliers, updateCurrentSession, showNotification]);
 
   const handleSaveEditedProduct = async () => {
     if (!editingProduct || !currentSession) return;
@@ -228,75 +323,6 @@ const RestockSessionsContent: React.FC = () => {
     } else {
       showNotification('error', result.error || 'Failed to update product');
     }
-  };
-
-  const handleRemoveProduct = (productId: string) => {
-    if (!currentSession) {
-      Logger.error('Cannot remove product: no active session');
-      return;
-    }
-
-    const productToRemove = currentSession.products.find(p => p.id === productId);
-    
-    Logger.info('Removing product from session', { 
-      productId, 
-      productName: productToRemove?.name 
-    });
-    
-    Alert.alert(
-      "Remove Product",
-      `Are you sure you want to remove "${productToRemove?.name}"?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Remove",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              Logger.info('Starting database deletion', { productId, productName: productToRemove?.name });
-              
-              // Remove from database first (with cleanup of unused products/suppliers)
-              const removeResult = await SessionService.removeSessionItemWithCleanup(productId);
-              
-              Logger.info('Database deletion result', { 
-                productId, 
-                hasError: !!removeResult.error, 
-                error: removeResult.error 
-              });
-              
-              if (removeResult.error) {
-                Logger.error('Failed to remove item from database', removeResult.error, { productId });
-                showNotification('error', 'Failed to remove product from session');
-                return;
-              }
-              
-              Logger.success('Database deletion successful', { productId });
-              
-              // Update local state
-              const updatedProducts = currentSession.products.filter(p => p.id !== productId);
-              updateCurrentSession({
-                ...currentSession,
-                products: updatedProducts,
-              });
-
-              // Refresh stored data lists
-              retryLoadData();
-              
-              showNotification('warning', `${productToRemove?.name} removed from session`);
-              
-              Logger.success('Product removed from session', { 
-                productId, 
-                productName: productToRemove?.name,
-                remainingProducts: updatedProducts.length 
-              });
-            } catch (error) {
-              Logger.error('Unexpected error removing product', error, { productId });
-              showNotification('error', 'Failed to remove product from session');
-            }
-          }
-        }
-      ]
-    );
   };
 
   // Session finishing functions
@@ -326,18 +352,12 @@ const RestockSessionsContent: React.FC = () => {
       
       Logger.success('Session status updated', { sessionId: currentSession.id, status: updateResult.data.status });
 
-      // Show transition toast instead of alert
-      const supplierCount = new Set(currentSession.products.map(p => p.supplierName)).size;
-      setTransitionToastData({
-        type: 'info',
-        title: 'Ready to generate emails?',
-        message: `You have ${currentSession.products.length} products ready to send to ${supplierCount} suppliers.`,
-      });
-      setShowTransitionToast(true);
+      // Show confirmation dialog
+      setShowConfirmationDialog(true);
       
       Logger.info('Session ready for email generation', { 
         productCount: currentSession.products.length,
-        supplierCount
+        supplierCount: new Set(currentSession.products.map(p => p.supplierName)).size
       });
     } catch (error) {
       Logger.error('Unexpected error finishing session', error, { sessionId: currentSession.id });
@@ -400,6 +420,15 @@ const RestockSessionsContent: React.FC = () => {
         }))
       });
       
+      // Validate that all products have supplier emails
+      const productsWithoutEmails = sessionData.products.filter(p => !p.supplierEmail || p.supplierEmail.trim() === '');
+      if (productsWithoutEmails.length > 0) {
+        Logger.warning('Found products without supplier emails', {
+          count: productsWithoutEmails.length,
+          products: productsWithoutEmails.map(p => ({ name: p.name, supplierName: p.supplierName }))
+        });
+      }
+      
       // Store the session data in AsyncStorage for the emails screen to access
       await AsyncStorage.setItem('currentEmailSession', JSON.stringify(sessionData));
       
@@ -408,8 +437,8 @@ const RestockSessionsContent: React.FC = () => {
       // Reset session state
       updateCurrentSession(null);
       
-      // Hide the transition toast
-      setShowTransitionToast(false);
+      // Close confirmation dialog
+      setShowConfirmationDialog(false);
       
       // Navigate to the emails tab
       router.push('/(tabs)/emails');
@@ -420,9 +449,9 @@ const RestockSessionsContent: React.FC = () => {
     }
   };
 
-  const handleCancelTransition = () => {
-    Logger.info('Canceling email generation transition');
-    setShowTransitionToast(false);
+  const handleCancelEmailGeneration = () => {
+    Logger.info('Canceling email generation dialog');
+    setShowConfirmationDialog(false);
   };
 
   // Form helper functions
@@ -472,7 +501,7 @@ const RestockSessionsContent: React.FC = () => {
               onDecrementQuantity={decrementQuantity}
               onSelectProductSuggestion={selectProductSuggestion}
               onSelectSupplierSuggestion={selectSupplierSuggestion}
-              onSubmit={handleAddProduct}
+              onSubmit={handleSubmitAddProduct}
               onCancel={cancelAddProduct}
             />
           ) : showEditProductForm ? (
@@ -496,9 +525,9 @@ const RestockSessionsContent: React.FC = () => {
           ) : (
             <ProductList
               currentSession={currentSession}
-              onEditProduct={editProduct}
+              onEditProduct={handleEditProduct}
               onRemoveProduct={handleRemoveProduct}
-              onAddProduct={() => setShowAddProductForm(true)}
+              onAddProduct={handleAddProduct}
             />
           )}
 
@@ -524,12 +553,12 @@ const RestockSessionsContent: React.FC = () => {
   return (
     <View style={{ flex: 1 }}>
       {/* Notifications */}
-      <NotificationRenderer
+      {/* <NotificationRenderer
         notifications={notifications}
         notificationAnimation={notificationAnimation}
         onRemoveNotification={removeNotification}
         getNotificationStyles={getNotificationStyles}
-      />
+      /> */}
       
       <KeyboardAvoidingView
         style={restockSessionsStyles.container}
@@ -537,38 +566,33 @@ const RestockSessionsContent: React.FC = () => {
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
         {/* Error State */}
-        <ErrorDisplay
+        {/* <ErrorDisplay
           errorState={errorState}
           onRetry={retryLoadData}
-        />
+        /> */}
         
         {/* Loading State */}
-        {!isDataReady && <RestockSessionsSkeleton />}
+        {!isContentReady && <RestockSessionsSkeleton />}
         
         {/* Main Content */}
-        {isDataReady && !errorState.hasError && renderMainContent()}
+        {isContentReady && !errorState.hasError && renderMainContent()}
       </KeyboardAvoidingView>
 
-      {/* Custom Transition Toast */}
-      <CustomToast
-        visible={showTransitionToast}
-        type={transitionToastData.type}
-        title={transitionToastData.title}
-        message={transitionToastData.message}
-        actions={[
-          {
-            label: 'Cancel',
-            onPress: handleCancelTransition,
-            primary: false,
-          },
-          {
-            label: 'Generate Emails',
-            onPress: handleGenerateEmails,
-            primary: true,
-          },
-        ]}
-        autoDismiss={false}
-        onDismiss={() => setShowTransitionToast(false)}
+      {/* Email Generation Confirmation Dialog */}
+      <ConfirmationDialog
+        visible={showConfirmationDialog}
+        title="Ready to Generate Emails"
+        message="Your restock session is complete and ready for email generation."
+        confirmText="Generate Emails"
+        cancelText="Continue Editing"
+        confirmIcon="mail"
+        onConfirm={handleGenerateEmails}
+        onCancel={handleCancelEmailGeneration}
+        stats={currentSession ? [
+          { label: 'Products', value: currentSession.products.length },
+          { label: 'Total Quantity', value: currentSession.products.reduce((sum, p) => sum + p.quantity, 0) },
+          { label: 'Suppliers', value: new Set(currentSession.products.map(p => p.supplierName)).size },
+        ] : undefined}
       />
     </View>
   );

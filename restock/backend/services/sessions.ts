@@ -645,7 +645,8 @@ export class SessionService {
             ),
             suppliers!supplier_id (
               id,
-              name
+              name,
+              email
             )
           )
         `)
