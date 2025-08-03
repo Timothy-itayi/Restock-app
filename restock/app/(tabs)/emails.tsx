@@ -114,16 +114,6 @@ const generateFallbackEmails = (products: any[]): EmailDraft[] => {
   });
 };
 
-// Fallback mock data for demonstration
-const mockProducts = [
-  { name: "Organic Bananas", quantity: 4, supplierName: "Fresh Farms Co.", supplierEmail: "orders@freshfarms.com" },
-  { name: "Whole Grain Bread", quantity: 2, supplierName: "Bakery Delights", supplierEmail: "supply@bakerydelights.com" },
-  { name: "Greek Yogurt", quantity: 3, supplierName: "Dairy Fresh", supplierEmail: "orders@dairyfresh.com" },
-  { name: "Almond Milk", quantity: 5, supplierName: "Nutty Beverages", supplierEmail: "supply@nuttybeverages.com" },
-  { name: "Quinoa", quantity: 2, supplierName: "Grain Masters", supplierEmail: "orders@grainmasters.com" },
-  { name: "Organic Eggs", quantity: 6, supplierName: "Fresh Farms Co.", supplierEmail: "orders@freshfarms.com" },
-];
-
 export default function EmailsScreen() {
   const { userId } = useAuth();
   const [emailSession, setEmailSession] = useState<EmailSession | null>(null);
@@ -213,26 +203,13 @@ export default function EmailsScreen() {
             await AsyncStorage.removeItem('currentEmailSession');
           }
         } else {
-          console.log('📭 No session data found, using mock data');
-          // Fallback to mock data if no session data found
-          const emails = generateFallbackEmails(mockProducts);
-          setEmailSession({
-            id: Date.now().toString(),
-            emails,
-            totalProducts: mockProducts.length,
-            createdAt: new Date(),
-          });
+          console.log('📭 No session data found, showing empty state');
+          setEmailSession(null); // Show empty state if no session data
         }
       } catch (error) {
         console.error('❌ Error loading session data:', error);
-        // Fallback to mock data on error
-        const emails = generateFallbackEmails(mockProducts);
-        setEmailSession({
-          id: Date.now().toString(),
-          emails,
-          totalProducts: mockProducts.length,
-          createdAt: new Date(),
-        });
+        // Fallback to empty state on error
+        setEmailSession(null);
       } finally {
         setIsLoading(false);
       }
@@ -359,13 +336,7 @@ export default function EmailsScreen() {
   const handleDone = () => {
     setShowSuccess(false);
     // Reset the session
-            const emails = generateFallbackEmails(mockProducts);
-    setEmailSession({
-      id: Date.now().toString(),
-      emails,
-      totalProducts: mockProducts.length,
-      createdAt: new Date(),
-    });
+    setEmailSession(null); // Clear the session data
   };
 
   const getStatusText = (status: EmailDraft['status']) => {
@@ -463,72 +434,105 @@ export default function EmailsScreen() {
 
   return (
     <View style={emailsStyles.container}>
-    
-
-      {/* Email Summary */}
-      <View style={emailsStyles.emailSummary}>
-      <Text style={emailsStyles.headerSubtitle}>
-          {emailSession.emails.length} emails ready to send
-        </Text>
-        <Text style={emailsStyles.summaryText}>
-          Emails auto-generated using your saved supplier data
-        </Text>
+      {/* Header */}
+      <View style={emailsStyles.header}>
+        <Text style={emailsStyles.headerTitle}>Generated Emails</Text>
       </View>
 
-      {/* Email List */}
-      <ScrollView style={emailsStyles.emailList} showsVerticalScrollIndicator={false}>
-        {emailSession.emails.map((email) => (
-          <View key={email.id} style={emailsStyles.emailCard}>
-            <View style={emailsStyles.emailCardHeader}>
-              <View style={emailsStyles.emailDetails}>
-                <Text style={emailsStyles.emailSubject}>{email.subject}</Text>
-                <TouchableOpacity
-                  style={emailsStyles.editIconButton}
-                  onPress={() => handleEditEmail(email)}
-                >
-                  <Ionicons name="pencil" size={16} color="#FFFFFF" />
-                </TouchableOpacity>
-              </View>
-            </View>
-            
-            {/* Notepad divider line */}
-            <View style={emailsStyles.notepadDivider} />
-            
-            <View style={emailsStyles.emailInfoRow}>
-              <Text style={emailsStyles.emailInfoLabel}>To: </Text>
-              <Text style={emailsStyles.emailInfoValue}>{email.supplierName}</Text>
-            </View>
-            
-            {/* Notepad divider line */}
-            <View style={emailsStyles.notepadDivider} />
-            
-            <View style={emailsStyles.emailInfoRow}>
-              <Text style={emailsStyles.emailInfoLabel}>Email: </Text>
-              <Text style={emailsStyles.emailInfoValue}>{email.supplierEmail}</Text>
-            </View>
-            
-            {/* Notepad divider line */}
-            <View style={emailsStyles.notepadDivider} />
-            
-            <Text style={emailsStyles.emailPreview} numberOfLines={3}>
-              {email.body}
+      {/* Show empty state if no session data */}
+      {!emailSession ? (
+        <View style={emailsStyles.emptyState}>
+          <Text style={emailsStyles.emptyStateText}>
+            No Email Session Found
+          </Text>
+          <Text style={emailsStyles.emptyStateText}>
+            Please create a restock session and generate emails first.
+            Navigate to the Restock Sessions tab to get started.
+          </Text>
+        </View>
+      ) : (
+        <>
+          {/* Email Summary */}
+          <View style={emailsStyles.emailSummary}>
+            <Text style={emailsStyles.headerSubtitle}>
+              {emailSession.emails.length} emails ready to send
             </Text>
-            
-            <View style={emailsStyles.emailActions}>
-              <View style={[emailsStyles.statusBadge, getStatusStyle(email.status)]}>
-                <Text style={[emailsStyles.statusText, getStatusTextStyle(email.status)]}>
-                  {getStatusText(email.status)}
+            <Text style={emailsStyles.summaryText}>
+              Emails auto-generated using your saved supplier data
+            </Text>
+          </View>
+
+          {/* Email List */}
+          <ScrollView style={emailsStyles.emailList} showsVerticalScrollIndicator={false}>
+            {emailSession.emails.length === 0 ? (
+              <View style={emailsStyles.emptyState}>
+                <Text style={emailsStyles.emptyStateText}>
+                  No Emails Generated Yet
+                </Text>
+                <Text style={emailsStyles.emptyStateText}>
+                  Please ensure you have saved supplier data in the previous step.
+                  Once you do, this section will automatically populate with emails
+                  generated using your supplier information.
                 </Text>
               </View>
-            </View>
-          </View>
-        ))}
-      </ScrollView>
+            ) : (
+              emailSession.emails.map((email) => (
+                <View key={email.id} style={emailsStyles.emailCard}>
+                  <View style={emailsStyles.emailCardHeader}>
+                    <View style={emailsStyles.emailDetails}>
+                      <Text style={emailsStyles.emailSubject}>{email.subject}</Text>
+                      <TouchableOpacity
+                        style={emailsStyles.editIconButton}
+                        onPress={() => handleEditEmail(email)}
+                      >
+                        <Ionicons name="pencil" size={16} color="#FFFFFF" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                  
+                  {/* Notepad divider line */}
+                  <View style={emailsStyles.notepadDivider} />
+                  
+                  <View style={emailsStyles.emailInfoRow}>
+                    <Text style={emailsStyles.emailInfoLabel}>To: </Text>
+                    <Text style={emailsStyles.emailInfoValue}>{email.supplierName}</Text>
+                  </View>
+                  
+                  {/* Notepad divider line */}
+                  <View style={emailsStyles.notepadDivider} />
+                  
+                  <View style={emailsStyles.emailInfoRow}>
+                    <Text style={emailsStyles.emailInfoLabel}>Email: </Text>
+                    <Text style={emailsStyles.emailInfoValue}>{email.supplierEmail}</Text>
+                  </View>
+                  
+                  {/* Notepad divider line */}
+                  <View style={emailsStyles.notepadDivider} />
+                  
+                  <Text style={emailsStyles.emailPreview} numberOfLines={3}>
+                    {email.body}
+                  </Text>
+                  
+                  <View style={emailsStyles.emailActions}>
+                    <View style={[emailsStyles.statusBadge, getStatusStyle(email.status)]}>
+                      <Text style={[emailsStyles.statusText, getStatusTextStyle(email.status)]}>
+                        {getStatusText(email.status)}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              ))
+            )}
+          </ScrollView>
 
-      {/* Send All Button */}
-      <TouchableOpacity style={emailsStyles.sendAllButton} onPress={handleSendAllEmails}>
-        <Text style={emailsStyles.sendAllButtonText}>Send All Emails</Text>
-      </TouchableOpacity>
+          {/* Send All Button - only show if there are emails */}
+          {emailSession.emails.length > 0 && (
+            <TouchableOpacity style={emailsStyles.sendAllButton} onPress={handleSendAllEmails}>
+              <Text style={emailsStyles.sendAllButtonText}>Send All Emails</Text>
+            </TouchableOpacity>
+          )}
+        </>
+      )}
 
       {/* Sending Progress Overlay */}
       {isSending && (

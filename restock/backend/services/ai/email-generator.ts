@@ -140,11 +140,18 @@ export class EmailGenerator {
   }
 
   private createGroupedItemsFromProducts(products: any[]): any {
+    console.log('🔄 Creating grouped items from products:', products.length);
     const groupedItems: any = {};
     
-    products.forEach(product => {
+    products.forEach((product, index) => {
       const supplierName = product.supplierName || 'Unknown Supplier';
       const supplierEmail = product.supplierEmail || 'supplier@example.com';
+      
+      console.log(`📦 Processing product ${index}:`, { 
+        name: product.name, 
+        quantity: product.quantity, 
+        supplierName 
+      });
       
       if (!groupedItems[supplierName]) {
         groupedItems[supplierName] = {
@@ -156,16 +163,30 @@ export class EmailGenerator {
         };
       }
       
-      groupedItems[supplierName].items.push({
-        product: {
-          name: product.name,
-          id: product.id
-        },
+      // Create the item structure that matches the database format
+      // This should match what getSessionItemsBySupplier returns
+      const item = {
+        id: product.id,
         quantity: product.quantity,
-        notes: product.notes
-      });
+        notes: product.notes || null,
+        products: {
+          id: product.id,
+          name: product.name,
+          default_quantity: product.default_quantity || product.quantity
+        },
+        suppliers: {
+          id: product.supplierId || 'unknown',
+          name: supplierName,
+          email: supplierEmail,
+          phone: null
+        }
+      };
+      
+      groupedItems[supplierName].items.push(item);
+      console.log(`✅ Added item to ${supplierName}:`, item);
     });
     
+    console.log('🎯 Final grouped items structure:', Object.keys(groupedItems));
     return groupedItems;
   }
 
@@ -185,17 +206,24 @@ export class EmailGenerator {
       throw new Error('No items provided for email generation');
     }
 
+    console.log('🔍 Building email context for supplier:', supplier.name);
+    console.log('📦 Items to process:', items.length);
+
     // Convert items to ProductItem format with validation
-    const products = items.map(item => {
+    const products = items.map((item, index) => {
       if (!item) {
         throw new Error('Invalid item data');
       }
       
-      const name = item.product?.name || item.name;
+      // Try multiple ways to get the name and quantity
+      // Handle the actual database structure where name is in products.name
+      const name = item.name || item.product?.name || item.products?.name;
       const quantity = item.quantity;
       
+      console.log(`📋 Item ${index}:`, { name, quantity, item });
+      
       if (!name || !quantity) {
-        throw new Error('Invalid item: missing name or quantity');
+        throw new Error(`Invalid item: missing name or quantity. Item: ${JSON.stringify(item)}`);
       }
       
       return {
@@ -204,6 +232,8 @@ export class EmailGenerator {
         notes: item.notes || undefined
       };
     });
+
+    console.log('✅ Successfully processed products:', products);
 
     return {
       storeName: storeName || 'Greenfields Grocery',
