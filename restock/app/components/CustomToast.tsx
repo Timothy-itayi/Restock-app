@@ -26,6 +26,7 @@ interface CustomToastProps {
 }
 
 const CustomToast: React.FC<CustomToastProps> = (props) => {
+  // Ensure props is always an object to prevent destructuring errors
   const {
     visible = false,
     type = 'info',
@@ -57,7 +58,7 @@ const CustomToast: React.FC<CustomToastProps> = (props) => {
   }, [slideAnim, opacityAnim, onDismiss]);
 
   const getToastClasses = () => {
-    const baseClasses = "absolute top-15 left-4 right-4 bg-neutral-50 rounded-2xl p-4 mx-4 shadow-medium border border-neutral-200 z-50";
+    const baseClasses = "absolute top-15 left-4 right-4 bg-paper-50 rounded-2xl p-4 mx-4 shadow-medium border border-paper-200 z-50";
     
     switch (type) {
       case 'success': return `${baseClasses} border-l-4 border-l-success-500`;
@@ -76,7 +77,7 @@ const CustomToast: React.FC<CustomToastProps> = (props) => {
       case 'info': return `${baseClasses} bg-primary-500`;
       case 'warning': return `${baseClasses} bg-warning-500`;
       case 'error': return `${baseClasses} bg-error-500`;
-      default: return `${baseClasses} bg-neutral-500`;
+      default: return `${baseClasses} bg-primary-500`;
     }
   };
 
@@ -130,11 +131,11 @@ const CustomToast: React.FC<CustomToastProps> = (props) => {
     >
       {/* Close button */}
       <TouchableOpacity
-        className="absolute top-3 right-3 w-6 h-6 rounded-full bg-neutral-100 justify-center items-center"
+        className="absolute top-3 right-3 w-6 h-6 rounded-full bg-paper-100 justify-center items-center"
         onPress={hideToast}
         activeOpacity={0.7}
       >
-        <Ionicons name="close" size={16} color={theme.colors.neutral[500]} />
+        <Ionicons name="close" size={16} color={theme.colors.primary[500]} />
       </TouchableOpacity>
 
       <View className="flex-row items-start gap-3">
@@ -146,11 +147,11 @@ const CustomToast: React.FC<CustomToastProps> = (props) => {
           />
         </View>
         <View className="flex-1">
-          <Text className="text-base font-semibold text-neutral-800 leading-6 flex-1">
+          <Text className="text-base font-semibold text-primary-800 leading-6 flex-1">
             {title}
           </Text>
           {message && (
-            <Text className="text-sm text-neutral-500 leading-5 mt-0.5 flex-1">
+            <Text className="text-sm text-primary-500 leading-5 mt-0.5 flex-1">
               {message}
             </Text>
           )}
@@ -158,14 +159,14 @@ const CustomToast: React.FC<CustomToastProps> = (props) => {
       </View>
 
       {actions && actions.length > 0 && (
-        <View className="flex-row justify-end gap-2 mt-3 pt-3 border-t border-neutral-200">
+        <View className="flex-row justify-end gap-2 mt-3 pt-3 border-t border-paper-200">
           {actions.map((action, index) => (
             <TouchableOpacity
               key={index}
               className={`px-4 py-2 rounded-lg min-w-20 items-center ${
                 action.primary 
                   ? 'bg-primary-500' 
-                  : 'bg-transparent border border-neutral-300'
+                  : 'bg-transparent border border-paper-300'
               }`}
               onPress={() => {
                 action.onPress();
@@ -179,7 +180,7 @@ const CustomToast: React.FC<CustomToastProps> = (props) => {
                 className={`text-sm font-medium ${
                   action.primary 
                     ? 'text-white' 
-                    : 'text-neutral-600'
+                    : 'text-primary-600'
                 }`}
               >
                 {action.label}
