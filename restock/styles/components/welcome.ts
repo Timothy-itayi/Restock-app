@@ -1,7 +1,10 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Dimensions } from 'react-native';
 import { fontFamily } from '../typography';
 
+const { width: screenWidth } = Dimensions.get('window');
+
 export const welcomeStyles = StyleSheet.create({
+  // Container styles
   scrollViewContent: {
     flexGrow: 1,
   },
@@ -13,6 +16,183 @@ export const welcomeStyles = StyleSheet.create({
     flex: 1,
     padding: 20,
     justifyContent: 'center',
+  },
+
+  // Header styles
+  header: {
+    paddingTop: 60,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+  },
+  appTitle: {
+    fontFamily: fontFamily.satoshiBlack,
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#6B7F6B',
+    textAlign: 'center',
+  },
+
+  // Fixed Title styles
+  titleContainer: {
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  mainTitle: {
+    fontFamily: fontFamily.satoshiBlack,
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  mainSubtitle: {
+    fontFamily: fontFamily.satoshiBold,
+    fontSize: 16,
+    color: '#6B7F6B',
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+
+  // Carousel styles
+  carouselContainer: {
+    flex: 1,
+    width: screenWidth,
+    marginBottom: -70,
+  },
+  carouselScrollView: {
+    flex: 1,
+  },
+  slideContainer: {
+    width: screenWidth,
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 20,
+    paddingHorizontal: 20,
+  },
+  imageContainer: {
+    width: screenWidth * 0.5, // Smaller images
+    height: screenWidth * 0.5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    
+  },
+  slideImage: {
+    width: '100%',
+    height: '100%',
+  },
+  textContainer: {
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    flex: 1,
+    justifyContent: 'center',
+  },
+  slideTitle: {
+    fontFamily: fontFamily.satoshiBlack,
+    fontSize: 24, // Slightly smaller
+    fontWeight: 'bold',
+    color: '#2c3e50',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  slideSubtitle: {
+    fontFamily: fontFamily.satoshiBold,
+    fontSize: 16, // Slightly smaller
+    color: '#6B7F6B',
+    marginBottom: 12,
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  slideDescription: {
+    fontFamily: fontFamily.satoshi,
+    fontSize: 14, // Slightly smaller
+    color: '#7f8c8d',
+    textAlign: 'center',
+    lineHeight: 20,
+    paddingHorizontal: 10,
+  },
+
+  // Pagination styles
+  paginationContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginVertical: 50,
+    paddingHorizontal: 20,
+  },
+  paginationDotContainer: {
+    padding: 4,
+  },
+  paginationDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#DEE2E6',
+    marginHorizontal: 4,
+  },
+  paginationDotActive: {
+    backgroundColor: '#6B7F6B',
+    width: 24,
+  },
+
+  // Auth buttons styles
+  authButtonsContainer: {
+    width: '100%',
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+  },
+  signUpButton: {
+    backgroundColor: '#6B7F6B',
+    borderRadius: 8,
+    padding: 14,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  signUpButtonText: {
+    fontFamily: fontFamily.satoshiBold,
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  signInButton: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#6B7F6B',
+    borderRadius: 8,
+    padding: 14,
+    alignItems: 'center',
+  },
+  signInButtonText: {
+    fontFamily: fontFamily.satoshiBold,
+    color: '#6B7F6B',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+
+  // Swipe hint styles
+  swipeHintContainer: {
+    alignItems: 'center',
+    paddingBottom: 50,
+    paddingHorizontal: 20,
+    marginTop: -40,
+
+  },
+  swipeHintText: {
+    fontFamily: fontFamily.satoshi,
+    fontSize: 14,
+    color: '#7f8c8d',
+    textAlign: 'center',
+  },
+
+  // Legacy styles (keeping for compatibility)
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
   },
   title: {
     fontFamily: fontFamily.satoshiBlack,
@@ -171,6 +351,37 @@ export const welcomeStyles = StyleSheet.create({
   secondaryButtonText: {
     fontFamily: 'Satoshi-Bold',
     color: '#6B7F6B',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  navigationContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginTop: 20,
+  },
+  navButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#6B7F6B',
+    backgroundColor: '#ffffff',
+  },
+  navButtonText: {
+    fontFamily: fontFamily.satoshiBold,
+    color: '#6B7F6B',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  primaryNavButton: {
+    backgroundColor: '#6B7F6B',
+    borderColor: '#6B7F6B',
+  },
+  primaryNavButtonText: {
+    fontFamily: fontFamily.satoshiBold,
+    color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
   },

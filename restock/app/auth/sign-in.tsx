@@ -111,7 +111,7 @@ export default function SignInScreen() {
       console.log('📧 SignIn result:', result);
 
       // Use the dedicated EmailAuthService to handle the authentication flow
-      await EmailAuthService.handleEmailSignIn(result, email, triggerAuthCheck, setActive);
+      await EmailAuthService.handleEmailSignIn(result as any, email, triggerAuthCheck, setActive);
       
     } catch (err: any) {
       console.error('❌ Sign in error:', JSON.stringify(err, null, 2));
@@ -217,7 +217,7 @@ export default function SignInScreen() {
           style={signInStyles.container}
         >
           <View style={signInStyles.titleContainer}>
-            <Text style={signInStyles.title}>Welcome Back</Text>
+            <Text style={signInStyles.title}>Sign In</Text>
             <Text style={signInStyles.subtitle}>
               Sign in to continue managing your restock operations
             </Text>
