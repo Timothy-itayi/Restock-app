@@ -132,9 +132,6 @@ interface ErrorState {
   timestamp: Date;
 }
 
-// Placeholder data for demonstration (will be replaced with database data)
-const initialProducts: StoredProduct[] = [];
-const initialSuppliers: StoredSupplier[] = [];
 
 export default function RestockSessionsScreen() {
   const { userId } = useAuth();
@@ -191,7 +188,6 @@ export default function RestockSessionsScreen() {
 
   // Loading states
   const [isLoadingData, setIsLoadingData] = useState(true);
-  const [isSavingProduct, setIsSavingProduct] = useState(false);
   const [minLoadingTime, setMinLoadingTime] = useState(true);
   const [hasLoaded, setHasLoaded] = useState(false);
 

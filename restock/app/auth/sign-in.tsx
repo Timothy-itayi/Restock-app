@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, TextInput, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { router, Link } from 'expo-router';
-import { useSignIn, useAuth, useUser, useSSO, useClerk } from '@clerk/clerk-expo';
+import { useSignIn, useAuth, useSSO } from '@clerk/clerk-expo';
 import { SessionManager } from '../../backend/services/session-manager';
 import { ClerkClientService } from '../../backend/services/clerk-client';
 import { UserProfileService } from '../../backend/services/user-profile';
@@ -15,14 +15,11 @@ import { useAuthContext } from '../_contexts/AuthContext';
 export default function SignInScreen() {
   const { signIn, setActive, isLoaded } = useSignIn();
   const { isSignedIn, userId } = useAuth();
-  const { user } = useUser();
   const { startSSOFlow } = useSSO();
-  const clerk = useClerk();
   const { triggerAuthCheck } = useAuthContext();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [emailLoading, setEmailLoading] = useState(false);
   const [showReturningUserButton, setShowReturningUserButton] = useState(false);

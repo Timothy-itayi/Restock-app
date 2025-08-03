@@ -2,7 +2,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import { SignedIn } from "@clerk/clerk-expo";
 import { tabBarOptions, tabScreenOptions } from "../../styles/components/tabs";
-import { useEffect } from "react";
 
 export default function TabLayout() {
   return (
@@ -21,6 +20,7 @@ export default function TabLayout() {
           },
         }}
       >
+        {/* Dashboard - Overview and quick actions */}
         <Tabs.Screen
           name="dashboard"
           options={{
@@ -34,8 +34,10 @@ export default function TabLayout() {
             ),
           }}
         />
+        
+        {/* Restock Sessions - Main workflow for creating sessions */}
         <Tabs.Screen
-          name="restock-sessions"
+          name="restock-sessions/index"
           options={{
             title: tabScreenOptions.restockSessions.title,
             tabBarIcon: ({ color, size }) => (
@@ -47,6 +49,8 @@ export default function TabLayout() {
             ),
           }}
         />
+        
+        {/* Emails - Review and send generated emails */}
         <Tabs.Screen
           name="emails"
           options={{
@@ -60,6 +64,8 @@ export default function TabLayout() {
             ),
           }}
         />
+        
+        {/* Profile - User settings and account management */}
         <Tabs.Screen
           name="profile"
           options={{

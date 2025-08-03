@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Text, View, ActivityIndicator, TouchableOpacity, StyleSheet, ScrollView, RefreshControl, Image } from "react-native";
+import { Text, View, TouchableOpacity, ScrollView, RefreshControl, Image } from "react-native";
 import { dashboardStyles } from "../../styles/components/dashboard";
 import { useAuth } from "@clerk/clerk-expo";
 import { UserProfileService } from "../../backend/services/user-profile";
@@ -239,17 +239,6 @@ export default function DashboardScreen() {
     return Object.values(supplierData).sort((a, b) => b.itemCount - a.itemCount);
   };
 
-  const getSessionSuppliersList = (session: UnfinishedSession): string[] => {
-    const suppliers = new Set<string>();
-    
-    session.items.forEach(item => {
-      const suppliersData = Array.isArray(item.suppliers) ? item.suppliers[0] : item.suppliers;
-      const supplierName = suppliersData?.name || 'Unknown Supplier';
-      suppliers.add(supplierName);
-    });
-
-    return Array.from(suppliers).sort();
-  };
 
   const getSupplierColor = (index: number) => {
     // Vibrant colors similar to financial app categories - teal, olive green, orange, purple, golden-brown

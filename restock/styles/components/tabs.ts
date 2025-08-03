@@ -130,7 +130,7 @@ export const tabScreenOptions = {
   restockSessions: {
     title: "Restock Sessions",
     tabBarIcon: ({ color, size }: { color: string; size: number }) => ({
-      name: "list",
+      name: "cube-outline",
       color,
       size,
     }),
