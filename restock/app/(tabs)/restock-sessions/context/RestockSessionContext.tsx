@@ -22,6 +22,7 @@ interface RestockSessionContextType {
   currentSession: RestockSession | null;
   isSessionActive: boolean;
   showSessionSelection: boolean;
+  isLoadingSessions: boolean;
 
   // Data state
   storedProducts: StoredProduct[];
@@ -112,6 +113,7 @@ export const RestockSessionProvider: React.FC<RestockSessionProviderProps> = ({ 
     currentSession: sessionHook.currentSession,
     isSessionActive: sessionHook.isSessionActive,
     showSessionSelection: sessionHook.showSessionSelection,
+    isLoadingSessions: sessionHook.isLoadingSessions,
 
     // Data state
     storedProducts: dataHook.storedProducts,

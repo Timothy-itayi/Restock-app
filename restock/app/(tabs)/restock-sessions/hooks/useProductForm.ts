@@ -96,10 +96,19 @@ export const useProductForm = () => {
   }, [updateFormField]);
 
   const selectSupplierSuggestion = useCallback((supplier: StoredSupplier) => {
-    Logger.info('Supplier suggestion selected', { supplierId: supplier.id, supplierName: supplier.name });
+    Logger.info('Supplier suggestion selected', { 
+      supplierId: supplier.id, 
+      supplierName: supplier.name,
+      supplierEmail: supplier.email // Add email to logging
+    });
+    
+    // Ensure email is properly set
+    if (!supplier.email) {
+      Logger.warning('Supplier has no email', { supplierId: supplier.id, supplierName: supplier.name });
+    }
     
     updateFormField('supplierName', supplier.name);
-    updateFormField('supplierEmail', supplier.email);
+    updateFormField('supplierEmail', supplier.email || '');
     setFilteredSuppliers([]);
   }, [updateFormField]);
 
@@ -171,10 +180,50 @@ export const useProductForm = () => {
       );
       
       if (existingSupplier) {
-        Logger.info('Using existing supplier', { supplierId: existingSupplier.id, supplierName });
+        Logger.info('Using existing supplier', { 
+          supplierId: existingSupplier.id, 
+          supplierName: existingSupplier.name,
+          supplierEmail: existingSupplier.email // Add email to logging
+        });
         supplierId = existingSupplier.id;
+        
+        // Ensure the existing supplier has an email
+        if (!existingSupplier.email) {
+          Logger.warning('Existing supplier has no email, updating with provided email', { 
+            supplierId: existingSupplier.id, 
+            supplierName: existingSupplier.name,
+            providedEmail: supplierEmail 
+          });
+          
+          // Update the supplier with the provided email
+          const updateResult = await SupplierService.updateSupplier(existingSupplier.id, {
+            email: supplierEmail.trim()
+          });
+          
+          if (updateResult.error) {
+            Logger.error('Failed to update supplier email', updateResult.error, { supplierId: existingSupplier.id });
+          } else {
+            Logger.success('Supplier email updated successfully', { 
+              supplierId: existingSupplier.id, 
+              email: supplierEmail.trim() 
+            });
+            
+            // Update local state with the updated supplier
+            const updatedSupplier = { ...existingSupplier, email: supplierEmail.trim() };
+            const updatedSuppliers = storedSuppliers.map(s => 
+              s.id === existingSupplier.id ? updatedSupplier : s
+            );
+            onUpdateStoredSuppliers(updatedSuppliers);
+          }
+        }
       } else {
         Logger.info('Creating new supplier', { supplierName, supplierEmail });
+        
+        // Validate email before creating supplier
+        if (!supplierEmail || supplierEmail.trim() === '') {
+          Logger.error('Cannot create supplier: email is required', { supplierName, supplierEmail });
+          return { success: false, error: 'Supplier email is required' };
+        }
         
         const supplierResult = await SupplierService.createSupplier({
           user_id: userId,
@@ -188,7 +237,11 @@ export const useProductForm = () => {
         }
         
         supplierId = supplierResult.data.id;
-        Logger.success('Supplier created successfully', { supplierId, supplierName });
+        Logger.success('Supplier created successfully', { 
+          supplierId, 
+          supplierName,
+          supplierEmail: supplierResult.data.email // Log the saved email
+        });
         
         // Add to local state for autocomplete
         onUpdateStoredSuppliers([...storedSuppliers, supplierResult.data]);

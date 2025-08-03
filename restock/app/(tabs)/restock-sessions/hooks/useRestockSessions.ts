@@ -11,11 +11,13 @@ export const useRestockSessions = () => {
   const [currentSession, setCurrentSession] = useState<RestockSession | null>(null);
   const [isSessionActive, setIsSessionActive] = useState(false);
   const [showSessionSelection, setShowSessionSelection] = useState(false);
+  const [isLoadingSessions, setIsLoadingSessions] = useState(false);
 
   const loadAllSessions = useCallback(async () => {
     console.log('[RestockSessions] loadAllSessions called', { userId, hasUserId: !!userId });
     if (!userId) return;
     
+    setIsLoadingSessions(true);
     try {
       console.log('[RestockSessions] Loading unfinished sessions from database', { userId });
       Logger.info('Loading unfinished sessions', { userId });
@@ -53,6 +55,16 @@ export const useRestockSessions = () => {
             const products = Array.isArray(item.products) ? item.products[0] : item.products;
             const suppliers = Array.isArray(item.suppliers) ? item.suppliers[0] : item.suppliers;
             
+            // Debug supplier data
+            console.log('[RestockSessions] Processing item supplier data', {
+              itemId: item.id,
+              productName: products?.name,
+              supplierName: suppliers?.name,
+              supplierEmail: suppliers?.email,
+              hasSupplierEmail: !!suppliers?.email,
+              supplierData: suppliers
+            });
+            
             return {
               id: item.id,
               name: products?.name || 'Unknown Product',
@@ -61,6 +73,16 @@ export const useRestockSessions = () => {
               supplierEmail: suppliers?.email || '',
             };
           }) || [];
+          
+          // Log products with supplier emails for debugging
+          const productsWithoutEmails = products.filter(p => !p.supplierEmail || p.supplierEmail.trim() === '');
+          if (productsWithoutEmails.length > 0) {
+            console.log('[RestockSessions] Found products without supplier emails', {
+              sessionId: session.id,
+              count: productsWithoutEmails.length,
+              products: productsWithoutEmails.map(p => ({ name: p.name, supplierName: p.supplierName }))
+            });
+          }
           
           return {
             id: session.id,
@@ -109,6 +131,8 @@ export const useRestockSessions = () => {
     } catch (error) {
       console.log('[RestockSessions] Error loading sessions', error);
       Logger.error('Unexpected error loading sessions', error, { userId });
+    } finally {
+      setIsLoadingSessions(false);
     }
   }, [userId]);
 
@@ -263,6 +287,7 @@ export const useRestockSessions = () => {
     currentSession,
     isSessionActive,
     showSessionSelection,
+    isLoadingSessions,
     
     // Actions
     loadAllSessions,

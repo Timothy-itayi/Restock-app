@@ -33,7 +33,7 @@ export const useStoredData = () => {
   useEffect(() => {
     const timer = setTimeout(() => {
       setLoadingState(prev => ({ ...prev, minLoadingTime: false }));
-    }, 500); // Increased to 500ms for more stability
+    }, 1500); // Increased to 1500ms to wait for session data to load
     
     return () => clearTimeout(timer);
   }, []);
@@ -96,8 +96,22 @@ export const useStoredData = () => {
       } else {
         Logger.success('Suppliers loaded successfully', { 
           count: suppliersResult.data?.length || 0,
-          suppliers: suppliersResult.data?.map(s => ({ id: s.id, name: s.name }))
+          suppliers: suppliersResult.data?.map(s => ({ 
+            id: s.id, 
+            name: s.name,
+            email: s.email // Add email to logging
+          }))
         });
+        
+        // Validate that suppliers have emails
+        const suppliersWithoutEmails = suppliersResult.data?.filter(s => !s.email || s.email.trim() === '') || [];
+        if (suppliersWithoutEmails.length > 0) {
+          Logger.warning('Found suppliers without emails', { 
+            count: suppliersWithoutEmails.length,
+            suppliers: suppliersWithoutEmails.map(s => ({ id: s.id, name: s.name }))
+          });
+        }
+        
         setStoredSuppliers(suppliersResult.data || []);
       }
     } catch (error) {
