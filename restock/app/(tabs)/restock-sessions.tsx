@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
@@ -138,12 +138,23 @@ const initialSuppliers: StoredSupplier[] = [];
 
 export default function RestockSessionsScreen() {
   const { userId } = useAuth();
+  const params = useLocalSearchParams();
+  
+  // Log component mount and params
+  console.log('[RestockSessions] Component mounted', { 
+    userId, 
+    params: Object.fromEntries(Object.entries(params)),
+    hasAction: !!params.action,
+    actionValue: params.action 
+  });
   
   // Initialize all state as null/empty to prevent default content rendering
   const [isSessionActive, setIsSessionActive] = useState(false);
   const [showAddProductForm, setShowAddProductForm] = useState(false);
   const [showEditProductForm, setShowEditProductForm] = useState(false);
+  const [showSessionSelection, setShowSessionSelection] = useState(false);
   const [currentSession, setCurrentSession] = useState<RestockSession | null>(null);
+  const [allSessions, setAllSessions] = useState<RestockSession[]>([]);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [notificationAnimation] = useState(new Animated.Value(0));
@@ -186,6 +197,19 @@ export default function RestockSessionsScreen() {
 
   // Show skeleton until data is loaded, minimum time has passed, and initial load is complete
   const isDataReady = !isLoadingData && !minLoadingTime && hasLoaded;
+  
+  // Log state changes for debugging
+  console.log('[RestockSessions] State update', {
+    isLoadingData,
+    minLoadingTime,
+    hasLoaded,
+    isDataReady,
+    isSessionActive,
+    showSessionSelection,
+    currentSessionId: currentSession?.id,
+    allSessionsCount: allSessions.length,
+    params: Object.fromEntries(Object.entries(params))
+  });
 
   // Minimum loading time to prevent flicker
   useEffect(() => {
@@ -219,14 +243,32 @@ export default function RestockSessionsScreen() {
     }
   }, [userId]);
 
-  // Load active session if user has one in progress
-  const loadActiveSession = async () => {
+  // Handle URL parameters for automatic actions
+  useEffect(() => {
+    console.log('[RestockSessions] URL parameter effect triggered', {
+      action: params.action,
+      userId: !!userId,
+      isDataReady,
+      shouldCreate: params.action === 'create' && userId && isDataReady
+    });
+    
+    if (params.action === 'create' && userId && isDataReady) {
+      console.log('[RestockSessions] Auto-creating new session from URL parameter');
+      Logger.info('Auto-creating new session from URL parameter');
+      startNewSession();
+    }
+  }, [params.action, userId, isDataReady]);
+
+  // Load all sessions for the user
+  const loadAllSessions = async () => {
+    console.log('[RestockSessions] loadAllSessions called', { userId, hasUserId: !!userId });
     if (!userId) return;
     
     try {
-      Logger.info('Loading active session', { userId });
+      console.log('[RestockSessions] Loading all sessions from database', { userId });
+      Logger.info('Loading all sessions', { userId });
       
-      // Get the most recent draft session
+      // Get all user sessions
       const sessionsResult = await SessionService.getUserSessions(userId);
       
       if (sessionsResult.error) {
@@ -234,48 +276,92 @@ export default function RestockSessionsScreen() {
         return;
       }
       
-      const draftSession = sessionsResult.data?.find(session => session.status === 'draft');
+      const draftSessions = sessionsResult.data?.filter(session => session.status === 'draft') || [];
       
-      if (draftSession) {
-        Logger.info('Found active draft session', { sessionId: draftSession.id });
+      console.log('[RestockSessions] Draft sessions found', { 
+        totalSessions: sessionsResult.data?.length || 0,
+        draftSessions: draftSessions.length,
+        allSessions: sessionsResult.data?.map(s => ({ id: s.id, status: s.status }))
+      });
+      
+      if (draftSessions.length > 0) {
+        console.log('[RestockSessions] Processing draft sessions', { sessionCount: draftSessions.length });
+        Logger.info('Found draft sessions', { sessionCount: draftSessions.length });
         
-        // Load session with items
-        const sessionWithItemsResult = await SessionService.getSessionWithItems(draftSession.id);
+        // Load all draft sessions with their items
+        const sessionsWithItems = await Promise.all(
+          draftSessions.map(async (session) => {
+            const sessionWithItemsResult = await SessionService.getSessionWithItems(session.id);
+            
+            if (sessionWithItemsResult.error) {
+              Logger.error('Failed to load session items', sessionWithItemsResult.error, { sessionId: session.id });
+              return null;
+            }
+            
+            // Convert database items to local format
+            const products: Product[] = sessionWithItemsResult.data?.restock_items?.map((item: any) => ({
+              id: item.id,
+              name: item.products?.name || 'Unknown Product',
+              quantity: item.quantity,
+              supplierName: item.suppliers?.name || 'Unknown Supplier',
+              supplierEmail: item.suppliers?.email || '',
+            })) || [];
+            
+            return {
+              id: session.id,
+              products,
+              createdAt: new Date(session.created_at),
+              status: session.status as 'draft' | 'sent'
+            };
+          })
+        );
         
-        if (sessionWithItemsResult.error) {
-          Logger.error('Failed to load session items', sessionWithItemsResult.error, { sessionId: draftSession.id });
-          return;
+        const validSessions = sessionsWithItems.filter(session => session !== null) as RestockSession[];
+        
+        console.log('[RestockSessions] Valid sessions processed', { 
+          validSessions: validSessions.length,
+          sessions: validSessions.map(s => ({ 
+            id: s.id, 
+            productCount: s.products.length,
+            createdAt: s.createdAt 
+          }))
+        });
+        
+        setAllSessions(validSessions);
+        
+        // If there's only one session, automatically select it
+        if (validSessions.length === 1) {
+          console.log('[RestockSessions] Auto-selecting single session', { sessionId: validSessions[0].id });
+          setCurrentSession(validSessions[0]);
+          setIsSessionActive(true);
+          Logger.success('Single session auto-selected', { 
+            sessionId: validSessions[0].id, 
+            productCount: validSessions[0].products.length 
+          });
+        } else if (validSessions.length > 1) {
+          // Show session selection if multiple sessions exist
+          console.log('[RestockSessions] Multiple sessions found, showing selection', { sessionCount: validSessions.length });
+          setShowSessionSelection(true);
+          Logger.info('Multiple sessions found, showing selection', { sessionCount: validSessions.length });
         }
         
-        // Convert database items to local format
-        const products: Product[] = sessionWithItemsResult.data?.restock_items?.map((item: any) => ({
-          id: item.id,
-          name: item.products?.name || 'Unknown Product',
-          quantity: item.quantity,
-          supplierName: item.suppliers?.name || 'Unknown Supplier',
-          supplierEmail: item.suppliers?.email || '',
-        })) || [];
-        
-        const activeSession: RestockSession = {
-          id: draftSession.id,
-          products,
-          createdAt: new Date(draftSession.created_at),
-          status: draftSession.status as 'draft' | 'sent'
-        };
-        
-        setCurrentSession(activeSession);
-        setIsSessionActive(true);
-        
-        Logger.success('Active session loaded', { 
-          sessionId: activeSession.id, 
-          productCount: activeSession.products.length 
+        console.log('[RestockSessions] All sessions loaded successfully', { totalSessions: validSessions.length });
+        Logger.success('All sessions loaded', { 
+          totalSessions: validSessions.length 
         });
       } else {
-        Logger.info('No active session found', { userId });
+        console.log('[RestockSessions] No draft sessions found', { userId });
+        Logger.info('No draft sessions found', { userId });
       }
     } catch (error) {
-      Logger.error('Unexpected error loading active session', error, { userId });
+      console.log('[RestockSessions] Error loading sessions', error);
+      Logger.error('Unexpected error loading sessions', error, { userId });
     }
+  };
+
+  // Load active session if user has one in progress (legacy function - keeping for compatibility)
+  const loadActiveSession = async () => {
+    await loadAllSessions();
   };
 
   const showNotification = (type: Notification['type'], message: string, title?: string) => {
@@ -419,22 +505,32 @@ export default function RestockSessionsScreen() {
 
 
   const startNewSession = async () => {
+    console.log('[RestockSessions] startNewSession called', { userId, hasUserId: !!userId });
     Logger.info('Starting new restock session');
     
     if (!userId) {
+      console.log('[RestockSessions] Cannot start session: no userId');
       Logger.error('Cannot start session: no userId');
       showNotification('error', 'User not authenticated');
       return;
     }
     
     try {
+      console.log('[RestockSessions] Creating session in database', { userId });
       // Create session in database first
       const sessionResult = await SessionService.createSession({
         user_id: userId,
         status: 'draft'
       });
       
+      console.log('[RestockSessions] Session creation result', { 
+        hasError: !!sessionResult.error, 
+        error: sessionResult.error,
+        data: sessionResult.data 
+      });
+      
       if (sessionResult.error) {
+        console.log('[RestockSessions] Failed to create session in database', sessionResult.error);
         Logger.error('Failed to create session in database', sessionResult.error, { userId });
         showNotification('error', 'Failed to start session');
         return;
@@ -447,18 +543,98 @@ export default function RestockSessionsScreen() {
         status: sessionResult.data.status as 'draft' | 'sent'
       };
       
+      console.log('[RestockSessions] New session created', { 
+        sessionId: newSession.id,
+        createdAt: newSession.createdAt,
+        status: newSession.status 
+      });
+      
+      // Add to all sessions list
+      setAllSessions(prev => {
+        console.log('[RestockSessions] Updating allSessions', { 
+          previousCount: prev.length,
+          newCount: prev.length + 1 
+        });
+        return [newSession, ...prev];
+      });
       setCurrentSession(newSession);
       setIsSessionActive(true);
+      setShowSessionSelection(false);
       showNotification('info', 'New restock session started');
+      
+      console.log('[RestockSessions] Session state updated', { 
+        sessionId: newSession.id,
+        isSessionActive: true,
+        showSessionSelection: false 
+      });
       
       Logger.success('New session created in database', { 
         sessionId: newSession.id,
         databaseId: sessionResult.data.id 
       });
     } catch (error) {
+      console.log('[RestockSessions] Unexpected error starting session', error);
       Logger.error('Unexpected error starting session', error, { userId });
       showNotification('error', 'Failed to start session');
     }
+  };
+
+  const selectSession = (session: RestockSession) => {
+    Logger.info('Selecting session', { sessionId: session.id, productCount: session.products.length });
+    
+    setCurrentSession(session);
+    setIsSessionActive(true);
+    setShowSessionSelection(false);
+    
+    showNotification('info', `Switched to session with ${session.products.length} products`);
+  };
+
+  const showSessionSelectionModal = () => {
+    Logger.info('Showing session selection modal');
+    setShowSessionSelection(true);
+  };
+
+  const deleteSession = async (session: RestockSession) => {
+    Logger.info('Deleting session', { sessionId: session.id });
+    
+    Alert.alert(
+      "Delete Session",
+      `Are you sure you want to delete this session? This will remove all ${session.products.length} products.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const deleteResult = await SessionService.deleteSession(session.id);
+              
+              if (deleteResult.error) {
+                Logger.error('Failed to delete session', deleteResult.error, { sessionId: session.id });
+                showNotification('error', 'Failed to delete session');
+                return;
+              }
+              
+              // Remove from all sessions list
+              setAllSessions(prev => prev.filter(s => s.id !== session.id));
+              
+              // If this was the current session, clear it
+              if (currentSession?.id === session.id) {
+                setCurrentSession(null);
+                setIsSessionActive(false);
+              }
+              
+              showNotification('warning', 'Session deleted');
+              
+              Logger.success('Session deleted successfully', { sessionId: session.id });
+            } catch (error) {
+              Logger.error('Unexpected error deleting session', error, { sessionId: session.id });
+              showNotification('error', 'Failed to delete session');
+            }
+          }
+        }
+      ]
+    );
   };
 
   const handleProductNameChange = (text: string) => {
@@ -1098,6 +1274,76 @@ export default function RestockSessionsScreen() {
     return <RestockSessionsSkeleton />;
   };
 
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const renderSessionSelection = () => (
+    <View style={restockSessionsStyles.sessionSelectionContainer}>
+      <View style={restockSessionsStyles.sessionSelectionHeader}>
+        <Text style={restockSessionsStyles.sessionSelectionTitle}>Choose a Session</Text>
+        <Text style={restockSessionsStyles.sessionSelectionSubtitle}>
+          You have {allSessions.length} unfinished session{allSessions.length !== 1 ? 's' : ''}
+        </Text>
+      </View>
+      
+      <ScrollView style={restockSessionsStyles.sessionList}>
+        {allSessions.map((session, index) => (
+          <TouchableOpacity
+            key={session.id}
+            style={restockSessionsStyles.sessionCard}
+            onPress={() => selectSession(session)}
+          >
+            <View style={restockSessionsStyles.sessionCardHeader}>
+              <Text style={restockSessionsStyles.sessionCardTitle}>
+                Session #{index + 1} • {formatDate(session.createdAt)}
+              </Text>
+              <TouchableOpacity
+                style={restockSessionsStyles.sessionDeleteButton}
+                onPress={() => deleteSession(session)}
+              >
+                <Ionicons name="trash" size={16} color="#EF4444" />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={restockSessionsStyles.sessionCardContent}>
+              <Text style={restockSessionsStyles.sessionCardSubtitle}>
+                {session.products.length} product{session.products.length !== 1 ? 's' : ''} • 
+                {session.products.reduce((sum, p) => sum + p.quantity, 0)} total quantity
+              </Text>
+              
+              {session.products.length > 0 && (
+                <View style={restockSessionsStyles.sessionCardSuppliers}>
+                  <Text style={restockSessionsStyles.sessionCardSuppliersText}>
+                    {new Set(session.products.map(p => p.supplierName)).size} supplier{new Set(session.products.map(p => p.supplierName)).size !== 1 ? 's' : ''}
+                  </Text>
+                </View>
+              )}
+            </View>
+            
+            <View style={restockSessionsStyles.sessionCardFooter}>
+              <Text style={restockSessionsStyles.sessionCardAction}>Tap to continue</Text>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+      
+      <View style={restockSessionsStyles.sessionSelectionFooter}>
+        <TouchableOpacity 
+          style={restockSessionsStyles.newSessionButton}
+          onPress={startNewSession}
+        >
+          <Text style={restockSessionsStyles.newSessionButtonText}>Create New Session</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
   const renderStartSection = () => (
     <View style={restockSessionsStyles.startSection}>
       <Text style={restockSessionsStyles.startPrompt}>What do you want to restock?</Text>
@@ -1105,6 +1351,18 @@ export default function RestockSessionsScreen() {
         Walk around your store with this digital notepad and add products that need restocking. 
         Each product will be organized by supplier for easy email generation.
       </Text>
+      
+      {allSessions.length > 0 && (
+        <TouchableOpacity 
+          style={restockSessionsStyles.existingSessionsButton}
+          onPress={showSessionSelectionModal}
+        >
+          <Text style={restockSessionsStyles.existingSessionsButtonText}>
+            Continue Existing Session ({allSessions.length})
+          </Text>
+        </TouchableOpacity>
+      )}
+      
       <TouchableOpacity style={restockSessionsStyles.startButton} onPress={startNewSession}>
         <Text style={restockSessionsStyles.startButtonText}>Start New Restock</Text>
       </TouchableOpacity>
@@ -1387,6 +1645,25 @@ export default function RestockSessionsScreen() {
 
   const renderSessionFlow = () => (
     <View style={restockSessionsStyles.sessionContainer}>
+      {/* Session header with switcher */}
+      <View style={restockSessionsStyles.sessionHeader}>
+        <View style={restockSessionsStyles.sessionHeaderLeft}>
+          <Text style={restockSessionsStyles.sessionHeaderTitle}>
+            Session • {formatDate(currentSession?.createdAt || new Date())}
+          </Text>
+          {allSessions.length > 1 && (
+            <TouchableOpacity
+              style={restockSessionsStyles.sessionSwitcherButton}
+              onPress={showSessionSelectionModal}
+            >
+              <Text style={restockSessionsStyles.sessionSwitcherText}>
+                Switch ({allSessions.length})
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+
       {/* Session summary */}
       {currentSession && currentSession.products.length > 0 && (
         <View style={restockSessionsStyles.sessionSummary}>
@@ -1438,6 +1715,7 @@ export default function RestockSessionsScreen() {
         
         {/* Main Content */}
         {isDataReady && !errorState.hasError && (
+          showSessionSelection ? renderSessionSelection() :
           isSessionActive ? renderSessionFlow() : renderStartSection()
         )}
       </KeyboardAvoidingView>

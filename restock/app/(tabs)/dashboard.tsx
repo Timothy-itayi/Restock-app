@@ -318,7 +318,11 @@ export default function DashboardScreen() {
         <View style={dashboardStyles.actionGrid}>
           <TouchableOpacity 
             style={dashboardStyles.actionCard}
-            onPress={() => router.push('/(tabs)/restock-sessions')}
+            onPress={() => {
+              console.log('[Dashboard] New Restock Session button pressed');
+              // Navigate to restock-sessions with a flag to create new session
+              router.push('/(tabs)/restock-sessions?action=create');
+            }}
           >
             <View style={dashboardStyles.actionIconContainer}>
               <Image 

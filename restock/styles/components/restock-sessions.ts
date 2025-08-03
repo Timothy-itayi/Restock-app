@@ -61,6 +61,144 @@ export const restockSessionsStyles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
   },
+
+  // Existing sessions button
+  existingSessionsButton: {
+    backgroundColor: "#F8F9FA",
+    borderWidth: 1,
+    borderColor: "#DEE2E6",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+
+  existingSessionsButtonText: {
+    fontFamily: 'Satoshi-Bold',
+    color: "#6C757D",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+
+  // Session selection styles
+  sessionSelectionContainer: {
+    flex: 1,
+    backgroundColor: "#FEFDF9",
+    paddingHorizontal: 20,
+  },
+
+  sessionSelectionHeader: {
+    paddingVertical: 24,
+    alignItems: "center",
+  },
+
+  sessionSelectionTitle: {
+    fontFamily: 'Satoshi-Bold',
+    fontSize: 24,
+    fontWeight: "600",
+    color: "#212529",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+
+  sessionSelectionSubtitle: {
+    fontFamily: 'Satoshi-Regular',
+    fontSize: 16,
+    color: "#6C757D",
+    textAlign: "center",
+  },
+
+  sessionList: {
+    flex: 1,
+  },
+
+  sessionCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#DEE2E6",
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+
+  sessionCardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+
+  sessionCardTitle: {
+    fontFamily: 'Satoshi-Bold',
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#212529",
+    flex: 1,
+  },
+
+  sessionDeleteButton: {
+    padding: 4,
+  },
+
+  sessionCardContent: {
+    marginBottom: 12,
+  },
+
+  sessionCardSubtitle: {
+    fontFamily: 'Satoshi-Regular',
+    fontSize: 14,
+    color: "#6C757D",
+    marginBottom: 4,
+  },
+
+  sessionCardSuppliers: {
+    marginTop: 4,
+  },
+
+  sessionCardSuppliersText: {
+    fontFamily: 'Satoshi-Regular',
+    fontSize: 12,
+    color: "#6C757D",
+  },
+
+  sessionCardFooter: {
+    borderTopWidth: 1,
+    borderTopColor: "#DEE2E6",
+    paddingTop: 12,
+  },
+
+  sessionCardAction: {
+    fontFamily: 'Satoshi-Regular',
+    fontSize: 12,
+    color: "#22C55E",
+    textAlign: "center",
+  },
+
+  sessionSelectionFooter: {
+    paddingVertical: 20,
+  },
+
+  newSessionButton: {
+    backgroundColor: "#22C55E",
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#22C55E",
+  },
+
+  newSessionButtonText: {
+    fontFamily: 'Satoshi-Bold',
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+    textAlign: "center",
+  },
   
   // Session container
   sessionContainer: {
@@ -68,7 +206,7 @@ export const restockSessionsStyles = StyleSheet.create({
     backgroundColor: "#FEFDF9", // Warm paper background
   },
   
-  // Session header (removed title, keeping only actions)
+  // Session header with switcher
   sessionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -78,6 +216,34 @@ export const restockSessionsStyles = StyleSheet.create({
     backgroundColor: "#FDFBF3", // Slightly warmer paper
     borderBottomWidth: 1,
     borderBottomColor: "#DEE2E6", // Light grey border
+  },
+
+  sessionHeaderLeft: {
+    flex: 1,
+  },
+
+  sessionHeaderTitle: {
+    fontFamily: 'Satoshi-Bold',
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#212529",
+    marginBottom: 4,
+  },
+
+  sessionSwitcherButton: {
+    backgroundColor: "#F8F9FA",
+    borderWidth: 1,
+    borderColor: "#DEE2E6",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    alignSelf: "flex-start",
+  },
+
+  sessionSwitcherText: {
+    fontFamily: 'Satoshi-Regular',
+    fontSize: 12,
+    color: "#6C757D",
   },
   
   // Finish button (green for progress)
