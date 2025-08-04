@@ -1,19 +1,19 @@
 import React from 'react';
 import { View } from 'react-native';
 import { useAuthContext } from '../_contexts/AuthContext';
-import { DashboardSkeleton, WelcomeSkeleton } from './skeleton';
+import { DashboardSkeleton } from './skeleton';
 
 interface AuthVerificationGateProps {
   children: React.ReactNode;
 }
 
 export default function AuthVerificationGate({ children }: AuthVerificationGateProps) {
-  const { isVerifying, isLoading } = useAuthContext();
+  const { isVerifying } = useAuthContext();
 
-  // Show loading screen while Clerk is loading or while we're verifying authentication
-  if (isLoading || isVerifying) {
-    // Use DashboardSkeleton for dashboard setup, WelcomeSkeleton for initial loading
-    return isVerifying ? <DashboardSkeleton /> : <WelcomeSkeleton />;
+  // Only show skeleton during verification, not during initial loading
+  // This eliminates the welcome skeleton step and lets the welcome screen render naturally
+  if (isVerifying) {
+    return <DashboardSkeleton />;
   }
 
   return <>{children}</>;

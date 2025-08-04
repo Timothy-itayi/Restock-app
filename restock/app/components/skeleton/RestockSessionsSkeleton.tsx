@@ -6,70 +6,72 @@ import SkeletonBox from './SkeletonBox';
 export default function RestockSessionsSkeleton() {
   return (
     <View style={[restockSessionsStyles.container, styles.container]}>
-      {/* Start Section Skeleton */}
-      <View style={restockSessionsStyles.startSection}>
-        <SkeletonBox width="70%" height={24} />
-        <SkeletonBox width="100%" height={16} style={{ marginTop: 16 }} />
-        <SkeletonBox width="90%" height={16} style={{ marginTop: 8 }} />
-        <SkeletonBox width="60%" height={48} borderRadius={12} style={{ marginTop: 32 }} />
+      {/* Session Header Skeleton */}
+      <View style={restockSessionsStyles.sessionHeader}>
+        <View style={restockSessionsStyles.sessionHeaderLeft}>
+          <SkeletonBox width="60%" height={20} />
+          <SkeletonBox width="40%" height={16} style={{ marginTop: 8 }} />
+        </View>
       </View>
 
-      {/* Session Flow Skeleton */}
-      <View style={restockSessionsStyles.sessionContainer}>
-        {/* Session Summary */}
-        <View style={restockSessionsStyles.sessionSummary}>
-          <SkeletonBox width="80%" height={14} />
-        </View>
+      {/* Session Summary Skeleton */}
+      <View style={restockSessionsStyles.sessionSummary}>
+        <SkeletonBox width="90%" height={16} />
+      </View>
 
-        {/* Add Product Section */}
-        <View style={restockSessionsStyles.addProductSection}>
-          <SkeletonBox width="90%" height={14} />
-        </View>
+      {/* Instructions Section Skeleton */}
+      <View style={restockSessionsStyles.addProductSection}>
+        <SkeletonBox width="85%" height={16} />
+      </View>
 
-        {/* Product List Skeleton */}
-        <View style={restockSessionsStyles.productList}>
-          {/* Product Item 1 */}
-          <View style={restockSessionsStyles.productItem}>
-            <View style={styles.productInfo}>
-              <SkeletonBox width="60%" height={18} />
-              <SkeletonBox width="40%" height={14} style={{ marginTop: 4 }} />
-            </View>
+      {/* Product List Skeleton */}
+      <View style={restockSessionsStyles.productList}>
+        {/* Product Item Skeleton */}
+        <View style={restockSessionsStyles.productItem}>
+          {/* Product Header */}
+          <View style={restockSessionsStyles.productHeader}>
+            <SkeletonBox width="50%" height={18} />
+            <SkeletonBox width="20%" height={16} />
             <View style={styles.productActions}>
-              <SkeletonBox width={24} height={24} borderRadius={12} />
-              <SkeletonBox width={24} height={24} borderRadius={12} style={{ marginLeft: 8 }} />
+              <SkeletonBox width={32} height={32} borderRadius={16} />
+              <SkeletonBox width={32} height={32} borderRadius={16} style={{ marginLeft: 8 }} />
             </View>
           </View>
-
-          {/* Product Item 2 */}
-          <View style={restockSessionsStyles.productItem}>
-            <View style={styles.productInfo}>
-              <SkeletonBox width="70%" height={18} />
-              <SkeletonBox width="50%" height={14} style={{ marginTop: 4 }} />
-            </View>
-            <View style={styles.productActions}>
-              <SkeletonBox width={24} height={24} borderRadius={12} />
-              <SkeletonBox width={24} height={24} borderRadius={12} style={{ marginLeft: 8 }} />
-            </View>
+          
+          {/* Notepad divider line */}
+          <View style={restockSessionsStyles.notepadDivider} />
+          
+          {/* Product Details */}
+          <View style={restockSessionsStyles.productInfoRow}>
+            <SkeletonBox width="25%" height={14} />
+            <SkeletonBox width="60%" height={14} />
           </View>
-
-          {/* Product Item 3 */}
-          <View style={restockSessionsStyles.productItem}>
-            <View style={styles.productInfo}>
-              <SkeletonBox width="55%" height={18} />
-              <SkeletonBox width="35%" height={14} style={{ marginTop: 4 }} />
-            </View>
-            <View style={styles.productActions}>
-              <SkeletonBox width={24} height={24} borderRadius={12} />
-              <SkeletonBox width={24} height={24} borderRadius={12} style={{ marginLeft: 8 }} />
-            </View>
+          
+          <View style={restockSessionsStyles.notepadDivider} />
+          
+          <View style={restockSessionsStyles.productInfoRow}>
+            <SkeletonBox width="35%" height={14} />
+            <SkeletonBox width="50%" height={14} />
+          </View>
+          
+          <View style={restockSessionsStyles.notepadDivider} />
+          
+          <View style={restockSessionsStyles.productInfoRow}>
+            <SkeletonBox width="35%" height={14} />
+            <SkeletonBox width="55%" height={14} />
           </View>
         </View>
 
-        {/* Action Buttons */}
-        <View style={restockSessionsStyles.bottomFinishSection}>
-          <SkeletonBox width="45%" height={48} borderRadius={12} />
-          <SkeletonBox width="45%" height={48} borderRadius={12} />
+        {/* Add Product Button Skeleton */}
+        <View style={restockSessionsStyles.integratedAddButton}>
+          <SkeletonBox width={18} height={18} borderRadius={9} />
+          <SkeletonBox width="30%" height={16} style={{ marginLeft: 12 }} />
         </View>
+      </View>
+
+      {/* Bottom Finish Button Skeleton */}
+      <View style={restockSessionsStyles.bottomFinishSection}>
+        <SkeletonBox width="100%" height={48} borderRadius={12} />
       </View>
     </View>
   );
@@ -77,10 +79,7 @@ export default function RestockSessionsSkeleton() {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#f8f9fa',
-  },
-  productInfo: {
-    flex: 1,
+    backgroundColor: '#FEFDF9',
   },
   productActions: {
     flexDirection: 'row',

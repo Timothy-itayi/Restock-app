@@ -1,13 +1,18 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, ScrollView } from 'react-native';
+
 import { dashboardStyles } from '../../../styles/components/dashboard';
 import SkeletonBox from './SkeletonBox';
 
 export default function DashboardSkeleton() {
   return (
-    <View style={[dashboardStyles.container, dashboardStyles.contentContainer, styles.container]}>
+    <ScrollView 
+      style={dashboardStyles.container} 
+      contentContainerStyle={[dashboardStyles.contentContainer, { paddingTop: 65 }]}
+      showsVerticalScrollIndicator={false}
+    >
       {/* Welcome Section Skeleton */}
-      <View style={dashboardStyles.welcomeSection}>
+      <View style={[dashboardStyles.welcomeSection, { paddingTop: 8 }]}>
         <SkeletonBox width="60%" height={36} />
         <SkeletonBox width="80%" height={22} style={{ marginTop: 8 }} />
       </View>
@@ -78,14 +83,11 @@ export default function DashboardSkeleton() {
           </View>
         </View>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: '#f8f9fa',
-  },
   breakdownLabels: {
     flexDirection: 'row',
     justifyContent: 'space-between',
