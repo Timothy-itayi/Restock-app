@@ -180,4 +180,7 @@ The app builds a database from the user's own data, learning and remembering pro
 
 **Status**: 🚧 Active Development - 85% Complete
 
-A work in progress..
+
+The main application code is located in the `restock/` directory. This is a mobile-first application designed for inventory management workflows.
+
+
