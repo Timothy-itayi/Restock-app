@@ -67,6 +67,12 @@ export interface EmailSent {
   sent_at: string;
   status: 'pending' | 'sent' | 'failed';
   error_message?: string;
+  // New Resend integration fields
+  delivery_status?: string; // delivered, bounced, complained, etc.
+  sent_via?: string; // resend, sendgrid, etc.
+  tracking_id?: string; // Resend message ID
+  resend_webhook_data?: string; // JSON string of webhook data
+  updated_at?: string;
 }
 
 // Insert types
@@ -122,6 +128,11 @@ export interface InsertEmailSent {
   email_content: string;
   status?: 'pending' | 'sent' | 'failed';
   error_message?: string;
+  // New Resend integration fields
+  delivery_status?: string;
+  sent_via?: string;
+  tracking_id?: string;
+  resend_webhook_data?: string;
 }
 
 // Update types
@@ -145,4 +156,11 @@ export interface UpdateRestockSession {
 export interface UpdateEmailSent {
   status?: 'pending' | 'sent' | 'failed';
   error_message?: string;
+  // New Resend integration fields
+  delivery_status?: string;
+  sent_via?: string;
+  tracking_id?: string;
+  resend_webhook_data?: string;
+  sent_at?: string;
+  updated_at?: string;
 } 
