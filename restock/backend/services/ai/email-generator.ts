@@ -6,6 +6,7 @@ import {
   GeneratedEmail, 
   GenerationProgress 
 } from './types';
+import { UserProfileService } from '../user-profile';
 
 export class EmailGenerator {
   private llmClient: GroqEmailClient;
@@ -65,7 +66,7 @@ export class EmailGenerator {
         throw new Error('No supplier data found in session');
       }
 
-      const storeName = 'Greenfields Grocery'; // Default store name
+      // Store name will be retrieved from user profile in buildEmailContext
 
       // Step 3: Generate emails for each supplier
       const totalSuppliers = Object.keys(processedGroupedItems).length;
@@ -84,9 +85,14 @@ export class EmailGenerator {
         const supplier = (supplierData as any).supplier;
         const items = (supplierData as any).items;
 
-        // Validate supplier and items
-        if (!supplier || !supplier.name || !supplier.email) {
-          console.warn(`Invalid supplier info for ${supplierId}, skipping...`);
+        // Validate supplier and items with enhanced email validation
+        if (!supplier || !supplier.name) {
+          console.warn(`Invalid supplier info for ${supplierId}: missing name, skipping...`);
+          continue;
+        }
+
+        if (!supplier.email || !this.isValidEmail(supplier.email)) {
+          console.warn(`Invalid supplier email for ${supplier.name}: ${supplier.email}, skipping...`);
           continue;
         }
 
@@ -105,7 +111,7 @@ export class EmailGenerator {
 
         try {
           const emailContext = await this.buildEmailContext(
-            storeName,
+            'Store', // Placeholder - will be replaced with actual store name from user profile
             supplier,
             items,
             userId,
@@ -197,17 +203,53 @@ export class EmailGenerator {
     userId: string,
     options: EmailGenerationOptions
   ): Promise<EmailContext> {
-    // Validate inputs
-    if (!supplier || !supplier.name || !supplier.email) {
-      throw new Error('Invalid supplier data');
+    // Validate inputs with enhanced email validation
+    if (!supplier || !supplier.name) {
+      throw new Error('Invalid supplier data: missing supplier name');
+    }
+
+    if (!supplier.email) {
+      throw new Error(`Missing email address for supplier: ${supplier.name}`);
+    }
+
+    if (!this.isValidEmail(supplier.email)) {
+      throw new Error(`Invalid email format for supplier ${supplier.name}: ${supplier.email}`);
     }
 
     if (!items || !Array.isArray(items) || items.length === 0) {
-      throw new Error('No items provided for email generation');
+      throw new Error(`No items provided for email generation for supplier: ${supplier.name}`);
     }
 
     console.log('🔍 Building email context for supplier:', supplier.name);
     console.log('📦 Items to process:', items.length);
+
+    // Fetch user profile information
+    let userProfile;
+    let userEmail = '';
+    let userName = '';
+    let actualStoreName = storeName; // Default to passed storeName
+    
+    try {
+      console.log('👤 Fetching user profile for userId:', userId);
+      const profileResult = await UserProfileService.getUserProfile(userId);
+      userProfile = profileResult.data;
+      
+      if (userProfile) {
+        userEmail = userProfile.email || '';
+        userName = userProfile.name || '';
+        // Use the actual store name from user profile if available
+        actualStoreName = userProfile.store_name || storeName;
+        console.log('✅ Retrieved user info:', { userEmail, userName, actualStoreName });
+      } else {
+        console.warn('⚠️ No user profile found, using defaults');
+        userEmail = 'manager@store.com'; // Fallback
+        userName = 'Store Manager';
+      }
+    } catch (error) {
+      console.error('❌ Error fetching user profile:', error);
+      userEmail = 'manager@store.com'; // Fallback
+      userName = 'Store Manager';
+    }
 
     // Convert items to ProductItem format with validation
     const products = items.map((item, index) => {
@@ -236,12 +278,14 @@ export class EmailGenerator {
     console.log('✅ Successfully processed products:', products);
 
     return {
-      storeName: storeName || 'Greenfields Grocery',
+      storeName: actualStoreName || 'Your Store',
       supplierName: supplier.name,
       supplierEmail: supplier.email,
       products,
       tone: options.tone || 'professional',
-      urgencyLevel: options.urgencyLevel || 'normal'
+      urgencyLevel: options.urgencyLevel || 'normal',
+      userEmail,
+      userName
     };
   }
 
@@ -260,7 +304,7 @@ export class EmailGenerator {
     feedback: string,
     context: EmailContext
   ): Promise<GeneratedEmail> {
-    return this.llmClient.regenerateEmail(originalEmail, feedback);
+    return this.llmClient.regenerateEmail(originalEmail, feedback, context);
   }
 
   async generatePersonalizedEmail(
@@ -277,5 +321,44 @@ export class EmailGenerator {
   async cleanup() {
     await this.llmClient.cleanup();
     this.isInitialized = false;
+  }
+
+  private isValidEmail(email: string): boolean {
+    // Enhanced email validation
+    if (!email || typeof email !== 'string') {
+      return false;
+    }
+
+    // Trim whitespace
+    email = email.trim();
+
+    // Basic format check
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return false;
+    }
+
+    // Additional checks
+    if (email.length > 254) { // RFC 5321 limit
+      return false;
+    }
+
+    // Check for common invalid patterns
+    const invalidPatterns = [
+      /^[.]/,           // Starts with dot
+      /[.]$/,           // Ends with dot
+      /[.]{2,}/,        // Multiple consecutive dots
+      /@[.]/,           // Dot immediately after @
+      /[.]@/,           // Dot immediately before @
+      /[@]{2,}/,        // Multiple @ symbols
+    ];
+
+    for (const pattern of invalidPatterns) {
+      if (pattern.test(email)) {
+        return false;
+      }
+    }
+
+    return true;
   }
 } 

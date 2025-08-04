@@ -47,8 +47,6 @@ const RestockSessionsContent: React.FC = () => {
     editingProduct,
     showAddProductForm,
     showEditProductForm,
-    notifications,
-    notificationAnimation,
     storedProducts,
     storedSuppliers,
 
@@ -58,7 +56,7 @@ const RestockSessionsContent: React.FC = () => {
     deleteSession,
     showSessionSelectionModal,
     updateCurrentSession,
-    retryLoadData,
+    
     updateStoredProducts,
     updateStoredSuppliers,
     handleProductNameChange,
@@ -75,8 +73,7 @@ const RestockSessionsContent: React.FC = () => {
     cancelAddProduct,
     setShowAddProductForm,
     showNotification,
-    removeNotification,
-    getNotificationStyles,
+   
     loadAllSessions
   } = useRestockSessionContext();
 

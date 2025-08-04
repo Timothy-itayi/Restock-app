@@ -9,6 +9,9 @@ export interface EmailContext {
   tone: 'professional' | 'friendly' | 'urgent';
   specialInstructions?: string;
   urgencyLevel: 'normal' | 'urgent' | 'rush';
+  // User/sender information
+  userEmail: string;
+  userName?: string;
 }
 
 export interface ProductItem {

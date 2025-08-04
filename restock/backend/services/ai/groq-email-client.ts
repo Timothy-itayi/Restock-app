@@ -77,7 +77,8 @@ export class GroqEmailClient {
           name: product.name,
           quantity: product.quantity
         })),
-        user: 'Store Manager',
+        user: context.userName || 'Store Manager',
+        userEmail: context.userEmail,
         storeName: context.storeName,
         urgency: context.urgencyLevel || 'normal',
         tone: context.tone || 'professional'
@@ -122,32 +123,94 @@ export class GroqEmailClient {
   private generateFallbackEmail(context: EmailContext, maxLength: number = 300): GeneratedEmail {
     const startTime = Date.now();
     
-    // Build product list
-    const productList = context.products.map(p => `• ${p.quantity}x ${p.name}`).join('\n');
+    // Build detailed product list with better formatting
+    const productList = context.products.map(p => {
+      const notes = p.notes ? ` (${p.notes})` : '';
+      return `• ${p.quantity}x ${p.name}${notes}`;
+    }).join('\n');
     
-    // Generate subject based on urgency
-    let subject = 'Restock Order Request';
+    // Generate personalized subject based on urgency and supplier
+    let subject = `Restock Order from ${context.storeName}`;
     if (context.urgencyLevel === 'urgent') {
-      subject = 'Urgent Restock Order Request';
+      subject = `Urgent Restock Order - ${context.storeName}`;
     } else if (context.urgencyLevel === 'rush') {
-      subject = 'Rush Restock Order Request';
+      subject = `Rush Order - ${context.storeName} to ${context.supplierName}`;
     }
 
-    // Generate email body
-    const greeting = `Hi ${context.supplierName} team,`;
-    const intro = `We hope you're doing well! We'd like to place a restock order for the following items:`;
-    const closing = `Please confirm availability at your earliest convenience.\n\nThank you as always for your continued support.\n\nBest regards,\n${context.storeName}`;
+    // Generate personalized email body based on tone
+    const personalizedGreeting = this.getPersonalizedGreeting(context);
+    const intro = this.getPersonalizedIntro(context);
+    const urgencyNote = this.getUrgencyNote(context.urgencyLevel);
+    const closing = this.getPersonalizedClosing(context);
     
-    const body = `${greeting}\n\n${intro}\n\n${productList}\n\n${closing}`;
+    const body = `${personalizedGreeting}\n\n${intro}\n\n${productList}\n\n${urgencyNote}${closing}`;
 
     const generationTime = Date.now() - startTime;
 
     return {
       subject,
       body,
-      confidence: 0.8, // Lower confidence for fallback
+      confidence: 0.85, // Slightly higher confidence for improved fallback
       generationTime
     };
+  }
+
+  private getPersonalizedGreeting(context: EmailContext): string {
+    switch (context.tone) {
+      case 'friendly':
+        return `Hello ${context.supplierName} team,\n\nI hope you're having a great day!`;
+      case 'urgent':
+        return `Dear ${context.supplierName},`;
+      case 'professional':
+      default:
+        return `Dear ${context.supplierName} team,\n\nI hope this email finds you well.`;
+    }
+  }
+
+  private getPersonalizedIntro(context: EmailContext): string {
+    switch (context.tone) {
+      case 'friendly':
+        return `We're reaching out to place our next restock order with you. Here's what we need:`;
+      case 'urgent':
+        return `I need to place a restock order with the following products:`;
+      case 'professional':
+      default:
+        return `We would like to place a restock order for the following items:`;
+    }
+  }
+
+  private getUrgencyNote(urgencyLevel: string): string {
+    switch (urgencyLevel) {
+      case 'rush':
+        return `Please note: This is a rush order and we would appreciate delivery within 24 hours if possible.\n\n`;
+      case 'urgent':
+        return `Please prioritize this order for delivery within 2-3 business days.\n\n`;
+      case 'normal':
+      default:
+        return ``;
+    }
+  }
+
+  private getPersonalizedClosing(context: EmailContext): string {
+    const userName = context.userName || 'Store Manager';
+    const baseClosing = `Please confirm availability and expected delivery time at your earliest convenience.
+
+Thank you for your continued partnership and excellent service.
+
+Best regards,
+${userName}
+${context.storeName}
+${context.userEmail}`;
+
+    switch (context.tone) {
+      case 'friendly':
+        return `Looking forward to hearing from you soon!\n\n${baseClosing}`;
+      case 'urgent':
+        return `Your prompt response would be greatly appreciated.\n\n${baseClosing}`;
+      case 'professional':
+      default:
+        return baseClosing;
+    }
   }
 
   async generateSubject(context: EmailContext): Promise<string> {
@@ -155,18 +218,21 @@ export class GroqEmailClient {
     return result.subject;
   }
 
-  async regenerateEmail(originalEmail: string, feedback: string): Promise<GeneratedEmail> {
-    // For regeneration, we'll create a new context with the feedback
-    const context: EmailContext = {
+  async regenerateEmail(originalEmail: string, feedback: string, context?: EmailContext): Promise<GeneratedEmail> {
+    // Use provided context or create a fallback context
+    const emailContext = context || {
       supplierName: 'Supplier',
       supplierEmail: 'supplier@example.com',
       products: [],
-      storeName: 'Store',
+      storeName: 'Your Store',
       tone: 'professional',
-      urgencyLevel: 'normal'
+      urgencyLevel: 'normal',
+      userEmail: 'manager@store.com',
+      userName: 'Store Manager'
     };
 
-    return this.generateEmail(context);
+    // For now, regenerate using the current context - could be enhanced to use feedback
+    return this.generateEmail(emailContext);
   }
 
   getModelInfo(): { name: string; size: number } {

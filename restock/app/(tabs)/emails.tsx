@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Alert, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { emailsStyles } from "../../styles/components/emails";
 import { Ionicons } from "@expo/vector-icons";
+import { useAuth } from "@clerk/clerk-expo";
+import { UserProfileService } from "../../backend/services/user-profile";
 
 // Types for email data
 interface EmailDraft {
@@ -13,6 +15,7 @@ interface EmailDraft {
   body: string;
   status: 'draft' | 'sending' | 'sent' | 'failed';
   products: string[];
+  isEdited?: boolean;
 }
 
 interface SessionData {
@@ -23,6 +26,7 @@ interface SessionData {
 }
 
 export default function EmailsScreen() {
+  const { userId } = useAuth();
   const [emailSession, setEmailSession] = useState<{
     id: string;
     emails: EmailDraft[];
@@ -30,10 +34,45 @@ export default function EmailsScreen() {
     createdAt: Date;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [userName, setUserName] = useState<string>("");
+  const [userEmail, setUserEmail] = useState<string>("");
+  const [storeName, setStoreName] = useState<string>("");
+  
+  // Email editing state
+  const [editingEmail, setEditingEmail] = useState<EmailDraft | null>(null);
+  const [editedSubject, setEditedSubject] = useState('');
+  const [editedBody, setEditedBody] = useState('');
+  const [showEditModal, setShowEditModal] = useState(false);
 
-  // Load session data from AsyncStorage
+  // Load user profile data
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      if (!userId) return;
+      
+      try {
+        const result = await UserProfileService.getUserProfile(userId);
+        if (result.data) {
+          setUserName(result.data.name || "");
+          setUserEmail(result.data.email || "");
+          setStoreName(result.data.store_name || "");
+        }
+      } catch (error) {
+        console.error('Error loading user profile:', error);
+      }
+    };
+
+    loadUserProfile();
+  }, [userId]);
+
+  // Load session data from AsyncStorage - wait for user profile to load first
   useEffect(() => {
     const loadSessionData = async () => {
+      // Don't load session data until we have userId
+      if (!userId) {
+        setIsLoading(false);
+        return;
+      }
+      
       try {
         setIsLoading(true);
         const sessionDataString = await AsyncStorage.getItem('currentEmailSession');
@@ -62,7 +101,14 @@ export default function EmailsScreen() {
           
           // Generate email drafts from session data
           if (sessionData.products && sessionData.products.length > 0) {
-            const emails = generateEmailsFromSession(sessionData.products);
+            let emails = generateEmailsFromSession(sessionData.products, storeName, userName, userEmail);
+            
+            // Check if there are edited emails and use those instead
+            if (sessionData.editedEmails && Array.isArray(sessionData.editedEmails)) {
+              console.log('📝 Using edited emails from session');
+              emails = sessionData.editedEmails;
+            }
+            
             setEmailSession({
               id: sessionData.sessionId,
               emails,
@@ -87,11 +133,18 @@ export default function EmailsScreen() {
     };
 
     loadSessionData();
-  }, []);
+  }, [userId, storeName, userName, userEmail]); // Depend on user profile data
 
   // Generate email drafts from session products
-  const generateEmailsFromSession = (products: any[]): EmailDraft[] => {
+  const generateEmailsFromSession = (products: any[], userStoreName?: string, userUserName?: string, userUserEmail?: string): EmailDraft[] => {
     console.log('🔄 Generating emails from session products...');
+    
+    // Use actual user data or fallbacks
+    const actualStoreName = userStoreName || 'Your Store';
+    const actualUserName = userUserName || 'Store Manager';
+    const actualUserEmail = userUserEmail || 'manager@store.com';
+    
+    console.log('📝 Using user info for emails:', { actualStoreName, actualUserName, actualUserEmail });
     
     // Group products by supplier
     const supplierGroups: { [key: string]: any[] } = {};
@@ -112,12 +165,65 @@ export default function EmailsScreen() {
         id: `email-${index}`,
         supplierName,
         supplierEmail: supplierProducts[0].supplierEmail || 'supplier@example.com',
-        subject: `Restock Order from Greenfields Grocery`,
-        body: `Hi ${supplierName} team,\n\nWe hope you're doing well! We'd like to place a restock order for the following items:\n\n${productList}\n\nPlease confirm availability at your earliest convenience.\n\nThank you as always for your continued support.\n\nBest regards,\nGreenfields Grocery`,
+        subject: `Restock Order from ${actualStoreName}`,
+        body: `Hi ${supplierName} team,\n\nWe hope you're doing well! We'd like to place a restock order for the following items:\n\n${productList}\n\nPlease confirm availability at your earliest convenience.\n\nThank you as always for your continued support.\n\nBest regards,\n${actualUserName}\n${actualStoreName}\n${actualUserEmail}`,
         status: 'draft' as const,
         products: supplierProducts.map(p => `${p.quantity}x ${p.name}`),
       };
     });
+  };
+
+  const handleEditEmail = (email: EmailDraft) => {
+    setEditingEmail(email);
+    setEditedSubject(email.subject);
+    setEditedBody(email.body);
+    setShowEditModal(true);
+  };
+
+  const handleSaveEmail = async () => {
+    if (!editingEmail || !emailSession) return;
+
+    // Update the email in the session
+    const updatedEmails = emailSession.emails.map(email => 
+      email.id === editingEmail.id 
+        ? { ...email, subject: editedSubject, body: editedBody, isEdited: true }
+        : email
+    );
+
+    const updatedSession = {
+      ...emailSession,
+      emails: updatedEmails
+    };
+
+    setEmailSession(updatedSession);
+    
+    // Save to AsyncStorage
+    try {
+      const sessionData = await AsyncStorage.getItem('currentEmailSession');
+      if (sessionData) {
+        const parsedSession = JSON.parse(sessionData);
+        // Keep the original session structure but update with edited emails
+        await AsyncStorage.setItem('currentEmailSession', JSON.stringify({
+          ...parsedSession,
+          editedEmails: updatedEmails // Store edited emails separately
+        }));
+      }
+    } catch (error) {
+      console.error('Error saving edited email:', error);
+    }
+
+    // Close modal
+    setShowEditModal(false);
+    setEditingEmail(null);
+    setEditedSubject('');
+    setEditedBody('');
+  };
+
+  const handleCancelEdit = () => {
+    setShowEditModal(false);
+    setEditingEmail(null);
+    setEditedSubject('');
+    setEditedBody('');
   };
 
   const handleSendAllEmails = () => {
@@ -219,6 +325,16 @@ export default function EmailsScreen() {
             <Text style={emailsStyles.summaryText}>
               Emails auto-generated using your session data
             </Text>
+            {(storeName || userEmail || userName) && (
+              <View style={{ marginTop: 8, padding: 12, backgroundColor: '#F8F9FA', borderRadius: 8 }}>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#495057', marginBottom: 4 }}>
+                  Sender Information:
+                </Text>
+                {storeName && <Text style={{ fontSize: 11, color: '#6C757D' }}>Store: {storeName}</Text>}
+                {userName && <Text style={{ fontSize: 11, color: '#6C757D' }}>Name: {userName}</Text>}
+                {userEmail && <Text style={{ fontSize: 11, color: '#6C757D' }}>Email: {userEmail}</Text>}
+              </View>
+            )}
           </View>
 
           {/* Email List */}
@@ -227,7 +343,14 @@ export default function EmailsScreen() {
               <View key={email.id} style={emailsStyles.emailCard}>
                 <View style={emailsStyles.emailCardHeader}>
                   <View style={emailsStyles.emailDetails}>
-                    <Text style={emailsStyles.emailSubject}>{email.subject}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <Text style={emailsStyles.emailSubject}>{email.subject}</Text>
+                      {email.isEdited && (
+                        <View style={emailsStyles.editedBadge}>
+                          <Text style={emailsStyles.editedBadgeText}>Edited</Text>
+                        </View>
+                      )}
+                    </View>
                   </View>
                 </View>
                 
@@ -255,6 +378,14 @@ export default function EmailsScreen() {
                 </Text>
                 
                 <View style={emailsStyles.emailActions}>
+                  <TouchableOpacity 
+                    style={emailsStyles.editButton}
+                    onPress={() => handleEditEmail(email)}
+                  >
+                    <Ionicons name="pencil" size={16} color="#6B7F6B" />
+                    <Text style={emailsStyles.editButtonText}>Edit</Text>
+                  </TouchableOpacity>
+                  
                   <View style={emailsStyles.statusBadge}>
                     <Text style={emailsStyles.statusText}>Draft</Text>
                   </View>
@@ -278,6 +409,82 @@ export default function EmailsScreen() {
           </View>
         </>
       )}
+
+      {/* Email Edit Modal */}
+      <Modal
+        visible={showEditModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <KeyboardAvoidingView 
+          style={{ flex: 1 }} 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <View style={emailsStyles.modalContainer}>
+            {/* Modal Header */}
+            <View style={emailsStyles.modalHeader}>
+              <TouchableOpacity onPress={handleCancelEdit}>
+                <Text style={emailsStyles.modalCancelButton}>Cancel</Text>
+              </TouchableOpacity>
+              
+              <Text style={emailsStyles.modalTitle}>Edit Email</Text>
+              
+              <TouchableOpacity onPress={handleSaveEmail}>
+                <Text style={emailsStyles.modalSaveButton}>Save</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={emailsStyles.modalContent} showsVerticalScrollIndicator={false}>
+              {/* Supplier Info */}
+              {editingEmail && (
+                <View style={emailsStyles.modalSupplierInfo}>
+                  <Text style={emailsStyles.modalSupplierName}>To: {editingEmail.supplierName}</Text>
+                  <Text style={emailsStyles.modalSupplierEmail}>{editingEmail.supplierEmail}</Text>
+                </View>
+              )}
+
+              {/* Subject Input */}
+              <View style={emailsStyles.modalInputSection}>
+                <Text style={emailsStyles.modalInputLabel}>Subject</Text>
+                <TextInput
+                  style={emailsStyles.modalSubjectInput}
+                  value={editedSubject}
+                  onChangeText={setEditedSubject}
+                  placeholder="Email subject"
+                  multiline={false}
+                />
+              </View>
+
+              {/* Body Input */}
+              <View style={emailsStyles.modalInputSection}>
+                <Text style={emailsStyles.modalInputLabel}>Message</Text>
+                <TextInput
+                  style={emailsStyles.modalBodyInput}
+                  value={editedBody}
+                  onChangeText={setEditedBody}
+                  placeholder="Email message"
+                  multiline={true}
+                  textAlignVertical="top"
+                />
+              </View>
+
+              {/* Product List Preview */}
+              {editingEmail && (
+                <View style={emailsStyles.modalProductsSection}>
+                  <Text style={emailsStyles.modalInputLabel}>Products in this order</Text>
+                  <View style={emailsStyles.modalProductsList}>
+                    {editingEmail.products.map((product, index) => (
+                      <Text key={index} style={emailsStyles.modalProductItem}>
+                        • {product}
+                      </Text>
+                    ))}
+                  </View>
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 } 
