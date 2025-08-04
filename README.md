@@ -1,5 +1,5 @@
 # Restock App
-
+<img src="restock-icon.png" alt="Restock App Icon" width="400">
 <img src="IMG_1902.PNG" alt="Restock App Screenshot" width="400">
 
 A mobile-first application designed to streamline the restocking process for small business and grocery store owners. This app transforms the traditional clipboard-based restocking workflow into an efficient, AI-powered system that reduces restock time from 3-4 hours to 15-25 minutes.
