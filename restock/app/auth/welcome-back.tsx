@@ -96,27 +96,34 @@ export default function WelcomeBackScreen() {
         
         // Set the created session as active - this is crucial for OAuth completion
         if (result.createdSessionId) {
-          console.log('Setting created session as active...');
+          console.log('🔧 Setting created session as active:', result.createdSessionId);
           await setActive({ session: result.createdSessionId });
-          console.log('Session set as active successfully');
+          console.log('✅ Session set as active successfully');
+          
+          // Log auth state immediately after setActive to track timing
+          console.log('📊 Auth state immediately after setActive:', { isLoaded, isSignedIn });
+          
+          // OAuth was successful and session is set - trust this result
+          // The auth layout will handle automatic redirect when isSignedIn becomes true
+          console.log('✅ OAuth completion successful - trusting setActive result');
+          await AsyncStorage.setItem('justCompletedSSO', 'true');
+          await AsyncStorage.removeItem('oauthProcessing');
+          
+          // Save session data for returning user detection
+          await SessionManager.saveUserSession({
+            userId: result.createdSessionId || '',
+            email: lastUserEmail || '',
+            wasSignedIn: true,
+            lastSignIn: Date.now(),
+            lastAuthMethod: 'google',
+          });
+          
+          // Let the auth layout handle navigation automatically
+          console.log('🔄 Waiting for auth layout to handle automatic redirect...');
+        } else {
+          console.log('❌ OAuth successful but no session ID created');
+          Alert.alert('Authentication Error', 'Failed to complete authentication. Please try again.');
         }
-        
-        // Since OAuth was successful and we have a session ID, authentication is complete
-        console.log('OAuth completion successful - session created:', result.createdSessionId);
-        await AsyncStorage.setItem('justCompletedSSO', 'true');
-        await AsyncStorage.removeItem('oauthProcessing');
-        
-        // Save session data for returning user detection
-        await SessionManager.saveUserSession({
-          userId: result.createdSessionId || '',
-          email: lastUserEmail || '',
-          wasSignedIn: true,
-          lastSignIn: Date.now(),
-          lastAuthMethod: 'google',
-        });
-        
-        // Navigate to dashboard
-        router.replace('/(tabs)/dashboard');
       }
     } catch (err: any) {
       console.error('Google OAuth sign in error:', JSON.stringify(err, null, 2));

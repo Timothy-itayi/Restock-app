@@ -3,7 +3,6 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import { ClerkProvider } from "@clerk/clerk-expo";
-import { tokenCache } from "@clerk/clerk-expo/token-cache";
 import { CLERK_PUBLISHABLE_KEY } from "../backend/config/clerk";
 import { AuthProvider } from "./_contexts/AuthContext";
 import AuthVerificationGate from "./components/AuthVerificationGate";

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View } from 'react-native';
+
 import { useAuthContext } from '../_contexts/AuthContext';
 import { DashboardSkeleton } from './skeleton';
 
