@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Alert, ScrollView, KeyboardAvoidingView, Platform, TextInput } from 'react-native';
-import { router, Link } from 'expo-router';
+import { router } from 'expo-router';
 import { useSignIn, useAuth, useSSO } from '@clerk/clerk-expo';
 import { SessionManager } from '../../backend/services/session-manager';
 import { EmailAuthService } from '../../backend/services/email-auth';
