@@ -6,3 +6,7 @@
 .env.development
 .env.test
 .env.production
+
+# Markdown files
+*.md
+!README.md
