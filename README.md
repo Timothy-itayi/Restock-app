@@ -1,18 +1,14 @@
 # Restock - Streamlining Restocking for Independent Retailers
 
+## Main Screens
+| App Icon | Dashboard | Restock Sessions |
+|----------|-----------|------------------|
+| <img src="restock-icon.png" alt="Restock App Icon" width="120"/> | <img src="IMG_1915.PNG" alt="Dashboard Screen" width="200"/> | <img src="IMG_1902.PNG" alt="Restock Sessions Screen" width="200"/> |
 
-<p align="left">
-  <img src="restock-icon.png" alt="Restock App Icon" width="120" />
-  <img src="IMG_1915.PNG" alt="Restock App Screenshot" width="240" />
-  <img src="IMG_1902.PNG" alt="Restock App Screenshot" width="240" />  
-  <img src="restock-session-user-prompt.PNG" alt="Restock App Screenshot" width="240" />  
-  <img src="restock-session-session-list.PNG" alt="Restock App Screenshot" width="240" />
-
-
-  
-</p>
-
-A mobile-first application designed to streamline the restocking process for small business and grocery store owners. This app transforms the traditional clipboard-based restocking workflow into an efficient, AI-powered system that reduces restock time from 3-4 hours to 15-25 minutes.
+## User Experience
+| User Prompt | Session List |
+|-------------|--------------|
+| <img src="restock-session-user-prompt.PNG" alt="User Prompt Screen" width="200"/> | <img src="restock-session-session-list.PNG" alt="Session List Screen" width="200"/> |
 
 ## The Problem
 
