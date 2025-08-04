@@ -369,20 +369,6 @@ export const emailsStyles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
   },
-  modalCancelButton: {
-    backgroundColor: "#F8F9FA",
-    borderColor: "#E5E5E5",
-  },
-  modalCancelButtonText: {
-    color: "#000000",
-  },
-  modalSaveButton: {
-    backgroundColor: "#000000",
-    borderColor: "#000000",
-  },
-  modalSaveButtonText: {
-    color: "#FFFFFF",
-  },
   sendingOverlay: {
     position: "absolute",
     top: 0,

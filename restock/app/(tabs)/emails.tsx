@@ -23,6 +23,7 @@ interface SessionData {
   sessionId: string;
   createdAt: Date;
   groupedItems?: any;
+  editedEmails?: EmailDraft[];
 }
 
 export default function EmailsScreen() {
