@@ -1,7 +1,7 @@
 # Restock - Streamlining Restocking for Independent Retailers
 
 ## Main Screens
-| App Icon | Dashboard | Restock Sessions |
+| App Icon | Onboard/Auth | Dashboard |
 |----------|-----------|------------------|
 | <img src="restock-icon.png" alt="Restock App Icon" width="120"/> | <img src="IMG_1915.PNG" alt="Dashboard Screen" width="200"/> | <img src="IMG_1902.PNG" alt="Restock Sessions Screen" width="200"/> |
 
