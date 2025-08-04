@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, TextInput, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
-import { router, Link } from 'expo-router';
+import { Link } from 'expo-router';
 import { useSignIn, useAuth, useSSO } from '@clerk/clerk-expo';
 import { SessionManager } from '../../backend/services/session-manager';
-import { ClerkClientService } from '../../backend/services/clerk-client';
 import { UserProfileService } from '../../backend/services/user-profile';
 import { EmailAuthService } from '../../backend/services/email-auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -14,7 +13,7 @@ import { useAuthContext } from '../_contexts/AuthContext';
 
 export default function SignInScreen() {
   const { signIn, setActive, isLoaded } = useSignIn();
-  const { isSignedIn, userId } = useAuth();
+  const { isSignedIn } = useAuth();
   const { startSSOFlow } = useSSO();
   const { triggerAuthCheck } = useAuthContext();
   
@@ -141,14 +140,16 @@ export default function SignInScreen() {
         
         // Set the created session as active - this is crucial for OAuth completion
         if (result.createdSessionId) {
-          console.log('Setting created session as active...');
+          console.log('🔧 Setting created session as active:', result.createdSessionId);
           await setActive({ session: result.createdSessionId });
-          console.log('Session set as active successfully');
-        }
-        
-        // Check if user is already authenticated before polling
-        if (isSignedIn && userId) {
-          console.log('User already authenticated after OAuth, skipping polling');
+          console.log('✅ Session set as active successfully');
+          
+          // Log auth state immediately after setActive to track timing
+          console.log('📊 Auth state immediately after setActive:', { isLoaded, isSignedIn });
+          
+          // OAuth was successful and session is set - trust this result
+          // The auth layout will handle automatic redirect when isSignedIn becomes true
+          console.log('✅ OAuth completion successful - trusting setActive result');
           await AsyncStorage.setItem('justCompletedSSO', 'true');
           await AsyncStorage.removeItem('oauthProcessing');
           
@@ -165,37 +166,11 @@ export default function SignInScreen() {
             lastAuthMethod: 'google',
           });
           
-          // Navigate to dashboard
-          router.replace('/(tabs)/dashboard');
+          // Let the auth layout handle navigation automatically
+          console.log('🔄 Waiting for auth layout to handle automatic redirect...');
         } else {
-          // Use the new auth state polling service to handle OAuth completion
-          const oauthSuccess = await ClerkClientService.handleOAuthCompletion(() => ({
-            isLoaded: Boolean(isLoaded),
-            isSignedIn: Boolean(isSignedIn)
-          }));
-          
-          if (oauthSuccess) {
-            console.log('OAuth completion handled successfully with auth state polling');
-            
-            // Save session data for returning user detection
-            // Extract email from user object after OAuth completion
-            const userEmail = result.createdSessionId ? 
-              (await UserProfileService.getUserProfile(result.createdSessionId))?.data?.email || '' : '';
-            
-            await SessionManager.saveUserSession({
-              userId: result.createdSessionId || '',
-              email: userEmail,
-              wasSignedIn: true,
-              lastSignIn: Date.now(),
-              lastAuthMethod: 'google',
-            });
-            
-            // Navigate to dashboard
-            router.replace('/(tabs)/dashboard');
-          } else {
-            console.log('OAuth completion failed - session refresh unsuccessful');
-            Alert.alert('Authentication Error', 'Failed to complete authentication. Please try again.');
-          }
+          console.log('❌ OAuth successful but no session ID created');
+          Alert.alert('Authentication Error', 'Failed to complete authentication. Please try again.');
         }
       }
     } catch (err: any) {
@@ -279,7 +254,7 @@ export default function SignInScreen() {
           </TouchableOpacity>
 
           <View style={signInStyles.linkContainer}>
-            <Text style={signInStyles.linkText}>Don't have an account? </Text>
+            <Text style={signInStyles.linkText}>Don&apos;t have an account? </Text>
             <Link href="/auth/sign-up" asChild>
               <Text style={signInStyles.linkTextBold}>Sign up</Text>
             </Link>

@@ -106,7 +106,7 @@ export class ClerkClientService {
 
   /**
    * Handle OAuth completion with proper auth state polling
-   * This follows Clerk's recommended approach
+   * This follows Clerk's recommended approach and handles timing issues after setActive()
    */
   static async handleOAuthCompletion(
     authCheckFn: () => { isLoaded: boolean; isSignedIn: boolean }
@@ -114,19 +114,29 @@ export class ClerkClientService {
     console.log('ClerkClientService: Handling OAuth completion...');
     
     try {
-      // First, check if user is already authenticated
+      // Initial check - if already authenticated, return immediately
       const { isLoaded, isSignedIn } = authCheckFn();
+      console.log('ClerkClientService: Initial auth state check:', { isLoaded, isSignedIn });
+      
       if (isLoaded && isSignedIn) {
         console.log('ClerkClientService: User already authenticated, OAuth completion successful');
-        await AsyncStorage.setItem('justCompletedSSO', 'true');
-        await AsyncStorage.removeItem('oauthProcessing');
+        await this.clearOAuthFlags();
         return true;
       }
       
-      // If user is not authenticated, we don't need to poll - OAuth likely failed
-      console.log('ClerkClientService: User not authenticated, OAuth completion failed');
-      await AsyncStorage.removeItem('oauthProcessing');
-      return false;
+      // Use proper polling to wait for auth state updates after setActive()
+      console.log('ClerkClientService: Starting auth state polling after OAuth...');
+      const authSuccess = await this.pollForAuthState(authCheckFn, 8, 750); // 8 attempts, 750ms each = 6 seconds max
+      
+      if (authSuccess) {
+        console.log('ClerkClientService: Auth state polling successful - user authenticated');
+        await this.clearOAuthFlags();
+        return true;
+      } else {
+        console.log('ClerkClientService: Auth state polling failed - user not authenticated after OAuth');
+        await AsyncStorage.removeItem('oauthProcessing');
+        return false;
+      }
     } catch (error) {
       console.error('ClerkClientService: Error handling OAuth completion:', error);
       await AsyncStorage.removeItem('oauthProcessing');

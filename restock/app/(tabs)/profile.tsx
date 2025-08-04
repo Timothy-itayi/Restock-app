@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Image, Alert } from 'react-native';
 import { useUser } from '@clerk/clerk-expo';
 import { UserProfileService } from '../../backend/services/user-profile';
 import { SessionService } from '../../backend/services/sessions';
