@@ -21,31 +21,47 @@ export class PromptBuilder {
     const urgencyText = this.getUrgencyText(urgencyLevel);
     const toneInstructions = this.getToneInstructions(tone);
 
-    return `You are a professional grocery store manager writing a restock order email.
+    return `You are writing a professional restock order email from a grocery store manager to a specific supplier.
 
-STORE: ${context.storeName}
-SUPPLIER: ${context.supplierName}
-SUPPLIER EMAIL: ${context.supplierEmail}
+SENDER INFORMATION:
+- Store Name: ${context.storeName}
+- Manager Email: ${context.userEmail}
+- Manager Name: ${context.userName || 'Store Manager'}
 
-PRODUCTS NEEDED:
+RECIPIENT INFORMATION:
+- Supplier: ${context.supplierName}
+- Supplier Email: ${context.supplierEmail}
+
+PRODUCTS TO ORDER:
 ${productList}
 
-SUPPLIER HISTORY:
+SUPPLIER RELATIONSHIP:
 ${supplierHistory}
 
-TONE: ${toneInstructions}
-URGENCY: ${urgencyText}
-MAX LENGTH: ${maxLength} words
+EMAIL REQUIREMENTS:
+- Tone: ${toneInstructions}
+- Urgency: ${urgencyText}
+- Maximum Length: ${maxLength} words
+- ${includePricing ? 'Include pricing inquiries where appropriate' : 'Focus on product availability, not pricing'}
 
 ${customInstructions ? `SPECIAL INSTRUCTIONS: ${customInstructions}\n` : ''}
 
-Generate a professional restock order email with:
-1. Appropriate greeting using supplier name
-2. Clear product list with quantities
-3. Professional closing with store contact
-4. ${includePricing ? 'Include pricing inquiries if relevant' : 'No pricing discussion needed'}
+Generate a personalized, professional restock order email that:
+1. Opens with a personalized greeting addressing ${context.supplierName} specifically
+2. Clearly states this is a restock order from ${context.storeName}
+3. Lists all products with exact quantities needed
+4. Uses the supplier's actual name throughout the email (not generic terms)
+5. Closes with a professional signature including:
+   - The sender's name (${context.userName || 'Store Manager'})
+   - Store name (${context.storeName})
+   - Contact email (${context.userEmail})
+6. Maintains a ${tone} tone with ${urgencyText.toLowerCase()} urgency level
 
-Keep the tone ${tone} and ${urgencyText.toLowerCase()}.`;
+IMPORTANT: 
+- Address the supplier by their actual name "${context.supplierName}"
+- Sign the email with the manager's information and store name
+- Make it clear this email is from a real person at ${context.storeName}, not a generic template
+- Include the sender's email (${context.userEmail}) in the signature for replies`;
   }
 
   private static formatSupplierHistory(history: any[]): string {
@@ -90,23 +106,27 @@ Keep the tone ${tone} and ${urgencyText.toLowerCase()}.`;
     const productCount = context.products.length;
     const totalQuantity = context.products.reduce((sum, p) => sum + p.quantity, 0);
 
-    return `Generate a concise email subject line for a restock order.
+    return `Generate a personalized email subject line for a restock order to a specific supplier.
 
-STORE: ${context.storeName}
-SUPPLIER: ${context.supplierName}
-PRODUCTS: ${productCount} items (${totalQuantity} total units)
+FROM: ${context.storeName}
+TO: ${context.supplierName}
+ORDER DETAILS: ${productCount} items (${totalQuantity} total units)
 URGENCY: ${urgencyText}
 
-The subject should be:
-- Professional and clear
-- Include the word "Restock" or "Order"
-- ${urgencyLevel !== 'normal' ? 'Indicate urgency appropriately' : 'Standard business tone'}
-- Under 60 characters
+Create a subject line that:
+- Clearly identifies this as a restock order from ${context.storeName}
+- ${urgencyLevel !== 'normal' ? 'Indicates urgency appropriately' : 'Uses standard business tone'}
+- Is professional and concise (under 60 characters)
+- Could include supplier name for personalization
+- Uses clear action words like "Restock Order" or "Product Order"
 
-Examples of good subjects:
-- "Restock Order - Greenfields Grocery"
-- "Urgent: Restock Order Needed"
-- "Weekly Restock Order - ${context.storeName}"`;
+Good examples for this context:
+- "Restock Order from ${context.storeName}"
+- "${urgencyLevel === 'urgent' ? 'Urgent ' : ''}Restock Order - ${context.storeName}"
+- "Product Order Request - ${context.storeName} to ${context.supplierName}"
+- "${context.storeName} Restock Order (${productCount} items)"
+
+Generate ONE subject line that best fits this specific supplier relationship.`;
   }
 
   static buildRegenerationPrompt(originalEmail: string, feedback: string): string {
