@@ -68,3 +68,69 @@ The app includes AI-powered email generation using Groq:
 - Located in `backend/services/ai/`
 - Generates professional emails to suppliers based on restock data
 - Uses structured prompts and model management
+
+## Email Service Implementation Plan
+
+### Overview
+The app implements a comprehensive email sending system using **Resend + Supabase integration** to allow store owners to send professional restock emails to suppliers.
+
+### Email Service Architecture
+- **Email Provider**: Resend API integrated via Supabase Edge Functions
+- **Sending Method**: "On behalf of" approach with Reply-To headers
+- **Email Flow**: `[Store Owner Email] → [App Domain] → [Supplier Email]`
+- **Display Format**: "From: noreply@emails.restockapp.com on behalf of owner@store.com"
+- **Reply Handling**: Reply-To header ensures supplier responses go to store owner
+
+### Implementation Components
+
+#### 1. Supabase Edge Function
+- **Location**: `supabase/functions/send-email/index.ts`
+- **Purpose**: Handles actual email sending via Resend API
+- **Integration**: Works with existing AI email generation system
+- **Features**: Error handling, delivery tracking, bulk email support
+
+#### 2. Backend Email Service Enhancement
+- **File**: `backend/services/emails.ts`
+- **New Methods**:
+  - `sendEmail()` - Send individual emails
+  - `sendBulkEmails()` - Send multiple emails for a session
+  - `trackDelivery()` - Monitor email delivery status
+- **Integration**: Connects with existing email generation workflow
+
+#### 3. Database Schema Updates
+- **Table**: `emails_sent` (existing)
+- **New Fields**:
+  - `delivery_status` - Track email delivery (sent, delivered, failed, bounced)
+  - `sent_via` - Email service provider used
+  - `tracking_id` - Resend message ID for tracking
+  - `resend_webhook_data` - Store delivery webhook information
+
+#### 4. UI/UX Enhancements
+- **Email Screen**: Add functional "Send All Emails" button
+- **Status Tracking**: Real-time email status updates
+- **Error Handling**: User feedback for failed deliveries
+- **Delivery Confirmation**: Visual confirmation of successful sends
+
+### Benefits for Store Owners
+- ✅ Suppliers see emails as coming from their store
+- ✅ Replies come directly to store owner's email inbox
+- ✅ Professional appearance with proper signatures
+- ✅ No manual email service setup required
+- ✅ Scalable solution for unlimited store owners
+
+### Email Composition Format
+```
+From: noreply@emails.restockapp.com
+Reply-To: {user.email} (store owner's actual email)
+Subject: {AI-generated subject with store name}
+Body: {AI-generated content with proper signature}
+```
+
+### Implementation Status
+- [x] AI email generation system completed
+- [x] User identity integration completed
+- [ ] Resend account setup and domain verification (user setup required)
+- [ ] Supabase Edge Function for email sending
+- [ ] Backend service integration for actual sending
+- [ ] UI updates for email sending functionality
+- [ ] Delivery tracking and webhook integration
