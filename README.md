@@ -4,12 +4,11 @@
 <p align="left">
   <img src="restock-icon.png" alt="Restock App Icon" width="120" />
   <img src="IMG_1915.PNG" alt="Restock App Screenshot" width="240" />
-  <img src="IMG_1902.PNG" alt="Restock App Screenshot" width="240" />  <img src="IMG_1915.PNG" alt="Restock App Screenshot" width="240" />
-  <img src="restock-session-user-prompt.PNG" alt="Restock App Screenshot" width="240" />  <img src="IMG_1915.PNG" alt="Restock App Screenshot" width="240" />
+  <img src="IMG_1902.PNG" alt="Restock App Screenshot" width="240" />  
+  <img src="restock-session-user-prompt.PNG" alt="Restock App Screenshot" width="240" />  
   <img src="restock-session-session-list.PNG" alt="Restock App Screenshot" width="240" />
-    <img src="restock-session-product-list.PNG" alt="Restock App Screenshot" width="240" />
-  <img src="emai-screen.PNG" alt="Restock App Screenshot" width="240" />
-    <img src="email-edit.PNG" alt="Restock App Screenshot" width="240" />
+
+
   
 </p>
 
