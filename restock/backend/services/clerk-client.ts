@@ -214,4 +214,82 @@ export class ClerkClientService {
       console.error('ClerkClientService: Error checking auth state for OAuth flags:', error);
     }
   }
+
+  /**
+   * Check if this is a new SSO sign-up flow
+   * This helps prevent AuthContext interference with SSO flows
+   */
+  static async isNewSSOSignUp(): Promise<boolean> {
+    try {
+      const newSSOSignUp = await AsyncStorage.getItem('newSSOSignUp');
+      return newSSOSignUp === 'true';
+    } catch (error) {
+      console.error('ClerkClientService: Error checking new SSO sign-up flag:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Check if OAuth just completed
+   * This helps determine if we should show loading states
+   */
+  static async isOAuthJustCompleted(): Promise<boolean> {
+    try {
+      const justCompletedSSO = await AsyncStorage.getItem('justCompletedSSO');
+      return justCompletedSSO === 'true';
+    } catch (error) {
+      console.error('ClerkClientService: Error checking OAuth completion flag:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Set SSO flow flags for new sign-up
+   */
+  static async setSSOSignUpFlags(): Promise<void> {
+    try {
+      console.log('ClerkClientService: Setting SSO sign-up flags');
+      await AsyncStorage.setItem('newSSOSignUp', 'true');
+      await AsyncStorage.setItem('justCompletedSSO', 'true');
+      console.log('ClerkClientService: SSO sign-up flags set successfully');
+    } catch (error) {
+      console.error('ClerkClientService: Error setting SSO sign-up flags:', error);
+    }
+  }
+
+  /**
+   * Clear SSO sign-up flags
+   * This should be called when the SSO flow is complete
+   */
+  static async clearSSOSignUpFlags(): Promise<void> {
+    try {
+      console.log('ClerkClientService: Clearing SSO sign-up flags');
+      await AsyncStorage.removeItem('newSSOSignUp');
+      await AsyncStorage.removeItem('justCompletedSSO');
+      console.log('ClerkClientService: SSO sign-up flags cleared successfully');
+    } catch (error) {
+      console.error('ClerkClientService: Error clearing SSO sign-up flags:', error);
+    }
+  }
+
+  /**
+   * Check if we should skip AuthContext verification for SSO users
+   * This prevents conflicts between SSO flow and AuthContext
+   */
+  static async shouldSkipAuthContextForSSO(): Promise<boolean> {
+    try {
+      const newSSOSignUp = await AsyncStorage.getItem('newSSOSignUp');
+      const justCompletedSSO = await AsyncStorage.getItem('justCompletedSSO');
+      
+      // Skip AuthContext if this is a new SSO sign-up or OAuth just completed
+      const shouldSkip = newSSOSignUp === 'true' || justCompletedSSO === 'true';
+      
+      console.log('ClerkClientService: Should skip AuthContext for SSO:', { shouldSkip, newSSOSignUp, justCompletedSSO });
+      
+      return shouldSkip;
+    } catch (error) {
+      console.error('ClerkClientService: Error checking if should skip AuthContext:', error);
+      return false;
+    }
+  }
 } 

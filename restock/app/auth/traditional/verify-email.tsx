@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import {  Text, TouchableOpacity, TextInput, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { useSignUp } from '@clerk/clerk-expo';
-import AuthGuard from '../components/AuthGuard';
-import { verifyEmailStyles } from '../../styles/components/verify-email';
+import AuthGuard from '../../components/AuthGuard';
+import { verifyEmailStyles } from '../../../styles/components/verify-email';
 
 export default function VerifyEmailScreen() {
   const { signUp, setActive, isLoaded } = useSignUp();
@@ -39,7 +39,7 @@ export default function VerifyEmailScreen() {
             {
               text: 'Continue',
               onPress: () => {
-                router.replace('/profile-setup');
+                router.replace('/auth/traditional/profile-setup');
               }
             }
           ]

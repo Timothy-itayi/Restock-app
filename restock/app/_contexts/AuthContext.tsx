@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useAuth, useUser } from '@clerk/clerk-expo';
 import { router, useSegments } from 'expo-router';
 import { SessionManager } from '../../backend/services/session-manager';
 import { UserProfileService } from '../../backend/services/user-profile';
 import { ClerkClientService } from '../../backend/services/clerk-client';
 import { EmailAuthService } from '../../backend/services/email-auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useClerkAuth } from './ClerkAuthContext';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -32,8 +32,7 @@ const AuthContext = createContext<AuthContextType>({
 export const useAuthContext = () => useContext(AuthContext);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { isSignedIn, userId, isLoaded } = useAuth();
-  const { user } = useUser();
+  const { isSignedIn, user, isLoading: isClerkLoading, isSSOFlowActive } = useClerkAuth();
   const segments = useSegments();
   
   const [isLoading, setIsLoading] = useState(true);
@@ -48,6 +47,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [previousAuthState, setPreviousAuthState] = useState<{isSignedIn: boolean, userId: string | null}>({isSignedIn: false, userId: null});
   const [lastSignInTime, setLastSignInTime] = useState(0);
   const [forceCheck, setForceCheck] = useState(0); // Add force check trigger
+
+  // Get userId from user object
+  const userId = user?.id || null;
 
   // Set navigation ready when router is mounted
   useEffect(() => {
@@ -101,15 +103,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const checkIfGoogleUser = (user: any): boolean => {
     if (!user) return false;
     
-    const userEmail = user.emailAddresses?.[0]?.emailAddress || user.primaryEmailAddress?.emailAddress;
-    if (!userEmail) return false;
+    console.log('🔍 checkIfGoogleUser: Starting check with user object:', {
+      hasUser: !!user,
+      emailAddresses: user?.emailAddresses,
+      primaryEmailAddress: user?.primaryEmailAddress,
+      externalAccounts: user?.externalAccounts
+    });
     
-    // Check if this is a Google user by looking at email providers
+    // First, check if user has OAuth accounts (most reliable method)
+    if (user.externalAccounts && Array.isArray(user.externalAccounts)) {
+      console.log('🔍 checkIfGoogleUser: Checking external accounts:', user.externalAccounts);
+      const hasGoogleOAuth = user.externalAccounts.some((account: any) => 
+        account.provider === 'oauth_google' || account.provider === 'google'
+      );
+      if (hasGoogleOAuth) {
+        console.log('🔍 checkIfGoogleUser: Detected Google OAuth account');
+        return true;
+      }
+    }
+    
+    // Fallback: Check if user has Google email domain (less reliable but covers edge cases)
+    const userEmail = user.emailAddresses?.[0]?.emailAddress || user.primaryEmailAddress?.emailAddress;
+    console.log('🔍 checkIfGoogleUser: Checking email domain for:', userEmail);
+    
+    if (!userEmail) {
+      console.log('🔍 checkIfGoogleUser: No email found, returning false');
+      return false;
+    }
+    
     const hasGoogleEmail = user.emailAddresses?.some((email: any) => 
       email.emailAddress?.includes('@gmail.com') || 
       email.emailAddress?.includes('@googlemail.com') ||
       email.emailAddress?.includes('@google.com')
     ) || userEmail.includes('@gmail.com') || userEmail.includes('@googlemail.com') || userEmail.includes('@google.com');
+    
+    if (hasGoogleEmail) {
+      console.log('🔍 checkIfGoogleUser: Detected Google email domain');
+    } else {
+      console.log('🔍 checkIfGoogleUser: No Google email domain detected');
+    }
     
     return hasGoogleEmail;
   };
@@ -165,6 +197,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsGoogleUser(isGoogle);
     console.log('🔍 User type detected:', { isGoogle, userId });
     
+    // Check if we should skip AuthContext for SSO users
+    const shouldSkipSSO = await ClerkClientService.shouldSkipAuthContextForSSO();
+    if (shouldSkipSSO && !isSSOFlowActive) {
+      console.log('⏳ AuthContext: Skipping verification for SSO user to prevent flow interference');
+      setIsVerifying(false);
+      setIsLoading(false);
+      setHasInitialized(true);
+      return;
+    }
+    
+    // Check if this is a new SSO sign-up - if so, completely skip AuthContext logic
+    const newSSOSignUp = await AsyncStorage.getItem('newSSOSignUp');
+    if (newSSOSignUp === 'true') {
+      console.log('⏳ AuthContext: New SSO sign-up detected, completely skipping AuthContext logic to let SSO flow handle everything');
+      setIsVerifying(false);
+      setIsLoading(false);
+      setHasInitialized(true);
+      return;
+    }
+    
     // Check if we've already verified this user recently
     if (lastVerifiedUserId === userId && verificationCache[userId]) {
       console.log('⏳ User already verified recently, skipping verification');
@@ -174,6 +226,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     
+    // Only show verification skeleton for non-new-signup users
     setIsVerifying(true);
     setLastVerificationTime(Date.now());
     
@@ -198,15 +251,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         // User needs to complete setup
         console.log('⚠️ User needs to complete setup');
-        const justCompletedSSO = await AsyncStorage.getItem('justCompletedSSO');
-        if (justCompletedSSO === 'true') {
-          console.log('⏳ AuthContext: OAuth just completed, letting OAuth handler manage routing');
-          return;
-        }
         
         // For traditional auth users, be more lenient - only redirect to setup if on auth screen
         const isOnAuthScreen = segments[0] === 'auth' || segments[0] === 'welcome';
-        const isOnSetupScreen = segments[0] === 'profile-setup' || segments[0] === 'sso-profile-setup';
+        const isOnSetupScreen = segments.includes('profile-setup');
         const isOnTabs = segments[0] === '(tabs)';
         
         console.log('🔍 Setup navigation check:', { isOnAuthScreen, isOnSetupScreen, isOnTabs, isNavigationReady });
@@ -215,10 +263,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Only redirect to setup if user is on auth screen
           if (isGoogle) {
             console.log('🚀 Google user needs to complete setup, redirecting to sso-profile-setup');
-            navigateToScreen('/sso-profile-setup');
+            navigateToScreen('sso-profile-setup');
           } else {
             console.log('🚀 Email user needs to complete setup, redirecting to profile-setup');
-            navigateToScreen('/profile-setup');
+            navigateToScreen('/auth/traditional/profile-setup');
           }
         } else if (isOnTabs) {
           // User is already on tabs, let them stay there even without profile
@@ -231,18 +279,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } else {
       // Verification failed, be more lenient for traditional auth users
       console.log('❌ Profile verification failed');
+      
       const isOnAuthScreen = segments[0] === 'auth' || segments[0] === 'welcome';
-      const isOnSetupScreen = segments[0] === 'profile-setup' || segments[0] === 'sso-profile-setup';
+      const isOnSetupScreen = segments.includes('profile-setup');
       const isOnTabs = segments[0] === '(tabs)';
       
       if (isOnAuthScreen && !isOnSetupScreen && isNavigationReady) {
         // Only redirect to setup if user is on auth screen
         if (isGoogle) {
           console.log('🚀 Google user verification failed, redirecting to sso-profile-setup');
-          navigateToScreen('/sso-profile-setup');
+          navigateToScreen('sso-profile-setup');
         } else {
           console.log('🚀 Email user verification failed, redirecting to profile-setup');
-          navigateToScreen('/profile-setup');
+          navigateToScreen('/auth/traditional/profile-setup');
         }
       } else if (isOnTabs) {
         // User is already on tabs, let them stay there
@@ -298,7 +347,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Detect OAuth completion
   useEffect(() => {
-    console.log('🔍 Auth state change effect triggered:', { isSignedIn, userId, isLoaded });
+    console.log('🔍 Auth state change effect triggered:', { isSignedIn, userId, isClerkLoading });
     
     const handleAuthStateChange = async () => {
       const authStateChanged = previousAuthState.isSignedIn !== isSignedIn || previousAuthState.userId !== userId;
@@ -307,14 +356,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         previousAuthState,
         currentState: { isSignedIn, userId },
         authStateChanged,
-        isLoaded
+        isClerkLoading
       });
       
-      if (authStateChanged && isLoaded) {
+              if (authStateChanged && !isClerkLoading) {
         console.log('🔄 AuthContext: Authentication state changed:', {
           previous: previousAuthState,
           current: { isSignedIn, userId },
-          isLoaded
+          isClerkLoading
         });
         
         if (!previousAuthState.isSignedIn && isSignedIn && userId) {
@@ -324,7 +373,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Check if this is a fresh OAuth completion
           const justCompletedSSO = await AsyncStorage.getItem('justCompletedSSO');
           if (justCompletedSSO === 'true') {
-            console.log('⏳ AuthContext: OAuth just completed, letting OAuth handler manage routing');
+            console.log('⏳ AuthContext: OAuth just completed, setting SSO authenticating state');
+            // setIsSSOAuthenticating(true); // This is now handled by ClerkAuthContext
+            
+            // Set a longer timeout for SSO users to prevent skeleton flash
+            setTimeout(() => {
+              console.log('⏳ AuthContext: SSO authentication timeout completed');
+              // setIsSSOAuthenticating(false); // This is now handled by ClerkAuthContext
+            }, 3000); // 3 second minimum loading time for SSO users
           }
         }
         
@@ -333,11 +389,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
     
     handleAuthStateChange();
-  }, [isSignedIn, userId, isLoaded, previousAuthState]);
+  }, [isSignedIn, userId, isClerkLoading, previousAuthState]);
 
   useEffect(() => {
     console.log('🚨 AuthContext main effect triggered!', { 
-      isLoaded, 
+      isClerkLoading, 
       isNavigationReady, 
       isSignedIn, 
       userId, 
@@ -345,17 +401,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       segments: segments[0],
       lastSignInTime,
       lastVerificationTime,
-      hasCompletedSetup
+      hasCompletedSetup,
+      isSSOFlowActive
     });
     
-    // Add debugging for why effect might not run
-    if (!isLoaded) {
-      console.log('❌ AuthContext blocked: Clerk not loaded');
+    // CRITICAL FIX: Wait for Clerk to be fully loaded before running any logic
+    if (isClerkLoading) {
+      console.log('⏳ AuthContext: Waiting for Clerk to load completely');
       return;
     }
     
+    // PARTIAL BYPASS: If SSO flow is active, skip most logic but allow profile setup navigation
+    if (isSSOFlowActive) {
+      console.log('⏳ AuthContext: SSO flow is active, bypassing most logic but allowing profile setup navigation');
+      
+      // Still allow navigation to profile setup if needed
+      if (isSignedIn && userId && segments[0] === 'auth') {
+        console.log('⏳ AuthContext: SSO flow active but user on auth screen, allowing navigation to profile setup');
+        // Don't return here - let the logic continue to handle profile setup navigation
+      } else {
+        // For all other cases, bypass completely
+        setIsLoading(false);
+        setHasInitialized(true);
+        return;
+      }
+    }
+    
     if (!isNavigationReady) {
-      console.log('❌ AuthContext blocked: Navigation not ready');
+      console.log('⏳ AuthContext: Waiting for navigation to be ready');
       return;
     }
 
@@ -385,6 +458,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLastVerificationTime(0);
       setHasCompletedSetup(false);
       setIsGoogleUser(false);
+      // setIsSSOAuthenticating(false); // This is now handled by ClerkAuthContext
       setIsLoading(false);
       setHasInitialized(true);
       return;
@@ -415,6 +489,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     console.log('🚀 AuthContext: Running checkAuthAndSetup');
     const checkAuthAndSetup = async () => {
       try {
+        // Check if we should skip AuthContext for SSO users (but allow profile setup navigation)
+        const shouldSkipSSO = await ClerkClientService.shouldSkipAuthContextForSSO();
+        if (shouldSkipSSO && !isSSOFlowActive) {
+          console.log('⏳ AuthContext: Skipping auth check for SSO user to prevent flow interference');
+          setIsLoading(false);
+          setHasInitialized(true);
+          return;
+        }
+        
+        // Check if this is a new SSO sign-up - if so, completely skip AuthContext logic
+        const newSSOSignUp = await AsyncStorage.getItem('newSSOSignUp');
+        if (newSSOSignUp === 'true') {
+          console.log('⏳ AuthContext: New SSO sign-up detected in main effect, completely skipping AuthContext logic');
+          setIsLoading(false);
+          setHasInitialized(true);
+          return;
+        }
+        
         // Check for recent sign-in flag first, before other checks
         const recentSignIn = await AsyncStorage.getItem('recentSignIn');
         console.log('🔍 AuthContext: Checking recent sign-in flag:', {
@@ -425,23 +517,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
         
         if (recentSignIn === 'true' && isSignedIn && userId) {
-          console.log('✅ Recent sign-in detected, navigating to dashboard');
+          console.log('✅ Recent sign-in detected, clearing flag and letting normal auth flow handle routing');
           await AsyncStorage.removeItem('recentSignIn');
           setLastSignInTime(Date.now()); // Update lastSignInTime for timing checks
-          setHasInitialized(true);
-          setIsLoading(false);
           
-          // Navigate to dashboard for traditional auth users
-          const isOnAuthScreen = segments[0] === 'auth' || segments[0] === 'welcome';
-          console.log('🔍 AuthContext: Navigation check - segments:', segments, 'isOnAuthScreen:', isOnAuthScreen, 'isNavigationReady:', isNavigationReady);
-          
-          if (isOnAuthScreen && isNavigationReady) {
-            console.log('🚀 Navigating traditional auth user to dashboard');
-            navigateToScreen('/(tabs)/dashboard');
+          // Check if this is an OAuth completion by looking for the justCompletedSSO flag
+          const justCompletedSSO = await AsyncStorage.getItem('justCompletedSSO');
+          if (justCompletedSSO === 'true') {
+            console.log('🔍 OAuth completion detected, checking if new sign-up or returning user');
+            
+            // Remove the flag since we've detected it
+            await AsyncStorage.removeItem('justCompletedSSO');
+            
+            // Check if this is a new sign-up (let sign-up flow handle loading) or returning user
+            const newSSOSignUp = await AsyncStorage.getItem('newSSOSignUp');
+            if (newSSOSignUp === 'true') {
+              console.log('⏳ AuthContext: New SSO sign-up detected, completely skipping AuthContext logic to let SSO flow handle everything');
+              // Completely skip AuthContext logic for new SSO sign-ups
+              setIsLoading(false);
+              setHasInitialized(true);
+              return;
+            } else {
+              console.log('⏳ AuthContext: Returning SSO user detected, showing AuthContext loading');
+              // setIsSSOAuthenticating(true); // This is now handled by ClerkAuthContext
+              
+              // For returning SSO users, show loading
+              setTimeout(() => {
+                console.log('⏳ AuthContext: Returning SSO user authentication timeout completed');
+                // setIsSSOAuthenticating(false); // This is now handled by ClerkAuthContext
+              }, 2500);
+            }
           } else {
-            console.log('❌ Not navigating - isOnAuthScreen:', isOnAuthScreen, 'isNavigationReady:', isNavigationReady);
+            // This is a traditional auth user, handle dashboard navigation
+            setHasInitialized(true);
+            setIsLoading(false);
+            
+            const isOnAuthScreen = segments[0] === 'auth' || segments[0] === 'welcome';
+            console.log('🔍 AuthContext: Traditional auth navigation check - segments:', segments, 'isOnAuthScreen:', isOnAuthScreen, 'isNavigationReady:', isNavigationReady);
+            
+            if (isOnAuthScreen && isNavigationReady) {
+              console.log('🚀 Navigating traditional auth user to dashboard');
+              navigateToScreen('/(tabs)/dashboard');
+            } else {
+              console.log('❌ Not navigating - isOnAuthScreen:', isOnAuthScreen, 'isNavigationReady:', isNavigationReady);
+            }
+            return;
           }
-          return;
         } else if (recentSignIn === 'true' && !isSignedIn) {
           // Recent sign-in flag is set but user is not authenticated yet
           // Since we've fixed the session hydration issue with setActive, 
@@ -469,15 +590,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     checkAuthAndSetup();
-  }, [isLoaded, isSignedIn, userId, segments, hasInitialized, forceCheck]);
+  }, [isClerkLoading, isSignedIn, userId, segments, hasInitialized, forceCheck, isSSOFlowActive]);
 
   // Function to manually trigger auth check
   const triggerAuthCheck = () => {
     console.log('🔧 Manually triggering auth check');
     setForceCheck(prev => prev + 1);
   };
-
-
 
   const value = {
     isAuthenticated: isSignedIn || false,

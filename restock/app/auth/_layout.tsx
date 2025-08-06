@@ -1,12 +1,7 @@
-import { Redirect, Stack } from 'expo-router';
-import { useAuth } from '@clerk/clerk-expo';
+import { Stack } from 'expo-router';
 
 export default function AuthRoutesLayout() {
-  const { isSignedIn } = useAuth();
-
-  if (isSignedIn) {
-    return <Redirect href={'/(tabs)/dashboard'} />;
-  }
-
-  return <Stack />;
+  // Don't redirect signed-in users automatically - they might need profile setup
+  // Let the individual auth screens and AuthContext handle routing decisions
+  return <Stack screenOptions={{ headerShown: false }} />;
 } 

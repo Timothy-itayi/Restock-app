@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, TextInput, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { router, Link } from 'expo-router';
-import { useSignUp, useSSO } from '@clerk/clerk-expo';
-import * as Linking from 'expo-linking';
-import AuthGuard from '../components/AuthGuard';
-import { signUpStyles } from '../../styles/components/sign-up';
+import { useSignUp } from '@clerk/clerk-expo';
+import AuthGuard from '../../components/AuthGuard';
+import { signUpStyles } from '../../../styles/components/sign-up';
 
-export default function SignUpScreen() {
+export default function TraditionalSignUpScreen() {
   const { signUp, isLoaded } = useSignUp();
-  const { startSSOFlow } = useSSO();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -47,33 +45,9 @@ export default function SignUpScreen() {
     setErrors(newErrors);
   };
 
-  const handleGoogleSignUp = async () => {
-    if (!isLoaded) return;
-
-    setLoading(true);
-    try {
-      console.log('Starting Google OAuth flow for sign up...');
-      
-      const result = await startSSOFlow({
-        strategy: 'oauth_google',
-        redirectUrl: Linking.createURL('/sso-profile-setup', { scheme: 'restock' }),
-      });
-      
-      console.log('Google OAuth sign up result:', result);
-      
-      if (result.authSessionResult?.type === 'success') {
-        console.log('Google OAuth sign up successful');
-        // The user will be redirected to the profile setup screen
-      }
-    } catch (err: any) {
-      console.error('Google OAuth sign up error:', JSON.stringify(err, null, 2));
-      Alert.alert('Error', 'Failed to sign up with Google. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const onSignUpPress = async () => {
+    console.log('🔴 Traditional sign-up form submitted');
+    
     if (!email.trim()) {
       Alert.alert('Error', 'Please enter your email address');
       return;
@@ -99,7 +73,7 @@ export default function SignUpScreen() {
 
     setLoading(true);
     try {
-      console.log('Creating account for email:', email);
+      console.log('Creating traditional email account for:', email);
       
       await signUp.create({
         emailAddress: email,
@@ -120,7 +94,7 @@ export default function SignUpScreen() {
           {
             text: 'OK',
             onPress: () => {
-              router.push('/auth/verify-email');
+              router.push('/auth/traditional/verify-email');
             }
           }
         ]
@@ -133,8 +107,6 @@ export default function SignUpScreen() {
     }
   };
 
-
-
   return (
     <AuthGuard requireNoAuth={true}>
       <ScrollView contentContainerStyle={signUpStyles.scrollViewContent}>
@@ -144,16 +116,15 @@ export default function SignUpScreen() {
         >
           <Text style={signUpStyles.title}>Create Account</Text>
           <Text style={signUpStyles.subtitle}>
-            Sign up to start managing your restock operations
+            Sign up with email to start managing your restock operations
           </Text>
 
           <TouchableOpacity 
             style={signUpStyles.googleButton}
-            onPress={handleGoogleSignUp}
-            disabled={loading}
+            onPress={() => router.push('/auth')}
           >
             <Text style={signUpStyles.googleButtonText}>
-              {loading ? 'Signing up...' : 'Continue with Google'}
+              Continue with Google
             </Text>
           </TouchableOpacity>
 
@@ -217,12 +188,14 @@ export default function SignUpScreen() {
 
           <View style={signUpStyles.linkContainer}>
             <Text style={signUpStyles.linkText}>Already have an account? </Text>
-            <Link href="/auth/sign-in" asChild>
-              <Text style={signUpStyles.linkTextBold}>Sign in</Text>
+            <Link href="/auth/traditional/sign-in" asChild>
+              <TouchableOpacity>
+                <Text style={signUpStyles.linkTextBold}>Sign In</Text>
+              </TouchableOpacity>
             </Link>
           </View>
         </KeyboardAvoidingView>
       </ScrollView>
     </AuthGuard>
   );
-} 
+}

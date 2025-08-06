@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Dimensions, Image, Animated } from 'react-native';
 import { router } from 'expo-router';
-import { useAuth } from '@clerk/clerk-expo';
-import AuthGuard from './components/AuthGuard';
+import { useUnifiedAuth } from './_contexts/UnifiedAuthProvider';
 import { welcomeStyles } from '../styles/components/welcome';
+
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -41,7 +41,7 @@ const walkthroughSlides: WalkthroughSlide[] = [
 
 export default function WelcomeScreen() {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const { isSignedIn, userId } = useAuth();
+  const { isAuthenticated, userId } = useUnifiedAuth();
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
   const paginationAnimations = useRef(
@@ -50,11 +50,11 @@ export default function WelcomeScreen() {
 
   // Check if user is already authenticated
   useEffect(() => {
-      if (isSignedIn && userId) {
+      if (isAuthenticated && userId) {
       console.log('User is already authenticated, redirecting to dashboard');
       router.replace('/(tabs)/dashboard');
     }
-  }, [isSignedIn, userId]);
+  }, [isAuthenticated, userId]);
 
   const handleGestureEvent = Animated.event(
     [{ nativeEvent: { contentOffset: { x: scrollX } } }],
@@ -77,11 +77,11 @@ export default function WelcomeScreen() {
     };
 
   const handleSignUp = () => {
-    router.push('/auth/sign-up');
+    router.push('/auth');
   };
 
   const handleSignIn = () => {
-    router.push('/auth/sign-in');
+    router.push('/auth/traditional/sign-in');
   };
 
   const goToSlide = (index: number) => {
@@ -102,8 +102,7 @@ export default function WelcomeScreen() {
   };
 
   return (
-    <AuthGuard requireNoAuth={true}>
-      <View style={welcomeStyles.container}>
+    <View style={welcomeStyles.container}>
         {/* Fixed Header */}
         <View style={welcomeStyles.header}>
           <Text style={welcomeStyles.appTitle}>Restock</Text>
@@ -198,7 +197,6 @@ export default function WelcomeScreen() {
           </TouchableOpacity>
         </View>
       </View>
-    </AuthGuard>
-  );
+    );
 } 
 

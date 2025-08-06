@@ -17,6 +17,11 @@ interface BulkSendEmailRequest {
   sessionId: string;
 }
 
+interface TestEmailRequest {
+  testEmail: string;
+  storeName?: string;
+}
+
 serve(async (req) => {
   // Handle CORS
   if (req.method === 'OPTIONS') {
@@ -24,7 +29,7 @@ serve(async (req) => {
       status: 200,
       headers: {
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization, apikey',
       },
     });
@@ -32,134 +37,244 @@ serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    const isBulkSend = url.pathname.includes('/bulk');
-    
+    const pathname = url.pathname;
+
     // Get Resend API key from environment
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
+    
     if (!resendApiKey) {
-      return new Response(JSON.stringify({ 
-        error: "Resend API key not configured" 
-      }), {
-        headers: { 
-          "Content-Type": "application/json",
-          'Access-Control-Allow-Origin': '*',
-        },
-        status: 500,
-      });
+      return createResponse({
+        success: false,
+        error: "Resend API key not configured",
+        instructions: "Add RESEND_API_KEY environment variable in Supabase Edge Functions settings"
+      }, 500);
+    }
+    
+    // Route requests
+    if (req.method === 'GET' && pathname.includes('/test')) {
+      return await handleTest(resendApiKey);
+    }
+    
+    if (req.method === 'POST' && pathname.includes('/test')) {
+      return await handleTestEmail(req, resendApiKey);
+    }
+    
+    if (req.method === 'POST' && pathname.includes('/bulk')) {
+      return await handleBulkSend(req, resendApiKey);
+    }
+    
+    if (req.method === 'POST') {
+      return await handleSingleSend(req, resendApiKey);
     }
 
-    if (isBulkSend) {
-      // Handle bulk email sending
-      const { emails, sessionId }: BulkSendEmailRequest = await req.json();
-      
-      if (!emails || !Array.isArray(emails) || emails.length === 0) {
-        return new Response(JSON.stringify({ 
-          error: "No emails provided for bulk send" 
-        }), {
-          headers: { 
-            "Content-Type": "application/json",
-            'Access-Control-Allow-Origin': '*',
-          },
-          status: 400,
-        });
-      }
-
-      const results = [];
-      
-      for (const emailData of emails) {
-        try {
-          const result = await sendSingleEmail(resendApiKey, emailData);
-          results.push({
-            emailId: emailData.emailId,
-            success: true,
-            messageId: result.id,
-            to: emailData.to
-          });
-        } catch (error) {
-          results.push({
-            emailId: emailData.emailId,
-            success: false,
-            error: error.message,
-            to: emailData.to
-          });
+    if (req.method === 'GET') {
+      return createResponse({
+        message: "Resend Email Service",
+        status: "running",
+        domain: "restockapp.email",
+        endpoints: {
+          "GET /test": "Test API connection",
+          "POST /": "Send single email",
+          "POST /bulk": "Send bulk emails",
+          "POST /test": "Send test email"
         }
-      }
-
-      return new Response(JSON.stringify({ 
-        success: true,
-        sessionId,
-        results,
-        totalSent: results.filter(r => r.success).length,
-        totalFailed: results.filter(r => !r.success).length
-      }), {
-        headers: { 
-          "Content-Type": "application/json",
-          'Access-Control-Allow-Origin': '*',
-        },
-        status: 200,
-      });
-
-    } else {
-      // Handle single email sending
-      const emailData: SendEmailRequest = await req.json();
-      
-      // Validate required fields
-      if (!emailData.to || !emailData.subject || !emailData.body || !emailData.replyTo) {
-        return new Response(JSON.stringify({ 
-          error: "Missing required fields: to, subject, body, replyTo" 
-        }), {
-          headers: { 
-            "Content-Type": "application/json",
-            'Access-Control-Allow-Origin': '*',
-          },
-          status: 400,
-        });
-      }
-
-      const result = await sendSingleEmail(resendApiKey, emailData);
-      
-      return new Response(JSON.stringify({ 
-        success: true,
-        messageId: result.id,
-        to: emailData.to,
-        emailId: emailData.emailId
-      }), {
-        headers: { 
-          "Content-Type": "application/json",
-          'Access-Control-Allow-Origin': '*',
-        },
-        status: 200,
       });
     }
+
+    return createResponse({ error: "Method not allowed" }, 405);
 
   } catch (error) {
     console.error('Send email function error:', error);
-    return new Response(JSON.stringify({ 
+    return createResponse({
+      success: false,
       error: error.message || 'Internal server error',
-      success: false
-    }), {
-      headers: { 
-        "Content-Type": "application/json",
-        'Access-Control-Allow-Origin': '*',
-      },
-      status: 500,
-    });
+      timestamp: new Date().toISOString()
+    }, 500);
   }
 });
 
-async function sendSingleEmail(resendApiKey: string, emailData: SendEmailRequest) {
-  // Format the email body with proper styling
-  const formattedBody = `
-    ${emailData.body}
-    
-    ---
-    This email was sent on behalf of ${emailData.storeName}.
-    Please reply directly to this email to contact the store.
-  `;
+// Handler Functions
+async function handleTest(resendApiKey: string): Promise<Response> {
+  try {
+    // Test API key by calling Resend domains endpoint
+    const testResponse = await fetch('https://api.resend.com/domains', {
+      headers: {
+        'Authorization': `Bearer ${resendApiKey}`,
+        'Content-Type': 'application/json',
+      },
+    });
 
-  // Prepare Resend API request
+    if (testResponse.ok) {
+      const domains = await testResponse.json();
+      const restockDomain = domains.data?.find((d: any) => 
+        d.name === 'restockapp.email'
+      );
+
+      return createResponse({
+        success: true,
+        message: "Resend API connection successful",
+        apiKey: "✅ Valid",
+        domain: restockDomain ? {
+          name: restockDomain.name,
+          status: restockDomain.status,
+          verified: restockDomain.status === 'verified'
+        } : {
+          name: "restockapp.email",
+          status: "not found",
+          verified: false
+        },
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      return createResponse({
+        success: false,
+        error: "Invalid API key or API error",
+        status: testResponse.status
+      }, 401);
+    }
+  } catch (error) {
+    return createResponse({
+      success: false,
+      error: "Failed to test API connection",
+      details: error.message
+    }, 500);
+  }
+}
+
+async function handleTestEmail(req: Request, resendApiKey: string): Promise<Response> {
+  try {
+    const { testEmail, storeName = "Restock App Test" }: TestEmailRequest = await req.json();
+
+    if (!testEmail) {
+      return createResponse({
+        success: false,
+        error: "testEmail is required"
+      }, 400);
+    }
+
+    const testEmailData: SendEmailRequest = {
+      to: testEmail,
+      replyTo: testEmail,
+      subject: `Test Email from ${storeName}`,
+      body: `Hello!\n\nThis is a test email from your Restock App.\n\n✅ Email sending is working correctly\n✅ Your domain is configured properly\n✅ Reply-to functionality is active\n\nYou can now send emails to your suppliers.\n\nBest regards,\nThe Restock App Team`,
+      storeName,
+      supplierName: "Test Recipient"
+    };
+
+    const result = await sendSingleEmail(resendApiKey, testEmailData);
+
+    return createResponse({
+      success: true,
+      message: "Test email sent successfully",
+      messageId: result.id,
+      to: testEmail,
+      from: "noreply@restockapp.email",
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    return createResponse({
+      success: false,
+      error: "Test email failed",
+      details: error.message
+    }, 500);
+  }
+}
+
+// Single email handler - for your app's EmailService
+async function handleSingleSend(req: Request, resendApiKey: string): Promise<Response> {
+  try {
+    const emailData: SendEmailRequest = await req.json();
+    
+    // Validate required fields
+    if (!emailData.to || !emailData.subject || !emailData.body || !emailData.replyTo) {
+      return createResponse({
+        success: false,
+        error: "Missing required fields",
+        required: ["to", "subject", "body", "replyTo"],
+        received: Object.keys(emailData)
+      }, 400);
+    }
+
+    const result = await sendSingleEmail(resendApiKey, emailData);
+    
+    return createResponse({
+      success: true,
+      messageId: result.id,
+      to: emailData.to,
+      emailId: emailData.emailId,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    return createResponse({
+      success: false,
+      error: "Email sending failed",
+      details: error.message
+    }, 500);
+  }
+}
+
+// Bulk email handler - for your app's EmailService
+async function handleBulkSend(req: Request, resendApiKey: string): Promise<Response> {
+  try {
+    const { emails, sessionId }: BulkSendEmailRequest = await req.json();
+    
+    if (!emails || !Array.isArray(emails) || emails.length === 0) {
+      return createResponse({
+        success: false,
+        error: "No emails provided for bulk send"
+      }, 400);
+    }
+
+    const results = [];
+    
+    for (const emailData of emails) {
+      try {
+        const result = await sendSingleEmail(resendApiKey, emailData);
+        results.push({
+          emailId: emailData.emailId,
+          success: true,
+          messageId: result.id,
+          to: emailData.to
+        });
+      } catch (error) {
+        results.push({
+          emailId: emailData.emailId,
+          success: false,
+          error: error.message,
+          to: emailData.to
+        });
+      }
+    }
+
+    const successCount = results.filter(r => r.success).length;
+    const failureCount = results.filter(r => !r.success).length;
+
+    return createResponse({
+      success: true,
+      sessionId,
+      results,
+      totalSent: successCount,
+      totalFailed: failureCount,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    return createResponse({
+      success: false,
+      error: "Bulk send failed",
+      details: error.message
+    }, 500);
+  }
+}
+
+// Core email sending function
+async function sendSingleEmail(resendApiKey: string, emailData: SendEmailRequest) {
+  const formattedBody = `${emailData.body}\n\n---\nThis email was sent on behalf of ${emailData.storeName}.\nPlease reply directly to this email to contact the store.`;
+
   const resendPayload = {
-    from: 'Restock App <noreply@emails.restockapp.com>', // This will be updated with your actual domain
+    from: 'Restock App <noreply@restockapp.email>',
     to: [emailData.to],
     reply_to: emailData.replyTo,
     subject: emailData.subject,
@@ -173,7 +288,6 @@ async function sendSingleEmail(resendApiKey: string, emailData: SendEmailRequest
     ]
   };
 
-  // Send email via Resend API
   const resendResponse = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -189,12 +303,11 @@ async function sendSingleEmail(resendApiKey: string, emailData: SendEmailRequest
     throw new Error(`Resend API error: ${resendResponse.status} - ${errorData}`);
   }
 
-  const result = await resendResponse.json();
-  return result;
+  return await resendResponse.json();
 }
 
+// Utility Functions
 function formatEmailAsHtml(body: string, storeName: string): string {
-  // Convert plain text body to HTML with basic formatting
   const htmlBody = body
     .replace(/\n\n/g, '</p><p>')
     .replace(/\n/g, '<br>')
@@ -220,4 +333,14 @@ function formatEmailAsHtml(body: string, storeName: string): string {
     </body>
     </html>
   `;
+}
+
+function createResponse(data: any, status: number = 200): Response {
+  return new Response(JSON.stringify(data), {
+    headers: { 
+      "Content-Type": "application/json",
+      'Access-Control-Allow-Origin': '*',
+    },
+    status,
+  });
 }

@@ -4,8 +4,8 @@ import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import { ClerkProvider } from "@clerk/clerk-expo";
 import { CLERK_PUBLISHABLE_KEY } from "../backend/config/clerk";
-import { AuthProvider } from "./_contexts/AuthContext";
-import AuthVerificationGate from "./components/AuthVerificationGate";
+import { UnifiedAuthProvider } from "./_contexts/UnifiedAuthProvider";
+import UnifiedAuthGuard from "./components/UnifiedAuthGuard";
 import * as Linking from 'expo-linking';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import '../global.css';
@@ -95,8 +95,8 @@ export default function RootLayout() {
       publishableKey={CLERK_PUBLISHABLE_KEY}
       tokenCache={createTokenCache()} // This is crucial for session persistence in React Native
     >
-      <AuthProvider>
-        <AuthVerificationGate>
+      <UnifiedAuthProvider>
+        <UnifiedAuthGuard>
           <Stack
             screenOptions={{
               headerStyle: {
@@ -127,26 +127,14 @@ export default function RootLayout() {
               }}
             />
             <Stack.Screen
-              name="profile-setup"
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
               name="sso-profile-setup"
               options={{
                 headerShown: false,
               }}
             />
-            <Stack.Screen
-              name="auth/welcome-back"
-              options={{
-                headerShown: false,
-              }}
-            />
           </Stack>
-        </AuthVerificationGate>
-      </AuthProvider>
+        </UnifiedAuthGuard>
+      </UnifiedAuthProvider>
     </ClerkProvider>
   );
 }

@@ -2,14 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, TextInput, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Link } from 'expo-router';
 import { useSignIn, useAuth, useSSO } from '@clerk/clerk-expo';
-import { SessionManager } from '../../backend/services/session-manager';
-import { UserProfileService } from '../../backend/services/user-profile';
-import { EmailAuthService } from '../../backend/services/email-auth';
+import { SessionManager } from '../../../backend/services/session-manager';
+import { UserProfileService } from '../../../backend/services/user-profile';
+import { EmailAuthService } from '../../../backend/services/email-auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Linking from 'expo-linking';
-import AuthGuard from '../components/AuthGuard';
-import { signInStyles } from '../../styles/components/sign-in';
-import { useAuthContext } from '../_contexts/AuthContext';
+import AuthGuard from '../../components/AuthGuard';
+import { AuthenticatingScreen } from '../../components/loading';
+import { signInStyles } from '../../../styles/components/sign-in';
+import { useAuthContext } from '../../_contexts/AuthContext';
 
 export default function SignInScreen() {
   const { signIn, setActive, isLoaded } = useSignIn();
@@ -23,6 +24,9 @@ export default function SignInScreen() {
   const [emailLoading, setEmailLoading] = useState(false);
   const [showReturningUserButton, setShowReturningUserButton] = useState(false);
   const [lastAuthMethod, setLastAuthMethod] = useState<'google' | 'email' | null>(null);
+  
+  // OAuth loading state
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
 
   // Check if user is a returning user on component mount
   useEffect(() => {
@@ -130,13 +134,17 @@ export default function SignInScreen() {
       // Use Clerk's useSSO hook for native OAuth flow
       const result = await startSSOFlow({
         strategy: 'oauth_google',
-        redirectUrl: Linking.createURL('/sso-profile-setup', { scheme: 'restock' }),
+        redirectUrl: Linking.createURL('/auth/sso/profile-setup', { scheme: 'restock' }),
       });
       
       console.log('Google OAuth sign in result:', result);
       
       if (result.authSessionResult?.type === 'success') {
         console.log('Google OAuth sign in successful');
+        
+        // Transition to authenticating state
+        setIsAuthenticating(true);
+        setGoogleLoading(false); // Stop the button loading state
         
         // Set the created session as active - this is crucial for OAuth completion
         if (result.createdSessionId) {
@@ -148,10 +156,15 @@ export default function SignInScreen() {
           console.log('📊 Auth state immediately after setActive:', { isLoaded, isSignedIn });
           
           // OAuth was successful and session is set - trust this result
-          // The auth layout will handle automatic redirect when isSignedIn becomes true
-          console.log('✅ OAuth completion successful - trusting setActive result');
+          console.log('✅ OAuth completion successful - activating session and refreshing auth state');
           await AsyncStorage.setItem('justCompletedSSO', 'true');
           await AsyncStorage.removeItem('oauthProcessing');
+          
+          // Set recent sign-in flag and trigger auth check
+          await AsyncStorage.setItem('recentSignIn', 'true');
+          triggerAuthCheck();
+          
+          // Let AuthContext handle the navigation - the loading screen will auto-complete
           
           // Save session data for returning user detection
           // Extract email from user object after OAuth completion
@@ -180,6 +193,20 @@ export default function SignInScreen() {
       setGoogleLoading(false);
     }
   };
+
+  // Show authenticating screen during OAuth completion
+  if (isAuthenticating) {
+    return (
+      <AuthenticatingScreen 
+        onComplete={() => {
+          // The navigation will be handled by AuthContext
+          // This completion just ends the loading state
+          console.log('🔄 Authentication loading complete');
+        }}
+        duration={3000}
+      />
+    );
+  }
 
   return (
     <AuthGuard requireNoAuth={true}>
@@ -255,7 +282,7 @@ export default function SignInScreen() {
 
           <View style={signInStyles.linkContainer}>
             <Text style={signInStyles.linkText}>Don&apos;t have an account? </Text>
-            <Link href="/auth/sign-up" asChild>
+            <Link href="/auth/traditional/sign-up" asChild>
               <Text style={signInStyles.linkTextBold}>Sign up</Text>
             </Link>
           </View>

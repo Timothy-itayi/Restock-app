@@ -1,0 +1,75 @@
+import { StyleSheet } from 'react-native';
+import { fontFamily } from '../typography';
+
+export const authIndexStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f8f9fa',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  title: {
+    fontFamily: fontFamily.satoshiBlack,
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    textAlign: 'center',
+    color: '#2c3e50',
+  },
+  subtitle: {
+    fontFamily: fontFamily.satoshiBold,
+    fontSize: 16,
+    color: '#6B7F6B',
+    textAlign: 'center',
+    marginBottom: 32,
+    fontWeight: '600',
+  },
+  primaryButton: {
+    backgroundColor: '#6B7F6B',
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 8,
+    marginBottom: 16,
+    width: '100%',
+    maxWidth: 300,
+    alignItems: 'center',
+  },
+  primaryButtonText: {
+    fontFamily: fontFamily.satoshiBold,
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  secondaryButton: {
+    backgroundColor: '#ffffff',
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 8,
+    marginBottom: 24,
+    width: '100%',
+    maxWidth: 300,
+    borderWidth: 1,
+    borderColor: '#6B7F6B',
+    alignItems: 'center',
+  },
+  secondaryButtonText: {
+    fontFamily: fontFamily.satoshiBold,
+    color: '#6B7F6B',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  linkButton: {
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  linkButtonText: {
+    fontFamily: fontFamily.satoshi,
+    color: '#6B7F6B',
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+}); 
