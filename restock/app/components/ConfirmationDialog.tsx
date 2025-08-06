@@ -20,10 +20,10 @@ interface ConfirmationDialogProps {
   confirmIcon?: keyof typeof Ionicons.glyphMap;
   onConfirm: () => void;
   onCancel: () => void;
-  stats?: Array<{
+  stats?: {
     label: string;
     value: string | number;
-  }>;
+  }[];
 }
 
 export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({

@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, TextInput, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth, useUser } from '@clerk/clerk-expo';
-import { UserProfileService } from '../backend/services/user-profile';
-import { SessionManager } from '../backend/services/session-manager';
-import AuthGuard from './components/AuthGuard';
-import { profileSetupStyles } from '../styles/components/profile-setup';
+import { UserProfileService } from '../../../backend/services/user-profile';
+import { SessionManager } from '../../../backend/services/session-manager';
+import AuthGuard from '../../components/AuthGuard';
+import { profileSetupStyles } from '../../../styles/components/auth/traditional/profile-setup';
 
 export default function ProfileSetupScreen() {
   const { isSignedIn, userId } = useAuth();

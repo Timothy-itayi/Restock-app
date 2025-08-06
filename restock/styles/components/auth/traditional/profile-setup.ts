@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { typography } from '../typography';
+import { typography } from '../../../typography';
 
 export const profileSetupStyles = StyleSheet.create({
   scrollViewContent: {
