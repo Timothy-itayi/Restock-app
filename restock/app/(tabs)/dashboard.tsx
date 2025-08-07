@@ -2,12 +2,12 @@ import React, { useState, useEffect } from "react";
 import { Text, View, TouchableOpacity, ScrollView, RefreshControl, Image } from "react-native";
 import { dashboardStyles } from "../../styles/components/dashboard";
 import { useAuth } from "@clerk/clerk-expo";
-import { UserProfileService } from "../../backend/services/user-profile";
 import { SessionService } from "../../backend/services/sessions";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
 import SkeletonBox from "../components/skeleton/SkeletonBox";
 import { useUnifiedAuth } from "../_contexts/UnifiedAuthProvider";
+import useProfileStore from "../stores/useProfileStore";
 
 // Debug flag - set to false in production
 const DEBUG_MODE = __DEV__;
@@ -45,17 +45,16 @@ interface SupplierInfo {
 }
 
 export default function DashboardScreen() {
-  const [userName, setUserName] = useState<string>("");
-  const [storeName, setStoreName] = useState<string>("");
-  const [loading, setLoading] = useState(true);
+  const { userId, isSignedIn } = useAuth();
+  const { isReady: authReady, isAuthenticated, authType } = useUnifiedAuth();
+
+  // Use profile store for user data
+  const { userName, storeName, isLoading: profileLoading } = useProfileStore();
+  
   const [unfinishedSessions, setUnfinishedSessions] = useState<UnfinishedSession[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [minLoadingTime, setMinLoadingTime] = useState(true);
   const [displayStartTime] = useState(Date.now());
-  
-  const { userId, isSignedIn } = useAuth();
-  const { isReady: authReady, isAuthenticated, authType } = useUnifiedAuth();
 
   // Component display logging
   useEffect(() => {
@@ -96,8 +95,7 @@ export default function DashboardScreen() {
     }
 
     if (!isAuthenticated || !userId) {
-      console.log('📺 Dashboard: User not authenticated or no userId, setting loading states to false');
-      setLoading(false);
+      console.log('📺 Dashboard: User not authenticated or no userId, setting sessions loading to false');
       setSessionsLoading(false);
       return;
     }
@@ -107,28 +105,7 @@ export default function DashboardScreen() {
       return;
     }
 
-    console.log('📺 Dashboard: All conditions met, starting data fetch');
-
-    const fetchUserProfile = async () => {
-      console.log('📺 Dashboard: Fetching user profile...');
-      try {
-        const result = await UserProfileService.getUserProfile(userId);
-        if (result.data) {
-          setUserName(result.data.name || "there");
-          setStoreName(result.data.store_name || "");
-        } else {
-          setUserName("there");
-          setStoreName("");
-        }
-      } catch (error) {
-        console.error('❌ Dashboard: Error fetching user profile:', error);
-        setUserName("there");
-        setStoreName("");
-      } finally {
-        console.log('📺 Dashboard: User profile fetch complete');
-        setLoading(false);
-      }
-    };
+    console.log('📺 Dashboard: All conditions met, starting sessions fetch');
 
     const fetchUnfinishedSessions = async () => {
       console.log('📺 Dashboard: Fetching unfinished sessions...');
@@ -145,17 +122,12 @@ export default function DashboardScreen() {
       }
     };
 
-    fetchUserProfile();
     fetchUnfinishedSessions();
   }, [userId, isSignedIn, authReady, isAuthenticated, authType]);
 
-  // Fallback timeout to prevent infinite loading
+  // Fallback timeout to prevent infinite loading for sessions
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (loading) {
-        console.log('Dashboard: Fallback timeout - setting loading to false');
-        setLoading(false);
-      }
       if (sessionsLoading) {
         console.log('Dashboard: Fallback timeout - setting sessionsLoading to false');
         setSessionsLoading(false);
@@ -163,7 +135,7 @@ export default function DashboardScreen() {
     }, 3000); // 3 second timeout
     
     return () => clearTimeout(timer);
-  }, [loading, sessionsLoading]);
+  }, [sessionsLoading]);
 
   // Refresh data when user returns to dashboard
   useFocusEffect(
@@ -171,21 +143,13 @@ export default function DashboardScreen() {
       if (userId) {
         const refreshData = async () => {
           try {
-            const [profileResult, sessionsResult] = await Promise.all([
-              UserProfileService.getUserProfile(userId),
-              SessionService.getUnfinishedSessions(userId)
-            ]);
-            
-            if (profileResult.data) {
-              setUserName(profileResult.data.name || "there");
-              setStoreName(profileResult.data.store_name || "");
-            }
+            const sessionsResult = await SessionService.getUnfinishedSessions(userId);
             
             if (sessionsResult.data) {
               setUnfinishedSessions(sessionsResult.data);
             }
           } catch (error) {
-            console.error('Error refreshing dashboard data:', error);
+            console.error('Error refreshing dashboard sessions data:', error);
           }
         };
         
@@ -299,16 +263,16 @@ export default function DashboardScreen() {
     
     setRefreshing(true);
     try {
-      await Promise.all([
-        UserProfileService.getUserProfile(userId),
-        SessionService.getUnfinishedSessions(userId)
-      ]);
+      const sessionsResult = await SessionService.getUnfinishedSessions(userId);
+      if (sessionsResult.data) {
+        setUnfinishedSessions(sessionsResult.data);
+      }
     } catch (error) {
       console.error('Error during refresh:', error);
     } finally {
       setRefreshing(false);
     }
-      };
+  };
 
 
   return (
@@ -322,7 +286,7 @@ export default function DashboardScreen() {
     >
       {/* Welcome Message */}
       <View style={dashboardStyles.welcomeSection}>
-        {loading ? (
+        {profileLoading ? (
           <>
             <SkeletonBox width="60%" height={36} />
             <SkeletonBox width="80%" height={22} style={{ marginTop: 8 }} />

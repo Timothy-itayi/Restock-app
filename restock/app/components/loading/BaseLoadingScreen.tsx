@@ -18,7 +18,7 @@ export function BaseLoadingScreen({
   icon = 'sync',
   color = '#6B7F6B',
   showProgress = true,
-  progressDuration = 1000,
+  progressDuration = 3000,
   onComplete
 }: BaseLoadingScreenProps) {
   const [rotateValue] = useState(new Animated.Value(0));
@@ -48,14 +48,13 @@ export function BaseLoadingScreen({
   }, [title, subtitle, icon, displayStartTime, showProgress, progressDuration]);
 
   useEffect(() => {
-    // Fade in animation
-    Animated.timing(fadeValue, {
-      toValue: 1,
-      duration: 500,
-      useNativeDriver: true,
-    }).start();
+    console.log('📺 BaseLoadingScreen: Starting animations', {
+      showProgress,
+      progressDuration,
+      hasOnComplete: !!onComplete
+    });
 
-    // Rotation animation for icon
+    // Start rotation animation (continuous loop)
     const rotationAnimation = Animated.loop(
       Animated.timing(rotateValue, {
         toValue: 1,
@@ -65,23 +64,58 @@ export function BaseLoadingScreen({
     );
     rotationAnimation.start();
 
-    // Progress bar animation
+    let timeoutId: NodeJS.Timeout;
+
     if (showProgress) {
-      Animated.timing(progressValue, {
-        toValue: 1,
-        duration: progressDuration,
-        useNativeDriver: false,
-      }).start(({ finished }) => {
+      // Create a sequence of animations for progress bar
+      const animationSequence = Animated.sequence([
+        // 1. Fade in animation
+        Animated.timing(fadeValue, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        
+        // 2. Progress bar animation
+        Animated.timing(progressValue, {
+          toValue: 1,
+          duration: progressDuration - 300,
+          useNativeDriver: false,
+        })
+      ]);
+
+      // Start main animation sequence
+      animationSequence.start(({ finished }) => {
+        console.log('📺 BaseLoadingScreen: Animation sequence completed', { finished });
         if (finished && onComplete) {
+          console.log('📺 BaseLoadingScreen: Calling onComplete callback');
           onComplete();
         }
       });
+    } else {
+      // Just fade in, then call onComplete after duration
+      Animated.timing(fadeValue, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+
+      if (onComplete) {
+        timeoutId = setTimeout(() => {
+          console.log('📺 BaseLoadingScreen: No progress bar, calling onComplete after timeout');
+          onComplete();
+        }, progressDuration) as unknown as NodeJS.Timeout;
+      }
     }
 
     return () => {
+      console.log('📺 BaseLoadingScreen: Cleaning up animations');
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
       rotationAnimation.stop();
     };
-  }, [rotateValue, progressValue, fadeValue, showProgress, progressDuration, onComplete]);
+  }, [fadeValue, progressValue, rotateValue, showProgress, progressDuration, onComplete]);
 
   const spin = rotateValue.interpolate({
     inputRange: [0, 1],
@@ -89,7 +123,7 @@ export function BaseLoadingScreen({
   });
 
   const progressWidth = progressValue.interpolate({
-    inputRange: [0, 1],
+    inputRange: [0, 1,],
     outputRange: ['0%', '100%'],
   });
 

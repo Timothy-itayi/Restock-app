@@ -3,31 +3,28 @@ import { View, Text } from 'react-native';
 import { useAuthGuardState } from '../hooks';
 import FullScreenLoader from './FullScreenLoader';
 
-interface UnifiedAuthGuardProps {
+interface AuthLayoutProps {
   children: React.ReactNode;
-  requireAuth?: boolean;
-  requireNoAuth?: boolean;
-  requireProfileSetup?: boolean;
-  redirectTo?: string;
+  showLoader?: boolean;
+  loaderMessage?: string;
+  fallback?: React.ReactNode;
 }
 
-export default function UnifiedAuthGuard({ 
+export default function AuthLayout({ 
   children, 
-  requireAuth = false, 
-  requireNoAuth = false,
-  requireProfileSetup = false,
-  redirectTo 
-}: UnifiedAuthGuardProps) {
-  const { shouldShowLoader, hasError, errorMessage, loaderMessage } = useAuthGuardState({
-    requireAuth,
-    requireNoAuth,
-    requireProfileSetup,
-    redirectTo
-  });
+  showLoader = true,
+  loaderMessage: customLoaderMessage = "Setting up your account...",
+  fallback
+}: AuthLayoutProps) {
+  const { shouldShowLoader, hasError, errorMessage, loaderMessage: hookLoaderMessage } = useAuthGuardState();
 
   // Error boundary for auth context
   if (hasError) {
-    console.error('❌ UnifiedAuthGuard: AuthType is null/undefined, showing error state');
+    if (fallback) {
+      return <>{fallback}</>;
+    }
+    
+    console.error('❌ AuthLayout: AuthType is null/undefined, showing error state');
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, backgroundColor: '#f8f9fa' }}>
         <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#DC3545', marginBottom: 10 }}>Authentication Error</Text>
@@ -46,9 +43,9 @@ export default function UnifiedAuthGuard({
     );
   }
 
-  // Smart loading screen - only show during specific transitions
-  if (shouldShowLoader) {
-    return <FullScreenLoader message={loaderMessage} />;
+  // Show loader only if explicitly requested and needed
+  if (showLoader && shouldShowLoader) {
+    return <FullScreenLoader message={hookLoaderMessage || customLoaderMessage} />;
   }
 
   // Render children if all conditions are met

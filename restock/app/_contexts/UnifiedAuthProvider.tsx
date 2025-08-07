@@ -5,6 +5,7 @@ import { SessionManager } from '../../backend/services/session-manager';
 import { UserProfileService } from '../../backend/services/user-profile';
 import { ClerkClientService } from '../../backend/services/clerk-client';
 import { EmailAuthService } from '../../backend/services/email-auth';
+import useProfileStore from '../stores/useProfileStore';
 
 interface AuthType {
   type: 'google' | 'email' | null;
@@ -39,6 +40,9 @@ interface UnifiedAuthProviderProps {
 export const UnifiedAuthProvider: React.FC<UnifiedAuthProviderProps> = ({ children }) => {
   const { isSignedIn, isLoaded } = useAuth();
   const { user } = useUser();
+  
+  // Zustand store
+  const { fetchProfile, clearProfile } = useProfileStore();
   
   const [isReady, setIsReady] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -171,6 +175,10 @@ export const UnifiedAuthProvider: React.FC<UnifiedAuthProviderProps> = ({ childr
           lastAuthMethod: isGoogle ? 'google' : 'email',
         });
         
+        // Initialize profile store with user data
+        console.log('📊 UnifiedAuth: Initializing profile store');
+        await fetchProfile(userId);
+        
         return { success: true, needsSetup: false };
       } else {
         console.log('⚠️ UnifiedAuth: User has not completed profile setup');
@@ -241,7 +249,7 @@ export const UnifiedAuthProvider: React.FC<UnifiedAuthProviderProps> = ({ childr
     } else {
       // If verification failed, assume setup is needed
       const finalAuthType: AuthType = { ...baseAuthType, needsProfileSetup: true };
-      console.log('🔍 UnifiedAuth: Verification failed, setting auth type with setup needed:', finalAuthType);
+      console.log('🔍 UnifiedAuth: Verification failed, this is not a new user, setting auth type with setup needed:', finalAuthType);
       setAuthType(finalAuthType);
     }
     
@@ -253,6 +261,10 @@ export const UnifiedAuthProvider: React.FC<UnifiedAuthProviderProps> = ({ childr
   // Handle unauthenticated user
   const handleUnauthenticatedUser = async () => {
     console.log('❌ UnifiedAuth: User is not authenticated');
+    
+    // Clear profile store
+    clearProfile();
+    
     setAuthType({
       type: null,
       isNewSignUp: false,

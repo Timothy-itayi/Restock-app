@@ -119,14 +119,20 @@ export default function AuthIndexScreen() {
     // Don't clear the newSSOSignUp flag here - let the profile setup screen clear it
     // This ensures AuthContext knows this is a new sign-up during any timing conflicts
     
-    // Navigate to SSO profile setup first
+    // Navigate to SSO profile setup with a small delay to ensure navigation is ready
+    console.log('🚀 Navigating to SSO profile setup');
     setTimeout(() => {
-      console.log('🚀 Navigating to SSO profile setup');
-      router.replace('/sso-profile-setup');
-      
-      // Don't trigger auth check - let the profile setup handle its own auth state
-      console.log('⏳ Skipping auth check to prevent verification skeleton interference');
-    }, 100);
+      try {
+        router.replace('/sso-profile-setup');
+      } catch (error) {
+        console.error('❌ Auth Index: Navigation error to sso-profile-setup:', error);
+        // Fallback to welcome screen
+        router.replace('/welcome');
+      }
+    }, 50);
+    
+    // Don't trigger auth check - let the profile setup handle its own auth state
+    console.log('⏳ Skipping auth check to prevent verification skeleton interference');
   };
 
   // Add timeout to prevent getting stuck in loading states
