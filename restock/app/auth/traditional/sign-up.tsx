@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, TextInput, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { router, Link } from 'expo-router';
 import { useSignUp } from '@clerk/clerk-expo';
-import AuthGuard from '../../components/AuthGuard';
+import UnifiedAuthGuard from '../../components/UnifiedAuthGuard';
 import { signUpStyles } from '../../../styles/components/sign-up';
 
 export default function TraditionalSignUpScreen() {
@@ -108,7 +108,7 @@ export default function TraditionalSignUpScreen() {
   };
 
   return (
-    <AuthGuard requireNoAuth={true}>
+    <UnifiedAuthGuard requireNoAuth={true}>
       <ScrollView contentContainerStyle={signUpStyles.scrollViewContent}>
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -196,6 +196,6 @@ export default function TraditionalSignUpScreen() {
           </View>
         </KeyboardAvoidingView>
       </ScrollView>
-    </AuthGuard>
+    </UnifiedAuthGuard>
   );
 }

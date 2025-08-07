@@ -5,7 +5,7 @@ import { useSSO } from '@clerk/clerk-expo';
 import * as Linking from 'expo-linking';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useUnifiedAuth } from '../_contexts/UnifiedAuthProvider';
-import { AuthenticatingScreen, WelcomeSuccessScreen } from '../components/loading';
+
 import { ClerkClientService } from '../../backend/services/clerk-client';
 import { authIndexStyles } from '../../styles/components/auth-index';
 
@@ -145,19 +145,7 @@ export default function AuthIndexScreen() {
     }
   }, [authFlowState]);
 
-  // Render loading screens based on auth flow state
-  if (authFlowState === 'authenticating') {
-    return <AuthenticatingScreen onComplete={handleAuthenticatingComplete} />;
-  }
 
-  if (authFlowState === 'welcome') {
-    return <WelcomeSuccessScreen onComplete={handleWelcomeComplete} />;
-  }
-
-  if (authFlowState === 'complete') {
-    // Show a brief loading state while navigating
-    return <AuthenticatingScreen duration={1000} />;
-  }
 
   return (
     <View style={authIndexStyles.container}>

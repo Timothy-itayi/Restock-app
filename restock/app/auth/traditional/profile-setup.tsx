@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { UserProfileService } from '../../../backend/services/user-profile';
 import { SessionManager } from '../../../backend/services/session-manager';
-import AuthGuard from '../../components/AuthGuard';
+import UnifiedAuthGuard from '../../components/UnifiedAuthGuard';
 import { profileSetupStyles } from '../../../styles/components/auth/traditional/profile-setup';
 
 export default function ProfileSetupScreen() {
@@ -103,7 +103,7 @@ export default function ProfileSetupScreen() {
   };
 
   return (
-    <AuthGuard requireAuth={true}>
+    <UnifiedAuthGuard requireAuth={true}>
       <ScrollView contentContainerStyle={profileSetupStyles.scrollViewContent}>
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -151,6 +151,6 @@ export default function ProfileSetupScreen() {
           </View>
         </KeyboardAvoidingView>
       </ScrollView>
-    </AuthGuard>
+    </UnifiedAuthGuard>
   );
 } 

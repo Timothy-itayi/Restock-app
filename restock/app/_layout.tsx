@@ -96,7 +96,7 @@ export default function RootLayout() {
       tokenCache={createTokenCache()} // This is crucial for session persistence in React Native
     >
       <UnifiedAuthProvider>
-        <UnifiedAuthGuard>
+        <UnifiedAuthGuard requireAuth={false}>
           <Stack
             screenOptions={{
               headerStyle: {

@@ -272,24 +272,4 @@ export class ClerkClientService {
     }
   }
 
-  /**
-   * Check if we should skip AuthContext verification for SSO users
-   * This prevents conflicts between SSO flow and AuthContext
-   */
-  static async shouldSkipAuthContextForSSO(): Promise<boolean> {
-    try {
-      const newSSOSignUp = await AsyncStorage.getItem('newSSOSignUp');
-      const justCompletedSSO = await AsyncStorage.getItem('justCompletedSSO');
-      
-      // Skip AuthContext if this is a new SSO sign-up or OAuth just completed
-      const shouldSkip = newSSOSignUp === 'true' || justCompletedSSO === 'true';
-      
-      console.log('ClerkClientService: Should skip AuthContext for SSO:', { shouldSkip, newSSOSignUp, justCompletedSSO });
-      
-      return shouldSkip;
-    } catch (error) {
-      console.error('ClerkClientService: Error checking if should skip AuthContext:', error);
-      return false;
-    }
-  }
 } 

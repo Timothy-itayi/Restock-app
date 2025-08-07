@@ -6,7 +6,8 @@ import { UserProfileService } from "../../backend/services/user-profile";
 import { SessionService } from "../../backend/services/sessions";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
-import { DashboardSkeleton } from "../components/skeleton";
+import SkeletonBox from "../components/skeleton/SkeletonBox";
+import { useUnifiedAuth } from "../_contexts/UnifiedAuthProvider";
 
 // Debug flag - set to false in production
 const DEBUG_MODE = __DEV__;
@@ -51,71 +52,102 @@ export default function DashboardScreen() {
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [minLoadingTime, setMinLoadingTime] = useState(true);
+  const [displayStartTime] = useState(Date.now());
+  
   const { userId, isSignedIn } = useAuth();
+  const { isReady: authReady, isAuthenticated, authType } = useUnifiedAuth();
 
-  // Show skeleton until both profile and sessions are loaded, plus minimum loading time
-  const isDataReady = !loading && !sessionsLoading && !minLoadingTime;
-
-  // Minimum loading time to prevent flicker
+  // Component display logging
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setMinLoadingTime(false);
-    }, 300); // 300ms minimum loading time
-    
-    return () => clearTimeout(timer);
-  }, []);
+    console.log('📺 Dashboard: Component mounted', {
+      timestamp: displayStartTime,
+      userId: !!userId,
+      isSignedIn,
+      authReady,
+      isAuthenticated,
+      authType
+    });
+
+    return () => {
+      const displayDuration = Date.now() - displayStartTime;
+      console.log('📺 Dashboard: Component unmounted', {
+        displayDuration,
+        timestamp: Date.now()
+      });
+    };
+  }, [displayStartTime, userId, isSignedIn, authReady, isAuthenticated, authType]);
+
 
   useEffect(() => {
+    console.log('📺 Dashboard: Data fetch effect triggered', {
+      userId: !!userId,
+      isSignedIn,
+      authReady,
+      isAuthenticated,
+      authType,
+      needsProfileSetup: authType?.needsProfileSetup,
+      timestamp: Date.now()
+    });
+
+    // Only fetch data when auth is fully settled and user doesn't need profile setup
+    if (!authReady) {
+      console.log('📺 Dashboard: Auth not ready yet, waiting...');
+      return;
+    }
+
+    if (!isAuthenticated || !userId) {
+      console.log('📺 Dashboard: User not authenticated or no userId, setting loading states to false');
+      setLoading(false);
+      setSessionsLoading(false);
+      return;
+    }
+
+    if (authType?.needsProfileSetup) {
+      console.log('📺 Dashboard: User needs profile setup, not fetching data yet');
+      return;
+    }
+
+    console.log('📺 Dashboard: All conditions met, starting data fetch');
+
     const fetchUserProfile = async () => {
-      if (userId) {
-        try {
-          const result = await UserProfileService.getUserProfile(userId);
-          if (result.data) {
-            setUserName(result.data.name || "there");
-            setStoreName(result.data.store_name || "");
-          } else {
-            setUserName("there");
-            setStoreName("");
-          }
-        } catch (error) {
-          console.error('Error fetching user profile:', error);
+      console.log('📺 Dashboard: Fetching user profile...');
+      try {
+        const result = await UserProfileService.getUserProfile(userId);
+        if (result.data) {
+          setUserName(result.data.name || "there");
+          setStoreName(result.data.store_name || "");
+        } else {
           setUserName("there");
           setStoreName("");
-        } finally {
-          setLoading(false);
         }
-      } else {
-        // Don't set loading to false immediately if userId is not available yet
-        // This prevents flicker when the component first mounts
-        if (isSignedIn === false) {
-          setLoading(false);
-        }
+      } catch (error) {
+        console.error('❌ Dashboard: Error fetching user profile:', error);
+        setUserName("there");
+        setStoreName("");
+      } finally {
+        console.log('📺 Dashboard: User profile fetch complete');
+        setLoading(false);
       }
     };
 
     const fetchUnfinishedSessions = async () => {
-      if (userId) {
-        try {
-          const result = await SessionService.getUnfinishedSessions(userId);
-          if (result.data) {
-            setUnfinishedSessions(result.data);
-          }
-        } catch (error) {
-          console.error('Error fetching unfinished sessions:', error);
-        } finally {
-          setSessionsLoading(false);
+      console.log('📺 Dashboard: Fetching unfinished sessions...');
+      try {
+        const result = await SessionService.getUnfinishedSessions(userId);
+        if (result.data) {
+          setUnfinishedSessions(result.data);
         }
-      } else {
-        // Don't set sessionsLoading to false immediately if userId is not available yet
-        if (isSignedIn === false) {
-          setSessionsLoading(false);
-        }
+      } catch (error) {
+        console.error('❌ Dashboard: Error fetching unfinished sessions:', error);
+      } finally {
+        console.log('📺 Dashboard: Sessions fetch complete');
+        setSessionsLoading(false);
       }
     };
 
     fetchUserProfile();
     fetchUnfinishedSessions();
-  }, [userId, isSignedIn]);
+  }, [userId, isSignedIn, authReady, isAuthenticated, authType]);
 
   // Fallback timeout to prevent infinite loading
   useEffect(() => {
@@ -278,9 +310,6 @@ export default function DashboardScreen() {
     }
       };
 
-  if (!isDataReady) {
-    return <DashboardSkeleton />;
-  }
 
   return (
     <ScrollView 
@@ -293,12 +322,21 @@ export default function DashboardScreen() {
     >
       {/* Welcome Message */}
       <View style={dashboardStyles.welcomeSection}>
-        <Text style={dashboardStyles.welcomeTitle}>
-          Hello, <Text style={dashboardStyles.userName}>{userName}</Text>!
-        </Text>
-        <Text style={dashboardStyles.welcomeSubtitle}>
-          Welcome to your restocking dashboard{storeName ? ` for ${storeName}` : ''}
-        </Text>
+        {loading ? (
+          <>
+            <SkeletonBox width="60%" height={36} />
+            <SkeletonBox width="80%" height={22} style={{ marginTop: 8 }} />
+          </>
+        ) : (
+          <>
+            <Text style={dashboardStyles.welcomeTitle}>
+              Hello, <Text style={dashboardStyles.userName}>{userName}</Text>!
+            </Text>
+            <Text style={dashboardStyles.welcomeSubtitle}>
+              Welcome to your restocking dashboard{storeName ? ` for ${storeName}` : ''}
+            </Text>
+          </>
+        )}
       </View>
 
       {/* Quick Actions - Now First */}
@@ -342,7 +380,20 @@ export default function DashboardScreen() {
       </View>
 
       {/* Unfinished Sessions */}
-      {unfinishedSessions.length > 0 && (
+      {sessionsLoading ? (
+        <View style={dashboardStyles.section}>
+          <SkeletonBox width="50%" height={18} style={{ marginBottom: 16 }} />
+          <View style={dashboardStyles.sessionCard}>
+            <View style={dashboardStyles.sessionHeader}>
+              <View style={dashboardStyles.sessionInfo}>
+                <SkeletonBox width="70%" height={16} />
+                <SkeletonBox width="90%" height={14} style={{ marginTop: 4 }} />
+              </View>
+              <SkeletonBox width={80} height={32} borderRadius={6} />
+            </View>
+          </View>
+        </View>
+      ) : unfinishedSessions.length > 0 && (
         <View style={dashboardStyles.section}>
           <View style={dashboardStyles.sectionHeader}>
             <Text style={dashboardStyles.sectionTitle}>Unfinished Sessions</Text>
@@ -434,24 +485,41 @@ export default function DashboardScreen() {
       {/* Stats */}
       <View style={dashboardStyles.section}>
         <Text style={dashboardStyles.sectionTitle}>Overview</Text>
-        <View style={dashboardStyles.statsGrid}>
-          <View style={dashboardStyles.statCard}>
-            <Text style={dashboardStyles.statNumber}>{unfinishedSessions.length}</Text>
-            <Text style={dashboardStyles.statLabel}>Active Sessions</Text>
+        {sessionsLoading ? (
+          <View style={dashboardStyles.statsGrid}>
+            <View style={dashboardStyles.statCard}>
+              <SkeletonBox width={30} height={32} />
+              <Text style={dashboardStyles.statLabel}>Active Sessions</Text>
+            </View>
+            <View style={dashboardStyles.statCard}>
+              <SkeletonBox width={30} height={32} />
+              <Text style={dashboardStyles.statLabel}>Products</Text>
+            </View>
+            <View style={dashboardStyles.statCard}>
+              <SkeletonBox width={30} height={32} />
+              <Text style={dashboardStyles.statLabel}>Suppliers</Text>
+            </View>
           </View>
-          <View style={dashboardStyles.statCard}>
-            <Text style={dashboardStyles.statNumber}>
-              {unfinishedSessions.reduce((sum, session) => sum + session.uniqueProducts, 0)}
-            </Text>
-            <Text style={dashboardStyles.statLabel}>Products</Text>
+        ) : (
+          <View style={dashboardStyles.statsGrid}>
+            <View style={dashboardStyles.statCard}>
+              <Text style={dashboardStyles.statNumber}>{unfinishedSessions.length}</Text>
+              <Text style={dashboardStyles.statLabel}>Active Sessions</Text>
+            </View>
+            <View style={dashboardStyles.statCard}>
+              <Text style={dashboardStyles.statNumber}>
+                {unfinishedSessions.reduce((sum, session) => sum + session.uniqueProducts, 0)}
+              </Text>
+              <Text style={dashboardStyles.statLabel}>Products</Text>
+            </View>
+            <View style={dashboardStyles.statCard}>
+              <Text style={dashboardStyles.statNumber}>
+                {unfinishedSessions.reduce((sum, session) => sum + session.uniqueSuppliers, 0)}
+              </Text>
+              <Text style={dashboardStyles.statLabel}>Suppliers</Text>
+            </View>
           </View>
-          <View style={dashboardStyles.statCard}>
-            <Text style={dashboardStyles.statNumber}>
-              {unfinishedSessions.reduce((sum, session) => sum + session.uniqueSuppliers, 0)}
-            </Text>
-            <Text style={dashboardStyles.statLabel}>Suppliers</Text>
-          </View>
-        </View>
+        )}
       </View>
 
       {/* Empty State */}

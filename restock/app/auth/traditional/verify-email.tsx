@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {  Text, TouchableOpacity, TextInput, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { useSignUp } from '@clerk/clerk-expo';
-import AuthGuard from '../../components/AuthGuard';
+import UnifiedAuthGuard from '../../components/UnifiedAuthGuard';
 import { verifyEmailStyles } from '../../../styles/components/verify-email';
 
 export default function VerifyEmailScreen() {
@@ -57,7 +57,7 @@ export default function VerifyEmailScreen() {
   };
 
   return (
-    <AuthGuard requireNoAuth={true}>
+    <UnifiedAuthGuard requireNoAuth={true}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
@@ -96,6 +96,6 @@ export default function VerifyEmailScreen() {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
-    </AuthGuard>
+    </UnifiedAuthGuard>
   );
 } 

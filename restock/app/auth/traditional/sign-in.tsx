@@ -7,16 +7,16 @@ import { UserProfileService } from '../../../backend/services/user-profile';
 import { EmailAuthService } from '../../../backend/services/email-auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Linking from 'expo-linking';
-import AuthGuard from '../../components/AuthGuard';
+import UnifiedAuthGuard from '../../components/UnifiedAuthGuard';
 import { AuthenticatingScreen } from '../../components/loading';
 import { signInStyles } from '../../../styles/components/sign-in';
-import { useAuthContext } from '../../_contexts/AuthContext';
+import { useUnifiedAuth } from '../../_contexts/UnifiedAuthProvider';
 
 export default function SignInScreen() {
   const { signIn, setActive, isLoaded } = useSignIn();
   const { isSignedIn } = useAuth();
   const { startSSOFlow } = useSSO();
-  const { triggerAuthCheck } = useAuthContext();
+  const { triggerAuthCheck } = useUnifiedAuth();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -209,7 +209,7 @@ export default function SignInScreen() {
   }
 
   return (
-    <AuthGuard requireNoAuth={true}>
+    <UnifiedAuthGuard requireNoAuth={true}>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -288,6 +288,6 @@ export default function SignInScreen() {
           </View>
         </KeyboardAvoidingView>
       </ScrollView>
-    </AuthGuard>
+    </UnifiedAuthGuard>
   );
 } 

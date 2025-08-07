@@ -6,15 +6,15 @@ import { SessionManager } from '../../backend/services/session-manager';
 import { EmailAuthService } from '../../backend/services/email-auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Linking from 'expo-linking';
-import AuthGuard from '../components/AuthGuard';
+import UnifiedAuthGuard from '../components/UnifiedAuthGuard';
 import { welcomeBackStyles } from '../../styles/components/welcome-back';
-import { useAuthContext } from '../_contexts/AuthContext';
+import { useUnifiedAuth } from '../_contexts/UnifiedAuthProvider';
 
 export default function WelcomeBackScreen() {
   const { signIn, setActive, isLoaded } = useSignIn();
   const { isSignedIn } = useAuth();
   const { startSSOFlow } = useSSO();
-  const { triggerAuthCheck } = useAuthContext();
+  const { triggerAuthCheck } = useUnifiedAuth();
   
   const [googleLoading, setGoogleLoading] = useState(false);
   const [emailLoading, setEmailLoading] = useState(false);
@@ -175,7 +175,7 @@ export default function WelcomeBackScreen() {
 
   const handleBackToSignIn = () => {
     // Navigate back to the regular sign-in screen
-    router.replace('/auth/sign-in');
+    router.replace('/auth/traditional/sign-in');
   };
 
   const toggleEmailForm = () => {
@@ -183,7 +183,7 @@ export default function WelcomeBackScreen() {
   };
 
   return (
-    <AuthGuard requireNoAuth={true}>
+    <UnifiedAuthGuard requireNoAuth={true}>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -347,6 +347,6 @@ export default function WelcomeBackScreen() {
           </TouchableOpacity>
         </KeyboardAvoidingView>
       </ScrollView>
-    </AuthGuard>
+    </UnifiedAuthGuard>
   );
 } 
