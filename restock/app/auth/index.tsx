@@ -5,7 +5,7 @@ import { useSSO } from '@clerk/clerk-expo';
 import * as Linking from 'expo-linking';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useUnifiedAuth } from '../_contexts/UnifiedAuthProvider';
-import { AuthenticatingScreen, WelcomeSuccessScreen } from '../components/loading';
+
 import { ClerkClientService } from '../../backend/services/clerk-client';
 import { authIndexStyles } from '../../styles/components/auth-index';
 
@@ -119,14 +119,20 @@ export default function AuthIndexScreen() {
     // Don't clear the newSSOSignUp flag here - let the profile setup screen clear it
     // This ensures AuthContext knows this is a new sign-up during any timing conflicts
     
-    // Navigate to SSO profile setup first
+    // Navigate to SSO profile setup with a small delay to ensure navigation is ready
+    console.log('🚀 Navigating to SSO profile setup');
     setTimeout(() => {
-      console.log('🚀 Navigating to SSO profile setup');
-      router.replace('/sso-profile-setup');
-      
-      // Don't trigger auth check - let the profile setup handle its own auth state
-      console.log('⏳ Skipping auth check to prevent verification skeleton interference');
-    }, 100);
+      try {
+        router.replace('/sso-profile-setup');
+      } catch (error) {
+        console.error('❌ Auth Index: Navigation error to sso-profile-setup:', error);
+        // Fallback to welcome screen
+        router.replace('/welcome');
+      }
+    }, 50);
+    
+    // Don't trigger auth check - let the profile setup handle its own auth state
+    console.log('⏳ Skipping auth check to prevent verification skeleton interference');
   };
 
   // Add timeout to prevent getting stuck in loading states
@@ -145,19 +151,7 @@ export default function AuthIndexScreen() {
     }
   }, [authFlowState]);
 
-  // Render loading screens based on auth flow state
-  if (authFlowState === 'authenticating') {
-    return <AuthenticatingScreen onComplete={handleAuthenticatingComplete} />;
-  }
 
-  if (authFlowState === 'welcome') {
-    return <WelcomeSuccessScreen onComplete={handleWelcomeComplete} />;
-  }
-
-  if (authFlowState === 'complete') {
-    // Show a brief loading state while navigating
-    return <AuthenticatingScreen duration={1000} />;
-  }
 
   return (
     <View style={authIndexStyles.container}>

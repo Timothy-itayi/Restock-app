@@ -1,11 +1,11 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-expo';
-import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SessionManager } from '../../backend/services/session-manager';
 import { UserProfileService } from '../../backend/services/user-profile';
 import { ClerkClientService } from '../../backend/services/clerk-client';
 import { EmailAuthService } from '../../backend/services/email-auth';
+import useProfileStore from '../stores/useProfileStore';
 
 interface AuthType {
   type: 'google' | 'email' | null;
@@ -41,6 +41,9 @@ export const UnifiedAuthProvider: React.FC<UnifiedAuthProviderProps> = ({ childr
   const { isSignedIn, isLoaded } = useAuth();
   const { user } = useUser();
   
+  // Zustand store
+  const { fetchProfile, clearProfile } = useProfileStore();
+  
   const [isReady, setIsReady] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [authType, setAuthType] = useState<AuthType>({
@@ -50,6 +53,11 @@ export const UnifiedAuthProvider: React.FC<UnifiedAuthProviderProps> = ({ childr
   });
   const [hasInitialized, setHasInitialized] = useState(false);
   const [forceCheck, setForceCheck] = useState(0);
+  const [loadingStartTime] = useState<number>(Date.now());
+  const [minimumLoadingMet, setMinimumLoadingMet] = useState(false);
+  
+  // Minimum loading time: 1.5 seconds for smooth UX
+  const MIN_LOADING_TIME = 1500;
 
   // Get userId from user object
   const userId = user?.id || null;
@@ -69,6 +77,35 @@ export const UnifiedAuthProvider: React.FC<UnifiedAuthProviderProps> = ({ childr
     
     initializeApp();
   }, []);
+
+  // Manage minimum loading time
+  useEffect(() => {
+    console.log('⏰ UnifiedAuth: Starting minimum loading timer', { 
+      startTime: loadingStartTime, 
+      minTime: MIN_LOADING_TIME 
+    });
+    
+    const timer = setTimeout(() => {
+      console.log('⏰ UnifiedAuth: Minimum loading time met', { 
+        elapsed: Date.now() - loadingStartTime 
+      });
+      setMinimumLoadingMet(true);
+    }, MIN_LOADING_TIME);
+
+    return () => clearTimeout(timer);
+  }, [loadingStartTime, MIN_LOADING_TIME]);
+
+  // Complete loading when both auth is ready and minimum time is met
+  useEffect(() => {
+    if (minimumLoadingMet && isReady && isLoading) {
+      console.log('⏰ UnifiedAuth: Both conditions met, completing loading', {
+        minimumLoadingMet,
+        isReady,
+        isLoading
+      });
+      setIsLoading(false);
+    }
+  }, [minimumLoadingMet, isReady, isLoading]);
 
   // Check if user is a Google user
   const checkIfGoogleUser = (user: any): boolean => {
@@ -138,6 +175,10 @@ export const UnifiedAuthProvider: React.FC<UnifiedAuthProviderProps> = ({ childr
           lastAuthMethod: isGoogle ? 'google' : 'email',
         });
         
+        // Initialize profile store with user data
+        console.log('📊 UnifiedAuth: Initializing profile store');
+        await fetchProfile(userId);
+        
         return { success: true, needsSetup: false };
       } else {
         console.log('⚠️ UnifiedAuth: User has not completed profile setup');
@@ -150,8 +191,13 @@ export const UnifiedAuthProvider: React.FC<UnifiedAuthProviderProps> = ({ childr
   };
 
   // Handle authenticated user
-  const handleAuthenticatedUser = async (userId: string, user: any) => {
-    console.log('🔍 UnifiedAuth: Handling authenticated user:', { userId, userEmail: user?.emailAddresses?.[0]?.emailAddress });
+  const handleAuthenticatedUser = useCallback(async (userId: string, user: any) => {
+    console.log('🔍 UnifiedAuth: Handling authenticated user:', { 
+      userId, 
+      userEmail: user?.emailAddresses?.[0]?.emailAddress,
+      hasUser: !!user,
+      userKeys: user ? Object.keys(user) : []
+    });
     
     const isGoogle = checkIfGoogleUser(user);
     console.log('🔍 UnifiedAuth: User type detected:', { isGoogle, userId });
@@ -160,23 +206,36 @@ export const UnifiedAuthProvider: React.FC<UnifiedAuthProviderProps> = ({ childr
     const newSSOSignUp = await AsyncStorage.getItem('newSSOSignUp');
     const isNewSignUp = newSSOSignUp === 'true';
     
-    console.log('🔍 UnifiedAuth: Sign-up status:', { isNewSignUp });
-    
-    // Set auth type
-    setAuthType({
-      type: isGoogle ? 'google' : 'email',
-      isNewSignUp,
-      needsProfileSetup: false // Will be updated after verification
-    });
+    console.log('🔍 UnifiedAuth: Sign-up status:', { isNewSignUp, newSSOSignUp });
     
     // If this is a new SSO sign-up, skip profile verification and let the SSO flow handle it
     if (isNewSignUp) {
       console.log('⏳ UnifiedAuth: New SSO sign-up detected, skipping profile verification');
-      setAuthType(prev => ({ ...prev, needsProfileSetup: true }));
+      const newAuthType: AuthType = {
+        type: isGoogle ? 'google' : 'email',
+        isNewSignUp: true,
+        needsProfileSetup: true // New SSO users always need profile setup
+      };
+      console.log('🔍 UnifiedAuth: Setting auth type for new SSO user:', newAuthType);
+      setAuthType(newAuthType);
       setIsReady(true);
-      setIsLoading(false);
+      console.log('✅ UnifiedAuth: New SSO sign-up flow complete');
+      // Set loading to false only if minimum time has passed
+      if (minimumLoadingMet) {
+        console.log('⏰ UnifiedAuth: Minimum time met, setting loading to false');
+        setIsLoading(false);
+      } else {
+        console.log('⏰ UnifiedAuth: Waiting for minimum loading time before completing');
+      }
       return;
     }
+    
+    // Create base auth type for returning users
+    const baseAuthType: AuthType = {
+      type: isGoogle ? 'google' : 'email',
+      isNewSignUp: false,
+      needsProfileSetup: false // Will be updated after verification
+    };
     
     // Verify user profile for returning users
     console.log('🔍 UnifiedAuth: Starting profile verification for returning user...');
@@ -184,26 +243,35 @@ export const UnifiedAuthProvider: React.FC<UnifiedAuthProviderProps> = ({ childr
     console.log('🔍 UnifiedAuth: Profile verification result:', verificationResult);
     
     if (verificationResult.success) {
-      setAuthType(prev => ({ ...prev, needsProfileSetup: verificationResult.needsSetup }));
+      const finalAuthType: AuthType = { ...baseAuthType, needsProfileSetup: verificationResult.needsSetup };
+      console.log('🔍 UnifiedAuth: Setting final auth type:', finalAuthType);
+      setAuthType(finalAuthType);
     } else {
       // If verification failed, assume setup is needed
-      setAuthType(prev => ({ ...prev, needsProfileSetup: true }));
+      const finalAuthType: AuthType = { ...baseAuthType, needsProfileSetup: true };
+      console.log('🔍 UnifiedAuth: Verification failed, this is not a new user, setting auth type with setup needed:', finalAuthType);
+      setAuthType(finalAuthType);
     }
     
+    console.log('✅ UnifiedAuth: Auth flow complete, setting ready state');
     setIsReady(true);
-    setIsLoading(false);
-  };
+    // Loading will be set to false by the minimum loading time effect
+  }, [minimumLoadingMet]);
 
   // Handle unauthenticated user
   const handleUnauthenticatedUser = async () => {
     console.log('❌ UnifiedAuth: User is not authenticated');
+    
+    // Clear profile store
+    clearProfile();
+    
     setAuthType({
       type: null,
       isNewSignUp: false,
       needsProfileSetup: false
     });
     setIsReady(true);
-    setIsLoading(false);
+    // Loading will be set to false by the minimum loading time effect
   };
 
   // Main auth effect
@@ -213,7 +281,8 @@ export const UnifiedAuthProvider: React.FC<UnifiedAuthProviderProps> = ({ childr
       isSignedIn, 
       userId, 
       hasInitialized,
-      forceCheck
+      forceCheck,
+      user: user ? 'present' : 'null'
     });
     
     // Wait for Clerk to be fully loaded
@@ -228,27 +297,36 @@ export const UnifiedAuthProvider: React.FC<UnifiedAuthProviderProps> = ({ childr
       return;
     }
 
-    console.log('🚀 UnifiedAuth: Running auth check');
+    console.log('🚀 UnifiedAuth: Running auth check with delay to prevent race conditions');
     const checkAuth = async () => {
       try {
+        // Add a small delay to ensure all Clerk state is settled
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         if (isSignedIn && userId && user) {
-          console.log('✅ UnifiedAuth: User is authenticated:', userId);
+          console.log('✅ UnifiedAuth: User is authenticated:', { userId, userEmail: user?.emailAddresses?.[0]?.emailAddress });
           await handleAuthenticatedUser(userId, user);
         } else {
-          console.log('❌ UnifiedAuth: User is not authenticated');
+          console.log('❌ UnifiedAuth: User is not authenticated', { isSignedIn, userId: !!userId, user: !!user });
           await handleUnauthenticatedUser();
         }
       } catch (error) {
         console.error('❌ UnifiedAuth: Error in auth check:', error);
+        // Set error state but still mark as ready
         setIsReady(true);
-        setIsLoading(false);
+        setAuthType({
+          type: null,
+          isNewSignUp: false,
+          needsProfileSetup: false
+        });
+        // Loading will be set to false by the minimum loading time effect
       } finally {
         setHasInitialized(true);
       }
     };
 
     checkAuth();
-  }, [isLoaded, isSignedIn, userId, hasInitialized, forceCheck]);
+  }, [isLoaded, isSignedIn, userId, hasInitialized, forceCheck, user, handleAuthenticatedUser]);
 
   // Function to manually trigger auth check
   const triggerAuthCheck = () => {

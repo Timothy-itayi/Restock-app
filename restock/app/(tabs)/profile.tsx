@@ -4,7 +4,7 @@ import { useUser } from '@clerk/clerk-expo';
 import { UserProfileService } from '../../backend/services/user-profile';
 import { SessionService } from '../../backend/services/sessions';
 import { EmailService } from '../../backend/services/emails';
-import { useAuthContext } from '../_contexts/AuthContext';
+import { useUnifiedAuth } from '../_contexts/UnifiedAuthProvider';
 import SignOutButton from '../components/SignOutButton';
 import { profileStyles } from '../../styles/components/profile';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,7 +12,7 @@ import { ProfileSkeleton } from '../components/skeleton';
 
 export default function ProfileScreen() {
   const { user } = useUser();
-  const { userId } = useAuthContext();
+  const { userId } = useUnifiedAuth();
   const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [minLoadingTime, setMinLoadingTime] = useState(true);

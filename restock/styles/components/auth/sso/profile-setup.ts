@@ -12,7 +12,8 @@ export const ssoProfileSetupStyles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 20,
-    justifyContent: 'center',
+    paddingTop: 40,
+    paddingBottom: 40,
   },
   title: {
     ...typography.appTitle,
@@ -60,5 +61,25 @@ export const ssoProfileSetupStyles = StyleSheet.create({
     ...typography.buttonText,
     color: '#ffffff',
     fontWeight: '600',
+  },
+  emailContainer: {
+    backgroundColor: '#F0F9FF',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
+  },
+  emailText: {
+    fontSize: 14,
+    color: '#1E40AF',
+    fontWeight: '600',
+    fontFamily: 'Satoshi-Medium',
+  },
+  fieldDescription: {
+    fontSize: 14,
+    color: '#666666',
+    marginBottom: 8,
+    fontFamily: 'Satoshi-Regular',
   },
 }); 
