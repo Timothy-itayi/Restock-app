@@ -196,7 +196,7 @@ export function useEmailSession(userProfile: UserProfile, userId?: string) {
       }));
 
       // Send emails via EmailService
-      const result = await EmailService.sendBulkEmails(emailsToSend, emailSession.id);
+      const result = await EmailService.sendBulkEmails(emailsToSend, emailSession.id, userId);
       
       if (result.error) {
         const errorMessage = result.error instanceof Error 

@@ -109,7 +109,7 @@ export default function TraditionalSignUpScreen() {
 
   return (
     <UnifiedAuthGuard requireNoAuth={true}>
-      <ScrollView contentContainerStyle={signUpStyles.container}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={signUpStyles.container}
