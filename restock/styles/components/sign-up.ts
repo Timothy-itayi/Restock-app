@@ -2,14 +2,21 @@ import { StyleSheet } from 'react-native';
 import { typography } from '../typography';
 
 export const signUpStyles = StyleSheet.create({
-  scrollViewContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-  },
   container: {
     flex: 1,
-    padding: 20,
     backgroundColor: '#f8f9fa',
+  },
+  scrollViewContent: {
+    flexGrow: 1,
+    padding: 20,
+    paddingTop: 80,
+    paddingBottom: 40,
+    justifyContent: 'center',
+    minHeight: '100%',
+  },
+  titleContainer: {
+    alignItems: 'center',
+    marginBottom: 32,
   },
   title: {
     ...typography.appTitle,

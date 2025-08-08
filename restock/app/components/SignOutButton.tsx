@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { SessionManager } from '../../backend/services/session-manager';
 import { ClerkClientService } from '../../backend/services/clerk-client';
 import { signOutButtonStyles } from '../../styles/components/sign-out-button';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function SignOutButton() {
   const { signOut } = useAuth();
@@ -32,6 +33,9 @@ export default function SignOutButton() {
               // Clear verification cache by reloading the app
               // This ensures fresh verification on next sign-in
               
+              // Set a transient flag so the loader can show a friendly sign-out message
+              await AsyncStorage.setItem('justSignedOut', 'true');
+
               // Sign out from Clerk
               await signOut();
               

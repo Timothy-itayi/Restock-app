@@ -8,7 +8,7 @@ import { EmailAuthService } from '../../../backend/services/email-auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Linking from 'expo-linking';
 import UnifiedAuthGuard from '../../components/UnifiedAuthGuard';
-import { AuthenticatingScreen } from '../../components/loading';
+
 import { signInStyles } from '../../../styles/components/sign-in';
 import { useUnifiedAuth } from '../../_contexts/UnifiedAuthProvider';
 
@@ -196,16 +196,12 @@ export default function SignInScreen() {
 
   // Show authenticating screen during OAuth completion
   if (isAuthenticating) {
-    return (
-      <AuthenticatingScreen 
-        onComplete={() => {
-          // The navigation will be handled by AuthContext
-          // This completion just ends the loading state
-          console.log('🔄 Authentication loading complete');
-        }}
-        duration={3000}
-      />
-    );
+      return (
+        <View>
+          <Text>Authenticating...</Text>
+        </View>
+        
+        );
   }
 
   return (

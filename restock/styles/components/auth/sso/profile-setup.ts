@@ -14,6 +14,7 @@ export const ssoProfileSetupStyles = StyleSheet.create({
     padding: 20,
     paddingTop: 40,
     paddingBottom: 40,
+    justifyContent: 'center',
   },
   title: {
     ...typography.appTitle,

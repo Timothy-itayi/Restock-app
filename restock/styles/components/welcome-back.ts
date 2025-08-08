@@ -8,6 +8,7 @@ export const welcomeBackStyles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 60,
     paddingBottom: 40,
+    justifyContent: 'center',
   },
   titleContainer: {
     alignItems: 'center',
