@@ -524,9 +524,10 @@ export const restockSessionsStyles = StyleSheet.create({
     borderColor: "#DEE2E6", // Light grey border
     borderRadius: 8,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 20,
     backgroundColor: "#FFFFFF", // Pure white background
     color: "#212529",
+    minHeight: 56,
   },
   
   // Quantity input
@@ -536,11 +537,12 @@ export const restockSessionsStyles = StyleSheet.create({
     borderColor: "#DEE2E6", // Light grey border
     borderRadius: 8,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 20,
     backgroundColor: "#FFFFFF", // Pure white background
     color: "#212529",
     textAlign: "center",
     width: 100,
+    minHeight: 56,
   },
   
   // Quantity container

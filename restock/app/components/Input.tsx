@@ -54,13 +54,13 @@ const Input = forwardRef<TextInput, InputProps>(({
   const getSizeClasses = () => {
     switch (size) {
       case 'sm':
-        return 'px-3 py-2 text-sm';
+        return 'px-3 py-3 text-sm min-h-[48px]';
       case 'md':
-        return 'px-4 py-3 text-base';
+        return 'px-4 py-5 text-base min-h-[56px]';
       case 'lg':
-        return 'px-4 py-4 text-lg';
+        return 'px-4 py-6 text-lg min-h-[64px]';
       default:
-        return 'px-4 py-3 text-base';
+        return 'px-4 py-5 text-base min-h-[56px]';
     }
   };
 
