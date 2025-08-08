@@ -3,6 +3,47 @@ import type { EmailSent, InsertEmailSent, UpdateEmailSent } from '../types/datab
 
 export class EmailService {
   /**
+   * Resolve the base URL for the send-email Supabase Edge Function
+   * Priority:
+   * 1) EXPO_PUBLIC_SUPABASE_SEND_EMAIL_URL (recommended)
+   * 2) EXPO_PUBLIC_SUPABASE_FUNCTION_URL with replace('generate-email' → 'send-email') or already pointing to send-email
+   * 3) Derive from EXPO_PUBLIC_SUPABASE_URL (extract project ref): https://<ref>.functions.supabase.co/send-email
+   */
+  private static resolveSendEmailBaseUrl(): string {
+    const direct = process.env.EXPO_PUBLIC_SUPABASE_SEND_EMAIL_URL;
+    if (direct && direct.trim().length > 0) {
+      return direct.replace(/\/$/, '');
+    }
+
+    const legacy = process.env.EXPO_PUBLIC_SUPABASE_FUNCTION_URL;
+    if (legacy && legacy.trim().length > 0) {
+      // If already points to send-email, use it; otherwise try replacing generate-email
+      if (legacy.includes('/send-email')) {
+        return legacy.replace(/\/$/, '');
+      }
+      if (legacy.includes('/generate-email')) {
+        return legacy.replace('generate-email', 'send-email').replace(/\/$/, '');
+      }
+    }
+
+    // Derive from EXPO_PUBLIC_SUPABASE_URL: https://<ref>.supabase.co → <ref>
+    const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+    try {
+      if (supabaseUrl) {
+        const url = new URL(supabaseUrl);
+        const host = url.hostname; // <ref>.supabase.co
+        const projectRef = host.split('.')[0];
+        if (projectRef) {
+          return `https://${projectRef}.functions.supabase.co/send-email`;
+        }
+      }
+    } catch (_) {
+      // ignore and fall-through
+    }
+
+    throw new Error('Supabase send-email function URL not configured. Set EXPO_PUBLIC_SUPABASE_SEND_EMAIL_URL or EXPO_PUBLIC_SUPABASE_FUNCTION_URL, or ensure EXPO_PUBLIC_SUPABASE_URL is set.');
+  }
+  /**
    * Get all emails for a session
    */
   static async getSessionEmails(sessionId: string) {
@@ -210,11 +251,7 @@ export class EmailService {
     emailId?: string;
   }) {
     try {
-      const functionUrl = process.env.EXPO_PUBLIC_SUPABASE_FUNCTION_URL?.replace('generate-email', 'send-email');
-      
-      if (!functionUrl) {
-        throw new Error('Supabase function URL not configured');
-      }
+      const functionUrl = this.resolveSendEmailBaseUrl();
 
       const response = await fetch(functionUrl, {
         method: 'POST',
@@ -267,12 +304,73 @@ export class EmailService {
     storeName: string;
     supplierName: string;
     emailId: string;
-  }>, sessionId: string) {
+  }>, sessionId: string, userId?: string) {
     try {
-      const functionUrl = process.env.EXPO_PUBLIC_SUPABASE_FUNCTION_URL?.replace('generate-email', 'send-email/bulk');
-      
-      if (!functionUrl) {
-        throw new Error('Supabase function URL not configured');
+      const baseUrl = this.resolveSendEmailBaseUrl();
+      const functionUrl = `${baseUrl}/bulk`;
+
+      // Pre-create DB records to get real email IDs for tracking
+      const emailsWithDbIds: Array<{
+        to: string;
+        replyTo: string;
+        subject: string;
+        body: string;
+        storeName: string;
+        supplierName: string;
+        emailId?: string; // updated with DB id when available
+      }> = [];
+
+      for (const email of emails) {
+        let dbEmailId: string | undefined = undefined;
+
+        try {
+          // Resolve supplier_id by email (preferred) or by name for this user
+          let supplierId: string | undefined = undefined;
+          if (email.to) {
+            const { data: supplierByEmail } = await supabase
+              .from(TABLES.SUPPLIERS)
+              .select('id')
+              .eq('email', email.to)
+              .limit(1)
+              .maybeSingle();
+            supplierId = supplierByEmail?.id;
+          }
+
+          if (!supplierId && email.supplierName && userId) {
+            const { data: supplierByName } = await supabase
+              .from(TABLES.SUPPLIERS)
+              .select('id')
+              .eq('name', email.supplierName)
+              .eq('user_id', userId)
+              .limit(1)
+              .maybeSingle();
+            supplierId = supplierByName?.id;
+          }
+
+          if (supplierId) {
+            const insertPayload: InsertEmailSent = {
+              session_id: sessionId,
+              supplier_id: supplierId,
+              email_content: `${email.subject}\n\n${email.body}`,
+              status: EMAIL_STATUS.PENDING,
+              sent_via: 'resend',
+            };
+
+            const { data: created, error: createErr } = await supabase
+              .from(TABLES.EMAILS_SENT)
+              .insert(insertPayload)
+              .select('id')
+              .single();
+
+            if (!createErr && created?.id) {
+              dbEmailId = created.id;
+            }
+          }
+        } catch (_) {
+          // If anything fails, proceed without DB pre-creation for this email
+        }
+
+        emailsWithDbIds.push({ ...email, emailId: dbEmailId || email.emailId });
       }
 
       const response = await fetch(functionUrl, {
@@ -283,7 +381,7 @@ export class EmailService {
           'apikey': process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
         },
         body: JSON.stringify({
-          emails: emails.map(email => ({ ...email, sessionId })),
+          emails: emailsWithDbIds.map(email => ({ ...email, sessionId })),
           sessionId
         }),
       });

@@ -8,7 +8,7 @@ import { EmailAuthService } from '../../../backend/services/email-auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Linking from 'expo-linking';
 import UnifiedAuthGuard from '../../components/UnifiedAuthGuard';
-import { AuthenticatingScreen } from '../../components/loading';
+
 import { signInStyles } from '../../../styles/components/sign-in';
 import { useUnifiedAuth } from '../../_contexts/UnifiedAuthProvider';
 
@@ -134,7 +134,8 @@ export default function SignInScreen() {
       // Use Clerk's useSSO hook for native OAuth flow
       const result = await startSSOFlow({
         strategy: 'oauth_google',
-        redirectUrl: Linking.createURL('/auth/sso/profile-setup', { scheme: 'restock' }),
+        // Route exists at app root: app/sso-profile-setup.tsx
+        redirectUrl: Linking.createURL('/sso-profile-setup', { scheme: 'restock' }),
       });
       
       console.log('Google OAuth sign in result:', result);
@@ -196,16 +197,12 @@ export default function SignInScreen() {
 
   // Show authenticating screen during OAuth completion
   if (isAuthenticating) {
-    return (
-      <AuthenticatingScreen 
-        onComplete={() => {
-          // The navigation will be handled by AuthContext
-          // This completion just ends the loading state
-          console.log('🔄 Authentication loading complete');
-        }}
-        duration={3000}
-      />
-    );
+      return (
+        <View>
+          <Text>Authenticating...</Text>
+        </View>
+        
+        );
   }
 
   return (

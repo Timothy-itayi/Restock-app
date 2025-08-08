@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { router, useSegments } from 'expo-router';
 import { useUnifiedAuth } from '../_contexts/UnifiedAuthProvider';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SessionManager } from '../../backend/services/session-manager';
 
 interface UseAuthGuardStateOptions {
   requireAuth?: boolean;
@@ -32,7 +34,12 @@ export function useAuthGuardState({
   const [isRedirectingToSetup, setIsRedirectingToSetup] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [setupRedirectType, setSetupRedirectType] = useState<'google' | 'email' | null>(null);
-  const [loadingPhase, setLoadingPhase] = useState<'initializing' | 'auth-checking' | 'setup-redirect' | 'ready'>('initializing');
+  const [loadingPhase, setLoadingPhase] = useState<
+    'initializing' | 'auth-checking' | 'setup-redirect' | 'creating-dashboard' | 'ready'
+  >('initializing');
+
+  // UX context flags
+  const [isFirstLaunch, setIsFirstLaunch] = useState<boolean | null>(null);
 
   // Initialize app state
   useEffect(() => {
@@ -49,6 +56,20 @@ export function useAuthGuardState({
 
     return () => clearTimeout(timer);
   }, [loadingPhase]);
+
+  // Determine first launch vs returning user
+  useEffect(() => {
+    const setupUxFlags = async () => {
+      try {
+        const returning = await SessionManager.isReturningUser();
+        setIsFirstLaunch(!returning);
+      } catch (e) {
+        console.warn('useAuthGuardState: Failed to init UX flags', e);
+        setIsFirstLaunch(false);
+      }
+    };
+    setupUxFlags();
+  }, []);
 
   // Clear redirecting to setup flag when segments change
   useEffect(() => {
@@ -170,6 +191,9 @@ export function useAuthGuardState({
       if (isOnAuthScreen && !redirectTo) {
         console.log('🚀 useAuthGuardState: User authenticated and setup complete, redirecting to dashboard');
         try {
+          // Show a transitional loader while we build the main app
+          setIsRedirecting(true);
+          setLoadingPhase('creating-dashboard');
           router.replace('/(tabs)/dashboard');
         } catch (err) {
           console.error('❌ useAuthGuardState: Redirect to dashboard failed:', err);
@@ -200,8 +224,9 @@ export function useAuthGuardState({
   // Smart loading screen decision
   const shouldShowLoader = (
     initializing ||                  // Initial app mount
-    (!isReady || isLoading) ||      // Auth context not ready
-    isRedirectingToSetup            // We're mid-SSO profile redirect
+    (!isReady || isLoading) ||       // Auth context not ready
+    isRedirectingToSetup ||          // We're mid-SSO profile redirect
+    isRedirecting                    // Navigating to a destination (e.g., dashboard)
   );
 
   // Context-aware loading messages
@@ -214,24 +239,33 @@ export function useAuthGuardState({
       setupRedirectType
     });
     
-    if (loadingPhase === 'initializing') {
-      return "Starting up Restock...";
-    }
-    
-    if (loadingPhase === 'auth-checking' || (!isReady || isLoading)) {
-      return "Checking your account...";
-    }
-    
+    // Prioritize explicit transition states
     if (loadingPhase === 'setup-redirect' || isRedirectingToSetup) {
       if (setupRedirectType === 'google') {
-        return "Setting up your Google account...";
+        return 'Setting up your Google account...';
       } else if (setupRedirectType === 'email') {
-        return "Setting up your email account...";
+        return 'Setting up your email account...';
       }
-      return "Setting up your account...";
+      return 'Setting up your account...';
     }
     
-    return "Setting up your account...";
+    if (loadingPhase === 'creating-dashboard' || (isRedirecting && isAuthenticated && !authType?.needsProfileSetup)) {
+      return 'Creating your dashboard...';
+    }
+
+    if (loadingPhase === 'initializing') {
+      if (isFirstLaunch === true) {
+        return 'Welcome to Restock';
+      }
+      return 'Starting up Restock...';
+    }
+
+    // Only show during explicit auth-checking; do not tie to isLoading
+    if (loadingPhase === 'auth-checking') {
+      return 'Checking your account...';
+    }
+
+    return 'Loading...';
   };
 
   // Error handling

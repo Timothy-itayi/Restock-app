@@ -1,3 +1,4 @@
+// @ts-nocheck
 // supabase/functions/send-email/index.ts
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 
@@ -269,6 +270,22 @@ async function handleBulkSend(req: Request, resendApiKey: string): Promise<Respo
   }
 }
 
+// Utility: sanitize tag values to allowed characters [A-Za-z0-9_-]
+function sanitizeTagValue(value: string | undefined | null, fallback: string): string {
+  try {
+    const sanitized = String(value ?? '')
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, '_')
+      .replace(/[^a-z0-9_-]/g, '')
+      .replace(/_+/g, '_')
+      .replace(/^-+|-+$/g, '');
+    return sanitized.length > 0 ? sanitized : fallback;
+  } catch (_) {
+    return fallback;
+  }
+}
+
 // Core email sending function
 async function sendSingleEmail(resendApiKey: string, emailData: SendEmailRequest) {
   const formattedBody = `${emailData.body}\n\n---\nThis email was sent on behalf of ${emailData.storeName}.\nPlease reply directly to this email to contact the store.`;
@@ -282,9 +299,9 @@ async function sendSingleEmail(resendApiKey: string, emailData: SendEmailRequest
     html: formatEmailAsHtml(emailData.body, emailData.storeName),
     tags: [
       { name: 'app', value: 'restock' },
-      { name: 'store', value: emailData.storeName },
-      { name: 'supplier', value: emailData.supplierName },
-      ...(emailData.sessionId ? [{ name: 'session', value: emailData.sessionId }] : [])
+      { name: 'store', value: sanitizeTagValue(emailData.storeName, 'store') },
+      { name: 'supplier', value: sanitizeTagValue(emailData.supplierName, 'supplier') },
+      ...(emailData.sessionId ? [{ name: 'session', value: sanitizeTagValue(emailData.sessionId, 'session') }] : [])
     ]
   };
 

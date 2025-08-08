@@ -14,6 +14,7 @@ export const ssoProfileSetupStyles = StyleSheet.create({
     padding: 20,
     paddingTop: 40,
     paddingBottom: 40,
+    justifyContent: 'center',
   },
   title: {
     ...typography.appTitle,
@@ -43,9 +44,11 @@ export const ssoProfileSetupStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e1e8ed',
     borderRadius: 8,
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 20,
     marginBottom: 16,
     color: '#000000',
+    minHeight: 56,
   },
   button: {
     backgroundColor: '#6B7F6B',

@@ -2,14 +2,16 @@ import { StyleSheet } from 'react-native';
 import { typography } from '../typography';
 
 export const signUpStyles = StyleSheet.create({
-  scrollViewContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-  },
+ 
   container: {
     flex: 1,
     padding: 20,
     backgroundColor: '#f8f9fa',
+    justifyContent: 'center',
+  },
+  titleContainer: {
+    alignItems: 'center',
+    marginBottom: 32,
   },
   title: {
     ...typography.appTitle,
@@ -58,9 +60,11 @@ export const signUpStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e1e8ed',
     borderRadius: 8,
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 20,
     marginBottom: 16,
     color: '#000000',
+    minHeight: 56,
   },
   inputError: {
     borderColor: '#e74c3c',
@@ -104,5 +108,21 @@ export const signUpStyles = StyleSheet.create({
     ...typography.productName,
     color: '#6B7F6B',
     fontWeight: '600',
+  },
+  passwordRules: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  ruleText: {
+    ...typography.bodySmall,
+    color: '#7f8c8d',
+    marginBottom: 4,
+    fontSize: 13,
+  },
+  ruleTextValid: {
+    color: '#27ae60',
+    fontWeight: '500',
   },
 }); 

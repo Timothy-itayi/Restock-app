@@ -71,9 +71,11 @@ export const signInStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e1e8ed',
     borderRadius: 8,
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 20,
     marginBottom: 16,
     color: '#000000',
+    minHeight: 56,
   },
   button: {
     backgroundColor: '#6B7F6B',

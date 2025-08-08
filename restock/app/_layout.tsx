@@ -1,7 +1,7 @@
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { ClerkProvider } from "@clerk/clerk-expo";
 import { CLERK_PUBLISHABLE_KEY } from "../backend/config/clerk";
 import { UnifiedAuthProvider } from "./_contexts/UnifiedAuthProvider";
@@ -9,6 +9,8 @@ import UnifiedAuthGuard from "./components/UnifiedAuthGuard";
 import * as Linking from 'expo-linking';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import '../global.css';
+import { BaseLoadingScreen } from './components/loading/BaseLoadingScreen';
+import { SessionManager } from '../backend/services/session-manager';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -34,6 +36,7 @@ const createTokenCache = () => {
 };
 
 export default function RootLayout() {
+  const [showFirstRunSplash, setShowFirstRunSplash] = useState(false);
   const [loaded, error] = useFonts({
     'Satoshi-Black': require('../assets/fonts/Satoshi/Satoshi-Black.otf'),
     'Satoshi-BlackItalic': require('../assets/fonts/Satoshi/Satoshi-BlackItalic.otf'),
@@ -56,6 +59,24 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [loaded]);
+
+  // First-run splash overlay that reveals auth cleanly
+  useEffect(() => {
+    const run = async () => {
+      try {
+        const returning = await SessionManager.isReturningUser();
+        if (!returning) {
+          setShowFirstRunSplash(true);
+          // Keep short and crisp
+          setTimeout(() => setShowFirstRunSplash(false), 1000);
+        }
+      } catch (_) {
+        // Fail open
+        setShowFirstRunSplash(false);
+      }
+    };
+    run();
+  }, []);
 
   // Handle deep links for OAuth completion
   useEffect(() => {
@@ -96,44 +117,55 @@ export default function RootLayout() {
       tokenCache={createTokenCache()} // This is crucial for session persistence in React Native
     >
       <UnifiedAuthProvider>
-        <UnifiedAuthGuard requireAuth={false}>
-          <Stack
-            screenOptions={{
-              headerStyle: {
-                backgroundColor: "#f8f9fa",
-              },
-              headerTintColor: "#2c3e50",
-              headerTitleStyle: {
-                fontWeight: "600",
-              },
-            }}
-          >
-            <Stack.Screen
-              name="(tabs)"
-              options={{  
-                headerShown: false,
+        {showFirstRunSplash ? (
+          <BaseLoadingScreen
+            title="Restock"
+            subtitle="Preparing your experience..."
+            icon="cart"
+            color="#6B7F6B"
+            showProgress={false}
+            progressDuration={1000}
+          />
+        ) : (
+          <UnifiedAuthGuard requireAuth={false}>
+            <Stack
+              screenOptions={{
+                headerStyle: {
+                  backgroundColor: "#f8f9fa",
+                },
+                headerTintColor: "#2c3e50",
+                headerTitleStyle: {
+                  fontWeight: "600",
+                },
               }}
-            />
-            <Stack.Screen
-              name="auth"
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="welcome"
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="sso-profile-setup"
-              options={{
-                headerShown: false,
-              }}
-            />
-          </Stack>
-        </UnifiedAuthGuard>
+            >
+              <Stack.Screen
+                name="(tabs)"
+                options={{  
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="auth"
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="welcome"
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="sso-profile-setup"
+                options={{
+                  headerShown: false,
+                }}
+              />
+            </Stack>
+          </UnifiedAuthGuard>
+        )}
       </UnifiedAuthProvider>
     </ClerkProvider>
   );
