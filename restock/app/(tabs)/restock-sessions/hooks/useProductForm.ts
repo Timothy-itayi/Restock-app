@@ -57,11 +57,10 @@ export const useProductForm = () => {
   const handleProductNameChange = useCallback((text: string, storedProducts: StoredProduct[]) => {
     updateFormField('productName', text);
     if (text.length > 0) {
-      const filtered = storedProducts.filter(product =>
-        product.name.toLowerCase().includes(text.toLowerCase())
-      ).slice(0, 5); // Limit to 5 suggestions
+      const filtered = storedProducts
+        .filter(product => product.name.toLowerCase().includes(text.toLowerCase()))
+        .slice(0, 5);
       setFilteredProducts(filtered);
-      Logger.debug('Product suggestions filtered', { input: text, suggestionsCount: filtered.length });
     } else {
       setFilteredProducts([]);
     }
@@ -70,38 +69,28 @@ export const useProductForm = () => {
   const handleSupplierNameChange = useCallback((text: string, storedSuppliers: StoredSupplier[]) => {
     updateFormField('supplierName', text);
     if (text.length > 0) {
-      const filtered = storedSuppliers.filter(supplier =>
-        supplier.name.toLowerCase().includes(text.toLowerCase())
-      ).slice(0, 5); // Limit to 5 suggestions
+      const filtered = storedSuppliers
+        .filter(supplier => supplier.name.toLowerCase().includes(text.toLowerCase()))
+        .slice(0, 5);
       setFilteredSuppliers(filtered);
-      Logger.debug('Supplier suggestions filtered', { input: text, suggestionsCount: filtered.length });
     } else {
       setFilteredSuppliers([]);
     }
   }, [updateFormField]);
 
   const selectProductSuggestion = useCallback((product: StoredProduct) => {
-    Logger.info('Product suggestion selected', { productId: product.id, productName: product.name });
-    
+    // Quiet noisy selection logs
     updateFormField('productName', product.name);
     if (product.supplier) {
       updateFormField('supplierName', product.supplier.name);
       updateFormField('supplierEmail', product.supplier.email);
-      Logger.debug('Auto-filled supplier info from product', { 
-        supplierName: product.supplier.name, 
-        supplierEmail: product.supplier.email 
-      });
+      // Avoid verbose autofill logging
     }
     setFilteredProducts([]);
   }, [updateFormField]);
 
   const selectSupplierSuggestion = useCallback((supplier: StoredSupplier) => {
-    Logger.info('Supplier suggestion selected', { 
-      supplierId: supplier.id, 
-      supplierName: supplier.name,
-      supplierEmail: supplier.email // Add email to logging
-    });
-    
+    // Quiet noisy selection logs
     // Ensure email is properly set
     if (!supplier.email) {
       Logger.warning('Supplier has no email', { supplierId: supplier.id, supplierName: supplier.name });
@@ -116,7 +105,6 @@ export const useProductForm = () => {
     const currentQty = parseInt(formState.quantity) || 0;
     const newQty = currentQty + 1;
     updateFormField('quantity', newQty.toString());
-    Logger.debug('Quantity incremented', { from: currentQty, to: newQty });
   }, [formState.quantity, updateFormField]);
 
   const decrementQuantity = useCallback(() => {
@@ -124,7 +112,6 @@ export const useProductForm = () => {
     if (currentQty > 1) {
       const newQty = currentQty - 1;
       updateFormField('quantity', newQty.toString());
-      Logger.debug('Quantity decremented', { from: currentQty, to: newQty });
     }
   }, [formState.quantity, updateFormField]);
 

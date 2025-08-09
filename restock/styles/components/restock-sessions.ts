@@ -22,6 +22,7 @@ export const restockSessionsStyles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 20,
+    paddingTop: 100,
   },
   
   // Welcome prompt with instructions

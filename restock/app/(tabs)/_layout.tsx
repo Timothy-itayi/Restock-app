@@ -22,7 +22,7 @@ export default function TabLayout() {
         >
           {/* Dashboard - Overview and quick actions */}
           <Tabs.Screen
-            name="dashboard"
+            name="dashboard/index"
             options={{
               title: tabScreenOptions.dashboard.title,
               tabBarIcon: ({ color, size }) => (
@@ -67,7 +67,7 @@ export default function TabLayout() {
           
           {/* Profile - User settings and account management */}
           <Tabs.Screen
-            name="profile"
+            name="profile/index"
             options={{
               title: tabScreenOptions.profile.title,
               tabBarIcon: ({ color, size }) => (

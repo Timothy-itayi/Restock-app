@@ -5,6 +5,7 @@ import { SessionSelection } from './SessionSelection';
 import { StartSection } from './StartSection';
 import { ProductForm } from './ProductForm';
 import { ProductList } from './ProductList';
+import { ReplaySuggestions } from './ReplaySuggestions';
 import { SessionHeader } from './SessionHeader';
 import { FinishSection } from './FinishSection';
 
@@ -14,6 +15,7 @@ export {
   StartSection,
   ProductForm,
   ProductList,
+  ReplaySuggestions,
   SessionHeader,
   FinishSection,
 

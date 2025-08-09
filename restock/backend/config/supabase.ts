@@ -33,6 +33,7 @@ export const TABLES = {
 // Session statuses
 export const SESSION_STATUS = {
   DRAFT: 'draft',
+  EMAIL_GENERATED: 'email_generated',
   SENT: 'sent',
 } as const;
 

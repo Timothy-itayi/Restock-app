@@ -1,5 +1,6 @@
-import { useState, useCallback } from 'react';
-import { Alert } from 'react-native';
+import { useState, useCallback, useEffect } from 'react';
+import { Alert, DeviceEventEmitter } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from "@clerk/clerk-expo";
 import { SessionService } from "../../../../backend/services/sessions";
 import { RestockSession, Product } from '../utils/types';
@@ -86,6 +87,7 @@ export const useRestockSessions = () => {
           
           return {
             id: session.id,
+            name: session.name || undefined,
             products,
             createdAt: new Date(session.createdAt),
             status: session.status as 'draft' | 'sent'
@@ -101,7 +103,16 @@ export const useRestockSessions = () => {
           }))
         });
         
-        setAllSessions(sessionsWithProducts);
+       setAllSessions(sessionsWithProducts);
+
+       // If the current session is no longer in unfinished (moved to sent), clear it
+       setCurrentSession(prev => {
+         if (prev && !sessionsWithProducts.find(s => s.id === prev.id)) {
+           setIsSessionActive(false);
+           return null;
+         }
+         return prev;
+       });
         
         // If there's only one session, automatically select it
         if (sessionsWithProducts.length === 1) {
@@ -126,7 +137,10 @@ export const useRestockSessions = () => {
       } else {
         console.log('[RestockSessions] No unfinished sessions found', { userId });
         Logger.info('No unfinished sessions found', { userId });
-        setAllSessions([]);
+       setAllSessions([]);
+       // No unfinished sessions; clear any active session
+       setCurrentSession(null);
+       setIsSessionActive(false);
       }
     } catch (error) {
       console.log('[RestockSessions] Error loading sessions', error);
@@ -135,6 +149,15 @@ export const useRestockSessions = () => {
       setIsLoadingSessions(false);
     }
   }, [userId]);
+
+  // Listen for session completion events triggered by Emails tab
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener('restock:sessionSent', () => {
+      // Reload sessions from DB; this will also clear current session if needed
+      loadAllSessions();
+    });
+    return () => sub.remove();
+  }, [loadAllSessions]);
 
   const startNewSession = useCallback(async () => {
     console.log('[RestockSessions] startNewSession called', { userId, hasUserId: !!userId });
@@ -151,7 +174,8 @@ export const useRestockSessions = () => {
       // Create session in database first
       const sessionResult = await SessionService.createSession({
         user_id: userId,
-        status: 'draft'
+        status: 'draft',
+        // name can be set later via setSessionName; leave undefined initially
       });
       
       console.log('[RestockSessions] Session creation result', { 
@@ -170,7 +194,8 @@ export const useRestockSessions = () => {
         id: sessionResult.data.id,
         products: [],
         createdAt: new Date(sessionResult.data.created_at),
-        status: sessionResult.data.status as 'draft' | 'sent'
+        status: sessionResult.data.status as 'draft' | 'sent',
+        name: sessionResult.data.name || undefined,
       };
       
       console.log('[RestockSessions] New session created', { 
@@ -218,6 +243,33 @@ export const useRestockSessions = () => {
     setShowSessionSelection(false);
     
     return { success: true, message: `Switched to session with ${session.products.length} products` };
+  }, []);
+
+  const setSessionName = useCallback(async (sessionId: string, name: string) => {
+    try {
+      Logger.info('Setting session name', { sessionId, name });
+      
+      // Update database first
+      const updateResult = await SessionService.updateSession(sessionId, { name });
+      if (updateResult.error) {
+        Logger.error('Failed to update session name in database', updateResult.error, { sessionId, name });
+        throw new Error('Failed to save session name');
+      }
+      
+      // Update local state
+      setAllSessions(prev => prev.map(s => s.id === sessionId ? { ...s, name } : s));
+      setCurrentSession(prev => prev && prev.id === sessionId ? { ...prev, name } as RestockSession : prev);
+      
+      // Persist locally for offline access
+      const storageKey = `sessionName:${sessionId}`;
+      await AsyncStorage.setItem(storageKey, name);
+      
+      Logger.success('Session name updated successfully', { sessionId, name });
+    } catch (error) {
+      Logger.error('Failed to set session name', error, { sessionId, name });
+      // Don't update local state if database update failed
+      throw error;
+    }
   }, []);
 
   const deleteSession = useCallback(async (session: RestockSession) => {
@@ -294,6 +346,7 @@ export const useRestockSessions = () => {
     startNewSession,
     selectSession,
     deleteSession,
+    setSessionName,
     showSessionSelectionModal,
     hideSessionSelectionModal,
     updateCurrentSession,

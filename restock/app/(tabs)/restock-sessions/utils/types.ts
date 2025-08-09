@@ -13,6 +13,7 @@ export interface RestockSession {
   products: Product[];
   createdAt: Date;
   status: 'draft' | 'sent';
+  name?: string;
 }
 
 export interface StoredProduct {

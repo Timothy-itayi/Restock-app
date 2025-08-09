@@ -44,7 +44,7 @@ export const SessionSelection: React.FC<SessionSelectionProps> = ({
           >
             <View style={restockSessionsStyles.sessionCardHeader}>
               <Text style={restockSessionsStyles.sessionCardTitle}>
-                Session #{index + 1} • {formatDate(session.createdAt)}
+                {session.name ? `${session.name} • ` : `Session #{index + 1} • `}{formatDate(session.createdAt)}
               </Text>
               <TouchableOpacity
                 style={restockSessionsStyles.sessionDeleteButton}

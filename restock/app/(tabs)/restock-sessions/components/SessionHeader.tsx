@@ -1,8 +1,10 @@
-import React from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { Text, TouchableOpacity, View, TextInput } from 'react-native';
 import { RestockSession } from '../utils/types';
 import { formatDate, formatProductCount } from '../utils/formatters';
+import { getSessionColorTheme } from '../utils/colorUtils';
 import { restockSessionsStyles } from '../../../../styles/components/restock-sessions';
+import { useRestockSessionContext } from '../context/RestockSessionContext';
 
 interface SessionHeaderProps {
   currentSession: RestockSession | null;
@@ -15,14 +17,75 @@ export const SessionHeader: React.FC<SessionHeaderProps> = ({
   allSessionsCount,
   onShowSessionSelection
 }) => {
+  const sessionColor = currentSession ? getSessionColorTheme(currentSession.id) : null;
+  const { setSessionName } = useRestockSessionContext();
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [tempName, setTempName] = useState(currentSession?.name || '');
+
+  // Update temp name when session changes
+  useEffect(() => {
+    setTempName(currentSession?.name || '');
+  }, [currentSession?.name]);
+
+  const handleSaveSessionName = async () => {
+    setIsRenaming(false);
+    if (currentSession && tempName.trim().length > 0) {
+      try {
+        await setSessionName(currentSession.id, tempName.trim());
+      } catch (error) {
+        console.error('Failed to set session name:', error);
+        // Revert to original name if update failed
+        setTempName(currentSession.name || '');
+      }
+    } else {
+      // Revert if empty
+      setTempName(currentSession?.name || '');
+    }
+  };
+
   return (
     <>
       {/* Session header with switcher */}
-      <View style={restockSessionsStyles.sessionHeader}>
+      <View style={[
+        restockSessionsStyles.sessionHeader,
+        sessionColor && {
+          borderLeftWidth: 4,
+          borderLeftColor: sessionColor.primary,
+          backgroundColor: sessionColor.light
+        }
+      ]}>
         <View style={restockSessionsStyles.sessionHeaderLeft}>
-          <Text style={restockSessionsStyles.sessionHeaderTitle}>
-            Session • {formatDate(currentSession?.createdAt || new Date())}
-          </Text>
+          <View style={restockSessionsStyles.sessionTitleRow}>
+            {sessionColor && (
+              <View style={[
+                restockSessionsStyles.sessionColorIndicator,
+                { backgroundColor: sessionColor.primary }
+              ]} />
+            )}
+            {isRenaming ? (
+              <TextInput
+                value={tempName}
+                onChangeText={setTempName}
+                autoFocus
+                placeholder="Tap to name session"
+                returnKeyType="done"
+                onSubmitEditing={handleSaveSessionName}
+                onBlur={handleSaveSessionName}
+                style={{
+                  fontFamily: restockSessionsStyles.sessionHeaderTitle.fontFamily,
+                  fontSize: restockSessionsStyles.sessionHeaderTitle.fontSize,
+                  fontWeight: '600',
+                  color: '#000',
+                  minWidth: 200,
+                }}
+              />
+            ) : (
+              <Text style={restockSessionsStyles.sessionHeaderTitle} onPress={() => setIsRenaming(true)}>
+                {(currentSession?.name ? currentSession.name + ' • ' : 'Session • ') +
+                  formatDate(currentSession?.createdAt || new Date())}
+              </Text>
+            )}
+          </View>
           {allSessionsCount > 1 && (
             <TouchableOpacity
               style={restockSessionsStyles.sessionSwitcherButton}
