@@ -42,18 +42,18 @@ export const emailsStyles = StyleSheet.create({
   emailList: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingTop: 8,
   },
   emailCard: {
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
     borderColor: "#E5E5E5",
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 10,
     shadowColor: "#000000",
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.04,
     shadowRadius: 2,
     elevation: 1,
   },
@@ -104,7 +104,7 @@ export const emailsStyles = StyleSheet.create({
     backgroundColor: "#F8F9FA",
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 6,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: "#DEE2E6",
     gap: 6,
@@ -479,21 +479,115 @@ export const emailsStyles = StyleSheet.create({
     color: "#000000",
     fontWeight: "500",
   },
-  sendAllButton: {
-    backgroundColor: "#22C55E", // Green like restock sessions
-    marginHorizontal: 16,
-    marginVertical: 16,
+  // Updated Action Button Styles (smaller, centered)
+  actionButtonContainer: {
+    paddingHorizontal: 16,
     paddingVertical: 12,
-    borderRadius: 6,
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#22C55E", // Green border
   },
-  sendAllButtonText: {
+  
+  actionSendButton: {
+    backgroundColor: "#22C55E",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    minWidth: 140,
+    alignItems: "center",
+    shadowColor: "#22C55E",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  
+  actionSendButtonDisabled: {
+    backgroundColor: "#6C757D",
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  
+  actionButtonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  
+  actionSendButtonText: {
     fontFamily: 'Satoshi-Medium',
     color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: "500",
+    fontWeight: "600",
+  },
+
+  // Session Tabs Styles (enhanced for better visibility)
+  sessionTabsContainer: {
+    marginBottom: 16,
+  },
+  
+  sessionTabsTitle: {
+    fontFamily: 'Satoshi-Bold',
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2C3E50',
+    marginBottom: 12,
+    paddingHorizontal: 16,
+  },
+  
+  sessionTabs: {
+    flexGrow: 0,
+  },
+  
+  sessionTabsContent: {
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  
+  sessionTab: {
+    minWidth: 120,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 2,
+    alignItems: 'center',
+    position: 'relative',
+  },
+  
+  sessionTabHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    position: 'absolute',
+    top: 8,
+    paddingHorizontal: 4,
+  },
+  
+  sessionTabIndicator: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+  },
+  
+  sessionTabText: {
+    fontFamily: 'Satoshi-Medium',
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  
+  sessionTabDate: {
+    fontFamily: 'Satoshi-Regular',
+    fontSize: 12,
+    color: '#6C757D',
+    marginBottom: 2,
+  },
+  
+  sessionTabInfo: {
+    fontFamily: 'Satoshi-Regular',
+    fontSize: 11,
+    color: '#95A5A6',
   },
   emptyState: {
     flex: 1,
@@ -537,5 +631,151 @@ export const emailsStyles = StyleSheet.create({
     color: "#6C757D",
     textAlign: "center",
     marginBottom: 24,
+  },
+
+  // Send Confirmation Modal Styles
+  confirmationOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+
+  confirmationContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+
+  confirmationDialog: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    maxWidth: 400,
+    minWidth: 300,
+    shadowColor: '#000000',
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 16,
+  },
+
+  confirmationHeader: {
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+
+  confirmationTitle: {
+    fontFamily: 'Satoshi-Bold',
+    fontSize: 18,
+    color: '#212529',
+    fontWeight: '600',
+  },
+
+  confirmationContent: {
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
+
+  confirmationMessage: {
+    fontFamily: 'Satoshi-Medium',
+    fontSize: 16,
+    color: '#374151',
+    lineHeight: 22,
+    textAlign: 'center',
+    marginBottom: 20,
+    fontWeight: '500',
+  },
+
+  confirmationEmailCount: {
+    backgroundColor: '#F0FDF4',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+
+  confirmationEmailCountValue: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#22C55E',
+    marginBottom: 4,
+  },
+
+  confirmationEmailCountLabel: {
+    fontFamily: 'Satoshi-Bold',
+    fontSize: 12,
+    color: '#16A34A',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+
+  confirmationNote: {
+    fontFamily: 'Satoshi-Regular',
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+
+  confirmationActions: {
+    flexDirection: 'row',
+    paddingHorizontal: 24,
+    paddingBottom: 24,
+    paddingTop: 8,
+    gap: 12,
+  },
+
+  confirmationCancelButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+    borderWidth: 1,
+    borderColor: '#DEE2E6',
+  },
+
+  confirmationCancelButtonText: {
+    fontFamily: 'Satoshi-Medium',
+    fontSize: 16,
+    color: '#6C757D',
+    fontWeight: '600',
+  },
+
+  confirmationConfirmButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#22C55E',
+    borderWidth: 1,
+    borderColor: '#22C55E',
+  },
+
+  confirmationConfirmButtonText: {
+    fontFamily: 'Satoshi-Medium',
+    fontSize: 16,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+
+  confirmationIcon: {
+    marginRight: 8,
   },
 }); 

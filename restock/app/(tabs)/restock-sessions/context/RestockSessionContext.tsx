@@ -48,6 +48,7 @@ interface RestockSessionContextType {
   startNewSession: () => Promise<{ success: boolean; session?: RestockSession; error?: string }>;
   selectSession: (session: RestockSession) => { success: boolean; message?: string };
   deleteSession: (session: RestockSession) => Promise<{ success: boolean; error?: string }>;
+  setSessionName: (sessionId: string, name: string) => Promise<void>;
   showSessionSelectionModal: () => void;
   hideSessionSelectionModal: () => void;
   updateCurrentSession: (session: RestockSession | null) => void;
@@ -139,6 +140,7 @@ export const RestockSessionProvider: React.FC<RestockSessionProviderProps> = ({ 
     startNewSession: sessionHook.startNewSession,
     selectSession: sessionHook.selectSession,
     deleteSession: sessionHook.deleteSession,
+    setSessionName: sessionHook.setSessionName,
     showSessionSelectionModal: sessionHook.showSessionSelectionModal,
     hideSessionSelectionModal: sessionHook.hideSessionSelectionModal,
     updateCurrentSession: sessionHook.updateCurrentSession,

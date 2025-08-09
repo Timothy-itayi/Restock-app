@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { emailsStyles } from '../../../../styles/components/emails';
 import { EmailDraft } from '../hooks';
@@ -7,9 +7,11 @@ import { EmailDraft } from '../hooks';
 interface EmailCardProps {
   email: EmailDraft;
   onEdit: (email: EmailDraft) => void;
+  onSend?: (emailId: string) => Promise<{ success: boolean; message: string }>;
+  accentColor?: string;
 }
 
-export function EmailCard({ email, onEdit }: EmailCardProps) {
+export function EmailCard({ email, onEdit, onSend, accentColor = '#22C55E' }: EmailCardProps) {
   const renderStatusBadge = () => {
     const statusStyles = {
       sending: { backgroundColor: '#FFF3CD', color: '#856404' },
@@ -29,7 +31,7 @@ export function EmailCard({ email, onEdit }: EmailCardProps) {
     const styles = statusStyles[email.status];
 
     return (
-      <View style={[emailsStyles.statusBadge, styles]}>
+      <View style={[emailsStyles.statusBadge, styles]}> 
         {config.icon ? (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
             <Ionicons name={config.icon as any} size={12} color={styles.color} />
@@ -45,7 +47,7 @@ export function EmailCard({ email, onEdit }: EmailCardProps) {
   };
 
   return (
-    <View style={emailsStyles.emailCard}>
+    <View style={[emailsStyles.emailCard, { borderLeftWidth: 4, borderLeftColor: accentColor }] }>
       <View style={emailsStyles.emailCardHeader}>
         <View style={emailsStyles.emailDetails}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -83,13 +85,31 @@ export function EmailCard({ email, onEdit }: EmailCardProps) {
       </Text>
       
       <View style={emailsStyles.emailActions}>
-        <TouchableOpacity 
-          style={emailsStyles.editButton}
-          onPress={() => onEdit(email)}
-        >
-          <Ionicons name="pencil" size={16} color="#6B7F6B" />
-          <Text style={emailsStyles.editButtonText}>Edit</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <TouchableOpacity 
+            style={emailsStyles.editButton}
+            onPress={() => onEdit(email)}
+          >
+            <Ionicons name="pencil" size={16} color="#F97316" />
+            <Text style={[emailsStyles.editButtonText, { color: '#F97316' }]}>Edit</Text>
+          </TouchableOpacity>
+          {onSend && (
+            <TouchableOpacity 
+              style={[emailsStyles.editButton, { backgroundColor: accentColor, borderColor: accentColor }]}
+              onPress={async () => {
+                if (email.status === 'sent' || email.status === 'sending') return;
+                const res = await onSend(email.id);
+                if (!res.success) {
+                  Alert.alert('Send Email', res.message);
+                }
+              }}
+              disabled={email.status === 'sent' || email.status === 'sending'}
+            >
+              <Ionicons name="send" size={16} color="#FFFFFF" />
+              <Text style={[emailsStyles.editButtonText, { color: '#FFFFFF' }]}>Send</Text>
+            </TouchableOpacity>
+          )}
+        </View>
         
         {renderStatusBadge()}
       </View>

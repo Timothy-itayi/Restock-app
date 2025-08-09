@@ -209,6 +209,7 @@ export class EmailService {
           ),
           restock_sessions!session_id (
             id,
+            name,
             created_at
           )
         `)

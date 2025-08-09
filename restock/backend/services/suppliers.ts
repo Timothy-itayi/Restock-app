@@ -182,28 +182,19 @@ export class SupplierService {
    */
   static async getSuppliersForSession(sessionId: string) {
     try {
-      const { data, error } = await supabase
+      // Fetch suppliers for a session without FK embeds
+      const { data: items, error } = await supabase
         .from(TABLES.RESTOCK_ITEMS)
-        .select(`
-          suppliers!supplier_id (
-            id,
-            name,
-            email,
-            phone
-          )
-        `)
+        .select('supplier_id')
         .eq('session_id', sessionId);
 
-      // Remove duplicates and extract supplier data
-      const uniqueSuppliers = data?.reduce((acc: any[], item: any) => {
-        const supplier = item.suppliers;
-        if (supplier && !acc.find((s: any) => s.id === supplier.id)) {
-          acc.push(supplier);
-        }
-        return acc;
-      }, []);
+      const supplierIds = Array.from(new Set((items || []).map((it: any) => it.supplier_id).filter(Boolean)));
 
-      return { data: uniqueSuppliers, error };
+      const { data: suppliers } = supplierIds.length > 0
+        ? await supabase.from(TABLES.SUPPLIERS).select('id,name,email,phone').in('id', supplierIds)
+        : { data: [] as any[] } as any;
+
+      return { data: suppliers, error };
     } catch (error) {
       return { data: null, error };
     }

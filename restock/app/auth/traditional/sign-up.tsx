@@ -101,7 +101,12 @@ export default function TraditionalSignUpScreen() {
       );
     } catch (err: any) {
       console.error(JSON.stringify(err, null, 2));
-      Alert.alert('Error', err.errors?.[0]?.message || 'Failed to create account');
+      const clerkMsg = err?.errors?.[0]?.message as string | undefined;
+      // Normalize duplicate email message for better UX
+      const message = clerkMsg && /already.*exist|taken|in use/i.test(clerkMsg)
+        ? 'An account with this email already exists. Please sign in or use a different email.'
+        : (clerkMsg || 'Failed to create account');
+      Alert.alert('Error', message);
     } finally {
       setLoading(false);
     }

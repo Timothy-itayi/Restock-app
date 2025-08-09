@@ -32,7 +32,8 @@ export interface RestockSession {
   id: string;
   user_id: string; // References Clerk user ID
   created_at: string;
-  status: 'draft' | 'sent';
+  status: 'draft' | 'email_generated' | 'sent';
+  name?: string;
 }
 
 export interface RestockSessionSupplier {
@@ -100,7 +101,8 @@ export interface InsertSupplier {
 
 export interface InsertRestockSession {
   user_id: string;
-  status?: 'draft' | 'sent';
+  status?: 'draft' | 'email_generated' | 'sent';
+  name?: string;
 }
 
 export interface InsertRestockSessionSupplier {
@@ -150,7 +152,8 @@ export interface UpdateSupplier {
 }
 
 export interface UpdateRestockSession {
-  status?: 'draft' | 'sent';
+  status?: 'draft' | 'email_generated' | 'sent';
+  name?: string;
 }
 
 export interface UpdateEmailSent {

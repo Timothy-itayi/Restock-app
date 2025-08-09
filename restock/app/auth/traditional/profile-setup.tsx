@@ -17,10 +17,7 @@ export default function ProfileSetupScreen() {
 
   // Check if user is already authenticated
   useEffect(() => {
-    if (isSignedIn && userId) {
-      console.log('User is authenticated:', userId);
-    } else {
-      console.log('User not authenticated, redirecting to welcome');
+    if (!(isSignedIn && userId)) {
       router.replace('/welcome');
     }
   }, [isSignedIn, userId]);
@@ -43,8 +40,7 @@ export default function ProfileSetupScreen() {
 
     setLoading(true);
     try {
-      console.log('Creating user profile for:', userId);
-      console.log('Profile data:', { name, storeName });
+      // Quiet creation logs
       
       // Get user email from Clerk with robust validation
       const userEmail = user?.emailAddresses?.[0]?.emailAddress || 
@@ -52,7 +48,7 @@ export default function ProfileSetupScreen() {
                        user?.emailAddresses?.[1]?.emailAddress;
       
       if (!userEmail || !userEmail.includes('@')) {
-        console.error('No valid email found for user:', userId);
+        // Quiet noisy email error; user will see alert
         Alert.alert('Error', 'Could not retrieve your email address. Please contact support.');
         return;
       }
@@ -62,24 +58,25 @@ export default function ProfileSetupScreen() {
       try {
         result = await UserProfileService.ensureUserProfile(userId, userEmail, storeName, name);
       } catch (error) {
-        console.error('Network or unexpected error creating profile:', error);
+        // Quiet network error; user will see alert
         Alert.alert('Error', 'Network error while creating your profile. Please check your connection and try again.');
         return;
       }
       
       if (!result) {
-        console.error('No result returned from profile creation');
+        // Quiet; user will see alert
         Alert.alert('Error', 'Failed to create your profile. Please try again.');
         return;
       }
       
       if (result.error) {
-        console.error('Failed to create user profile:', result.error);
-        Alert.alert('Error', 'Failed to create your profile. Please try again.');
+        const message = (result.error as any)?.code === 'EMAIL_TAKEN'
+          ? 'An account already exists with this email. Please sign in or use a different email.'
+          : 'Failed to create your profile. Please try again.';
+        Alert.alert('Error', message);
         return;
       } else {
-        console.log('User profile created successfully');
-        console.log('Profile data:', result.data);
+        // Success; no verbose logs
         
         // Save session data for returning user detection
         await SessionManager.saveUserSession({
@@ -95,7 +92,7 @@ export default function ProfileSetupScreen() {
         router.replace('/(tabs)/dashboard');
       }
     } catch (error) {
-      console.error('Error creating user profile:', error);
+      // Quiet; user will see alert
       Alert.alert('Error', 'Failed to create your profile. Please try again.');
     } finally {
       setLoading(false);

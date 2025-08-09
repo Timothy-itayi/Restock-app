@@ -14,8 +14,7 @@ export default function SSOProfileSetupScreen() {
   const { user } = useUser();
   const { isAuthenticated, userId, authType } = useUnifiedAuth();
   
-  // Debug logging for component mount
-  console.log('🔵 SSO Profile Setup: Component rendered', { isAuthenticated, userId, authType });
+  // Quiet verbose render log
   
   const [name, setName] = useState('');
   const [storeName, setStoreName] = useState('');
@@ -41,29 +40,17 @@ export default function SSOProfileSetupScreen() {
     return '';
   };
 
-  // Debug: Log when component mounts
+  // Reduce mount noise; keep only critical error logs elsewhere
   useEffect(() => {
-    ErrorLogger.info('SSOProfileSetup: Component mounted', { isAuthenticated, userId, authType }, { component: 'SSOProfileSetup' });
+    // no-op
   }, []);
 
   // Check if user is authenticated and extract their information
   useEffect(() => {
-    ErrorLogger.info('SSOProfileSetup: Auth state changed', { isAuthenticated, userId, authType }, { component: 'SSOProfileSetup' });
-    
-    // Add debug logging to understand the user object structure
-    console.log('🔍 SSOProfileSetup: User object debug:', {
-      hasUser: !!user,
-      emailAddresses: user?.emailAddresses,
-      primaryEmailAddress: user?.primaryEmailAddress,
-      externalAccounts: user?.externalAccounts,
-      firstName: user?.firstName,
-      lastName: user?.lastName,
-      fullName: user?.fullName,
-      username: user?.username
-    });
+    // Quiet frequent auth state/user structure logs
     
     if (isAuthenticated && user && authType.type === 'google') {
-      ErrorLogger.info('SSOProfileSetup: Google user authenticated', null, { component: 'SSOProfileSetup' });
+      // Keep flow minimal; rely on UI state
       const userEmail = user.emailAddresses?.[0]?.emailAddress || user.primaryEmailAddress?.emailAddress;
       if (userEmail) {
         ErrorLogger.info('SSOProfileSetup: Setting email from Google account', { userEmail }, { component: 'SSOProfileSetup' });
@@ -74,24 +61,22 @@ export default function SSOProfileSetupScreen() {
         
         if (!hasUserEditedName) {
           if (userName && userName.trim()) {
-            ErrorLogger.info('SSOProfileSetup: Setting name from Google account', { userName }, { component: 'SSOProfileSetup' });
             setName(userName);
           } else {
-            ErrorLogger.info('SSOProfileSetup: No name found in Google account, leaving empty for user input', null, { component: 'SSOProfileSetup' });
             setName('');
           }
         } else {
-          ErrorLogger.info('SSOProfileSetup: User has manually edited name, not overriding with Google data', { currentName: name }, { component: 'SSOProfileSetup' });
+          // Respect manual edits without logging
         }
       }
     } else if (isAuthenticated && user && authType.type !== 'google') {
-      ErrorLogger.info('SSOProfileSetup: Non-Google user, redirecting to traditional setup', null, { component: 'SSOProfileSetup' });
+      // Redirect silently
       // Use setTimeout to avoid setState during render
       setTimeout(() => {
         router.replace('/auth/traditional/profile-setup');
       }, 0);
     } else if (!isAuthenticated) {
-      ErrorLogger.info('SSOProfileSetup: User not authenticated, redirecting to welcome', null, { component: 'SSOProfileSetup' });
+      // Redirect silently
       // Use setTimeout to avoid setState during render
       setTimeout(() => {
         router.replace('/welcome');
@@ -105,15 +90,15 @@ export default function SSOProfileSetupScreen() {
       try {
         const justCompletedSSO = await ClerkClientService.isOAuthJustCompleted();
         if (justCompletedSSO) {
-          console.log('SSOProfileSetup: OAuth completion detected, removing flag');
+          // Quiet flag removal
           await AsyncStorage.removeItem('justCompletedSSO');
         }
         
         // Don't clear the newSSOSignUp flag here - keep it until profile is actually completed
         // This ensures AuthContext knows this is a new sign-up throughout the entire setup process
-        console.log('SSOProfileSetup: Keeping newSSOSignUp flag until profile completion');
+        // Quiet flag retention
       } catch (error) {
-        console.error('Error checking OAuth completion flag:', error);
+        // Keep errors in ErrorLogger elsewhere if needed
       }
     };
     
@@ -126,11 +111,10 @@ export default function SSOProfileSetupScreen() {
       try {
         // If user arrives via deep link and is authenticated, ensure we have their data
         if (isAuthenticated && userId && user) {
-          console.log('SSOProfileSetup: User arrived via deep link, ensuring data is loaded');
+          // Quiet deep link arrival log
           
           const userEmail = user.emailAddresses?.[0]?.emailAddress || user.primaryEmailAddress?.emailAddress;
           if (userEmail && !email) {
-            console.log('SSOProfileSetup: Setting email from deep link user:', userEmail);
             setEmail(userEmail);
           }
           
@@ -139,13 +123,12 @@ export default function SSOProfileSetupScreen() {
             const userName = extractUserName(user);
             
             if (userName && userName.trim()) {
-              console.log('SSOProfileSetup: Setting name from deep link user:', userName);
               setName(userName);
             }
           }
         }
       } catch (error) {
-        console.error('Error handling deep link arrival:', error);
+        // Quiet; non-critical
       }
     };
     
@@ -194,15 +177,19 @@ export default function SSOProfileSetupScreen() {
       const result = await UserProfileService.ensureUserProfile(userId, email, storeName.trim(), name.trim());
       
       if (result.error) {
+        const message = (result.error as any)?.code === 'EMAIL_TAKEN'
+          ? 'An account already exists with this email. Please sign in with your email/password or contact support.'
+          : 'Failed to save your Google account profile. Please try again.';
         ErrorLogger.error('SSOProfileSetup: Profile creation failed', result.error, { 
           component: 'SSOProfileSetup', 
           action: 'handleCreateProfile',
           userId,
           email 
         });
-        Alert.alert('Setup Failed', 'Failed to save your Google account profile. Please try again.');
+        Alert.alert('Setup Failed', message);
       } else {
-        ErrorLogger.info('SSOProfileSetup: Profile created successfully', result.data, { 
+         // Success path; no verbose data logging
+         ErrorLogger.info('SSOProfileSetup: Profile creation successful', {
           component: 'SSOProfileSetup', 
           action: 'handleCreateProfile',
           userId,
@@ -221,7 +208,7 @@ export default function SSOProfileSetupScreen() {
         
         // Clear the SSO sign-up flags and navigate immediately
         await ClerkClientService.clearSSOSignUpFlags();
-        console.log('SSOProfileSetup: Profile setup complete, navigating to dashboard');
+        // Quiet navigation
         
         router.replace('/(tabs)/dashboard');
       }

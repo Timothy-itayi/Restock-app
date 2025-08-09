@@ -6,6 +6,7 @@ export { default as CustomToast } from './CustomToast';
 export { default as UnifiedAuthGuard } from './UnifiedAuthGuard';
 export { default as AuthLayout } from './AuthLayout';
 export { default as FullScreenLoader } from './FullScreenLoader';
+export { default as NameSessionModal } from './NameSessionModal';
 
 export { default as SignOutButton } from './SignOutButton';
 

@@ -3,6 +3,26 @@ import type { InsertUser } from '../types/database';
 
 export class UserProfileService {
   /**
+   * Check if an email already exists in our users table
+   */
+  static async emailExists(email: string): Promise<{ exists: boolean; ownerId?: string; error?: any }> {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (error) {
+        return { exists: false, error };
+      }
+
+      return { exists: !!data, ownerId: data?.id };
+    } catch (error) {
+      return { exists: false, error };
+    }
+  }
+  /**
    * Test Supabase connection and verify users table exists
    */
   static async testConnection() {
@@ -242,7 +262,16 @@ export class UserProfileService {
         nameTrimmed: name?.trim()
       });
       
-      // First, check if user exists
+      // First, enforce unique email across any account
+      const existingByEmail = await this.emailExists(email);
+      if (existingByEmail.exists && existingByEmail.ownerId !== clerkUserId) {
+        const err = new Error('Email already associated with another account');
+        // @ts-ignore add code for upstream handlers
+        (err as any).code = 'EMAIL_TAKEN';
+        return { data: null, error: err };
+      }
+
+      // Next, check if user exists by id
       const { data: existingUser, error: checkError } = await supabase
         .from('users')
         .select('*')

@@ -5,6 +5,7 @@ import { Alert, KeyboardAvoidingView, Platform, View } from "react-native";
 import { SessionService } from "../../../backend/services/sessions";
 import { RestockSessionsSkeleton } from "../../components/skeleton";
 import { ConfirmationDialog } from "../../components/ConfirmationDialog";
+import { NameSessionModal } from "../../components";
 import { restockSessionsStyles } from "../../../styles/components/restock-sessions";
 import { RestockSessionProvider, useRestockSessionContext } from "./context/RestockSessionContext";
 import {
@@ -12,6 +13,7 @@ import {
   StartSection,
   ProductForm,
   ProductList,
+  ReplaySuggestions,
   SessionHeader,
   FinishSection,
   // NotificationRenderer,
@@ -26,11 +28,7 @@ const RestockSessionsContent: React.FC = () => {
   const params = useLocalSearchParams();
   const { userId } = useAuth();
   
-  console.log('[RestockSessions] Component render', { 
-    userId, 
-    hasUserId: !!userId,
-    userIdLength: userId?.length 
-  });
+  // Reduce noisy render logs
   
   const {
     // State
@@ -56,6 +54,7 @@ const RestockSessionsContent: React.FC = () => {
     deleteSession,
     showSessionSelectionModal,
     updateCurrentSession,
+    setSessionName,
     
     updateStoredProducts,
     updateStoredSuppliers,
@@ -79,9 +78,16 @@ const RestockSessionsContent: React.FC = () => {
 
   // Local state for confirmation dialog
   const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
+  // Local state for naming modal
+  const [showNameModal, setShowNameModal] = useState(false);
+  const [sessionNameInput, setSessionNameInput] = useState("");
 
   // Additional loading state to ensure content is fully ready
   const [isContentReady, setIsContentReady] = useState(false);
+  // Track if user has visited this screen before to avoid showing skeleton on first visit
+  const [hasVisitedRestock, setHasVisitedRestock] = useState(false);
+  // Brief intro delay after auto-creating a session to avoid immediate UI jump
+  const [introDelayActive, setIntroDelayActive] = useState(false);
 
   // Session management functions
   const handleStartNewSession = React.useCallback(async () => {
@@ -93,65 +99,107 @@ const RestockSessionsContent: React.FC = () => {
     }
   }, [startNewSession, showNotification]);
 
+  // Prompt for session name before creating (custom modal)
+  const promptNewSession = React.useCallback(() => {
+    setSessionNameInput("");
+    setShowNameModal(true);
+  }, []);
+
+  const handleConfirmCreateSession = React.useCallback(async () => {
+    // Engage brief intro delay so header shows first before list/forms
+    setIntroDelayActive(true);
+    const introTimer = setTimeout(() => setIntroDelayActive(false), 900);
+    const result = await startNewSession();
+    if (result.success && result.session) {
+      const trimmed = sessionNameInput.trim();
+      if (trimmed.length > 0) {
+        try {
+          // Persist via centralized setter to keep allSessions and currentSession in sync
+          await setSessionName(result.session.id, trimmed);
+          showNotification('info', `New session "${trimmed}" started`);
+        } catch (error) {
+          console.error('Failed to set session name:', error);
+          showNotification('info', 'New restock session started');
+        }
+      } else {
+        showNotification('info', 'New restock session started');
+      }
+    } else {
+      showNotification('error', result.error || 'Failed to start session');
+    }
+    setShowNameModal(false);
+  }, [sessionNameInput, startNewSession, setSessionName, showNotification]);
+
+  const handleCreateWithoutName = React.useCallback(async () => {
+    // Engage brief intro delay so header shows first before list/forms
+    setIntroDelayActive(true);
+    setTimeout(() => setIntroDelayActive(false), 900);
+    setShowNameModal(false);
+    await handleStartNewSession();
+  }, [handleStartNewSession]);
+
   // Log component mount and params
   React.useEffect(() => {
-    console.log('[RestockSessions] Component mounted', { 
-      hasAction: !!params.action,
-      actionValue: params.action 
-    });
+    // Quiet mount logs
   }, [params]);
 
-  // Load sessions when component mounts or user changes
+  // Load sessions when component mounts or user changes.
+  // Skip auto-loading when creating a new session to avoid auto-selecting an existing one.
   React.useEffect(() => {
-    if (isDataReady) {
-      console.log('[RestockSessions] Loading sessions after data is ready');
+    if (isDataReady && params.action !== 'create') {
       loadAllSessions();
     }
-  }, [isDataReady, loadAllSessions]);
+  }, [isDataReady, params.action, loadAllSessions]);
 
-  // Set content ready after both data and sessions are loaded with additional delay
+  // Set content ready after both data and sessions are loaded
   React.useEffect(() => {
+    if (params.action === 'create') {
+      // When explicitly creating a session, avoid skeleton gating
+      setIsContentReady(true);
+      return;
+    }
     if (isDataReady && !isLoadingSessions) {
-      console.log('[RestockSessions] Data and sessions loaded, adding delay before showing content');
-      const timer = setTimeout(() => {
-        console.log('[RestockSessions] Setting content ready to true');
-        setIsContentReady(true);
-      }, 800); // Additional 800ms delay to ensure everything is settled
-      
+      // Minimal delay only when not creating
+      const delay = 200;
+      const timer = setTimeout(() => setIsContentReady(true), delay);
       return () => clearTimeout(timer);
     } else {
       setIsContentReady(false);
     }
-  }, [isDataReady, isLoadingSessions]);
+  }, [isDataReady, isLoadingSessions, allSessions.length, params.action]);
+
+  // Determine if this is the user's first visit to the Restock screen
+  React.useEffect(() => {
+    const checkVisited = async () => {
+      try {
+        const val = await AsyncStorage.getItem('hasVisitedRestock');
+        const visited = val === 'true';
+        setHasVisitedRestock(visited);
+        if (!visited) {
+          await AsyncStorage.setItem('hasVisitedRestock', 'true');
+        }
+      } catch (_) {
+        // If storage fails, default to not visited to avoid skeleton
+        setHasVisitedRestock(false);
+      }
+    };
+    checkVisited();
+  }, []);
 
   // Debug effect to monitor state changes
   React.useEffect(() => {
-    console.log('[RestockSessions] State update', {
-      allSessionsCount: allSessions.length,
-      currentSessionId: currentSession?.id,
-      isSessionActive,
-      showSessionSelection,
-      isDataReady,
-      hasError: errorState.hasError,
-      errorMessage: errorState.errorMessage
-    });
+    // Quiet frequent state logs
   }, [allSessions.length, currentSession?.id, isSessionActive, showSessionSelection, isDataReady, errorState.hasError, errorState.errorMessage]);
 
   // Test database connection and session loading
   React.useEffect(() => {
     const testDatabaseConnection = async () => {
+      // Quiet DB test logs in production
       if (isDataReady) {
-        console.log('[RestockSessions] Testing database connection...');
         try {
-          // Test basic session loading
-          const testResult = await SessionService.getUserSessions('test-user');
-          console.log('[RestockSessions] Database test result:', {
-            hasError: !!testResult.error,
-            error: testResult.error,
-            dataCount: testResult.data?.length || 0
-          });
+          await SessionService.getUserSessions('test-user');
         } catch (error) {
-          console.error('[RestockSessions] Database connection test failed:', error);
+          // noop
         }
       }
     };
@@ -161,18 +209,13 @@ const RestockSessionsContent: React.FC = () => {
 
   // Handle URL parameters for automatic actions
   useEffect(() => {
-    console.log('[RestockSessions] URL parameter effect triggered', {
-      action: params.action,
-      isDataReady,
-      shouldCreate: params.action === 'create' && isDataReady
-    });
-    
-    if (params.action === 'create' && isDataReady) {
-      console.log('[RestockSessions] Auto-creating new session from URL parameter');
-      Logger.info('Auto-creating new session from URL parameter');
-      handleStartNewSession();
+    if (params.action === 'create') {
+      Logger.info('Preparing to create new session from URL parameter');
+      // Show naming modal first to give user chance to set a name
+      setSessionNameInput("");
+      setShowNameModal(true);
     }
-  }, [params.action, isDataReady, handleStartNewSession]);
+  }, [params.action]);
 
   const handleSelectSession = (session: any) => {
     const result = selectSession(session);
@@ -336,23 +379,30 @@ const RestockSessionsContent: React.FC = () => {
     }
 
     try {
-      // Update session status to indicate it's ready for email generation
+      // Attempt to update session status to email_generated (remove from active list)
       const updateResult = await SessionService.updateSession(currentSession.id, {
-        status: 'draft' // Keep as draft until emails are actually sent
+        status: 'email_generated'
       });
-      
-      if (updateResult.error) {
-        Logger.error('Failed to update session status', updateResult.error, { sessionId: currentSession.id });
-        showNotification('error', 'Failed to prepare session for email generation');
-        return;
-      }
-      
-      Logger.success('Session status updated', { sessionId: currentSession.id, status: updateResult.data.status });
 
-      // Show confirmation dialog
+      if (updateResult.error) {
+        const code = (updateResult.error as any)?.code;
+        // If DB check constraint doesn't allow email_generated, proceed anyway
+        if (code === '23514') {
+          Logger.warning('Database does not allow email_generated status; proceeding without status change', { error: updateResult.error, sessionId: currentSession.id });
+          showNotification('info', 'Preparing emails...');
+        } else {
+          Logger.error('Failed to update session status', updateResult.error, { sessionId: currentSession.id });
+          showNotification('error', 'Failed to prepare session for email generation');
+          return;
+        }
+      } else {
+        Logger.success('Session status updated to email_generated', { sessionId: currentSession.id, status: updateResult.data.status });
+      }
+
+      // Show confirmation dialog regardless if we can proceed
       setShowConfirmationDialog(true);
-      
-      Logger.info('Session ready for email generation', { 
+
+      Logger.info('Session ready for email generation', {
         productCount: currentSession.products.length,
         supplierCount: new Set(currentSession.products.map(p => p.supplierName)).size
       });
@@ -451,6 +501,70 @@ const RestockSessionsContent: React.FC = () => {
     setShowConfirmationDialog(false);
   };
 
+  // Replay session handler
+  const handleReplaySession = async (replayData: any) => {
+    try {
+      Logger.info('Starting session replay', { 
+        productCount: replayData.productCount,
+        supplierCount: replayData.supplierCount 
+      });
+
+      // Start a new session
+      const newSessionResult = await startNewSession();
+      if (!newSessionResult.success) {
+        showNotification('error', newSessionResult.error || 'Failed to start new session');
+        return;
+      }
+
+      // Use the newly created session for replay additions
+      const sessionForReplay = newSessionResult.session;
+      if (!sessionForReplay) {
+        showNotification('error', 'Unable to access new session context');
+        return;
+      }
+
+      // Add all products from the replay data
+      for (const product of replayData.products) {
+        try {
+          // Set form data
+          updateFormField('productName', product.name);
+          updateFormField('quantity', product.quantity.toString());
+          updateFormField('supplierName', product.supplierName);
+          updateFormField('supplierEmail', product.supplierEmail);
+
+          // Add the product
+          const result = await addProduct(
+            sessionForReplay,
+            storedProducts,
+            storedSuppliers,
+            updateStoredProducts,
+            updateStoredSuppliers
+          );
+
+          if (result.success && result.product) {
+            // Update current session with new product
+            const updatedSession = {
+              ...sessionForReplay,
+              products: [...(sessionForReplay.products || []), result.product],
+            };
+            updateCurrentSession(updatedSession);
+          }
+        } catch (error) {
+          Logger.error('Error adding product during replay', error, { productName: product.name });
+        }
+      }
+
+      showNotification('success', `Replayed session with ${replayData.products.length} products`);
+      Logger.success('Session replay completed', { 
+        productCount: replayData.products.length,
+        sessionId: sessionForReplay.id 
+      });
+    } catch (error) {
+      Logger.error('Failed to replay session', error);
+      showNotification('error', 'Failed to replay session');
+    }
+  };
+
   // Form helper functions
   const handleProductFormProductNameChange = (text: string) => {
     handleProductNameChange(text, storedProducts);
@@ -484,7 +598,7 @@ const RestockSessionsContent: React.FC = () => {
           />
 
           {/* Main content area */}
-          {showAddProductForm ? (
+          {introDelayActive ? null : showAddProductForm ? (
             <ProductForm
               mode="add"
               formState={formState}
@@ -528,22 +642,32 @@ const RestockSessionsContent: React.FC = () => {
             />
           )}
 
-          <FinishSection
-            currentSession={currentSession}
-            showAddProductForm={showAddProductForm}
-            showEditProductForm={showEditProductForm}
-            onFinishSession={finishSession}
-          />
+          {!introDelayActive && (
+            <FinishSection
+              currentSession={currentSession}
+              showAddProductForm={showAddProductForm}
+              showEditProductForm={showEditProductForm}
+              onFinishSession={finishSession}
+            />
+          )}
         </View>
       );
     }
 
     return (
-      <StartSection
-        allSessions={allSessions}
-        onStartNewSession={handleStartNewSession}
-        onShowSessionSelection={showSessionSelectionModal}
-      />
+      <View>
+        <ReplaySuggestions 
+          userId={userId || undefined}
+          onReplaySession={handleReplaySession}
+          currentSession={currentSession}
+        />
+        <StartSection
+          allSessions={allSessions}
+          onStartNewSession={handleStartNewSession}
+          onPromptNewSession={promptNewSession}
+          onShowSessionSelection={showSessionSelectionModal}
+        />
+      </View>
     );
   };
 
@@ -569,7 +693,9 @@ const RestockSessionsContent: React.FC = () => {
         /> */}
         
         {/* Loading State */}
-        {!isContentReady && <RestockSessionsSkeleton />}
+        {!isContentReady && params.action !== 'create' && (
+          <RestockSessionsSkeleton />
+        )}
         
         {/* Main Content */}
         {isContentReady && !errorState.hasError && renderMainContent()}
@@ -590,6 +716,20 @@ const RestockSessionsContent: React.FC = () => {
           { label: 'Total Quantity', value: currentSession.products.reduce((sum, p) => sum + p.quantity, 0) },
           { label: 'Suppliers', value: new Set(currentSession.products.map(p => p.supplierName)).size },
         ] : undefined}
+      />
+
+      {/* Name Session Modal */}
+      <NameSessionModal
+        visible={showNameModal}
+        title="Name Your Restock Session"
+        message="Give this session a name to easily identify it later (e.g., 'Weekly Restock', 'Holiday Prep')."
+        inputPlaceholder="Name this session"
+        inputValue={sessionNameInput}
+        onChangeInput={setSessionNameInput}
+        confirmText="Create Session"
+        cancelText="Create Without Name"
+        onConfirm={handleConfirmCreateSession}
+        onCancel={handleCreateWithoutName}
       />
     </View>
   );

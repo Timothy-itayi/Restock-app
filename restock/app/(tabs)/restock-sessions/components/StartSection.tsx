@@ -7,12 +7,14 @@ interface StartSectionProps {
   allSessions: RestockSession[];
   onStartNewSession: () => void;
   onShowSessionSelection: () => void;
+  onPromptNewSession?: () => void;
 }
 
 export const StartSection: React.FC<StartSectionProps> = ({
   allSessions,
   onStartNewSession,
-  onShowSessionSelection
+  onShowSessionSelection,
+  onPromptNewSession
 }) => {
   return (
     <View style={restockSessionsStyles.startSection}>
@@ -35,7 +37,9 @@ export const StartSection: React.FC<StartSectionProps> = ({
       
       <TouchableOpacity 
         style={restockSessionsStyles.startButton} 
-        onPress={onStartNewSession}
+        onPress={onPromptNewSession || onStartNewSession}
+        accessibilityLabel="Create a new restock session"
+        accessibilityHint="Opens a dialog to name your session before starting"
       >
         <Text style={restockSessionsStyles.startButtonText}>Start New Restock</Text>
       </TouchableOpacity>
