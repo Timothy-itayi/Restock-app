@@ -2,7 +2,8 @@ import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { dashboardStyles } from '../../../../styles/components/dashboard';
+import { getDashboardStyles } from '../../../../styles/components/dashboard';
+import { useThemedStyles } from '../../../../styles/useThemedStyles';
 import SkeletonBox from '../../../components/skeleton/SkeletonBox';
 import { getSessionColorTheme } from '../../restock-sessions/utils/colorUtils';
 
@@ -35,6 +36,7 @@ export const UnfinishedSessions: React.FC<UnfinishedSessionsProps> = ({
   sessionsLoading,
   unfinishedSessions
 }) => {
+  const dashboardStyles = useThemedStyles(getDashboardStyles);
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { 

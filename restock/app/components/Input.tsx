@@ -115,7 +115,7 @@ const Input = forwardRef<TextInput, InputProps>(({
             rightIcon ? { paddingRight: 48 } : {},
             style,
           ]}
-          placeholderTextColor={theme.colors.neutral[400]}
+          placeholderTextColor={theme.neutral.medium}
           {...props}
         />
         

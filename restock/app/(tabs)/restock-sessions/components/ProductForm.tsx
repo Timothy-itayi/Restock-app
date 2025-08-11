@@ -1,7 +1,8 @@
 import React from 'react';
 import { ScrollView, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView, Platform } from 'react-native';
 import { FormState, StoredProduct, StoredSupplier, Product } from '../utils/types';
-import { restockSessionsStyles } from '../../../../styles/components/restock-sessions';
+import { getRestockSessionsStyles } from '../../../../styles/components/restock-sessions';
+import { useThemedStyles } from '../../../../styles/useThemedStyles';
 
 interface ProductFormProps {
   mode: 'add' | 'edit';
@@ -44,6 +45,7 @@ const ProductFormComponent: React.FC<ProductFormProps> = ({
   onSubmit,
   onCancel
 }) => {
+  const restockSessionsStyles = useThemedStyles(getRestockSessionsStyles);
   const isEditMode = mode === 'edit';
   const title = isEditMode ? 'Edit Product' : 'Add Product';
   const submitText = isEditMode ? 'Save Changes' : 'Add Product';

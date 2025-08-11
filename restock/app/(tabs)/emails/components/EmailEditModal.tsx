@@ -1,6 +1,7 @@
 import React from 'react';
 import { Modal, KeyboardAvoidingView, Platform, View, Text, TouchableOpacity, ScrollView, TextInput } from 'react-native';
-import { emailsStyles } from '../../../../styles/components/emails';
+import { getEmailsStyles } from '../../../../styles/components/emails';
+import { useThemedStyles } from '../../../../styles/useThemedStyles';
 import { EmailDraft } from '../hooks';
 
 interface EmailEditModalProps {
@@ -24,6 +25,7 @@ export function EmailEditModal({
   onSave,
   onCancel
 }: EmailEditModalProps) {
+  const emailsStyles = useThemedStyles(getEmailsStyles);
   return (
     <Modal
       visible={visible}

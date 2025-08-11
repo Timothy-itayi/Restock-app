@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, Alert } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { emailsStyles } from "../../../styles/components/emails";
+import { getEmailsStyles } from "../../../styles/components/emails";
+import { useThemedStyles } from "../../../styles/useThemedStyles";
 import { useUserProfile, useEmailSessions, useEmailEditor, EmailDraft } from './hooks';
 import { 
   EmailCard, 
@@ -15,9 +16,12 @@ import {
   EmailDetailModal
 } from './components';
 import useThemeStore from '../../stores/useThemeStore';
-import colors from '@/app/theme/colors';
 
 export default function EmailsScreen() {
+  // Use themed styles
+  const emailsStyles = useThemedStyles(getEmailsStyles);
+  const { theme } = useThemeStore();
+  
   // Custom hooks for separation of concerns
   const { userProfile, isLoading: isUserLoading, userId } = useUserProfile();
   const { 
@@ -199,6 +203,12 @@ export default function EmailsScreen() {
         <Text style={emailsStyles.headerTitle}>Generated Emails</Text>
       </View>
 
+      <ScrollView 
+        style={{ flex: 1 }}
+        contentContainerStyle={{ flexGrow: 1 }}
+        showsVerticalScrollIndicator={false}
+      >
+
       {/* Success Message Overlay */}
       {showSuccessMessage && (
         <View style={{
@@ -213,7 +223,7 @@ export default function EmailsScreen() {
           alignItems: 'center'
         }}>
           <View style={{
-            backgroundColor: colors.neutral.lightest,
+            backgroundColor: theme.neutral.lightest,
             padding: 32,
             borderRadius: 16,
             alignItems: 'center',
@@ -227,7 +237,7 @@ export default function EmailsScreen() {
             <Text style={{
               fontSize: 18,
               fontWeight: '600',
-              color: colors.brand.primary,
+              color: theme.brand.primary,
               textAlign: 'center',
               marginBottom: 8
             }}>
@@ -236,13 +246,13 @@ export default function EmailsScreen() {
             <View style={{
               width: 48,
               height: 4,
-              backgroundColor: colors.brand.primary,
+              backgroundColor: theme.brand.primary,
               borderRadius: 2,
               marginTop: 16
             }}>
               <View style={{
                 height: '100%',
-                backgroundColor: colors.status.success,
+                backgroundColor: theme.status.success,
                 borderRadius: 2,
                 width: '100%'
               }} />
@@ -284,7 +294,7 @@ export default function EmailsScreen() {
               <Text style={{
                 fontSize: 14,
                 fontWeight: '600',
-                color: colors.neutral.dark,
+                color: theme.neutral.dark,
                 marginBottom: 12,
                 textTransform: 'uppercase',
                 letterSpacing: 0.5
@@ -311,7 +321,7 @@ export default function EmailsScreen() {
            activeSession.emails.every(e => e.status === 'sent') && (
             <View style={emailsStyles.successContainer}>
               <View style={emailsStyles.successIcon}>
-                <Ionicons name="checkmark" size={32} color={colors.neutral.lightest} />
+                <Ionicons name="checkmark" size={32} color={theme.neutral.lightest} />
               </View>
               <Text style={emailsStyles.successTitle}>All Emails Sent!</Text>
               <Text style={emailsStyles.successText}>
@@ -363,6 +373,7 @@ export default function EmailsScreen() {
         onEdit={handleEditEmail}
         onSend={handleSendEmail}
       />
+      </ScrollView>
     </View>
   );
 }

@@ -12,6 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { typography } from '../../styles/typography';
+import useThemeStore from '../stores/useThemeStore';
 
 interface NameSessionModalProps {
   visible: boolean;

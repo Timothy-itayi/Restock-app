@@ -1,8 +1,10 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import colors from '@/app/theme/colors';
-import { emailsStyles } from '../../../../styles/components/emails';
+
+import { getEmailsStyles } from '../../../../styles/components/emails';
+import { useThemedStyles } from '../../../../styles/useThemedStyles';
+import useThemeStore from '../../../stores/useThemeStore';
 import { UserProfile } from '../hooks';
 
 interface EmailsSummaryProps {
@@ -11,23 +13,25 @@ interface EmailsSummaryProps {
 }
 
 export function EmailsSummary({ emailCount, userProfile }: EmailsSummaryProps) {
+  const emailsStyles = useThemedStyles(getEmailsStyles);
+  const { theme } = useThemeStore();
   const { storeName, userName, email } = userProfile;
   
   return (
     <View style={emailsStyles.emailSummary}>
       {/* Professional Header */}
       <View style={{
-        backgroundColor: colors.neutral.lighter,
+        backgroundColor: theme.neutral.lighter,
         padding: 16,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: colors.neutral.light,
+        borderColor: theme.neutral.light,
         marginBottom: 16
       }}>
         {/* Email Count */}
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
           <View style={{
-            backgroundColor: colors.brand.primary,
+            backgroundColor: theme.brand.primary,
             width: 36,
             height: 36,
             borderRadius: 18,
@@ -35,20 +39,20 @@ export function EmailsSummary({ emailCount, userProfile }: EmailsSummaryProps) {
             alignItems: 'center',
             marginRight: 12
           }}>
-            <Ionicons name="mail" size={20} color={colors.neutral.lightest} />
+            <Ionicons name="mail" size={20} color={theme.neutral.lightest} />
           </View>
           <View>
             <Text style={{
               fontSize: 18,
               fontWeight: '700',
-              color: colors.neutral.darkest,
+              color: theme.neutral.darkest,
               marginBottom: 2
             }}>
               {emailCount} Emails Ready
             </Text>
             <Text style={{
               fontSize: 13,
-              color: colors.neutral.medium
+              color: theme.neutral.medium
             }}>
               Auto-generated supplier communications
             </Text>
@@ -57,18 +61,18 @@ export function EmailsSummary({ emailCount, userProfile }: EmailsSummaryProps) {
 
         {/* Sender Information */}
         <View style={{
-          backgroundColor: colors.neutral.lightest,
+          backgroundColor: theme.neutral.lightest,
           padding: 12,
           borderRadius: 8,
           borderWidth: 1,
-          borderColor: colors.neutral.light
+          borderColor: theme.neutral.light
         }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-            <Ionicons name="person-circle-outline" size={16} color={colors.neutral.medium} />
+            <Ionicons name="person-circle-outline" size={16} color={theme.neutral.medium} />
             <Text style={{
               fontSize: 12,
               fontWeight: '600',
-              color: colors.neutral.medium,
+              color: theme.neutral.medium,
               marginLeft: 6,
               textTransform: 'uppercase',
               letterSpacing: 0.5
@@ -80,24 +84,24 @@ export function EmailsSummary({ emailCount, userProfile }: EmailsSummaryProps) {
           <View style={{ paddingLeft: 22 }}>
             {storeName && (
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                <Text style={{ fontSize: 14, fontWeight: '600', color: colors.neutral.darkest }}>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: theme.neutral.darkest }}>
                   {storeName}
                 </Text>
               </View>
             )}
             
             {userName && (
-              <Text style={{ fontSize: 13, color: colors.neutral.medium, marginBottom: 2 }}>
+              <Text style={{ fontSize: 13, color: theme.neutral.medium, marginBottom: 2 }}>
                 {userName}
               </Text>
             )}
             
             {email && (
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Ionicons name="mail-outline" size={12} color={colors.neutral.medium} />
+                <Ionicons name="mail-outline" size={12} color={theme.neutral.medium} />
                 <Text style={{ 
                   fontSize: 12, 
-                  color: colors.neutral.medium,
+                  color: theme.neutral.medium,
                   marginLeft: 4,
                   fontFamily: 'monospace'
                 }}>

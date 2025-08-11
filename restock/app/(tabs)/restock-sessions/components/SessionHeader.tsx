@@ -3,7 +3,8 @@ import { Text, TouchableOpacity, View, TextInput } from 'react-native';
 import { RestockSession } from '../utils/types';
 import { formatDate, formatProductCount } from '../utils/formatters';
 import { getSessionColorTheme } from '../utils/colorUtils';
-import { restockSessionsStyles } from '../../../../styles/components/restock-sessions';
+import { getRestockSessionsStyles } from '../../../../styles/components/restock-sessions';
+import { useThemedStyles } from '../../../../styles/useThemedStyles';
 import { useRestockSessionContext } from '../context/RestockSessionContext';
 
 interface SessionHeaderProps {
@@ -17,6 +18,7 @@ export const SessionHeader: React.FC<SessionHeaderProps> = ({
   allSessionsCount,
   onShowSessionSelection
 }) => {
+  const restockSessionsStyles = useThemedStyles(getRestockSessionsStyles);
   const sessionColor = currentSession ? getSessionColorTheme(currentSession.id) : null;
   const { setSessionName } = useRestockSessionContext();
   const [isRenaming, setIsRenaming] = useState(false);

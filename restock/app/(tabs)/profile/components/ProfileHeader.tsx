@@ -1,13 +1,15 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { profileStyles } from '../../../../styles/components/profile';
+import { getProfileStyles } from '../../../../styles/components/profile';
+import { useThemedStyles } from '../../../../styles/useThemedStyles';
 import colors from '@/app/theme/colors';
 import useThemeStore from '@/app/stores/useThemeStore';
 
 export const ProfileHeader: React.FC = () => {
   const { mode, theme, toggleMode } = useThemeStore();
   const isDark = mode === 'dark';
+  const profileStyles = useThemedStyles(getProfileStyles);
 
   return (
     <View style={profileStyles.header}>
@@ -27,7 +29,7 @@ export const ProfileHeader: React.FC = () => {
         <Ionicons
           name={isDark ? 'moon' : 'sunny-outline'}
           size={22}
-          color={isDark ? colors.dark.brand.primary : colors.light.brand.primary}
+          color={theme.brand.primary}
         />
       </TouchableOpacity>
     </View>

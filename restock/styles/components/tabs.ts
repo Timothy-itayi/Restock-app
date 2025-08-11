@@ -3,12 +3,12 @@ import { typography } from "../typography";
 import colors from '@/app/theme/colors';
 
 // Tabs styling using the unified semantic color system
-export const tabsStyles = StyleSheet.create({
+export const getTabsStyles = (t: typeof colors) => StyleSheet.create({
   // Tab bar container styles
   tabBar: {
-    backgroundColor: colors.neutral.lightest, // Pure white background (paper)
+    backgroundColor: t.neutral.lightest, // Pure white background (paper)
     borderTopWidth: 1,
-    borderTopColor: colors.neutral.light, // Light grey border
+    borderTopColor: t.neutral.light, // Light grey border
     height: 88,
     paddingBottom: 20,
     paddingTop: 8,
@@ -16,9 +16,9 @@ export const tabsStyles = StyleSheet.create({
   
   // Header styles
   header: {
-    backgroundColor: colors.neutral.lightest, // Pure white background
+    backgroundColor: t.neutral.lightest, // Pure white background
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral.light, // Light grey border
+    borderBottomColor: t.neutral.light, // Light grey border
   },
   
   // Tab icon styles
@@ -39,7 +39,7 @@ export const tabsStyles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: colors.brand.primary, // Brand green
+    backgroundColor: t.brand.primary, // Brand green
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: "#000000",
@@ -52,29 +52,29 @@ export const tabsStyles = StyleSheet.create({
   
   // Tab screen specific styles
   tabScreen: {
-    backgroundColor: colors.neutral.lightest, // Pure white background
+    backgroundColor: t.neutral.lightest, // Pure white background
   },
   
   // Tab content styles
   tabContent: {
     flex: 1,
-    backgroundColor: colors.neutral.lightest,
+    backgroundColor: t.neutral.lightest,
   },
 });
 
 // Tab bar configuration options for expo-router
-export const tabBarOptions = {
+export const getTabBarOptions = (t: typeof colors) => ({
   // Active tab color (black for portfolio aesthetic)
-  tabBarActiveTintColor: colors.neutral.darkest,
+  tabBarActiveTintColor: t.neutral.darkest,
   
   // Inactive tab color (light grey)
-  tabBarInactiveTintColor: colors.neutral.medium,
+  tabBarInactiveTintColor: t.neutral.medium,
   
   // Tab bar container styling
   tabBarStyle: {
-    backgroundColor: colors.neutral.lightest, // Pure white background
+    backgroundColor: t.neutral.lightest, // Pure white background
     borderTopWidth: 1,
-    borderTopColor: colors.neutral.light, // Light grey border
+    borderTopColor: t.neutral.light, // Light grey border
     height: 88,
     paddingBottom: 20,
     paddingTop: 8,
@@ -82,19 +82,19 @@ export const tabBarOptions = {
   
   // Header styling
   headerStyle: {
-    backgroundColor: colors.neutral.lightest, // Pure white background
+    backgroundColor: t.neutral.lightest, // Pure white background
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral.light, // Light grey border
+    borderBottomColor: t.neutral.light, // Light grey border
   },
   
   // Header text color
-  headerTintColor: colors.neutral.darkest, // Dark text
+  headerTintColor: t.neutral.darkest, // Dark text
   
   // Header title styling
   headerTitleStyle: {
     ...typography.subsectionHeader,
     fontWeight: "600" as const,
-    color: colors.neutral.darkest, // Dark text
+    color: t.neutral.darkest, // Dark text
   },
   
   // Tab label styling
@@ -111,11 +111,15 @@ export const tabBarOptions = {
   },
   
   // Tab press animation
-  tabBarPressColor: colors.neutral.lighter, // Very light grey for press feedback
+  tabBarPressColor: t.neutral.lighter, // Very light grey for press feedback
   
   // Tab press opacity
   tabBarPressOpacity: 0.8,
-};
+});
+
+// Backward-compatible static exports
+export const tabsStyles = getTabsStyles(colors);
+export const tabBarOptions = getTabBarOptions(colors);
 
 // Individual tab screen options (for customization per tab)
 export const tabScreenOptions = {

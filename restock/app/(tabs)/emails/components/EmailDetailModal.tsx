@@ -8,7 +8,7 @@ import {
   SafeAreaView
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import colors from '@/app/theme/colors';
+import useThemeStore from '../../../stores/useThemeStore';
 import { EmailDraft, UserProfile } from '../hooks';
 
 interface EmailDetailModalProps {
@@ -28,6 +28,7 @@ export function EmailDetailModal({
   onEdit, 
   onSend 
 }: EmailDetailModalProps) {
+  const { theme } = useThemeStore();
   
   if (!email) return null;
 
@@ -43,10 +44,10 @@ export function EmailDetailModal({
 
   const getStatusColor = () => {
     switch (email.status) {
-      case 'sent': return colors.status.success;
-      case 'sending': return colors.status.warning;
-      case 'failed': return colors.status.error;
-      default: return colors.neutral.medium;
+      case 'sent': return theme.status.success;
+      case 'sending': return theme.status.warning;
+      case 'failed': return theme.status.error;
+      default: return theme.neutral.medium;
     }
   };
 
@@ -66,7 +67,7 @@ export function EmailDetailModal({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.neutral.lightest }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.neutral.lightest }}>
         {/* Header */}
         <View style={{
           flexDirection: 'row',
@@ -74,23 +75,23 @@ export function EmailDetailModal({
           justifyContent: 'space-between',
           padding: 16,
           borderBottomWidth: 1,
-          borderBottomColor: colors.neutral.light
+          borderBottomColor: theme.neutral.light
         }}>
           <TouchableOpacity
             onPress={onClose}
             style={{
               padding: 8,
               borderRadius: 8,
-              backgroundColor: colors.neutral.lighter
+              backgroundColor: theme.neutral.lighter
             }}
           >
-            <Ionicons name="close" size={20} color={colors.neutral.medium} />
+            <Ionicons name="close" size={20} color={theme.neutral.medium} />
           </TouchableOpacity>
           
           <Text style={{
             fontSize: 18,
             fontWeight: '600',
-            color: colors.neutral.darkest
+            color: theme.neutral.darkest
           }}>
             Email Details
           </Text>
@@ -109,10 +110,10 @@ export function EmailDetailModal({
               style={{
                 padding: 8,
                 borderRadius: 8,
-                backgroundColor: colors.neutral.lighter
+                backgroundColor: theme.neutral.lighter
               }}
             >
-              <Ionicons name="pencil" size={20} color={colors.neutral.medium} />
+              <Ionicons name="pencil" size={20} color={theme.neutral.medium} />
             </TouchableOpacity>
 
             {/* Send Button */}
@@ -120,7 +121,7 @@ export function EmailDetailModal({
               <TouchableOpacity
                 onPress={handleSend}
                 style={{
-                  backgroundColor: colors.brand.primary,
+                  backgroundColor: theme.brand.primary,
                   paddingHorizontal: 16,
                   paddingVertical: 8,
                   borderRadius: 8,
@@ -129,9 +130,9 @@ export function EmailDetailModal({
                   gap: 6
                 }}
               >
-                <Ionicons name="send" size={16} color={colors.neutral.lightest} />
+                <Ionicons name="send" size={16} color={theme.neutral.lightest} />
                 <Text style={{
-                  color: colors.neutral.lightest,
+                  color: theme.neutral.lightest,
                   fontWeight: '600',
                   fontSize: 14
                 }}>
@@ -145,10 +146,10 @@ export function EmailDetailModal({
         <ScrollView style={{ flex: 1 }}>
           {/* Email Header */}
           <View style={{
-            backgroundColor: colors.neutral.lighter,
+            backgroundColor: theme.neutral.lighter,
             padding: 20,
             borderBottomWidth: 1,
-            borderBottomColor: colors.neutral.light
+            borderBottomColor: theme.neutral.light
           }}>
             {/* Status Badge */}
             <View style={{
@@ -169,10 +170,10 @@ export function EmailDetailModal({
                   width: 6,
                   height: 6,
                   borderRadius: 3,
-                  backgroundColor: colors.neutral.lightest
+                  backgroundColor: theme.neutral.lightest
                 }} />
                 <Text style={{
-                  color: colors.neutral.lightest,
+                  color: theme.neutral.lightest,
                   fontSize: 11,
                   fontWeight: '500',
                   textTransform: 'uppercase'
@@ -186,7 +187,7 @@ export function EmailDetailModal({
             <View style={{ marginBottom: 16 }}>
               <Text style={{
                 fontSize: 12,
-                color: colors.neutral.medium,
+                color: theme.neutral.medium,
                 fontWeight: '500',
                 textTransform: 'uppercase',
                 letterSpacing: 0.5,
@@ -197,19 +198,19 @@ export function EmailDetailModal({
               <Text style={{
                 fontSize: 16,
                 fontWeight: '600',
-                color: colors.neutral.darkest,
+                color: theme.neutral.darkest,
                 marginBottom: 2
               }}>
                 {userProfile.storeName || 'Your Store'}
               </Text>
               {userProfile.userName && (
-                <Text style={{ fontSize: 14, color: colors.neutral.medium }}>
+                <Text style={{ fontSize: 14, color: theme.neutral.medium }}>
                   {userProfile.userName}
                 </Text>
               )}
               <Text style={{
                 fontSize: 13,
-                color: colors.neutral.medium,
+                color: theme.neutral.medium,
                 fontFamily: 'monospace'
               }}>
                 {userProfile.email}
@@ -220,7 +221,7 @@ export function EmailDetailModal({
             <View style={{ marginBottom: 16 }}>
               <Text style={{
                 fontSize: 12,
-                color: colors.neutral.medium,
+                color: theme.neutral.medium,
                 fontWeight: '500',
                 textTransform: 'uppercase',
                 letterSpacing: 0.5,
@@ -231,14 +232,14 @@ export function EmailDetailModal({
               <Text style={{
                 fontSize: 16,
                 fontWeight: '600',
-                color: colors.neutral.darkest,
+                color: theme.neutral.darkest,
                 marginBottom: 2
               }}>
                 {email.supplierName}
               </Text>
               <Text style={{
                 fontSize: 13,
-                color: colors.neutral.medium,
+                color: theme.neutral.medium,
                 fontFamily: 'monospace'
               }}>
                 {email.supplierEmail}
@@ -249,7 +250,7 @@ export function EmailDetailModal({
             <View>
               <Text style={{
                 fontSize: 12,
-                color: colors.neutral.medium,
+                color: theme.neutral.medium,
                 fontWeight: '500',
                 textTransform: 'uppercase',
                 letterSpacing: 0.5,
@@ -260,7 +261,7 @@ export function EmailDetailModal({
               <Text style={{
                 fontSize: 16,
                 fontWeight: '600',
-                color: colors.neutral.darkest,
+                color: theme.neutral.darkest,
                 lineHeight: 24
               }}>
                 {email.subject}
@@ -272,7 +273,7 @@ export function EmailDetailModal({
           <View style={{ padding: 20 }}>
             <Text style={{
               fontSize: 12,
-              color: colors.neutral.medium,
+              color: theme.neutral.medium,
               fontWeight: '500',
               textTransform: 'uppercase',
               letterSpacing: 0.5,
@@ -281,16 +282,16 @@ export function EmailDetailModal({
               MESSAGE
             </Text>
             <View style={{
-              backgroundColor: colors.neutral.lighter,
+              backgroundColor: theme.neutral.lighter,
               padding: 16,
               borderRadius: 8,
               borderWidth: 1,
-              borderColor: colors.neutral.light
+              borderColor: theme.neutral.light
             }}>
               <Text style={{
                 fontSize: 15,
                 lineHeight: 24,
-                color: colors.neutral.dark,
+                color: theme.neutral.dark,
                 fontFamily: 'system'
               }}>
                 {email.body}
@@ -302,7 +303,7 @@ export function EmailDetailModal({
               <View style={{ marginTop: 20 }}>
                 <Text style={{
                   fontSize: 12,
-                  color: colors.neutral.medium,
+                  color: theme.neutral.medium,
                   fontWeight: '500',
                   textTransform: 'uppercase',
                   letterSpacing: 0.5,
@@ -311,10 +312,10 @@ export function EmailDetailModal({
                   PRODUCTS ({email.products.length})
                 </Text>
                 <View style={{
-                  backgroundColor: colors.neutral.lighter,
+                  backgroundColor: theme.neutral.lighter,
                   borderRadius: 8,
                   borderWidth: 1,
-                  borderColor: colors.neutral.light
+                  borderColor: theme.neutral.light
                 }}>
                   {email.products.map((product, index) => (
                     <View
@@ -322,12 +323,12 @@ export function EmailDetailModal({
                       style={{
                         padding: 12,
                         borderBottomWidth: index < email.products.length - 1 ? 1 : 0,
-                        borderBottomColor: colors.neutral.light
+                        borderBottomColor: theme.neutral.light
                       }}
                     >
                       <Text style={{
                         fontSize: 14,
-                        color: colors.neutral.dark,
+                        color: theme.neutral.dark,
                         fontWeight: '500'
                       }}>
                         {product}

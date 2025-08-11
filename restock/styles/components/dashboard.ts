@@ -4,10 +4,10 @@ import { StyleSheet } from "react-native";
 import { fontFamily } from "../typography";
 import colors from '@/app/theme/colors';
 
-export const dashboardStyles = StyleSheet.create({
+export const getDashboardStyles = (t: typeof colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.neutral.lightest,
+    backgroundColor: t.neutral.lightest,
   },
   contentContainer: {
     paddingHorizontal: 20,
@@ -22,7 +22,7 @@ export const dashboardStyles = StyleSheet.create({
     fontFamily: fontFamily.satoshi,
     fontSize: 28,
     fontWeight: '400',
-    color: colors.neutral.darkest,
+    color: t.neutral.darkest,
     lineHeight: 36,
     marginBottom: 8,
   },
@@ -33,7 +33,7 @@ export const dashboardStyles = StyleSheet.create({
   welcomeSubtitle: {
     fontFamily: fontFamily.satoshi,
     fontSize: 16,
-    color: colors.neutral.medium,
+    color: t.neutral.medium,
     lineHeight: 22,
   },
   section: {
@@ -49,18 +49,18 @@ export const dashboardStyles = StyleSheet.create({
     fontFamily: fontFamily.satoshiBold,
     fontSize: 18,
     fontWeight: '600',
-    color: colors.neutral.darkest,
+    color: t.neutral.darkest,
   },
   viewAllButton: {
     paddingVertical: 6,
     paddingHorizontal: 12,
-    backgroundColor: colors.neutral.lighter,
+    backgroundColor: t.neutral.lighter,
     borderRadius: 6,
   },
   viewAllText: {
     fontFamily: fontFamily.satoshiMedium,
     fontSize: 14,
-    color: colors.neutral.medium,
+    color: t.neutral.medium,
     fontWeight: '500',
   },
   // Quick Actions - Smaller, more compact design
@@ -71,13 +71,13 @@ export const dashboardStyles = StyleSheet.create({
     paddingTop: 16,
   },
   actionCard: {
-    backgroundColor: colors.neutral.lighter,
+    backgroundColor: t.neutral.lighter,
     padding: 16,
     borderRadius: 10,
     alignItems: 'center',
     flex: 1,
     borderWidth: 1,
-    borderColor: colors.neutral.light,
+    borderColor: t.neutral.light,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -89,7 +89,7 @@ export const dashboardStyles = StyleSheet.create({
     fontFamily: fontFamily.satoshiMedium,
     fontSize: 13,
     fontWeight: '500',
-    color: colors.neutral.darkest,
+    color: t.neutral.darkest,
     textAlign: 'center',
   },
   actionIcon: {
@@ -99,19 +99,19 @@ export const dashboardStyles = StyleSheet.create({
   actionIconContainer: {
     width: 36,
     height: 36,
-    backgroundColor: colors.neutral.lightest,
+    backgroundColor: t.neutral.lightest,
     borderRadius: 6,
     justifyContent: 'center',
     alignItems: 'center',
   },
   // Session Cards
   sessionCard: {
-    backgroundColor: colors.neutral.lightest,
+    backgroundColor: t.neutral.lightest,
     borderRadius: 12,
     padding: 20,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: colors.neutral.light,
+    borderColor: t.neutral.light,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -131,23 +131,23 @@ export const dashboardStyles = StyleSheet.create({
     fontFamily: fontFamily.satoshiBold,
     fontSize: 16,
     fontWeight: '600',
-    color: colors.neutral.darkest,
+    color: t.neutral.darkest,
     marginBottom: 4,
   },
   sessionSubtitle: {
     fontFamily: fontFamily.satoshi,
     fontSize: 14,
-    color: colors.neutral.medium,
+    color: t.neutral.medium,
   },
   continueButton: {
-    backgroundColor: colors.brand.primary,
+    backgroundColor: t.brand.primary,
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 6,
   },
   continueButtonText: {
     fontFamily: fontFamily.satoshiBold,
-    color: colors.neutral.lightest,
+    color: t.neutral.lightest,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -178,7 +178,7 @@ export const dashboardStyles = StyleSheet.create({
   chart: {
     flexDirection: 'row',
     height: 8,
-    backgroundColor: colors.neutral.lighter,
+    backgroundColor: t.neutral.lighter,
     borderRadius: 4,
     overflow: 'hidden',
   },
@@ -188,7 +188,7 @@ export const dashboardStyles = StyleSheet.create({
   chartLabel: {
     fontFamily: fontFamily.satoshiLight,
     fontSize: 12,
-    color: colors.neutral.medium,
+    color: t.neutral.medium,
     textAlign: 'center',
     marginTop: 6,
   },
@@ -201,7 +201,7 @@ export const dashboardStyles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral.lighter,
+    borderBottomColor: t.neutral.lighter,
   },
   breakdownItemHeader: {
     flexDirection: 'row',
@@ -219,7 +219,7 @@ export const dashboardStyles = StyleSheet.create({
     fontFamily: fontFamily.satoshiMedium,
     fontSize: 14,
     fontWeight: '500',
-    color: colors.neutral.darkest,
+    color: t.neutral.darkest,
   },
   breakdownItemStats: {
     alignItems: 'flex-end',
@@ -227,14 +227,14 @@ export const dashboardStyles = StyleSheet.create({
   breakdownItemPercentage: {
     fontFamily: fontFamily.satoshiLight,
     fontSize: 12,
-    color: colors.neutral.medium,
+    color: t.neutral.medium,
     marginBottom: 2,
   },
   breakdownItemCount: {
     fontFamily: fontFamily.satoshiBold,
     fontSize: 13,
     fontWeight: '600',
-    color: colors.neutral.medium,
+    color: t.neutral.medium,
   },
   // Stats Grid
   statsGrid: {
@@ -244,13 +244,13 @@ export const dashboardStyles = StyleSheet.create({
     paddingTop: 16,
   },
   statCard: {
-    backgroundColor: colors.neutral.lightest,
+    backgroundColor: t.neutral.lightest,
     padding: 20,
     borderRadius: 12,
     alignItems: 'center',
     flex: 1,
     borderWidth: 1,
-    borderColor: colors.neutral.light,
+    borderColor: t.neutral.light,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -261,13 +261,13 @@ export const dashboardStyles = StyleSheet.create({
     fontFamily: fontFamily.satoshiBlack,
     fontSize: 24,
     fontWeight: '700',
-    color: colors.neutral.medium,
+    color: t.neutral.medium,
     marginBottom: 4,
   },
   statLabel: {
     fontFamily: fontFamily.satoshiMedium,
     fontSize: 12,
-    color: colors.neutral.medium,
+    color: t.neutral.medium,
     textAlign: 'center',
     fontWeight: '500',
   },
@@ -275,37 +275,37 @@ export const dashboardStyles = StyleSheet.create({
   emptyState: {
     alignItems: 'center',
     paddingVertical: 48,
-    backgroundColor: colors.neutral.lightest,
+    backgroundColor: t.neutral.lightest,
     borderRadius: 12,
     marginTop: 24,
     borderWidth: 1,
-    borderColor: colors.neutral.light,
+    borderColor: t.neutral.light,
   },
   emptyStateTitle: {
     fontFamily: fontFamily.satoshiBold,
     fontSize: 20,
     fontWeight: '600',
-    color: colors.neutral.darkest,
+    color: t.neutral.darkest,
     marginTop: 16,
     marginBottom: 8,
   },
   emptyStateText: {
     fontFamily: fontFamily.satoshi,
     fontSize: 16,
-    color: colors.neutral.medium,
+    color: t.neutral.medium,
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 22,
   },
   startNewButton: {
-    backgroundColor: colors.brand.primary,
+    backgroundColor: t.brand.primary,
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,
   },
   startNewButtonText: {
     fontFamily: fontFamily.satoshiBold,
-    color: colors.neutral.lightest,
+    color: t.neutral.lightest,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -316,31 +316,31 @@ export const dashboardStyles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral.light,
+    borderBottomColor: t.neutral.light,
     marginBottom: 24,
   },
   title: {
     fontFamily: fontFamily.satoshiBlack,
     fontSize: 28,
     fontWeight: "700",
-    color: colors.neutral.darkest,
+    color: t.neutral.darkest,
     marginBottom: 8,
     lineHeight: 34,
   },
   subtitle: {
     fontFamily: fontFamily.satoshi,
     fontSize: 16,
-    color: colors.neutral.medium,
+    color: t.neutral.medium,
     textAlign: "center",
     lineHeight: 22,
   },
   card: {
-    backgroundColor: colors.neutral.lightest,
+    backgroundColor: t.neutral.lightest,
     borderRadius: 12,
     padding: 20,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: colors.neutral.light,
+    borderColor: t.neutral.light,
     shadowColor: "#000000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -351,7 +351,7 @@ export const dashboardStyles = StyleSheet.create({
     fontFamily: fontFamily.satoshiBold,
     fontSize: 18,
     fontWeight: "600",
-    color: colors.neutral.darkest,
+    color: t.neutral.darkest,
     marginBottom: 12,
   },
   statRow: {
@@ -362,17 +362,17 @@ export const dashboardStyles = StyleSheet.create({
   legacyStatLabel: {
     fontFamily: fontFamily.satoshiMedium,
     fontSize: 14,
-    color: colors.neutral.medium,
+    color: t.neutral.medium,
     fontWeight: "500",
   },
   statValue: {
     fontFamily: fontFamily.satoshiBold,
     fontSize: 14,
-    color: colors.neutral.darkest,
+    color: t.neutral.darkest,
     fontWeight: "600",
   },
   primaryButton: {
-    backgroundColor: colors.brand.primary,
+    backgroundColor: t.brand.primary,
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 20,
@@ -381,14 +381,14 @@ export const dashboardStyles = StyleSheet.create({
   },
   primaryButtonText: {
     fontFamily: fontFamily.satoshiBold,
-    color: colors.neutral.lightest,
+    color: t.neutral.lightest,
     fontSize: 16,
     fontWeight: "600",
   },
   secondaryButton: {
     backgroundColor: "transparent",
     borderWidth: 1.5,
-    borderColor: colors.brand.primary,
+    borderColor: t.brand.primary,
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 20,
@@ -397,7 +397,7 @@ export const dashboardStyles = StyleSheet.create({
   },
   secondaryButtonText: {
     fontFamily: fontFamily.satoshiBold,
-    color: colors.brand.primary,
+    color: t.brand.primary,
     fontSize: 16,
     fontWeight: "600",
   },
@@ -408,7 +408,7 @@ export const dashboardStyles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: colors.brand.primary,
+    backgroundColor: t.brand.primary,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: "#000000",
@@ -418,7 +418,7 @@ export const dashboardStyles = StyleSheet.create({
     elevation: 8,
   },
   statusBadge: {
-    backgroundColor: colors.neutral.lighter,
+    backgroundColor: t.neutral.lighter,
     paddingVertical: 4,
     paddingHorizontal: 12,
     borderRadius: 20,
@@ -426,8 +426,11 @@ export const dashboardStyles = StyleSheet.create({
     marginTop: 8,
   },
   statusBadgeText: {
-    color: colors.brand.primary,
+    color: t.brand.primary,
     fontSize: 12,
     fontWeight: "600",
   },
-}); 
+});
+
+// Backward-compatible static export
+export const dashboardStyles = getDashboardStyles(colors);

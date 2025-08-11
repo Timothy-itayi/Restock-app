@@ -2,10 +2,10 @@ import { StyleSheet } from 'react-native';
 import { fontFamily } from '../typography';
 import colors from '@/app/theme/colors';
 
-export const authIndexStyles = StyleSheet.create({
+export const getAuthIndexStyles = (t: typeof colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.neutral.lighter,
+    backgroundColor: t.neutral.lighter,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
@@ -16,18 +16,18 @@ export const authIndexStyles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 8,
     textAlign: 'center',
-    color: colors.neutral.darkest,
+    color: t.neutral.darkest,
   },
   subtitle: {
     fontFamily: fontFamily.satoshiBold,
     fontSize: 16,
-    color: colors.brand.secondary,
+    color: t.brand.secondary,
     textAlign: 'center',
     marginBottom: 32,
     fontWeight: '600',
   },
   primaryButton: {
-    backgroundColor: colors.brand.primary,
+    backgroundColor: t.brand.primary,
     paddingVertical: 16,
     paddingHorizontal: 32,
     borderRadius: 8,
@@ -38,13 +38,13 @@ export const authIndexStyles = StyleSheet.create({
   },
   primaryButtonText: {
     fontFamily: fontFamily.satoshiBold,
-    color: colors.neutral.lightest,
+    color: t.neutral.lightest,
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
   },
   secondaryButton: {
-    backgroundColor: colors.neutral.lightest,
+    backgroundColor: t.neutral.lightest,
     paddingVertical: 16,
     paddingHorizontal: 32,
     borderRadius: 8,
@@ -52,12 +52,12 @@ export const authIndexStyles = StyleSheet.create({
     width: '100%',
     maxWidth: 300,
     borderWidth: 1,
-    borderColor: colors.brand.primary,
+    borderColor: t.brand.primary,
     alignItems: 'center',
   },
   secondaryButtonText: {
     fontFamily: fontFamily.satoshiBold,
-    color: colors.brand.primary,
+    color: t.brand.primary,
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
@@ -68,9 +68,12 @@ export const authIndexStyles = StyleSheet.create({
   },
   linkButtonText: {
     fontFamily: fontFamily.satoshi,
-    color: colors.brand.primary,
+    color: t.brand.primary,
     fontSize: 14,
     fontWeight: '500',
     textAlign: 'center',
   },
-}); 
+});
+
+// Backward-compatible static export
+export const authIndexStyles = getAuthIndexStyles(colors);

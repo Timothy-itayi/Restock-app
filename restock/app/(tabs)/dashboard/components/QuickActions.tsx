@@ -1,9 +1,11 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { router } from 'expo-router';
-import { dashboardStyles } from '../../../../styles/components/dashboard';
+import { getDashboardStyles } from '../../../../styles/components/dashboard';
+import { useThemedStyles } from '../../../../styles/useThemedStyles';
 
 export const QuickActions: React.FC = () => {
+  const dashboardStyles = useThemedStyles(getDashboardStyles);
   return (
     <View style={dashboardStyles.section}>
       <Text style={dashboardStyles.sectionTitle}>Quick Actions</Text>

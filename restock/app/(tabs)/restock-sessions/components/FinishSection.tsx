@@ -1,7 +1,8 @@
 import React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 import { RestockSession } from '../utils/types';
-import { restockSessionsStyles } from '../../../../styles/components/restock-sessions';
+import { getRestockSessionsStyles } from '../../../../styles/components/restock-sessions';
+import { useThemedStyles } from '../../../../styles/useThemedStyles';
 
 interface FinishSectionProps {
   currentSession: RestockSession | null;
@@ -16,6 +17,7 @@ export const FinishSection: React.FC<FinishSectionProps> = ({
   showEditProductForm,
   onFinishSession
 }) => {
+  const restockSessionsStyles = useThemedStyles(getRestockSessionsStyles);
   // Only show if we have products and not in form mode
   if (!currentSession || 
       currentSession.products.length === 0 || 

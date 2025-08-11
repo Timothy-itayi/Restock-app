@@ -2,7 +2,8 @@ import React from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Product, RestockSession } from '../utils/types';
-import { restockSessionsStyles } from '../../../../styles/components/restock-sessions';
+import { getRestockSessionsStyles } from '../../../../styles/components/restock-sessions';
+import { useThemedStyles } from '../../../../styles/useThemedStyles';
 
 interface ProductListProps {
   currentSession: RestockSession | null;
@@ -17,6 +18,7 @@ export const ProductList: React.FC<ProductListProps> = ({
   onRemoveProduct,
   onAddProduct
 }) => {
+  const restockSessionsStyles = useThemedStyles(getRestockSessionsStyles);
   return (
     <ScrollView 
       style={restockSessionsStyles.productList}

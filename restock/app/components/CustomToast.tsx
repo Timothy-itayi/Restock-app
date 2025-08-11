@@ -135,7 +135,7 @@ const CustomToast: React.FC<CustomToastProps> = (props) => {
         onPress={hideToast}
         activeOpacity={0.7}
       >
-        <Ionicons name="close" size={16} color={theme.colors.primary[500]} />
+        <Ionicons name="close" size={16} color={theme.brand.primary} />
       </TouchableOpacity>
 
       <View className="flex-row items-start gap-3">
