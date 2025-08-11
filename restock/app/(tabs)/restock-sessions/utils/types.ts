@@ -12,7 +12,7 @@ export interface RestockSession {
   id: string;
   products: Product[];
   createdAt: Date;
-  status: 'draft' | 'sent';
+  status: 'draft' | 'email_generated' | 'sent';
   name?: string;
 }
 

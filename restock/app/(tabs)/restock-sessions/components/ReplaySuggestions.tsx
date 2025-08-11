@@ -30,10 +30,19 @@ export const ReplaySuggestions: React.FC<ReplaySuggestionsProps> = ({
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    loadReplaySuggestions();
-  }, [userId]);
+    let isMounted = true;
+    const controller = new AbortController();
+    const run = async () => {
+      await loadReplaySuggestions(controller, isMounted);
+    };
+    run();
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
+  }, [userId, currentSession]);
 
-  const loadReplaySuggestions = async () => {
+  const loadReplaySuggestions = async (controller?: AbortController, isMounted: boolean = true) => {
     if (!userId) return;
     
     setLoading(true);
@@ -41,7 +50,7 @@ export const ReplaySuggestions: React.FC<ReplaySuggestionsProps> = ({
       // Get all completed sessions
       const result = await SessionService.getUserSessions(userId);
       
-      if (result.data && result.data.length > 0) {
+      if (!controller?.signal.aborted && isMounted && result.data && result.data.length > 0) {
         // Analyze sessions to find patterns
         const sessionPatterns = analyzeSessionPatterns(result.data);
         
@@ -57,7 +66,7 @@ export const ReplaySuggestions: React.FC<ReplaySuggestionsProps> = ({
     } catch (error) {
       console.error('Error loading replay suggestions:', error);
     } finally {
-      setLoading(false);
+      if (!controller?.signal.aborted && isMounted) setLoading(false);
     }
   };
 

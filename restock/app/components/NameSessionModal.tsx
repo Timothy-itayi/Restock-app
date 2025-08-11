@@ -58,7 +58,12 @@ export const NameSessionModal: React.FC<NameSessionModalProps> = ({
                 value={inputValue}
                 onChangeText={onChangeInput}
                 returnKeyType="done"
-                onSubmitEditing={onConfirm}
+                onSubmitEditing={() => {
+                  const trimmed = (inputValue || '').trim();
+                  if (trimmed.length > 0) {
+                    onConfirm();
+                  }
+                }}
                 autoFocus
               />
             </View>

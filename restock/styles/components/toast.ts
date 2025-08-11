@@ -1,5 +1,6 @@
 import { StyleSheet } from 'react-native';
 import { typography } from '../typography';
+import colors from '@/app/theme/colors';
 
 export const toastStyles = StyleSheet.create({
   // Main container - modern card-like design
@@ -8,7 +9,7 @@ export const toastStyles = StyleSheet.create({
     top: 60,
     left: 16,
     right: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.neutral.lightest,
     borderRadius: 16,
     padding: 16,
     marginHorizontal: 16,
@@ -21,7 +22,7 @@ export const toastStyles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
     borderWidth: 1,
-    borderColor: '#F0F0F0',
+    borderColor: colors.neutral.light,
     zIndex: 1000,
   },
 
@@ -44,29 +45,29 @@ export const toastStyles = StyleSheet.create({
 
   // Icon styles for different types
   iconSuccess: {
-    backgroundColor: '#10B981', // Modern green
+    backgroundColor: colors.status.success, // Brand success
   },
   iconInfo: {
-    backgroundColor: '#3B82F6', // Modern blue
+    backgroundColor: colors.status.info, // Info
   },
   iconWarning: {
-    backgroundColor: '#F59E0B', // Modern amber
+    backgroundColor: colors.status.warning, // Warning
   },
   iconError: {
-    backgroundColor: '#EF4444', // Modern red
+    backgroundColor: colors.status.error, // Error
   },
 
   // Text styles
   toastText: {
     ...typography.productName,
-    color: '#1F2937',
+    color: colors.neutral.darkest,
     lineHeight: 22,
     flex: 1,
   },
 
   toastSubtext: {
     ...typography.bodySmall,
-    color: '#6B7280',
+    color: colors.neutral.medium,
     lineHeight: 20,
     marginTop: 2,
     flex: 1,
@@ -80,7 +81,7 @@ export const toastStyles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    borderTopColor: colors.neutral.light,
   },
 
   // Button styles
@@ -93,13 +94,13 @@ export const toastStyles = StyleSheet.create({
   },
 
   primaryButton: {
-    backgroundColor: '#6B7F6B', // Sage green from your theme
+    backgroundColor: colors.brand.primary, // Brand green
   },
 
   secondaryButton: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: colors.neutral.light,
   },
 
   // Button text styles
@@ -110,35 +111,35 @@ export const toastStyles = StyleSheet.create({
   },
 
   primaryButtonText: {
-    color: '#FFFFFF',
+    color: colors.neutral.lightest,
   },
 
   secondaryButtonText: {
-    color: '#6B7280',
+    color: colors.neutral.medium,
   },
 
   // Success toast specific styling
   toastSuccess: {
     borderLeftWidth: 4,
-    borderLeftColor: '#10B981',
+    borderLeftColor: colors.status.success,
   },
 
   // Info toast specific styling
   toastInfo: {
     borderLeftWidth: 4,
-    borderLeftColor: '#3B82F6',
+    borderLeftColor: colors.status.info,
   },
 
   // Warning toast specific styling
   toastWarning: {
     borderLeftWidth: 4,
-    borderLeftColor: '#F59E0B',
+    borderLeftColor: colors.status.warning,
   },
 
   // Error toast specific styling
   toastError: {
     borderLeftWidth: 4,
-    borderLeftColor: '#EF4444',
+    borderLeftColor: colors.status.error,
   },
 
   // Modern close button
@@ -149,14 +150,14 @@ export const toastStyles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.neutral.lighter,
     justifyContent: 'center',
     alignItems: 'center',
   },
 
   closeButtonText: {
     ...typography.buttonText,
-    color: '#6B7280',
+    color: colors.neutral.medium,
     fontWeight: '500',
   },
 }); 

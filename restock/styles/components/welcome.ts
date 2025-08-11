@@ -1,7 +1,20 @@
 import { StyleSheet, Dimensions } from 'react-native';
 import { fontFamily } from '../typography';
+import colors from '@/app/theme/colors';
 
 const { width: screenWidth } = Dimensions.get('window');
+
+const colours = {
+  background: colors.neutral.lighter,
+  textDark: colors.neutral.darkest,
+  brandPrimary: colors.brand.primary,
+  brandSecondary: colors.brand.secondary,
+  highlight: colors.brand.accent,
+  neutralLight: colors.neutral.lightest,
+  neutralDark: colors.neutral.dark,
+  borderLight: colors.neutral.light,
+  paginationInactive: colors.pagination.inactive,
+};
 
 export const welcomeStyles = StyleSheet.create({
   // Container styles
@@ -10,7 +23,7 @@ export const welcomeStyles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: colours.background,
   },
   content: {
     flex: 1,
@@ -24,13 +37,13 @@ export const welcomeStyles = StyleSheet.create({
     paddingBottom: 20,
     paddingHorizontal: 20,
     alignItems: 'center',
-    backgroundColor: '#f8f9fa',
+    backgroundColor: colours.background,
   },
   appTitle: {
     fontFamily: fontFamily.satoshiBlack,
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#6B7F6B',
+    color: colours.brandPrimary,
     textAlign: 'center',
   },
 
@@ -44,14 +57,14 @@ export const welcomeStyles = StyleSheet.create({
     fontFamily: fontFamily.satoshiBlack,
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#2c3e50',
+    color: colours.textDark,
     textAlign: 'center',
     marginBottom: 8,
   },
   mainSubtitle: {
     fontFamily: fontFamily.satoshiBold,
     fontSize: 16,
-    color: '#6B7F6B',
+    color: colours.brandSecondary,
     textAlign: 'center',
     fontWeight: '600',
   },
@@ -74,11 +87,10 @@ export const welcomeStyles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   imageContainer: {
-    width: screenWidth * 0.5, // Smaller images
+    width: screenWidth * 0.5,
     height: screenWidth * 0.5,
     justifyContent: 'center',
     alignItems: 'center',
-    
   },
   slideImage: {
     width: '100%',
@@ -92,24 +104,24 @@ export const welcomeStyles = StyleSheet.create({
   },
   slideTitle: {
     fontFamily: fontFamily.satoshiBlack,
-    fontSize: 24, // Slightly smaller
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#2c3e50',
+    color: colours.textDark,
     marginBottom: 8,
     textAlign: 'center',
   },
   slideSubtitle: {
     fontFamily: fontFamily.satoshiBold,
-    fontSize: 16, // Slightly smaller
-    color: '#6B7F6B',
+    fontSize: 16,
+    color: colours.brandSecondary,
     marginBottom: 12,
     textAlign: 'center',
     fontWeight: '600',
   },
   slideDescription: {
     fontFamily: fontFamily.satoshi,
-    fontSize: 14, // Slightly smaller
-    color: '#7f8c8d',
+    fontSize: 14,
+    color: colours.neutralDark,
     textAlign: 'center',
     lineHeight: 20,
     paddingHorizontal: 10,
@@ -130,11 +142,11 @@ export const welcomeStyles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#DEE2E6',
+    backgroundColor: colours.paginationInactive,
     marginHorizontal: 4,
   },
   paginationDotActive: {
-    backgroundColor: '#6B7F6B',
+    backgroundColor: colours.brandPrimary,
     width: 24,
   },
 
@@ -146,7 +158,7 @@ export const welcomeStyles = StyleSheet.create({
     paddingBottom: 40,
   },
   signUpButton: {
-    backgroundColor: '#6B7F6B',
+    backgroundColor: colours.brandPrimary,
     borderRadius: 8,
     padding: 14,
     alignItems: 'center',
@@ -154,21 +166,21 @@ export const welcomeStyles = StyleSheet.create({
   },
   signUpButtonText: {
     fontFamily: fontFamily.satoshiBold,
-    color: '#ffffff',
+    color: colours.neutralLight,
     fontSize: 16,
     fontWeight: '600',
   },
   signInButton: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colours.neutralLight,
     borderWidth: 1,
-    borderColor: '#6B7F6B',
+    borderColor: colours.brandPrimary,
     borderRadius: 8,
     padding: 14,
     alignItems: 'center',
   },
   signInButtonText: {
     fontFamily: fontFamily.satoshiBold,
-    color: '#6B7F6B',
+    color: colours.brandPrimary,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -179,16 +191,15 @@ export const welcomeStyles = StyleSheet.create({
     paddingBottom: 50,
     paddingHorizontal: 20,
     marginTop: -40,
-
   },
   swipeHintText: {
     fontFamily: fontFamily.satoshi,
     fontSize: 14,
-    color: '#7f8c8d',
+    color: colours.neutralDark,
     textAlign: 'center',
   },
 
-  // Legacy styles (keeping for compatibility)
+  // Legacy styles
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 20,
@@ -198,14 +209,14 @@ export const welcomeStyles = StyleSheet.create({
     fontFamily: fontFamily.satoshiBlack,
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#2c3e50',
+    color: colours.textDark,
     marginBottom: 12,
     textAlign: 'center',
   },
   subtitle: {
     fontFamily: fontFamily.satoshiBold,
     fontSize: 20,
-    color: '#6B7F6B',
+    color: colours.brandPrimary,
     marginBottom: 16,
     textAlign: 'center',
     fontWeight: '600',
@@ -213,7 +224,7 @@ export const welcomeStyles = StyleSheet.create({
   description: {
     fontFamily: fontFamily.satoshi,
     fontSize: 16,
-    color: '#7f8c8d',
+    color: colours.neutralDark,
     marginBottom: 40,
     textAlign: 'center',
     lineHeight: 24,
@@ -234,39 +245,39 @@ export const welcomeStyles = StyleSheet.create({
     fontFamily: fontFamily.satoshiBold,
     fontSize: 20,
     fontWeight: '600',
-    color: '#2c3e50',
+    color: colours.textDark,
     marginBottom: 16,
     textAlign: 'center',
   },
   input: {
     fontFamily: fontFamily.satoshi,
-    backgroundColor: '#ffffff',
+    backgroundColor: colours.neutralLight,
     borderWidth: 1,
-    borderColor: '#e1e8ed',
+    borderColor: colours.borderLight,
     borderRadius: 8,
     padding: 16,
     fontSize: 16,
     marginBottom: 16,
-    color: '#000000',
+    color: colours.textDark,
   },
   button: {
-    backgroundColor: '#6B7F6B',
+    backgroundColor: colours.brandPrimary,
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
     marginBottom: 16,
   },
   googleButton: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colours.neutralLight,
     borderWidth: 1,
-    borderColor: '#e1e8ed',
+    borderColor: colours.borderLight,
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
     marginBottom: 16,
   },
   returningUserButton: {
-    backgroundColor: '#A7B9A7',
+    backgroundColor: colours.brandSecondary,
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
@@ -277,19 +288,19 @@ export const welcomeStyles = StyleSheet.create({
   },
   buttonText: {
     fontFamily: fontFamily.satoshiBold,
-    color: '#ffffff',
+    color: colours.neutralLight,
     fontSize: 16,
     fontWeight: '600',
   },
   googleButtonText: {
-    fontFamily: 'Satoshi-Bold',
-    color: '#2c3e50',
+    fontFamily: fontFamily.satoshiBold,
+    color: colours.textDark,
     fontSize: 16,
     fontWeight: '600',
   },
   returningUserButtonText: {
-    fontFamily: 'Satoshi-Bold',
-    color: '#ffffff',
+    fontFamily: fontFamily.satoshiBold,
+    color: colours.neutralLight,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -301,12 +312,12 @@ export const welcomeStyles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#e1e8ed',
+    backgroundColor: colours.borderLight,
   },
   dividerText: {
-    fontFamily: 'Satoshi-Regular',
+    fontFamily: fontFamily.satoshi,
     marginHorizontal: 16,
-    color: '#7f8c8d',
+    color: colours.neutralDark,
     fontSize: 14,
   },
   backButton: {
@@ -314,8 +325,8 @@ export const welcomeStyles = StyleSheet.create({
     padding: 12,
   },
   backButtonText: {
-    fontFamily: 'Satoshi-Regular',
-    color: '#6B7F6B',
+    fontFamily: fontFamily.satoshi,
+    color: colours.brandPrimary,
     fontSize: 16,
   },
   signInLink: {
@@ -324,33 +335,33 @@ export const welcomeStyles = StyleSheet.create({
     marginTop: 8,
   },
   signInLinkText: {
-    fontFamily: 'Satoshi-Regular',
-    color: '#6B7F6B',
+    fontFamily: fontFamily.satoshi,
+    color: colours.brandPrimary,
     fontSize: 16,
     textDecorationLine: 'underline',
   },
   primaryButton: {
-    backgroundColor: '#6B7F6B',
+    backgroundColor: colours.brandPrimary,
     borderWidth: 2,
-    borderColor: '#6B7F6B',
+    borderColor: colours.brandPrimary,
   },
   primaryButtonText: {
-    fontFamily: 'Satoshi-Bold',
-    color: '#ffffff',
+    fontFamily: fontFamily.satoshiBold,
+    color: colours.neutralLight,
     fontWeight: '700',
   },
   secondaryButton: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colours.neutralLight,
     borderWidth: 1,
-    borderColor: '#6B7F6B',
+    borderColor: colours.brandPrimary,
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
     marginBottom: 16,
   },
   secondaryButtonText: {
-    fontFamily: 'Satoshi-Bold',
-    color: '#6B7F6B',
+    fontFamily: fontFamily.satoshiBold,
+    color: colours.brandPrimary,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -366,23 +377,23 @@ export const welcomeStyles = StyleSheet.create({
     paddingHorizontal: 24,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#6B7F6B',
-    backgroundColor: '#ffffff',
+    borderColor: colours.brandPrimary,
+    backgroundColor: colours.neutralLight,
   },
   navButtonText: {
     fontFamily: fontFamily.satoshiBold,
-    color: '#6B7F6B',
+    color: colours.brandPrimary,
     fontSize: 16,
     fontWeight: '600',
   },
   primaryNavButton: {
-    backgroundColor: '#6B7F6B',
-    borderColor: '#6B7F6B',
+    backgroundColor: colours.brandPrimary,
+    borderColor: colours.brandPrimary,
   },
   primaryNavButtonText: {
     fontFamily: fontFamily.satoshiBold,
-    color: '#ffffff',
+    color: colours.neutralLight,
     fontSize: 16,
     fontWeight: '600',
   },
-}); 
+});

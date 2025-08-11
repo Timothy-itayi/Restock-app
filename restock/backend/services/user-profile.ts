@@ -7,10 +7,11 @@ export class UserProfileService {
    */
   static async emailExists(email: string): Promise<{ exists: boolean; ownerId?: string; error?: any }> {
     try {
+      const normalized = email.toLowerCase();
       const { data, error } = await supabase
         .from('users')
         .select('id')
-        .eq('email', email)
+        .ilike('email', normalized)
         .maybeSingle();
 
       if (error) {

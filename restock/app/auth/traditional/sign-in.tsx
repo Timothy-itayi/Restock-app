@@ -278,7 +278,7 @@ export default function SignInScreen() {
           </TouchableOpacity>
 
           <View style={signInStyles.linkContainer}>
-            <Text style={signInStyles.linkText}>Don&apos;t have an account? </Text>
+            <Text style={signInStyles.linkText}>Don't have an account? </Text>
             <Link href="/auth/traditional/sign-up" asChild>
               <Text style={signInStyles.linkTextBold}>Sign up</Text>
             </Link>

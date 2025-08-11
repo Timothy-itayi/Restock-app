@@ -3,18 +3,19 @@ import { View, Text, ScrollView, Alert } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { emailsStyles } from "../../../styles/components/emails";
-import { useUserProfile, useEmailSessions, useEmailEditor } from './hooks';
+import { useUserProfile, useEmailSessions, useEmailEditor, EmailDraft } from './hooks';
 import { 
   EmailCard, 
   EmailEditModal, 
   EmailsSummary, 
-  EmailTemplates,
   EmptyState, 
   ActionButtons,
   SessionTabs,
-  SendConfirmationModal
+  SendConfirmationModal,
+  EmailDetailModal
 } from './components';
-import { getSessionColorTheme } from '../restock-sessions/utils/colorUtils';
+import useThemeStore from '../../stores/useThemeStore';
+import colors from '@/app/theme/colors';
 
 export default function EmailsScreen() {
   // Custom hooks for separation of concerns
@@ -44,6 +45,12 @@ export default function EmailsScreen() {
 
   // Local state for custom modal
   const [showSendConfirmation, setShowSendConfirmation] = useState(false);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [selectedEmail, setSelectedEmail] = useState<EmailDraft | null>(null);
+  const [showEmailDetail, setShowEmailDetail] = useState(false);
+  const [pendingSendEmail, setPendingSendEmail] = useState<EmailDraft | null>(null);
+  const [isIndividualSend, setIsIndividualSend] = useState(false);
 
   const isLoading = isUserLoading || isSessionLoading;
 
@@ -78,36 +85,75 @@ export default function EmailsScreen() {
   // Handle bulk email sending
   const handleSendAllEmails = () => {
     if (!activeSession) return;
+    setPendingSendEmail(null);
+    setIsIndividualSend(false);
     setShowSendConfirmation(true);
   };
 
-  const handleConfirmSendAll = async () => {
+  const handleConfirmSend = async () => {
     setShowSendConfirmation(false);
     
-    const result = await sendAllEmails();
-    if (result.success) {
-      // Clear immediately to avoid lingering UI
-      setActiveSessionId(null);
-      // Close any open edit modal
-      cancelEdit();
-      await refreshSessions();
-      
-      // No alert needed - the UI will show the empty state
+    if (isIndividualSend && pendingSendEmail) {
+      // Individual email send
+      await handleActualSendEmail(pendingSendEmail.id);
+      setPendingSendEmail(null);
     } else {
-      // Only show alert on error
-      Alert.alert(
-        "Error Sending Emails",
-        result.message,
-        [{ text: "OK" }]
-      );
+      // Bulk email send
+      const result = await sendAllEmails();
+      if (result.success) {
+        // Show success message
+        setSuccessMessage("✅ All emails sent successfully! Returning to dashboard...");
+        setShowSuccessMessage(true);
+        
+        // Wait 2.5 seconds then clear and navigate
+        setTimeout(() => {
+          setActiveSessionId(null);
+          cancelEdit();
+          refreshSessions();
+          setShowSuccessMessage(false);
+          setSuccessMessage("");
+        }, 2500);
+      } else {
+        // Only show alert on error
+        Alert.alert(
+          "Error Sending Emails",
+          result.message,
+          [{ text: "OK" }]
+        );
+      }
     }
   };
 
   const handleCancelSend = () => {
     setShowSendConfirmation(false);
+    setPendingSendEmail(null);
+    setIsIndividualSend(false);
+  };
+
+  const handleEmailTap = (email: EmailDraft) => {
+    setSelectedEmail(email);
+    setShowEmailDetail(true);
+  };
+
+  const handleCloseEmailDetail = () => {
+    setShowEmailDetail(false);
+    setSelectedEmail(null);
   };
 
   const handleSendEmail = async (emailId: string) => {
+    // Find the email to send
+    const emailToSend = activeSession?.emails.find(email => email.id === emailId);
+    if (!emailToSend) return { success: false, message: 'Email not found' };
+    
+    // Set up for individual send confirmation
+    setPendingSendEmail(emailToSend);
+    setIsIndividualSend(true);
+    setShowSendConfirmation(true);
+    
+    return { success: true, message: '' };
+  };
+  
+  const handleActualSendEmail = async (emailId: string) => {
     const result = await sendEmail(emailId);
     if (!result.success) {
       Alert.alert('Error', result.message);
@@ -116,27 +162,26 @@ export default function EmailsScreen() {
       if (editingEmail && editingEmail.id === emailId) {
         cancelEdit();
       }
-      // The useEmailSessions hook now handles clearing the session automatically
-      // when the last email is sent, so no need to refresh here
+      
+      // Show success message
+      const emailName = activeSession?.emails.find(e => e.id === emailId)?.supplierName || 'supplier';
+      setSuccessMessage(`✅ Email sent successfully to ${emailName}!`);
+      setShowSuccessMessage(true);
+      
+      // Wait 2 seconds then clear message
+      setTimeout(() => {
+        setShowSuccessMessage(false);
+        setSuccessMessage("");
+      }, 2000);
     }
     return result;
   };
 
   // Remove the handleClearSession function since we removed the clear button
 
-  const handleUseTemplate = (template: any) => {
-    // For now, just show that templates are available
-    // In a full implementation, this would integrate with the email creation flow
-    Alert.alert(
-      'Template Applied',
-      `Template "${template.name}" has been applied. You can now create new emails based on this template.`,
-      [{ text: 'OK' }]
-    );
-  };
-
   if (isLoading) {
     return (
-      <View style={emailsStyles.container}>
+      <View style={[emailsStyles.container, { backgroundColor: useThemeStore.getState().theme.neutral.lighter }]}>
         <View style={emailsStyles.header}>
           <Text style={emailsStyles.headerTitle}>Emails</Text>
         </View>
@@ -148,11 +193,63 @@ export default function EmailsScreen() {
   }
 
   return (
-    <View style={emailsStyles.container}>
+    <View style={[emailsStyles.container, { backgroundColor: useThemeStore.getState().theme.neutral.lighter }]}>
       {/* Header */}
       <View style={emailsStyles.header}>
         <Text style={emailsStyles.headerTitle}>Generated Emails</Text>
       </View>
+
+      {/* Success Message Overlay */}
+      {showSuccessMessage && (
+        <View style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          zIndex: 1000,
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}>
+          <View style={{
+            backgroundColor: colors.neutral.lightest,
+            padding: 32,
+            borderRadius: 16,
+            alignItems: 'center',
+            marginHorizontal: 24,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: 0.25,
+            shadowRadius: 16,
+            elevation: 8
+          }}>
+            <Text style={{
+              fontSize: 18,
+              fontWeight: '600',
+              color: colors.brand.primary,
+              textAlign: 'center',
+              marginBottom: 8
+            }}>
+              {successMessage}
+            </Text>
+            <View style={{
+              width: 48,
+              height: 4,
+              backgroundColor: colors.brand.primary,
+              borderRadius: 2,
+              marginTop: 16
+            }}>
+              <View style={{
+                height: '100%',
+                backgroundColor: colors.status.success,
+                borderRadius: 2,
+                width: '100%'
+              }} />
+            </View>
+          </View>
+        </View>
+      )}
 
       {/* Show empty state if no session data OR no active session */}
       {emailSessions.length === 0 || !activeSession ? (
@@ -165,21 +262,11 @@ export default function EmailsScreen() {
            !activeSession.emails.every(e => e.status === 'sent') && (
             <SessionTabs
               sessions={emailSessions}
-              activeSessionId={activeSessionId}
-              onSessionChange={setActiveSessionId}
+              activeSessionId={activeSessionId || ''}
+              onSessionChange={(id) => setActiveSessionId(id)}
             />
           )}
 
-          {/* Email Templates - hide during sending process and after all emails sent */}
-          {activeSession && 
-           activeSession.emails.length > 0 && 
-           !activeSession.emails.some(e => e.status === 'sending') &&
-           !activeSession.emails.every(e => e.status === 'sent') && (
-            <EmailTemplates
-              recentEmails={[...activeSession.emails]}
-              onUseTemplate={handleUseTemplate}
-            />
-          )}
 
           {/* Email Summary - always show if we have emails */}
           {activeSession && activeSession.emails.length > 0 && (
@@ -189,24 +276,33 @@ export default function EmailsScreen() {
             />
           )}
 
-          {/* Email List - only show if emails haven't all been sent */}
+          {/* Gmail-style Email List */}
           {activeSession && 
            activeSession.emails.length > 0 && 
            !activeSession.emails.every(e => e.status === 'sent') && (
-            <ScrollView style={emailsStyles.emailList} showsVerticalScrollIndicator={false}>
-              {activeSession.emails.map((email) => {
-                const accent = getSessionColorTheme(activeSession.id).primary;
-                return (
+            <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+              <Text style={{
+                fontSize: 14,
+                fontWeight: '600',
+                color: colors.neutral.dark,
+                marginBottom: 12,
+                textTransform: 'uppercase',
+                letterSpacing: 0.5
+              }}>
+                Email Drafts ({activeSession.emails.length})
+              </Text>
+              <ScrollView style={{ maxHeight: 400 }} showsVerticalScrollIndicator={false}>
+                {activeSession.emails.map((email) => (
                   <EmailCard
                     key={email.id}
                     email={email}
                     onEdit={handleEditEmail}
                     onSend={handleSendEmail}
-                    accentColor={accent}
+                    onTap={handleEmailTap}
                   />
-                );
-              })}
-            </ScrollView>
+                ))}
+              </ScrollView>
+            </View>
           )}
 
           {/* Success message when all emails are sent */}
@@ -215,7 +311,7 @@ export default function EmailsScreen() {
            activeSession.emails.every(e => e.status === 'sent') && (
             <View style={emailsStyles.successContainer}>
               <View style={emailsStyles.successIcon}>
-                <Ionicons name="checkmark" size={32} color="#FFFFFF" />
+                <Ionicons name="checkmark" size={32} color={colors.neutral.lightest} />
               </View>
               <Text style={emailsStyles.successTitle}>All Emails Sent!</Text>
               <Text style={emailsStyles.successText}>
@@ -251,9 +347,21 @@ export default function EmailsScreen() {
       {/* Send Confirmation Modal */}
       <SendConfirmationModal
         visible={showSendConfirmation}
-        emailCount={activeSession?.emails.length || 0}
-        onConfirm={handleConfirmSendAll}
+        emailCount={isIndividualSend ? 1 : (activeSession?.emails.length || 0)}
+        onConfirm={handleConfirmSend}
         onCancel={handleCancelSend}
+        isIndividualSend={isIndividualSend}
+        supplierName={pendingSendEmail?.supplierName || ''}
+      />
+
+      {/* Email Detail Modal */}
+      <EmailDetailModal
+        visible={showEmailDetail}
+        email={selectedEmail}
+        userProfile={userProfile}
+        onClose={handleCloseEmailDetail}
+        onEdit={handleEditEmail}
+        onSend={handleSendEmail}
       />
     </View>
   );

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ScrollView, View } from 'react-native';
+import useThemeStore from '../../stores/useThemeStore';
 import { useUser } from '@clerk/clerk-expo';
 import { UserProfileService } from '../../../backend/services/user-profile';
 import { SessionService } from '../../../backend/services/sessions';
@@ -20,7 +21,8 @@ export default function ProfileScreen() {
   const [emailCount, setEmailCount] = useState(0);
 
   // Show skeleton until both user and profile data are loaded, plus minimum loading time
-  const isDataReady = !loading && user && userProfile !== null && !minLoadingTime;
+  // Treat userProfile === null as a valid "ready" state (no profile found)
+  const isDataReady = !loading && user !== undefined && !minLoadingTime;
 
   // Minimum loading time to prevent flicker
   useEffect(() => {
@@ -85,7 +87,13 @@ export default function ProfileScreen() {
   }
 
   return (
-    <ScrollView style={profileStyles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={[
+        profileStyles.container,
+        { backgroundColor: useThemeStore.getState().theme.neutral.lightest },
+      ]}
+      showsVerticalScrollIndicator={false}
+    >
       <ProfileHeader />
       
       <ProfileInfo 

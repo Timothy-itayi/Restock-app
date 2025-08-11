@@ -111,7 +111,7 @@ export default function WelcomeScreen() {
         {/* Fixed Title */}
         <View style={welcomeStyles.titleContainer}>
           <Text style={welcomeStyles.mainTitle}>Welcome to Restock</Text>
-          <Text style={welcomeStyles.mainSubtitle}>Streamline your store&apos;s restocking process</Text>
+          <Text style={welcomeStyles.mainSubtitle}>Streamline your store's restocking process</Text>
                   </View>
                   
         {/* Swipeable Carousel Content Only */}

@@ -1,5 +1,6 @@
 import { StyleSheet } from 'react-native';
 import { typography } from '../../../typography';
+import colors from '@/app/theme/colors';
 
 export const ssoProfileSetupStyles = StyleSheet.create({
   scrollViewContent: {
@@ -7,7 +8,7 @@ export const ssoProfileSetupStyles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: colors.neutral.lighter,
   },
   content: {
     flex: 1,
@@ -18,13 +19,13 @@ export const ssoProfileSetupStyles = StyleSheet.create({
   },
   title: {
     ...typography.appTitle,
-    color: '#2c3e50',
+    color: colors.neutral.darkest,
     marginBottom: 12,
     textAlign: 'center',
   },
   subtitle: {
     ...typography.bodyLarge,
-    color: '#6B7F6B',
+    color: colors.brand.secondary,
     marginBottom: 40,
     textAlign: 'center',
     lineHeight: 24,
@@ -34,24 +35,24 @@ export const ssoProfileSetupStyles = StyleSheet.create({
   },
   sectionTitle: {
     ...typography.subsectionHeader,
-    color: '#2c3e50',
+    color: colors.neutral.darkest,
     marginBottom: 12,
     marginTop: 20,
   },
   input: {
     ...typography.bodyMedium,
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.neutral.lightest,
     borderWidth: 1,
-    borderColor: '#e1e8ed',
+    borderColor: colors.neutral.light,
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 20,
     marginBottom: 16,
-    color: '#000000',
+    color: colors.neutral.darkest,
     minHeight: 56,
   },
   button: {
-    backgroundColor: '#6B7F6B',
+    backgroundColor: colors.brand.primary,
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
@@ -62,26 +63,26 @@ export const ssoProfileSetupStyles = StyleSheet.create({
   },
   buttonText: {
     ...typography.buttonText,
-    color: '#ffffff',
+    color: colors.neutral.lightest,
     fontWeight: '600',
   },
   emailContainer: {
-    backgroundColor: '#F0F9FF',
+    backgroundColor: colors.neutral.lighter,
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#DBEAFE',
+    borderColor: colors.neutral.light,
   },
   emailText: {
     fontSize: 14,
-    color: '#1E40AF',
+    color: colors.neutral.darkest,
     fontWeight: '600',
     fontFamily: 'Satoshi-Medium',
   },
   fieldDescription: {
     fontSize: 14,
-    color: '#666666',
+    color: colors.neutral.medium,
     marginBottom: 8,
     fontFamily: 'Satoshi-Regular',
   },

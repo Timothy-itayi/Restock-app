@@ -129,6 +129,20 @@ The UnifiedAuthGuard provides contextual loading screens:
 - ✅ Unified authentication system with comprehensive logging
 - 🔄 Ready for backend integration (SendGrid, OpenAI, Supabase)
 
+## Recent Additions
+- **Smart Reminders & AI Replay**: Proactive, personalized repeat-order nudges based on session history.
+  - **Dashboard banner**: "You usually reorder dairy every 7–10 days. Repeat last mix?"
+  - **Finished Sessions → Repeat order**: One-tap replay with quick tweak options (+10% quantities, swap suppliers).
+  - **In-session hint**: Suggests adding items from the last order with the same supplier.
+  - **ReminderService (lightweight)**: Mines patterns from `SessionService.getUserSessions`, ranks candidates, and avoids repetition via `lastShownAt` stored locally/cloud.
+  - **Flow**: Accepting a reminder pre-fills a new session and runs normal AI generation.
+
+## Upcoming Features
+- **AI Feedback Loop**: Capture edits/ratings on generated emails and learn per-supplier preferences (tone, brevity, urgency, custom instructions).
+- **Supplier Preferences Integration**: Feed preferences and `supplierHistory` into `backend/services/ai/email-generator.ts` for improved prompts.
+- **Follow-up Automations**: One-tap, context-aware follow-ups for unacknowledged orders (concise, polite ETA requests).
+- **Data Migration**: Move reminder flags and session data fully to Supabase with RLS.
+
 ## Database Schema (Planned)
 - **Users**: Authentication and user management
 - **Products**: User's restock items with default quantities/suppliers

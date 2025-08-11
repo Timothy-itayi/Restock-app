@@ -24,7 +24,7 @@ export const WelcomeSection: React.FC<WelcomeSectionProps> = ({
       ) : (
         <>
           <Text style={dashboardStyles.welcomeTitle}>
-            Hello, <Text style={dashboardStyles.userName}>{userName}</Text>!
+            Hello, <Text style={dashboardStyles.userName}>{userName || 'there'}</Text>!
           </Text>
           <Text style={dashboardStyles.welcomeSubtitle}>
             Welcome to your restocking dashboard{storeName ? ` for ${storeName}` : ''}

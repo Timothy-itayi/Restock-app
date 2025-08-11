@@ -1,5 +1,5 @@
 # Restock - Streamlining Restocking for Independent Retailers
-
+walk, log, send” flow
 ## Main Screens
 | App Icon | Onboard/Auth | Dashboard |
 |----------|-----------|------------------|
@@ -32,7 +32,7 @@ Restock is a mobile-first app that replicates the clipboard experience but with 
 
 ## Development Progress
 
-### Current Status: **Advanced Email System & User Identity Integration**
+### Current Status: **Advanced Email + Smart Reminders & AI Replay**
 
 **✅ COMPLETED PHASES**
 
@@ -63,6 +63,7 @@ Restock is a mobile-first app that replicates the clipboard experience but with 
   - Session management with 20+ methods
   - Product/supplier autocomplete and validation
   - Email tracking and delivery status monitoring
+  - Lightweight ReminderService for pattern mining, ranking, and repeat-avoidance via `lastShownAt`
 
 - [x] **🎨 UI/UX Implementation**
   - Mobile-first design with sage green theme
@@ -71,6 +72,9 @@ Restock is a mobile-first app that replicates the clipboard experience but with 
   - Email editing interface with visual feedback
   - Empty state handling and pull-to-refresh functionality
   - Loading skeletons and smooth transitions
+  - Smart reminder banner on Dashboard (personalized repeat-order nudges)
+  - Finished Sessions → "Repeat order" with quick tweak presets (e.g., +10%)
+  - In-session hint to add items from the last supplier order
 
 - [x] **🧪 Quality Assurance**
   - Comprehensive Jest test suite (authentication flows)
@@ -81,17 +85,24 @@ Restock is a mobile-first app that replicates the clipboard experience but with 
 
 **🔄 IN PROGRESS**
 
-- [ ] **📧 Email Delivery System**
+- [x] **📧 Email Delivery System**
   - Resend integration for actual email sending
   - Email delivery tracking and status updates
   - Bounce handling and retry mechanisms
-  - Email template customization
+  
 
 - [ ] **🔒 Security Hardening**
   - Row Level Security (RLS) policies implementation
   - Data encryption and privacy compliance
   - Rate limiting and abuse prevention
   - Audit logging and monitoring
+
+- [ ] **🧠 AI Feedback Loop & Supplier Preferences**
+  - Capture edits/ratings on generated emails with “Apply next time” option
+  - Persist per-supplier preferences (tone, brevity, urgency, custom instructions)
+  - Use preferences and `supplierHistory` in `backend/services/ai/email-generator.ts`
+  - Add `supplier_preferences` and `email_feedback` tables in Supabase
+  - One-tap follow-up generator for unacknowledged orders (concise ETA requests)
 
 **📋 PENDING PHASES**
 

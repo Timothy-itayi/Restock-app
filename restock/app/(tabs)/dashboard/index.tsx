@@ -8,13 +8,12 @@ import { useUnifiedAuth } from "../../_contexts/UnifiedAuthProvider";
 import useProfileStore from "../../stores/useProfileStore";
 import { 
   WelcomeSection, 
-  QuickActions, 
   UnfinishedSessions, 
   FinishedSessions,
-  StatsOverview, 
+  StatsOverviewEnhanced, 
   EmptyState 
 } from './components';
-import { HistorySection } from '../profile/components/HistorySection';
+import useThemeStore from "../../stores/useThemeStore";
 
 interface SessionItem {
   id: string;
@@ -149,10 +148,18 @@ export default function DashboardScreen() {
       if (userId) {
         const refreshData = async () => {
           try {
+            console.log('📊 Dashboard: Starting data refresh...');
             const [unfinishedResult, finishedResult] = await Promise.all([
               SessionService.getUnfinishedSessions(userId),
               SessionService.getFinishedSessions(userId)
             ]);
+            
+            console.log('📊 Dashboard: Refresh results', {
+              unfinishedCount: unfinishedResult.data?.length || 0,
+              finishedCount: finishedResult.data?.length || 0,
+              unfinishedError: unfinishedResult.error,
+              finishedError: finishedResult.error
+            });
             
             if (unfinishedResult.data) {
               setUnfinishedSessions(unfinishedResult.data);
@@ -169,8 +176,14 @@ export default function DashboardScreen() {
         refreshData();
 
         // Subscribe to session-sent events to refresh finished sessions immediately
-        const sub = DeviceEventEmitter.addListener('restock:sessionSent', () => {
-          refreshData();
+        const sub = DeviceEventEmitter.addListener('restock:sessionSent', (eventData) => {
+          console.log('📊 Dashboard: Received session sent event', eventData);
+          
+          // Add delay to ensure database transaction is committed
+          setTimeout(() => {
+            console.log('📊 Dashboard: Refreshing data after session sent event');
+            refreshData();
+          }, 1000); // Further increased delay for individual email completion reliability
         });
 
         return () => {
@@ -209,11 +222,11 @@ export default function DashboardScreen() {
 
   return (
     <ScrollView 
-      style={dashboardStyles.container} 
+      style={[dashboardStyles.container, { backgroundColor: useThemeStore.getState().theme.neutral.lightest }]} 
       contentContainerStyle={dashboardStyles.contentContainer}
       showsVerticalScrollIndicator={false}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#6C757D']} />
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[useThemeStore.getState().theme.neutral.medium]} />
       }
     >
       <WelcomeSection 
@@ -222,16 +235,16 @@ export default function DashboardScreen() {
         storeName={storeName} 
       />
       
-      <QuickActions />
+  
 
-      {/* Overview under quick actions, minimized styling handled inside */}
-      <StatsOverview 
+      {/* Enhanced Overview with donut chart */}
+      <StatsOverviewEnhanced 
         sessionsLoading={sessionsLoading} 
         unfinishedSessions={unfinishedSessions} 
+        finishedSessions={finishedSessions}
       />
 
-      {/* History access inline like Instagram-style toggle */}
-      <HistorySection userId={userId || undefined} />
+  
 
       <UnfinishedSessions 
         sessionsLoading={sessionsLoading} 

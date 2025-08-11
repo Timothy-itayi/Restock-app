@@ -1,10 +1,11 @@
 import { StyleSheet } from 'react-native';
 import { typography } from '../typography';
+import colors from '@/app/theme/colors';
 
 export const welcomeBackStyles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.neutral.lightest,
     paddingHorizontal: 24,
     paddingTop: 60,
     paddingBottom: 40,
@@ -16,13 +17,13 @@ export const welcomeBackStyles = StyleSheet.create({
   },
   title: {
     ...typography.appTitle,
-    color: '#2c3e50',
+    color: colors.neutral.darkest,
     marginBottom: 12,
     textAlign: 'center',
   },
   subtitle: {
     ...typography.bodyMedium,
-    color: '#666666',
+    color: colors.neutral.medium,
     textAlign: 'center',
     lineHeight: 24,
     paddingHorizontal: 20,
@@ -32,18 +33,18 @@ export const welcomeBackStyles = StyleSheet.create({
     marginBottom: 24,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: colors.neutral.lighter,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#e9ecef',
+    borderColor: colors.neutral.light,
   },
   methodLabel: {
     ...typography.bodySmall,
-    color: '#6B7F6B',
+    color: colors.brand.primary,
     fontWeight: '500',
   },
   googleButton: {
-    backgroundColor: '#6B7F6B',
+    backgroundColor: colors.brand.primary,
     paddingVertical: 16,
     paddingHorizontal: 24,
     borderRadius: 12,
@@ -60,18 +61,18 @@ export const welcomeBackStyles = StyleSheet.create({
   },
   googleButtonText: {
     ...typography.buttonText,
-    color: '#ffffff',
+    color: colors.neutral.lightest,
     fontWeight: '600',
   },
   emailButton: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.neutral.lightest,
     paddingVertical: 16,
     paddingHorizontal: 24,
     borderRadius: 12,
     alignItems: 'center',
     marginBottom: 16,
     borderWidth: 2,
-    borderColor: '#6B7F6B',
+    borderColor: colors.brand.primary,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -83,25 +84,25 @@ export const welcomeBackStyles = StyleSheet.create({
   },
   emailButtonText: {
     ...typography.buttonText,
-    color: '#6B7F6B',
+    color: colors.brand.primary,
     fontWeight: '600',
   },
   emailFormContainer: {
     marginBottom: 24,
   },
   input: {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: colors.neutral.lighter,
     borderWidth: 1,
-    borderColor: '#e9ecef',
+    borderColor: colors.neutral.light,
     borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 20,
     marginBottom: 16,
     fontSize: 16,
-    color: '#2c3e50',
+    color: colors.neutral.darkest,
   },
   button: {
-    backgroundColor: '#6B7F6B',
+    backgroundColor: colors.brand.primary,
     paddingVertical: 16,
     paddingHorizontal: 24,
     borderRadius: 12,
@@ -116,12 +117,12 @@ export const welcomeBackStyles = StyleSheet.create({
     elevation: 3,
   },
   buttonDisabled: {
-    backgroundColor: '#cccccc',
+    backgroundColor: colors.state.disabled,
     opacity: 0.6,
   },
   buttonText: {
     ...typography.buttonText,
-    color: '#ffffff',
+    color: colors.neutral.lightest,
     fontWeight: '600',
   },
   divider: {
@@ -132,23 +133,23 @@ export const welcomeBackStyles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#e9ecef',
+    backgroundColor: colors.neutral.light,
   },
   dividerText: {
     ...typography.bodySmall,
     marginHorizontal: 16,
-    color: '#666666',
+    color: colors.neutral.medium,
     fontWeight: '500',
   },
   secondaryButton: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.neutral.lightest,
     paddingVertical: 16,
     paddingHorizontal: 24,
     borderRadius: 12,
     alignItems: 'center',
     marginBottom: 16,
     borderWidth: 2,
-    borderColor: '#6B7F6B',
+    borderColor: colors.brand.primary,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -160,7 +161,7 @@ export const welcomeBackStyles = StyleSheet.create({
   },
   secondaryButtonText: {
     ...typography.buttonText,
-    color: '#6B7F6B',
+    color: colors.brand.primary,
     fontWeight: '600',
   },
   linkButton: {
@@ -170,7 +171,7 @@ export const welcomeBackStyles = StyleSheet.create({
   },
   linkButtonText: {
     ...typography.bodySmall,
-    color: '#6B7F6B',
+    color: colors.brand.primary,
     fontWeight: '500',
     textDecorationLine: 'underline',
   },

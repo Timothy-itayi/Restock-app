@@ -3,7 +3,7 @@ import { View, Text } from 'react-native';
 import { dashboardStyles } from '../../../../styles/components/dashboard';
 import SkeletonBox from '../../../components/skeleton/SkeletonBox';
 
-interface UnfinishedSession {
+interface Session {
   id: string;
   createdAt: string;
   status: string;
@@ -16,13 +16,19 @@ interface UnfinishedSession {
 
 interface StatsOverviewProps {
   sessionsLoading: boolean;
-  unfinishedSessions: UnfinishedSession[];
+  unfinishedSessions: Session[];
+  finishedSessions: Session[];
 }
 
 export const StatsOverview: React.FC<StatsOverviewProps> = ({
   sessionsLoading,
-  unfinishedSessions
+  unfinishedSessions,
+  finishedSessions
 }) => {
+  const allSessions = [...unfinishedSessions, ...finishedSessions];
+  const totalProducts = allSessions.reduce((sum, session) => sum + session.uniqueProducts, 0);
+  const totalSuppliers = allSessions.reduce((sum, session) => sum + session.uniqueSuppliers, 0);
+
   return (
     <View style={dashboardStyles.section}>
       <Text style={dashboardStyles.sectionTitle}>Overview</Text>
@@ -30,7 +36,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
         <View style={dashboardStyles.statsGrid}>
           <View style={dashboardStyles.statCard}>
             <SkeletonBox width={30} height={32} />
-            <Text style={dashboardStyles.statLabel}>Active Sessions</Text>
+            <Text style={dashboardStyles.statLabel}>Total Sessions</Text>
           </View>
           <View style={dashboardStyles.statCard}>
             <SkeletonBox width={30} height={32} />
@@ -42,24 +48,43 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
           </View>
         </View>
       ) : (
-        <View style={dashboardStyles.statsGrid}>
-          <View style={[dashboardStyles.statCard, { padding: 14, borderRadius: 10 }]}>
-            <Text style={[dashboardStyles.statNumber, { fontSize: 18 }]}>{unfinishedSessions.length}</Text>
-            <Text style={[dashboardStyles.statLabel, { fontSize: 11 }]}>Active Sessions</Text>
+        <>
+          <View style={dashboardStyles.statsGrid}>
+            <View style={[dashboardStyles.statCard, { padding: 14, borderRadius: 10 }]}>
+              <Text style={[dashboardStyles.statNumber, { fontSize: 18 }]}>{allSessions.length}</Text>
+              <Text style={[dashboardStyles.statLabel, { fontSize: 11 }]}>Total Sessions</Text>
+            </View>
+            <View style={[dashboardStyles.statCard, { padding: 14, borderRadius: 10 }]}>
+              <Text style={[dashboardStyles.statNumber, { fontSize: 18 }]}>
+                {totalProducts}
+              </Text>
+              <Text style={[dashboardStyles.statLabel, { fontSize: 11 }]}>Products</Text>
+            </View>
+            <View style={[dashboardStyles.statCard, { padding: 14, borderRadius: 10 }]}>
+              <Text style={[dashboardStyles.statNumber, { fontSize: 18 }]}>
+                {totalSuppliers}
+              </Text>
+              <Text style={[dashboardStyles.statLabel, { fontSize: 11 }]}>Suppliers</Text>
+            </View>
           </View>
-          <View style={[dashboardStyles.statCard, { padding: 14, borderRadius: 10 }]}>
-            <Text style={[dashboardStyles.statNumber, { fontSize: 18 }]}>
-              {unfinishedSessions.reduce((sum, session) => sum + session.uniqueProducts, 0)}
-            </Text>
-            <Text style={[dashboardStyles.statLabel, { fontSize: 11 }]}>Products</Text>
-          </View>
-          <View style={[dashboardStyles.statCard, { padding: 14, borderRadius: 10 }]}>
-            <Text style={[dashboardStyles.statNumber, { fontSize: 18 }]}>
-              {unfinishedSessions.reduce((sum, session) => sum + session.uniqueSuppliers, 0)}
-            </Text>
-            <Text style={[dashboardStyles.statLabel, { fontSize: 11 }]}>Suppliers</Text>
-          </View>
-        </View>
+          
+          {/* Sub-stats */}
+          {allSessions.length > 0 && (
+            <View style={{ 
+              flexDirection: 'row', 
+              justifyContent: 'center', 
+              marginTop: 8, 
+              gap: 16 
+            }}>
+              <Text style={{ fontSize: 11, color: '#6B7280' }}>
+                {unfinishedSessions.length} active
+              </Text>
+              <Text style={{ fontSize: 11, color: '#6B7280' }}>
+                {finishedSessions.length} completed
+              </Text>
+            </View>
+          )}
+        </>
       )}
     </View>
   );

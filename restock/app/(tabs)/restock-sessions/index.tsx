@@ -22,6 +22,7 @@ import {
 import { Logger } from "./utils/logger";
 import { useAuth } from "@clerk/clerk-expo";
 import { Product } from "./utils/types";
+import useThemeStore from "../../stores/useThemeStore";
 
 // Main screen component that uses the context
 const RestockSessionsContent: React.FC = () => {
@@ -105,10 +106,13 @@ const RestockSessionsContent: React.FC = () => {
     setShowNameModal(true);
   }, []);
 
+  const introTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const unnamedIntroTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handleConfirmCreateSession = React.useCallback(async () => {
     // Engage brief intro delay so header shows first before list/forms
     setIntroDelayActive(true);
-    const introTimer = setTimeout(() => setIntroDelayActive(false), 900);
+    introTimerRef.current = setTimeout(() => setIntroDelayActive(false), 900);
     const result = await startNewSession();
     if (result.success && result.session) {
       const trimmed = sessionNameInput.trim();
@@ -133,7 +137,7 @@ const RestockSessionsContent: React.FC = () => {
   const handleCreateWithoutName = React.useCallback(async () => {
     // Engage brief intro delay so header shows first before list/forms
     setIntroDelayActive(true);
-    setTimeout(() => setIntroDelayActive(false), 900);
+    unnamedIntroTimerRef.current = setTimeout(() => setIntroDelayActive(false), 900);
     setShowNameModal(false);
     await handleStartNewSession();
   }, [handleStartNewSession]);
@@ -167,6 +171,20 @@ const RestockSessionsContent: React.FC = () => {
       setIsContentReady(false);
     }
   }, [isDataReady, isLoadingSessions, allSessions.length, params.action]);
+
+  // Cleanup any pending timers on unmount
+  React.useEffect(() => {
+    return () => {
+      if (introTimerRef.current) {
+        clearTimeout(introTimerRef.current);
+        introTimerRef.current = null;
+      }
+      if (unnamedIntroTimerRef.current) {
+        clearTimeout(unnamedIntroTimerRef.current);
+        unnamedIntroTimerRef.current = null;
+      }
+    };
+  }, []);
 
   // Determine if this is the user's first visit to the Restock screen
   React.useEffect(() => {
@@ -671,8 +689,9 @@ const RestockSessionsContent: React.FC = () => {
     );
   };
 
+  const theme = useThemeStore.getState().theme;
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: theme.neutral.lighter }}>
       {/* Notifications */}
       {/* <NotificationRenderer
         notifications={notifications}
@@ -682,7 +701,7 @@ const RestockSessionsContent: React.FC = () => {
       /> */}
       
       <KeyboardAvoidingView
-        style={restockSessionsStyles.container}
+        style={[restockSessionsStyles.container, { backgroundColor: theme.neutral.lighter }]}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >

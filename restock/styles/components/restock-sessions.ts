@@ -1,5 +1,6 @@
 import { StyleSheet } from "react-native";
 import { typography } from "../typography";
+import colors from '@/app/theme/colors';
 
 // Notepad Color Palette with semantic button colors
 // Primary: Industrial Grey (#6C757D)
@@ -12,7 +13,7 @@ export const restockSessionsStyles = StyleSheet.create({
   // Main container with notepad background
   container: {
     flex: 1,
-    backgroundColor: "#FEFDF9", // Warm paper background
+    backgroundColor: colors.neutral.lighter, // Warm paper background
     overflow: "scroll",
   },
   
@@ -22,7 +23,7 @@ export const restockSessionsStyles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingTop: 100,
+    marginTop: 200,
   },
   
   // Welcome prompt with instructions
@@ -30,8 +31,8 @@ export const restockSessionsStyles = StyleSheet.create({
     fontFamily: 'Satoshi-Bold',
     fontSize: 24,
     fontWeight: "600",
-    color: "#212529",
-    marginBottom: 16,
+    color: colors.neutral.darkest,
+    marginBottom: 50,
     textAlign: "center",
   },
   
@@ -39,7 +40,7 @@ export const restockSessionsStyles = StyleSheet.create({
   instructions: {
     fontFamily: 'Satoshi-Regular',
     fontSize: 16,
-    color: "#6C757D",
+    color: colors.neutral.medium,
     textAlign: "center",
     lineHeight: 24,
     marginBottom: 32,
@@ -48,26 +49,26 @@ export const restockSessionsStyles = StyleSheet.create({
   
   // Start button (green for progress)
   startButton: {
-    backgroundColor: "#22C55E", // Green for progress
+    backgroundColor: colors.brand.primary, // Green for progress
     paddingHorizontal: 32,
     paddingVertical: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#22C55E",
+    borderColor: colors.brand.primary,
   },
   
   startButtonText: {
     fontFamily: 'Satoshi-Bold',
-    color: "#FFFFFF",
+    color: colors.neutral.lightest,
     fontSize: 18,
     fontWeight: "600",
   },
 
   // Existing sessions button
   existingSessionsButton: {
-    backgroundColor: "#F8F9FA",
+    backgroundColor: colors.neutral.lighter,
     borderWidth: 1,
-    borderColor: "#DEE2E6",
+    borderColor: colors.neutral.light,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
@@ -76,7 +77,7 @@ export const restockSessionsStyles = StyleSheet.create({
 
   existingSessionsButtonText: {
     fontFamily: 'Satoshi-Bold',
-    color: "#6C757D",
+    color: colors.neutral.medium,
     fontSize: 16,
     fontWeight: "600",
   },
@@ -84,7 +85,7 @@ export const restockSessionsStyles = StyleSheet.create({
   // Session selection styles
   sessionSelectionContainer: {
     flex: 1,
-    backgroundColor: "#FEFDF9",
+    backgroundColor: colors.neutral.lighter,
     paddingHorizontal: 20,
   },
 
@@ -97,7 +98,7 @@ export const restockSessionsStyles = StyleSheet.create({
     fontFamily: 'Satoshi-Bold',
     fontSize: 24,
     fontWeight: "600",
-    color: "#212529",
+    color: colors.neutral.darkest,
     marginBottom: 8,
     textAlign: "center",
   },
@@ -105,7 +106,7 @@ export const restockSessionsStyles = StyleSheet.create({
   sessionSelectionSubtitle: {
     fontFamily: 'Satoshi-Regular',
     fontSize: 16,
-    color: "#6C757D",
+    color: colors.neutral.medium,
     textAlign: "center",
   },
 
@@ -114,12 +115,12 @@ export const restockSessionsStyles = StyleSheet.create({
   },
 
   sessionCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.neutral.lightest,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: "#DEE2E6",
+    borderColor: colors.neutral.light,
     shadowColor: "#000000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -138,7 +139,7 @@ export const restockSessionsStyles = StyleSheet.create({
     fontFamily: 'Satoshi-Bold',
     fontSize: 16,
     fontWeight: "600",
-    color: "#212529",
+    color: colors.neutral.darkest,
     flex: 1,
   },
 
@@ -153,7 +154,7 @@ export const restockSessionsStyles = StyleSheet.create({
   sessionCardSubtitle: {
     fontFamily: 'Satoshi-Regular',
     fontSize: 14,
-    color: "#6C757D",
+    color: colors.neutral.medium,
     marginBottom: 4,
   },
 
@@ -164,19 +165,19 @@ export const restockSessionsStyles = StyleSheet.create({
   sessionCardSuppliersText: {
     fontFamily: 'Satoshi-Regular',
     fontSize: 12,
-    color: "#6C757D",
+    color: colors.neutral.medium,
   },
 
   sessionCardFooter: {
     borderTopWidth: 1,
-    borderTopColor: "#DEE2E6",
+    borderTopColor: colors.neutral.light,
     paddingTop: 12,
   },
 
   sessionCardAction: {
     fontFamily: 'Satoshi-Regular',
     fontSize: 12,
-    color: "#22C55E",
+    color: colors.brand.primary,
     textAlign: "center",
   },
 
@@ -204,7 +205,7 @@ export const restockSessionsStyles = StyleSheet.create({
   // Session container
   sessionContainer: {
     flex: 1,
-    backgroundColor: "#FEFDF9", // Warm paper background
+    backgroundColor: colors.neutral.lighter, // Warm paper background
   },
   
   // Session header with switcher
@@ -214,9 +215,9 @@ export const restockSessionsStyles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: "#FDFBF3", // Slightly warmer paper
+    backgroundColor: colors.neutral.lighter, // Slightly warmer paper
     borderBottomWidth: 1,
-    borderBottomColor: "#DEE2E6", // Light grey border
+    borderBottomColor: colors.neutral.light, // Light grey border
   },
 
   sessionHeaderLeft: {
@@ -227,14 +228,14 @@ export const restockSessionsStyles = StyleSheet.create({
     fontFamily: 'Satoshi-Bold',
     fontSize: 16,
     fontWeight: "600",
-    color: "#212529",
+    color: colors.neutral.darkest,
     marginBottom: 4,
   },
 
   sessionSwitcherButton: {
-    backgroundColor: "#F8F9FA",
+    backgroundColor: colors.neutral.lighter,
     borderWidth: 1,
-    borderColor: "#DEE2E6",
+    borderColor: colors.neutral.light,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
@@ -244,22 +245,22 @@ export const restockSessionsStyles = StyleSheet.create({
   sessionSwitcherText: {
     fontFamily: 'Satoshi-Regular',
     fontSize: 12,
-    color: "#6C757D",
+    color: colors.neutral.medium,
   },
   
   // Finish button (green for progress)
   finishButton: {
-    backgroundColor: "#22C55E", // Green for progress
+    backgroundColor: colors.brand.primary, // Green for progress
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#22C55E",
+    borderColor: colors.brand.primary,
   },
   
   finishButtonText: {
     fontFamily: 'Satoshi-Bold',
-    color: "#FFFFFF",
+    color: colors.neutral.lightest,
     fontSize: 16,
     fontWeight: "600",
   },
@@ -270,15 +271,15 @@ export const restockSessionsStyles = StyleSheet.create({
   sessionSummary: {
     paddingHorizontal: 20,
     paddingVertical: 12,
-    backgroundColor: "#FEFDF9", // Warm paper background
+    backgroundColor: colors.neutral.lighter, // Warm paper background
     borderBottomWidth: 1,
-    borderBottomColor: "#DEE2E6", // Light grey border
+    borderBottomColor: colors.neutral.light, // Light grey border
   },
   
   summaryText: {
     fontFamily: 'Satoshi-Regular',
     fontSize: 14,
-    color: "#212529",
+    color: colors.neutral.darkest,
     textAlign: "center",
   },
   
@@ -286,16 +287,16 @@ export const restockSessionsStyles = StyleSheet.create({
   addProductSection: {
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: "#FDFBF3", // Slightly warmer paper
+    backgroundColor: colors.neutral.lighter, // Slightly warmer paper
     borderBottomWidth: 1,
-    borderBottomColor: "#DEE2E6", // Light grey border
+    borderBottomColor: colors.neutral.light, // Light grey border
   },
   
   // Instructions for adding products
   addProductInstructions: {
     fontFamily: 'Satoshi-Italic',
     fontSize: 14,
-    color: "#6C757D",
+    color: colors.neutral.medium,
     textAlign: "center",
     marginBottom: 16,
     fontStyle: "italic",
@@ -304,7 +305,7 @@ export const restockSessionsStyles = StyleSheet.create({
   // Divider between instructions and button
   divider: {
     height: 1,
-    backgroundColor: "#DEE2E6", // Black divider
+    backgroundColor: colors.neutral.light, // Divider
     marginVertical: 0,
   },
   
@@ -312,25 +313,25 @@ export const restockSessionsStyles = StyleSheet.create({
   addProductButtonSection: {
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: "#FDFBF3", // Slightly warmer paper
+    backgroundColor: colors.neutral.lighter, // Slightly warmer paper
     alignItems: "flex-end", // Right align the button
   },
   
   // Add Product button (darker green with plus sign)
   addProductButton: {
-    backgroundColor: "#16A34A", // Darker green
+    backgroundColor: colors.brand.primary, // Brand green
     width: 40,
     height: 40,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#16A34A",
+    borderColor: colors.brand.primary,
     justifyContent: "center",
     alignItems: "center",
   },
   
   addProductButtonText: {
     fontFamily: 'Satoshi-Bold',
-    color: "#FFFFFF",
+    color: colors.neutral.lightest,
     fontSize: 20,
     fontWeight: "600",
   },
@@ -350,12 +351,12 @@ export const restockSessionsStyles = StyleSheet.create({
   
   // Product item with notepad aesthetic
   productItem: {
-    backgroundColor: "#FFFFFF", // Pure white for contrast
+    backgroundColor: colors.neutral.lightest, // Pure white for contrast
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "#DEE2E6", // Light grey border
+    borderColor: colors.neutral.light, // Light grey border
     shadowColor: "#000000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -366,7 +367,7 @@ export const restockSessionsStyles = StyleSheet.create({
   // Notepad divider line
   notepadDivider: {
     height: 1,
-    backgroundColor: "#F0F0F0", // Light grey line like notepad paper
+    backgroundColor: colors.neutral.light, // Light grey line like notepad paper
     marginVertical: 8,
     marginHorizontal: -8, // Extend slightly beyond padding
   },
@@ -382,7 +383,7 @@ export const restockSessionsStyles = StyleSheet.create({
   productInfoLabel: {
     fontFamily: 'Satoshi-Bold',
     fontSize: 14,
-    color: "#212529",
+    color: colors.neutral.darkest,
     fontWeight: "600", // Semi-bold for category
   },
   
@@ -390,7 +391,7 @@ export const restockSessionsStyles = StyleSheet.create({
   productInfoValue: {
     fontFamily: 'Satoshi-Regular',
     fontSize: 14,
-    color: "#495057", // Dark grey for values
+    color: colors.neutral.dark, // Dark grey for values
     fontWeight: "400", // Regular weight for values
   },
   
@@ -405,74 +406,74 @@ export const restockSessionsStyles = StyleSheet.create({
   // Product name
   productName: {
     ...typography.productName,
-    color: "#212529",
+    color: colors.neutral.darkest,
     flex: 1,
   },
   
   // Product quantity
   productQuantity: {
     ...typography.bodySmall,
-    color: "#212529",
+    color: colors.neutral.darkest,
     fontWeight: "500",
     marginRight: 12,
   },
   
   // Edit button (yellow/brown for edit)
   editButton: {
-    backgroundColor: "#F97316", // Orange for edit
+    backgroundColor: colors.brand.accent, // Orange for edit
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
     marginRight: 8,
     borderWidth: 1,
-    borderColor: "#F97316",
+    borderColor: colors.brand.accent,
   },
   
   editButtonText: {
     ...typography.buttonText,
-    color: "#FFFFFF",
+    color: colors.neutral.lightest,
     fontSize: 12,
     fontWeight: "600",
   },
   
   // Edit icon button
   editIconButton: {
-    backgroundColor: "#F97316", // Orange for edit
+    backgroundColor: colors.brand.accent, // Orange for edit
     width: 32,
     height: 32,
     borderRadius: 16,
     marginRight: 8,
     borderWidth: 1,
-    borderColor: "#F97316",
+    borderColor: colors.brand.accent,
     justifyContent: "center",
     alignItems: "center",
   },
   
   // Delete button (red for delete)
   deleteButton: {
-    backgroundColor: "#EF4444", // Red for delete
+    backgroundColor: colors.status.error, // Red for delete
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: "#EF4444",
+    borderColor: colors.status.error,
   },
   
   deleteButtonText: {
     ...typography.buttonText,
-    color: "#FFFFFF",
+    color: colors.neutral.lightest,
     fontSize: 12,
     fontWeight: "500",
   },
   
   // Delete icon button
   deleteIconButton: {
-    backgroundColor: "#EF4444", // Red for delete
+    backgroundColor: colors.status.error, // Red for delete
     width: 32,
     height: 32,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#EF4444",
+    borderColor: colors.status.error,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -480,14 +481,14 @@ export const restockSessionsStyles = StyleSheet.create({
   // Product supplier info
   productSupplier: {
     ...typography.bodySmall,
-    color: "#212529",
+    color: colors.neutral.darkest,
     marginBottom: 4,
     fontWeight: "600", // Semi-bold for category
   },
   
   productEmail: {
     ...typography.bodySmall,
-    color: "#495057", // Dark grey for values
+    color: colors.neutral.dark, // Dark grey for values
     fontWeight: "400", // Regular weight for values
   },
   
@@ -495,13 +496,13 @@ export const restockSessionsStyles = StyleSheet.create({
   formContainer: {
     flex: 1,
     padding: 20,
-    backgroundColor: "#FEFDF9", // Warm paper background
+    backgroundColor: colors.neutral.lighter, // Warm paper background
   },
   
   // Form title
   formTitle: {
     ...typography.subsectionHeader,
-    color: "#212529",
+    color: colors.neutral.darkest,
     marginBottom: 24,
     textAlign: "center",
   },
@@ -514,7 +515,7 @@ export const restockSessionsStyles = StyleSheet.create({
   // Input label
   inputLabel: {
     ...typography.productName,
-    color: "#212529",
+    color: colors.neutral.darkest,
     marginBottom: 8,
   },
   
@@ -522,12 +523,12 @@ export const restockSessionsStyles = StyleSheet.create({
   textInput: {
     ...typography.bodyMedium,
     borderWidth: 1,
-    borderColor: "#DEE2E6", // Light grey border
+    borderColor: colors.neutral.light, // Light grey border
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 20,
-    backgroundColor: "#FFFFFF", // Pure white background
-    color: "#212529",
+    backgroundColor: colors.neutral.lightest, // Pure white background
+    color: colors.neutral.darkest,
     minHeight: 56,
   },
   
@@ -535,12 +536,12 @@ export const restockSessionsStyles = StyleSheet.create({
   quantityInput: {
     ...typography.bodyMedium,
     borderWidth: 1,
-    borderColor: "#DEE2E6", // Light grey border
+    borderColor: colors.neutral.light, // Light grey border
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 20,
-    backgroundColor: "#FFFFFF", // Pure white background
-    color: "#212529",
+    backgroundColor: colors.neutral.lightest, // Pure white background
+    color: colors.neutral.darkest,
     textAlign: "center",
     width: 100,
     minHeight: 56,
@@ -559,9 +560,9 @@ export const restockSessionsStyles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#F8F9FA", // Very light grey
+    backgroundColor: colors.neutral.lighter, // Very light grey
     borderWidth: 1,
-    borderColor: "#DEE2E6", // Light grey border
+    borderColor: colors.neutral.light, // Light grey border
     alignItems: "center",
     justifyContent: "center",
   },
@@ -569,23 +570,23 @@ export const restockSessionsStyles = StyleSheet.create({
   quantityButtonText: {
     ...typography.bodyLarge,
     fontWeight: "600",
-    color: "#212529",
+    color: colors.neutral.darkest,
   },
   
   // Suggestion item
   suggestionItem: {
-    backgroundColor: "#F8F9FA", // Very light grey
+    backgroundColor: colors.neutral.lighter, // Very light grey
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 8,
     marginBottom: 4,
     borderWidth: 1,
-    borderColor: "#DEE2E6", // Light grey border
+    borderColor: colors.neutral.light, // Light grey border
   },
   
   suggestionText: {
     ...typography.bodySmall,
-    color: "#212529",
+    color: colors.neutral.darkest,
   },
   
   // Form buttons
@@ -599,9 +600,9 @@ export const restockSessionsStyles = StyleSheet.create({
   // Cancel button
   cancelButton: {
     flex: 1,
-    backgroundColor: "#F8F9FA", // Very light grey
+    backgroundColor: colors.neutral.lighter, // Very light grey
     borderWidth: 1,
-    borderColor: "#DEE2E6", // Light grey border
+    borderColor: colors.neutral.light, // Light grey border
     borderRadius: 8,
     paddingVertical: 16,
     alignItems: "center",
@@ -610,12 +611,12 @@ export const restockSessionsStyles = StyleSheet.create({
   // Save button (green for progress)
   saveButton: {
     flex: 1,
-    backgroundColor: "#22C55E", // Green for progress
+    backgroundColor: colors.brand.primary, // Green for progress
     borderRadius: 8,
     paddingVertical: 16,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#22C55E",
+    borderColor: colors.brand.primary,
   },
   
   buttonText: {
@@ -624,11 +625,11 @@ export const restockSessionsStyles = StyleSheet.create({
   },
   
   cancelButtonText: {
-    color: "#212529",
+    color: colors.neutral.darkest,
   },
   
   saveButtonText: {
-    color: "#FFFFFF",
+    color: colors.neutral.lightest,
   },
   
   // Empty state
@@ -641,7 +642,7 @@ export const restockSessionsStyles = StyleSheet.create({
   
   emptyStateText: {
     ...typography.bodyMedium,
-    color: "#212529",
+    color: colors.neutral.darkest,
     textAlign: "center",
     lineHeight: 24,
   },
@@ -658,22 +659,22 @@ export const restockSessionsStyles = StyleSheet.create({
   
   integratedAddButtonIcon: {
     fontSize: 18,
-    color: "#6C757D", // Grey color like the reference
+    color: colors.neutral.medium, // Grey color like the reference
     marginRight: 12,
     fontWeight: "500",
   },
   
   integratedAddButtonText: {
     ...typography.productName,
-    color: "#6C757D", // Grey color like the reference
+    color: colors.neutral.medium, // Grey color like the reference
     fontWeight: "500",
   },
   
   // Error message
   errorMessage: {
-    backgroundColor: "#F8F9FA", // Very light grey
+    backgroundColor: colors.neutral.lighter, // Very light grey
     borderWidth: 1,
-    borderColor: "#EF4444", // Red border
+    borderColor: colors.status.error, // Red border
     borderRadius: 8,
     padding: 12,
     marginBottom: 20,
@@ -681,7 +682,7 @@ export const restockSessionsStyles = StyleSheet.create({
   
   errorText: {
     ...typography.bodySmall,
-    color: "#EF4444", // Red text
+    color: colors.status.error, // Red text
     textAlign: "center",
   },
   
@@ -693,7 +694,7 @@ export const restockSessionsStyles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "#22C55E", // Green for progress
+    backgroundColor: colors.brand.primary, // Green for progress
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000000",
@@ -705,7 +706,7 @@ export const restockSessionsStyles = StyleSheet.create({
   
   // Floating button icon
   floatingButtonIcon: {
-    color: "#FFFFFF",
+    color: colors.neutral.lightest,
     fontSize: 24,
   },
   
@@ -715,9 +716,9 @@ export const restockSessionsStyles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: "#FDFBF3", // Slightly warmer paper
+    backgroundColor: colors.neutral.lighter, // Slightly warmer paper
     borderTopWidth: 1,
-    borderTopColor: "#DEE2E6", // Light grey border
+    borderTopColor: colors.neutral.light, // Light grey border
     paddingHorizontal: 20,
     paddingVertical: 16,
     paddingBottom: 34, // Account for safe area
@@ -725,17 +726,17 @@ export const restockSessionsStyles = StyleSheet.create({
   
   // Bottom finish button
   bottomFinishButton: {
-    backgroundColor: "#22C55E", // Green for progress
+    backgroundColor: colors.brand.primary, // Green for progress
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#22C55E",
+    borderColor: colors.brand.primary,
   },
   
   bottomFinishButtonText: {
     ...typography.bodyLarge,
-    color: "#FFFFFF",
+    color: colors.neutral.lightest,
     fontWeight: "600",
   },
 
@@ -745,9 +746,9 @@ export const restockSessionsStyles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: "#FDFBF3", // Slightly warmer paper
+    backgroundColor: colors.neutral.lighter, // Slightly warmer paper
     borderTopWidth: 1,
-    borderTopColor: "#DEE2E6", // Light grey border
+    borderTopColor: colors.neutral.light, // Light grey border
     paddingHorizontal: 20,
     paddingVertical: 20,
     paddingBottom: 34, // Account for safe area
@@ -761,7 +762,7 @@ export const restockSessionsStyles = StyleSheet.create({
 
   emailReadyTitle: {
     ...typography.subsectionHeader,
-    color: "#212529",
+    color: colors.neutral.darkest,
     fontWeight: "600",
     marginLeft: 8,
   },
@@ -771,8 +772,8 @@ export const restockSessionsStyles = StyleSheet.create({
   },
 
   emailReadyDescription: {
-    ...typography.body,
-    color: "#6C757D",
+    ...typography.bodyMedium,
+    color: colors.neutral.medium,
     marginBottom: 12,
     lineHeight: 20,
   },
@@ -780,11 +781,11 @@ export const restockSessionsStyles = StyleSheet.create({
   emailReadyStats: {
     flexDirection: "row",
     justifyContent: "space-around",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.neutral.lightest,
     borderRadius: 8,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: "#E9ECEF",
+    borderColor: colors.neutral.light,
   },
 
   emailReadyStat: {
@@ -792,15 +793,15 @@ export const restockSessionsStyles = StyleSheet.create({
   },
 
   emailReadyStatNumber: {
-    ...typography.h3,
-    color: "#212529",
+    ...typography.sectionHeader,
+    color: colors.neutral.darkest,
     fontWeight: "700",
     marginBottom: 2,
   },
 
   emailReadyStatLabel: {
     ...typography.caption,
-    color: "#6C757D",
+    color: colors.neutral.medium,
     fontWeight: "500",
   },
 
@@ -811,30 +812,30 @@ export const restockSessionsStyles = StyleSheet.create({
 
   emailReadySecondaryButton: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.neutral.lightest,
     paddingVertical: 14,
     borderRadius: 8,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#DEE2E6",
+    borderColor: colors.neutral.light,
   },
 
   emailReadySecondaryButtonText: {
-    ...typography.body,
-    color: "#6C757D",
+    ...typography.bodyMedium,
+    color: colors.neutral.medium,
     fontWeight: "600",
   },
 
   emailReadyPrimaryButton: {
     flex: 2,
-    backgroundColor: "#22C55E", // Green for primary action
+    backgroundColor: colors.brand.primary, // Green for primary action
     paddingVertical: 14,
     borderRadius: 8,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "#22C55E",
+    borderColor: colors.brand.primary,
   },
 
   emailReadyButtonIcon: {
@@ -842,8 +843,8 @@ export const restockSessionsStyles = StyleSheet.create({
   },
 
   emailReadyPrimaryButtonText: {
-    ...typography.body,
-    color: "#FFFFFF",
+    ...typography.bodyMedium,
+    color: colors.neutral.lightest,
     fontWeight: "600",
   },
   
@@ -883,7 +884,7 @@ export const restockSessionsStyles = StyleSheet.create({
     flex: 1,
     ...typography.bodySmall,
     fontWeight: "500",
-    color: "#FFFFFF",
+    color: colors.neutral.lightest,
   },
   
   notificationClose: {
@@ -892,48 +893,48 @@ export const restockSessionsStyles = StyleSheet.create({
   
   notificationCloseText: {
     ...typography.buttonText,
-    color: "#FFFFFF",
+    color: colors.neutral.lightest,
     fontWeight: "600",
   },
   
   // Notification type styles
   notificationSuccess: {
-    backgroundColor: "#22C55E", // Green for success
+    backgroundColor: colors.status.success, // Green for success
   },
   
   notificationSuccessIcon: {
-    backgroundColor: "#16A34A", // Darker green
+    backgroundColor: colors.status.success,
   },
   
   notificationInfo: {
-    backgroundColor: "#3B82F6", // Blue for info
+    backgroundColor: colors.status.info, // Blue for info
   },
   
   notificationInfoIcon: {
-    backgroundColor: "#1D4ED8", // Darker blue
+    backgroundColor: colors.status.info, // Use same family
   },
   
   notificationWarning: {
-    backgroundColor: "#F59E0B", // Amber for warning
+    backgroundColor: colors.status.warning, // Amber for warning
   },
   
   notificationWarningIcon: {
-    backgroundColor: "#D97706", // Darker amber
+    backgroundColor: colors.status.warning,
   },
   
   notificationError: {
-    backgroundColor: "#EF4444", // Red for error
+    backgroundColor: colors.status.error, // Red for error
   },
   
   notificationErrorIcon: {
-    backgroundColor: "#DC2626", // Darker red
+    backgroundColor: colors.status.error, // Darker red
   },
   
   // Error handling styles
   errorContainer: {
-    backgroundColor: "#F8F9FA", // Very light grey
+    backgroundColor: colors.neutral.lighter, // Very light grey
     borderWidth: 1,
-    borderColor: "#EF4444", // Red border
+    borderColor: colors.status.error, // Red border
     borderRadius: 12,
     padding: 20,
     margin: 20,
@@ -943,31 +944,31 @@ export const restockSessionsStyles = StyleSheet.create({
   errorTitle: {
     ...typography.bodyLarge,
     fontWeight: "600",
-    color: "#EF4444", // Red text
+    color: colors.status.error, // Red text
     marginBottom: 8,
     textAlign: "center",
   },
   
   errorStateMessage: {
     ...typography.bodySmall,
-    color: "#EF4444", // Red text
+    color: colors.status.error, // Red text
     textAlign: "center",
     marginBottom: 16,
     lineHeight: 20,
   },
   
   retryButton: {
-    backgroundColor: "#22C55E", // Green for retry
+    backgroundColor: colors.brand.primary, // Green for retry
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#22C55E",
+    borderColor: colors.brand.primary,
   },
   
   retryButtonText: {
     ...typography.buttonText,
-    color: "#FFFFFF",
+    color: colors.neutral.lightest,
     fontWeight: "600",
   },
   
@@ -981,7 +982,7 @@ export const restockSessionsStyles = StyleSheet.create({
   
   loadingText: {
     ...typography.bodyMedium,
-    color: "#212529",
+    color: colors.neutral.darkest,
     textAlign: "center",
   },
 }); 
