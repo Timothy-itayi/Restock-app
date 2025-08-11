@@ -9,7 +9,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import colors from '@/app/theme/colors';
+import useThemeStore from '../../../stores/useThemeStore';
 import { typography } from '../../../../styles/typography';
 
 interface SendConfirmationModalProps {
@@ -29,6 +29,7 @@ export const SendConfirmationModal: React.FC<SendConfirmationModalProps> = ({
   isIndividualSend = false,
   supplierName = '',
 }) => {
+  const { theme } = useThemeStore();
   return (
     <Modal
       visible={visible}
@@ -41,7 +42,7 @@ export const SendConfirmationModal: React.FC<SendConfirmationModalProps> = ({
           <View style={styles.dialog}>
             {/* Header */}
             <View style={styles.header}>
-              <Ionicons name="mail" size={24} color={colors.brand.primary} />
+              <Ionicons name="mail" size={24} color={theme.brand.primary} />
               <Text style={styles.title}>{isIndividualSend ? 'Send Email' : 'Send All Emails'}</Text>
             </View>
 
@@ -114,7 +115,7 @@ const styles = StyleSheet.create({
   },
 
   dialog: {
-    backgroundColor: colors.neutral.lightest,
+    backgroundColor: theme.neutral.lightest,
     borderRadius: 12,
     width: Math.min(screenWidth - 40, 400),
     shadowColor: '#000',
@@ -132,7 +133,7 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral.light,
+    borderBottomColor: theme.neutral.light,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -141,7 +142,7 @@ const styles = StyleSheet.create({
 
   title: {
     ...typography.subsectionHeader,
-    color: colors.neutral.darkest,
+    color: theme.neutral.darkest,
     fontWeight: '600',
   },
 
@@ -153,7 +154,7 @@ const styles = StyleSheet.create({
 
   message: {
     ...typography.body,
-    color: colors.neutral.dark,
+    color: theme.neutral.dark,
     lineHeight: 22,
     textAlign: 'center',
     marginBottom: 20,
@@ -161,26 +162,26 @@ const styles = StyleSheet.create({
   },
 
   emailCountContainer: {
-    backgroundColor: colors.status.success + '22',
+    backgroundColor: theme.status.success + '22',
     borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 24,
     alignItems: 'center',
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: colors.status.success + '44',
+    borderColor: theme.status.success + '44',
   },
 
   emailCountValue: {
     fontSize: 32,
     fontWeight: '700',
-    color: colors.brand.primary,
+    color: theme.brand.primary,
     marginBottom: 4,
   },
 
   emailCountLabel: {
     ...typography.caption,
-    color: colors.status.success,
+    color: theme.status.success,
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -188,7 +189,7 @@ const styles = StyleSheet.create({
 
   note: {
     ...typography.small,
-    color: colors.neutral.medium,
+    color: theme.neutral.medium,
     textAlign: 'center',
     lineHeight: 18,
   },
@@ -206,14 +207,14 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
-    backgroundColor: colors.neutral.lighter,
+    backgroundColor: theme.neutral.lighter,
     borderWidth: 1,
-    borderColor: colors.neutral.light,
+    borderColor: theme.neutral.light,
   },
 
   cancelButtonText: {
     ...typography.body,
-    color: colors.neutral.medium,
+    color: theme.neutral.medium,
     fontWeight: '600',
   },
 
@@ -224,9 +225,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.brand.primary,
+    backgroundColor: theme.brand.primary,
     borderWidth: 1,
-    borderColor: colors.brand.primary,
+    borderColor: theme.brand.primary,
   },
 
   confirmButtonIcon: {
@@ -235,7 +236,7 @@ const styles = StyleSheet.create({
 
   confirmButtonText: {
     ...typography.body,
-    color: colors.neutral.lightest,
+    color: theme.neutral.lightest,
     fontWeight: '600',
   },
 });

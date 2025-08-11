@@ -4,9 +4,11 @@ import { router, Link } from 'expo-router';
 import { useSignUp } from '@clerk/clerk-expo';
 import UnifiedAuthGuard from '../../components/UnifiedAuthGuard';
 import { signUpStyles } from '../../../styles/components/sign-up';
+import useThemeStore from '../../stores/useThemeStore';
 
 export default function TraditionalSignUpScreen() {
   const { signUp, isLoaded } = useSignUp();
+  const { theme } = useThemeStore();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -142,7 +144,7 @@ export default function TraditionalSignUpScreen() {
           <TextInput
             style={signUpStyles.input}
             placeholder="Enter your email address"
-            placeholderTextColor="#666666"
+            placeholderTextColor={theme.neutral.medium}
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
@@ -152,7 +154,7 @@ export default function TraditionalSignUpScreen() {
           <TextInput
             style={[signUpStyles.input, Object.keys(errors).length > 0 && signUpStyles.inputError]}
             placeholder="Create a password"
-            placeholderTextColor="#666666"
+            placeholderTextColor={theme.neutral.medium}
             value={password}
             onChangeText={handlePasswordChange}
             secureTextEntry={true}
@@ -170,7 +172,7 @@ export default function TraditionalSignUpScreen() {
           <TextInput
             style={signUpStyles.input}
             placeholder="Confirm your password"
-            placeholderTextColor="#666666"
+            placeholderTextColor={theme.neutral.medium}
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             secureTextEntry={true}

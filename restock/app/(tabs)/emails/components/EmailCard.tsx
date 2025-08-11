@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import colors from '@/app/theme/colors';
+import useThemeStore from '../../../stores/useThemeStore';
 import { EmailDraft } from '../hooks';
 
 interface EmailCardProps {
@@ -17,15 +17,17 @@ export function EmailCard({
   onEdit, 
   onSend, 
   onTap,
-  accentColor = '#22C55E' 
+  accentColor 
 }: EmailCardProps) {
+  const { theme } = useThemeStore();
+  const finalAccentColor = accentColor || theme.brand.primary;
   
   const renderStatusIndicator = () => {
     const statusConfig = {
-      sending: { icon: 'sync', color: colors.status.warning },
-      sent: { icon: 'checkmark-circle', color: colors.status.success },
-      failed: { icon: 'close-circle', color: colors.status.error },
-      draft: { icon: 'create-outline', color: colors.neutral.medium }
+      sending: { icon: 'sync', color: theme.status.warning },
+      sent: { icon: 'checkmark-circle', color: theme.status.success },
+      failed: { icon: 'close-circle', color: theme.status.error },
+      draft: { icon: 'create-outline', color: theme.neutral.medium }
     };
 
     const config = statusConfig[email.status];
@@ -49,12 +51,12 @@ export function EmailCard({
   return (
     <TouchableOpacity
       style={{
-        backgroundColor: colors.neutral.lightest,
+        backgroundColor: theme.neutral.lightest,
         borderRadius: 8,
         marginBottom: 8,
         padding: 16,
         borderWidth: 1,
-        borderColor: colors.neutral.light,
+        borderColor: theme.neutral.light,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.05,
@@ -78,14 +80,14 @@ export function EmailCard({
             <Text style={{
               fontSize: 15,
               fontWeight: '600',
-              color: colors.neutral.darkest,
+              color: theme.neutral.darkest,
               marginBottom: 2
             }}>
               {email.supplierName}
             </Text>
             <Text style={{
               fontSize: 12,
-              color: colors.neutral.medium,
+              color: theme.neutral.medium,
               fontFamily: 'monospace'
             }}>
               {email.supplierEmail}
@@ -103,15 +105,15 @@ export function EmailCard({
             style={{
               padding: 6,
               borderRadius: 6,
-              backgroundColor: colors.neutral.lighter
+              backgroundColor: theme.neutral.lighter
             }}
             onPress={() => onEdit(email)}
           >
-            <Ionicons name="pencil" size={16} color={colors.neutral.medium} />
+            <Ionicons name="pencil" size={16} color={theme.neutral.medium} />
           </TouchableOpacity>
           
           {/* Chevron to indicate it's tappable */}
-          <Ionicons name="chevron-forward" size={16} color={colors.neutral.medium} />
+          <Ionicons name="chevron-forward" size={16} color={theme.neutral.medium} />
         </View>
       </View>
 
@@ -120,7 +122,7 @@ export function EmailCard({
         <Text style={{
           fontSize: 14,
           fontWeight: '500',
-          color: colors.neutral.dark,
+          color: theme.neutral.dark,
           marginBottom: 2
         }}>
           {email.subject}
@@ -130,7 +132,7 @@ export function EmailCard({
       {/* Preview text */}
       <Text style={{
         fontSize: 13,
-        color: colors.neutral.medium,
+        color: theme.neutral.medium,
         lineHeight: 18
       }} numberOfLines={1}>
         {getPreviewText()}
@@ -144,7 +146,7 @@ export function EmailCard({
           marginTop: 8,
           paddingTop: 8,
           borderTopWidth: 1,
-          borderTopColor: colors.neutral.lighter
+          borderTopColor: theme.neutral.lighter
         }}>
           <Ionicons 
             name={
@@ -153,13 +155,13 @@ export function EmailCard({
             }
             size={14}
             color={
-              email.status === 'sent' ? colors.status.success :
-              email.status === 'sending' ? colors.status.warning : colors.status.error
+              email.status === 'sent' ? theme.status.success :
+              email.status === 'sending' ? theme.status.warning : theme.status.error
             }
           />
           <Text style={{
             fontSize: 11,
-            color: colors.neutral.medium,
+            color: theme.neutral.medium,
             marginLeft: 4,
             textTransform: 'capitalize'
           }}>

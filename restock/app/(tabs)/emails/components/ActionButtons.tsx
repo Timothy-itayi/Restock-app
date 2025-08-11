@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
+import useThemeStore from '../../../stores/useThemeStore';
 import { Ionicons } from '@expo/vector-icons';
 import { EmailSession } from '../hooks';
 
@@ -9,6 +10,7 @@ interface ActionButtonsProps {
 }
 
 export function ActionButtons({ emailSession, onSendAll }: ActionButtonsProps) {
+  const { theme } = useThemeStore();
   const isSending = emailSession.emails.some(email => email.status === 'sending');
   const areAllSent = emailSession.emails.every(email => email.status === 'sent');
 
@@ -17,27 +19,36 @@ export function ActionButtons({ emailSession, onSendAll }: ActionButtonsProps) {
     
     return (
       <TouchableOpacity 
-        style={[
-          styles.sendButton,
-          isDisabled && styles.sendButtonDisabled
-        ]} 
+        style={{
+          backgroundColor: isDisabled ? theme.neutral.medium : theme.brand.primary,
+          paddingHorizontal: 24,
+          paddingVertical: 12,
+          borderRadius: 8,
+          minWidth: 140,
+          alignItems: 'center',
+          shadowColor: isDisabled ? 'transparent' : theme.brand.primary,
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: isDisabled ? 0 : 0.2,
+          shadowRadius: 4,
+          elevation: isDisabled ? 0 : 4,
+        }} 
         onPress={onSendAll}
         disabled={isDisabled}
       >
         {isSending ? (
-          <View style={styles.buttonContent}>
-            <Ionicons name="sync" size={16} color="#FFFFFF" />
-            <Text style={styles.sendButtonText}>Sending...</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Ionicons name="sync" size={16} color={theme.neutral.lightest} />
+            <Text style={{ color: theme.neutral.lightest, fontSize: 16, fontWeight: '600' }}>Sending...</Text>
           </View>
         ) : areAllSent ? (
-          <View style={styles.buttonContent}>
-            <Ionicons name="checkmark-circle" size={16} color="#FFFFFF" />
-            <Text style={styles.sendButtonText}>All Sent</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Ionicons name="checkmark-circle" size={16} color={theme.neutral.lightest} />
+            <Text style={{ color: theme.neutral.lightest, fontSize: 16, fontWeight: '600' }}>All Sent</Text>
           </View>
         ) : (
-          <View style={styles.buttonContent}>
-            <Ionicons name="paper-plane" size={16} color="#FFFFFF" />
-            <Text style={styles.sendButtonText}>Send All</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Ionicons name="paper-plane" size={16} color={theme.neutral.lightest} />
+            <Text style={{ color: theme.neutral.lightest, fontSize: 16, fontWeight: '600' }}>Send All</Text>
           </View>
         )}
       </TouchableOpacity>
@@ -45,51 +56,14 @@ export function ActionButtons({ emailSession, onSendAll }: ActionButtonsProps) {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={{
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      paddingBottom: 100, // Add extra bottom padding to clear the tab bar
+      alignItems: 'center',
+    }}>
       {renderSendButton()}
     </View>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  
-  sendButton: {
-    backgroundColor: '#22C55E',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-    minWidth: 140,
-    alignItems: 'center',
-    shadowColor: '#22C55E',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  
-  sendButtonDisabled: {
-    backgroundColor: '#6C757D',
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  
-  buttonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  
-  sendButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});

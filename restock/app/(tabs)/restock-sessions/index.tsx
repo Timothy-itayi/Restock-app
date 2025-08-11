@@ -6,7 +6,8 @@ import { SessionService } from "../../../backend/services/sessions";
 import { RestockSessionsSkeleton } from "../../components/skeleton";
 import { ConfirmationDialog } from "../../components/ConfirmationDialog";
 import { NameSessionModal } from "../../components";
-import { restockSessionsStyles } from "../../../styles/components/restock-sessions";
+import { getRestockSessionsStyles } from "../../../styles/components/restock-sessions";
+import { useThemedStyles } from "../../../styles/useThemedStyles";
 import { RestockSessionProvider, useRestockSessionContext } from "./context/RestockSessionContext";
 import {
   SessionSelection,
@@ -28,6 +29,9 @@ import useThemeStore from "../../stores/useThemeStore";
 const RestockSessionsContent: React.FC = () => {
   const params = useLocalSearchParams();
   const { userId } = useAuth();
+  
+  // Use themed styles
+  const restockSessionsStyles = useThemedStyles(getRestockSessionsStyles);
   
   // Reduce noisy render logs
   

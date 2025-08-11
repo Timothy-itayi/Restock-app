@@ -1,13 +1,18 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { emailsStyles } from '../../../../styles/components/emails';
+import { getEmailsStyles } from '../../../../styles/components/emails';
+import { useThemedStyles } from '../../../../styles/useThemedStyles';
+import useThemeStore from '../../../stores/useThemeStore';
 
 export function EmptyState() {
+  const emailsStyles = useThemedStyles(getEmailsStyles);
+  const { theme } = useThemeStore();
+  
   return (
     <View style={emailsStyles.emptyState}>
       <View style={emailsStyles.progressIcon}>
-        <Ionicons name="mail-outline" size={64} color="#6B7F6B" />
+        <Ionicons name="mail-outline" size={64} color={theme.neutral.medium} />
       </View>
       
       <Text style={emailsStyles.progressTitle}>

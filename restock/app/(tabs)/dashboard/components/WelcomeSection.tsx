@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text } from 'react-native';
-import { dashboardStyles } from '../../../../styles/components/dashboard';
+import { getDashboardStyles } from '../../../../styles/components/dashboard';
+import { useThemedStyles } from '../../../../styles/useThemedStyles';
 import SkeletonBox from '../../../components/skeleton/SkeletonBox';
 
 interface WelcomeSectionProps {
@@ -14,6 +15,7 @@ export const WelcomeSection: React.FC<WelcomeSectionProps> = ({
   userName,
   storeName
 }) => {
+  const dashboardStyles = useThemedStyles(getDashboardStyles);
   return (
     <View style={dashboardStyles.welcomeSection}>
       {profileLoading ? (

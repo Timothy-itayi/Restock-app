@@ -130,7 +130,7 @@ const Button: React.FC<ButtonProps> = ({
       {loading ? (
         <ActivityIndicator 
           size="small" 
-          color={variant === 'secondary' ? theme.colors.text.primary : '#FFFFFF'} 
+          color={variant === 'secondary' ? theme.neutral.darkest : theme.neutral.lightest} 
         />
       ) : (
         <Text className={textClasses} style={textStyle}>

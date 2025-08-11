@@ -1,7 +1,8 @@
 import React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 import { RestockSession } from '../utils/types';
-import { restockSessionsStyles } from '../../../../styles/components/restock-sessions';
+import { getRestockSessionsStyles } from '../../../../styles/components/restock-sessions';
+import { useThemedStyles } from '../../../../styles/useThemedStyles';
 
 interface StartSectionProps {
   allSessions: RestockSession[];
@@ -16,6 +17,7 @@ export const StartSection: React.FC<StartSectionProps> = ({
   onShowSessionSelection,
   onPromptNewSession
 }) => {
+  const restockSessionsStyles = useThemedStyles(getRestockSessionsStyles);
   return (
     <View style={restockSessionsStyles.startSection}>
       <Text style={restockSessionsStyles.startPrompt}>What do you want to restock?</Text>

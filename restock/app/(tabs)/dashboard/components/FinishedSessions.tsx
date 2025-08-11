@@ -1,7 +1,9 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { dashboardStyles } from '../../../../styles/components/dashboard';
+import { getDashboardStyles } from '../../../../styles/components/dashboard';
+import { useThemedStyles } from '../../../../styles/useThemedStyles';
+import useThemeStore from '../../../stores/useThemeStore';
 
 interface FinishedSession {
   id: string;
@@ -19,16 +21,14 @@ interface FinishedSession {
 interface FinishedSessionsProps {
   sessionsLoading: boolean;
   finishedSessions: FinishedSession[];
-  isExpanded: boolean;
-  onToggleExpanded: () => void;
 }
 
 export const FinishedSessions: React.FC<FinishedSessionsProps> = ({
   sessionsLoading,
-  finishedSessions,
-  isExpanded,
-  onToggleExpanded
+  finishedSessions
 }) => {
+  const dashboardStyles = useThemedStyles(getDashboardStyles);
+  const { theme } = useThemeStore();
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { 
@@ -50,54 +50,39 @@ export const FinishedSessions: React.FC<FinishedSessionsProps> = ({
 
   console.log('📊 FinishedSessions: Rendering', { count: finishedSessions.length, sessions: finishedSessions.map(s => ({ id: s.id, status: s.status })) });
 
-  const displayedSessions = isExpanded ? finishedSessions : finishedSessions.slice(0, 3);
-
   return (
     <View style={dashboardStyles.section}>
-      <TouchableOpacity 
-        style={dashboardStyles.sectionHeader}
-        onPress={onToggleExpanded}
-      >
+      <View style={dashboardStyles.sectionHeader}>
         <Text style={[dashboardStyles.sectionTitle, { fontSize: 16 }]}>Finished Sessions</Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Text style={{ fontSize: 11, color: '#6B7280', marginRight: 6 }}>
-            {finishedSessions.length}
-          </Text>
-          <Ionicons 
-            name={isExpanded ? "chevron-up" : "chevron-down"} 
-            size={16} 
-            color="#6B7280" 
-          />
-        </View>
-      </TouchableOpacity>
+      </View>
       
-      {displayedSessions.map((session, index) => {
+      {finishedSessions.map((session, index) => {
         return (
           <View key={session.id} style={{
-            backgroundColor: '#F9FAFB',
+            backgroundColor: theme.neutral.lighter,
             borderRadius: 8,
             padding: 12,
             marginBottom: 8,
             borderLeftWidth: 3,
-            borderLeftColor: '#10B981',
+            borderLeftColor: theme.status.success,
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between'
           }}>
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                <Ionicons name="checkmark-circle" size={14} color="#10B981" style={{ marginRight: 6 }} />
+                <Ionicons name="checkmark-circle" size={14} color={theme.status.success} style={{ marginRight: 6 }} />
                 <Text style={{
                   fontSize: 14,
                   fontWeight: '600',
-                  color: '#1F2937'
+                  color: theme.neutral.darkest
                 }}>
                   {session.name || `Session #${index + 1}`}
                 </Text>
               </View>
               <Text style={{
                 fontSize: 12,
-                color: '#6B7280',
+                color: theme.neutral.medium,
                 marginBottom: 2
               }}>
                 {formatDate(session.createdAt)} • {session.totalItems} items • {session.uniqueSuppliers} suppliers
@@ -106,7 +91,7 @@ export const FinishedSessions: React.FC<FinishedSessionsProps> = ({
             
             <TouchableOpacity
               style={{
-                backgroundColor: '#10B981',
+                backgroundColor: theme.status.success,
                 paddingHorizontal: 12,
                 paddingVertical: 6,
                 borderRadius: 6
@@ -117,7 +102,7 @@ export const FinishedSessions: React.FC<FinishedSessionsProps> = ({
               }}
             >
               <Text style={{
-                color: '#FFFFFF',
+                color: theme.neutral.lightest,
                 fontSize: 12,
                 fontWeight: '500'
               }}>
@@ -127,27 +112,6 @@ export const FinishedSessions: React.FC<FinishedSessionsProps> = ({
           </View>
         );
       })}
-
-      {/* Show more/less button */}
-      {finishedSessions.length > 3 && (
-        <TouchableOpacity 
-          style={{
-            padding: 8,
-            alignItems: 'center',
-            backgroundColor: '#F3F4F6',
-            borderRadius: 6,
-            marginTop: 4
-          }}
-          onPress={onToggleExpanded}
-        >
-          <Text style={{ fontSize: 11, color: '#6B7280', fontWeight: '500' }}>
-            {isExpanded 
-              ? 'Show less' 
-              : `Show ${finishedSessions.length - 3} more`
-            }
-          </Text>
-        </TouchableOpacity>
-      )}
     </View>
   );
 };

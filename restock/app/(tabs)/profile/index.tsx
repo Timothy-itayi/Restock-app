@@ -7,13 +7,16 @@ import { SessionService } from '../../../backend/services/sessions';
 import { EmailService } from '../../../backend/services/emails';
 import { useUnifiedAuth } from '../../_contexts/UnifiedAuthProvider';
 import SignOutButton from '../../components/SignOutButton';
-import { profileStyles } from '../../../styles/components/profile';
+import { getProfileStyles } from '../../../styles/components/profile';
+import { useThemedStyles } from '../../../styles/useThemedStyles';
 import { ProfileSkeleton } from '../../components/skeleton';
 import { ProfileHeader, ProfileInfo, StorePlanCard, StatsCards, HistorySection } from './components';
 
 export default function ProfileScreen() {
   const { user } = useUser();
   const { userId } = useUnifiedAuth();
+  const { theme } = useThemeStore();
+  const profileStyles = useThemedStyles(getProfileStyles); // must be called every render before any early returns
   const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [minLoadingTime, setMinLoadingTime] = useState(true);
@@ -90,7 +93,7 @@ export default function ProfileScreen() {
     <ScrollView
       style={[
         profileStyles.container,
-        { backgroundColor: useThemeStore.getState().theme.neutral.lightest },
+        { backgroundColor: theme.neutral.lightest },
       ]}
       showsVerticalScrollIndicator={false}
     >

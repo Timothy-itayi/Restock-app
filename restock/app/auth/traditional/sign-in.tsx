@@ -10,11 +10,13 @@ import * as Linking from 'expo-linking';
 import UnifiedAuthGuard from '../../components/UnifiedAuthGuard';
 
 import { signInStyles } from '../../../styles/components/sign-in';
+import useThemeStore from '../../stores/useThemeStore';
 import { useUnifiedAuth } from '../../_contexts/UnifiedAuthProvider';
 
 export default function SignInScreen() {
   const { signIn, setActive, isLoaded } = useSignIn();
   const { isSignedIn } = useAuth();
+  const { theme } = useThemeStore();
   const { startSSOFlow } = useSSO();
   const { triggerAuthCheck } = useUnifiedAuth();
   
@@ -250,7 +252,7 @@ export default function SignInScreen() {
           <TextInput
             style={signInStyles.input}
             placeholder="Enter your email address"
-            placeholderTextColor="#666666"
+            placeholderTextColor={theme.neutral.medium}
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
@@ -260,7 +262,7 @@ export default function SignInScreen() {
           <TextInput
             style={signInStyles.input}
             placeholder="Enter your password"
-            placeholderTextColor="#666666"
+            placeholderTextColor={theme.neutral.medium}
             value={password}
             onChangeText={setPassword}
             secureTextEntry={true}

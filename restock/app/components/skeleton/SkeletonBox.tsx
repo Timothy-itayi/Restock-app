@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, Animated, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import useThemeStore from '@/app/stores/useThemeStore';
 
 interface SkeletonBoxProps {
   width?: number | `${number}%`;
@@ -15,8 +16,9 @@ const SkeletonBox: React.FC<SkeletonBoxProps> = ({
   height = 20, 
   borderRadius = 4,
   style,
-  backgroundColor = '#e9ecef'
+  backgroundColor
 }) => {
+  const { theme, mode } = useThemeStore();
   const shimmerAnimation = React.useRef(new Animated.Value(0)).current;
 
   React.useEffect(() => {
@@ -44,7 +46,7 @@ const SkeletonBox: React.FC<SkeletonBoxProps> = ({
           width,
           height,
           borderRadius,
-          backgroundColor,
+          backgroundColor: backgroundColor || (mode === 'dark' ? theme.neutral.dark : '#e9ecef'),
           overflow: 'hidden',
         },
         style,

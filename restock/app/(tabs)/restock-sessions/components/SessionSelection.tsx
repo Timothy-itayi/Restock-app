@@ -3,7 +3,8 @@ import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { RestockSession } from '../utils/types';
 import { formatDate, formatProductCount, formatSupplierCount } from '../utils/formatters';
-import { restockSessionsStyles } from '../../../../styles/components/restock-sessions';
+import { getRestockSessionsStyles } from '../../../../styles/components/restock-sessions';
+import { useThemedStyles } from '../../../../styles/useThemedStyles';
 
 interface SessionSelectionProps {
   allSessions: RestockSession[];
@@ -18,6 +19,7 @@ export const SessionSelection: React.FC<SessionSelectionProps> = ({
   onDeleteSession,
   onStartNewSession
 }) => {
+  const restockSessionsStyles = useThemedStyles(getRestockSessionsStyles);
   const getSupplierCount = (session: RestockSession): number => {
     return new Set(session.products.map(p => p.supplierName)).size;
   };

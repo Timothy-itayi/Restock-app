@@ -1,11 +1,15 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { profileStyles } from '../../../styles/components/profile';
+import { getProfileStyles } from '../../../styles/components/profile';
+import { useThemedStyles } from '../../../styles/useThemedStyles';
+import useThemeStore from '@/app/stores/useThemeStore';
 import SkeletonBox from './SkeletonBox';
 
 export default function ProfileSkeleton() {
+  const { theme } = useThemeStore();
+  const profileStyles = useThemedStyles(getProfileStyles);
   return (
-    <View style={[profileStyles.container, styles.container]}>
+    <View style={[profileStyles.container, styles.container, { backgroundColor: theme.neutral.lightest }]}>
       {/* Header */}
       <View style={profileStyles.header}>
         <SkeletonBox width="30%" height={20} />

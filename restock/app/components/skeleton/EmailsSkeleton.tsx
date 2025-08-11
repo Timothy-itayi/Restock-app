@@ -1,11 +1,13 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { emailsStyles } from '../../../styles/components/emails';
+import useThemeStore from '@/app/stores/useThemeStore';
 import SkeletonBox from './SkeletonBox';
 
 export default function EmailsSkeleton() {
+  const { theme, mode } = useThemeStore();
   return (
-    <View style={[emailsStyles.container, styles.container]}>
+    <View style={[emailsStyles.container, styles.container, { backgroundColor: mode === 'dark' ? theme.neutral.lightest : '#f8f9fa' }]}>
       {/* Email Summary */}
       <View style={emailsStyles.emailSummary}>
         <SkeletonBox width="60%" height={16} />

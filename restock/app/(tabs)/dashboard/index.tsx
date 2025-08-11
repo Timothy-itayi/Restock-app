@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { ScrollView, RefreshControl, DeviceEventEmitter } from "react-native";
-import { dashboardStyles } from "../../../styles/components/dashboard";
+import { getDashboardStyles } from "../../../styles/components/dashboard";
+import { useThemedStyles } from "../../../styles/useThemedStyles";
 import { useAuth } from "@clerk/clerk-expo";
 import { SessionService } from "../../../backend/services/sessions";
 import { useFocusEffect } from "expo-router";
@@ -47,12 +48,15 @@ export default function DashboardScreen() {
   // Use profile store for user data
   const { userName, storeName, isLoading: profileLoading } = useProfileStore();
   
+  // Use themed styles
+  const dashboardStyles = useThemedStyles(getDashboardStyles);
+  
   const [unfinishedSessions, setUnfinishedSessions] = useState<UnfinishedSession[]>([]);
   const [finishedSessions, setFinishedSessions] = useState<any[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [displayStartTime] = useState(Date.now());
-  const [showFinishedExpanded, setShowFinishedExpanded] = useState(false);
+
 
   // Component display logging
   useEffect(() => {
@@ -222,7 +226,7 @@ export default function DashboardScreen() {
 
   return (
     <ScrollView 
-      style={[dashboardStyles.container, { backgroundColor: useThemeStore.getState().theme.neutral.lightest }]} 
+      style={dashboardStyles.container} 
       contentContainerStyle={dashboardStyles.contentContainer}
       showsVerticalScrollIndicator={false}
       refreshControl={
@@ -254,8 +258,6 @@ export default function DashboardScreen() {
       <FinishedSessions 
         sessionsLoading={sessionsLoading} 
         finishedSessions={finishedSessions}
-        isExpanded={showFinishedExpanded}
-        onToggleExpanded={() => setShowFinishedExpanded(!showFinishedExpanded)}
       />
       
       <EmptyState 
