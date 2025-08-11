@@ -2,8 +2,6 @@ import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { dashboardStyles } from '../../../../styles/components/dashboard';
-import SkeletonBox from '../../../components/skeleton/SkeletonBox';
-import { getSessionColorTheme } from '../../restock-sessions/utils/colorUtils';
 
 interface FinishedSession {
   id: string;
@@ -35,34 +33,24 @@ export const FinishedSessions: React.FC<FinishedSessionsProps> = ({
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { 
       month: 'short', 
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+      day: 'numeric'
     });
   };
 
+  // Don't show loading state for finished sessions to keep it minimal
   if (sessionsLoading) {
-    return (
-      <View style={dashboardStyles.section}>
-        <SkeletonBox width="50%" height={18} style={{ marginBottom: 16 }} />
-        <View style={dashboardStyles.sessionCard}>
-          <View style={dashboardStyles.sessionHeader}>
-            <View style={dashboardStyles.sessionInfo}>
-              <SkeletonBox width="70%" height={16} />
-              <SkeletonBox width="90%" height={14} style={{ marginTop: 4 }} />
-            </View>
-            <SkeletonBox width={80} height={32} borderRadius={6} />
-          </View>
-        </View>
-      </View>
-    );
-  }
-
-  if (finishedSessions.length === 0) {
     return null;
   }
 
-  const displayedSessions = isExpanded ? finishedSessions : finishedSessions.slice(0, 2);
+  // Don't render if no finished sessions
+  if (finishedSessions.length === 0) {
+    console.log('📊 FinishedSessions: No finished sessions to display');
+    return null;
+  }
+
+  console.log('📊 FinishedSessions: Rendering', { count: finishedSessions.length, sessions: finishedSessions.map(s => ({ id: s.id, status: s.status })) });
+
+  const displayedSessions = isExpanded ? finishedSessions : finishedSessions.slice(0, 3);
 
   return (
     <View style={dashboardStyles.section}>
@@ -70,119 +58,92 @@ export const FinishedSessions: React.FC<FinishedSessionsProps> = ({
         style={dashboardStyles.sectionHeader}
         onPress={onToggleExpanded}
       >
-        <Text style={dashboardStyles.sectionTitle}>Completed Sessions</Text>
+        <Text style={[dashboardStyles.sectionTitle, { fontSize: 16 }]}>Finished Sessions</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Text style={{ fontSize: 12, color: '#6B7280', marginRight: 8 }}>
-            {finishedSessions.length} total
+          <Text style={{ fontSize: 11, color: '#6B7280', marginRight: 6 }}>
+            {finishedSessions.length}
           </Text>
           <Ionicons 
             name={isExpanded ? "chevron-up" : "chevron-down"} 
-            size={20} 
+            size={16} 
             color="#6B7280" 
           />
         </View>
       </TouchableOpacity>
       
       {displayedSessions.map((session, index) => {
-        const sessionColor = getSessionColorTheme(session.id, index);
-        const totalQuantity = session.totalQuantity;
-        
         return (
-          <View key={session.id} style={[
-            dashboardStyles.sessionCard,
-            {
-              borderLeftWidth: 4,
-              borderLeftColor: sessionColor.primary,
-              backgroundColor: sessionColor.light,
-              opacity: 0.8 // Slightly faded to indicate completion
-            }
-          ]}>
-            <View style={dashboardStyles.sessionHeader}>
-              <View style={dashboardStyles.sessionInfo}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                  <View style={[
-                    { 
-                      width: 8, 
-                      height: 8, 
-                      borderRadius: 4, 
-                      backgroundColor: sessionColor.primary,
-                      marginRight: 8
-                    }
-                  ]} />
-                  <Text style={dashboardStyles.sessionTitle}>
-                    {session.name ? `${session.name} • ` : `Session #{index + 1} • `}{formatDate(session.createdAt)}
-                  </Text>
-                </View>
-                <Text style={dashboardStyles.sessionSubtitle}>
-                  {session.totalItems} items • {totalQuantity} total quantity • {session.uniqueSuppliers} suppliers
-                  {session.emailsSent && ` • ${session.emailsSent} emails sent`}
-                </Text>
-              </View>
-              <View style={[
-                dashboardStyles.continueButton,
-                { backgroundColor: '#10B981', opacity: 0.9 }
-              ]}>
-                <Ionicons name="checkmark" size={16} color="#FFFFFF" />
-                <Text style={[dashboardStyles.continueButtonText, { color: '#FFFFFF', fontSize: 12 }]}>
-                  Completed
-                </Text>
-              </View>
-            </View>
-
-            {/* Completion Stats */}
-            <View style={[dashboardStyles.breakdownContainer, { paddingTop: 8 }]}>
-              <View style={dashboardStyles.breakdownHeader}>
-                <Text style={[dashboardStyles.breakdownTitle, { color: '#10B981' }]}>
-                  SESSION COMPLETED
-                </Text>
-                <Text style={dashboardStyles.breakdownTotal}>
-                  {session.status === 'sent' ? 'Emails sent' : 'Finished'}
-                </Text>
-              </View>
-              
-              {/* Success indicators */}
-              <View style={{ 
-                flexDirection: 'row', 
-                alignItems: 'center', 
-                marginTop: 8,
-                paddingHorizontal: 8,
-                paddingVertical: 4,
-                backgroundColor: '#DCFCE7',
-                borderRadius: 6
-              }}>
-                <Ionicons name="checkmark-circle" size={14} color="#16A34A" />
-                <Text style={{ 
-                  marginLeft: 6, 
-                  fontSize: 12, 
-                  color: '#16A34A',
-                  fontWeight: '500'
+          <View key={session.id} style={{
+            backgroundColor: '#F9FAFB',
+            borderRadius: 8,
+            padding: 12,
+            marginBottom: 8,
+            borderLeftWidth: 3,
+            borderLeftColor: '#10B981',
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}>
+            <View style={{ flex: 1 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                <Ionicons name="checkmark-circle" size={14} color="#10B981" style={{ marginRight: 6 }} />
+                <Text style={{
+                  fontSize: 14,
+                  fontWeight: '600',
+                  color: '#1F2937'
                 }}>
-                  All suppliers have been contacted
+                  {session.name || `Session #${index + 1}`}
                 </Text>
               </View>
+              <Text style={{
+                fontSize: 12,
+                color: '#6B7280',
+                marginBottom: 2
+              }}>
+                {formatDate(session.createdAt)} • {session.totalItems} items • {session.uniqueSuppliers} suppliers
+              </Text>
             </View>
+            
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#10B981',
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 6
+              }}
+              onPress={() => {
+                // TODO: Navigate to session details or email history
+                console.log('Revisit session:', session.id);
+              }}
+            >
+              <Text style={{
+                color: '#FFFFFF',
+                fontSize: 12,
+                fontWeight: '500'
+              }}>
+                Revisit
+              </Text>
+            </TouchableOpacity>
           </View>
         );
       })}
 
       {/* Show more/less button */}
-      {finishedSessions.length > 2 && (
+      {finishedSessions.length > 3 && (
         <TouchableOpacity 
           style={{
-            padding: 12,
+            padding: 8,
             alignItems: 'center',
-            backgroundColor: '#F9FAFB',
-            borderRadius: 8,
-            marginTop: 8,
-            borderWidth: 1,
-            borderColor: '#E5E7EB'
+            backgroundColor: '#F3F4F6',
+            borderRadius: 6,
+            marginTop: 4
           }}
           onPress={onToggleExpanded}
         >
-          <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '500' }}>
+          <Text style={{ fontSize: 11, color: '#6B7280', fontWeight: '500' }}>
             {isExpanded 
               ? 'Show less' 
-              : `Show ${finishedSessions.length - 2} more completed sessions`
+              : `Show ${finishedSessions.length - 3} more`
             }
           </Text>
         </TouchableOpacity>

@@ -240,7 +240,7 @@ export default function SSOProfileSetupScreen() {
         <View style={ssoProfileSetupStyles.content}>
           <Text style={ssoProfileSetupStyles.title}>Complete Your Google Account Setup</Text>
           <Text style={ssoProfileSetupStyles.subtitle}>
-            You&apos;ve successfully signed up with Google! Let&apos;s set up your store information to get started.
+            You've successfully signed up with Google! Let's set up your store information to get started.
           </Text>
           
           {/* Display user's email from Google */}

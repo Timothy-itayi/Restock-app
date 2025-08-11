@@ -65,7 +65,7 @@ export default function VerifyEmailScreen() {
         <ScrollView contentContainerStyle={verifyEmailStyles.container}>
           <Text style={verifyEmailStyles.title}>Verify your email</Text>
           <Text style={verifyEmailStyles.subtitle}>
-            We&apos;ve sent a verification code to your email address
+            We've sent a verification code to your email address
           </Text>
           
           <TextInput

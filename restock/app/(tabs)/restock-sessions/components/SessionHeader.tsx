@@ -55,10 +55,10 @@ export const SessionHeader: React.FC<SessionHeaderProps> = ({
         }
       ]}>
         <View style={restockSessionsStyles.sessionHeaderLeft}>
-          <View style={restockSessionsStyles.sessionTitleRow}>
+          <View style={restockSessionsStyles.sessionCardTitle}>
             {sessionColor && (
               <View style={[
-                restockSessionsStyles.sessionColorIndicator,
+                restockSessionsStyles.sessionCardTitle,
                 { backgroundColor: sessionColor.primary }
               ]} />
             )}

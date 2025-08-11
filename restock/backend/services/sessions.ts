@@ -524,15 +524,45 @@ export class SessionService {
    */
   static async markSessionAsSent(sessionId: string) {
     try {
+      console.log(`[SessionService] Marking session as sent: ${sessionId}`);
+      
+      // First verify the session exists and get its current status
+      const { data: existingSession, error: fetchError } = await supabase
+        .from(TABLES.RESTOCK_SESSIONS)
+        .select('id, status, user_id')
+        .eq('id', sessionId)
+        .single();
+        
+      if (fetchError) {
+        console.error(`[SessionService] Failed to fetch session before update: ${sessionId}`, fetchError);
+        return { data: null, error: fetchError };
+      }
+      
+      console.log(`[SessionService] Session ${sessionId} current status: ${existingSession.status}`);
+      
       const { data, error } = await supabase
         .from(TABLES.RESTOCK_SESSIONS)
-        .update({ status: SESSION_STATUS.SENT })
+        .update({ 
+          status: SESSION_STATUS.SENT
+        })
         .eq('id', sessionId)
         .select()
         .single();
 
-      return { data, error };
+      if (error) {
+        console.error(`[SessionService] Failed to mark session as sent: ${sessionId}`, error);
+        return { data: null, error };
+      }
+      
+      console.log(`[SessionService] Successfully marked session as sent: ${sessionId}`, {
+        oldStatus: existingSession.status,
+        newStatus: data.status,
+        timestamp: new Date().toISOString()
+      });
+
+      return { data, error: null };
     } catch (error) {
+      console.error(`[SessionService] Exception marking session as sent: ${sessionId}`, error);
       return { data: null, error };
     }
   }
@@ -542,10 +572,15 @@ export class SessionService {
    */
   static async getFinishedSessions(userId: string) {
     try {
+      console.log(`[SessionService] Getting finished sessions for user: ${userId}`);
       const { data, error } = await supabase
         .from(TABLES.RESTOCK_SESSIONS)
         .select(`
-          *,
+          id,
+          name,
+          created_at,
+          status,
+          user_id,
           restock_items (
             id,
             quantity,
@@ -561,10 +596,15 @@ export class SessionService {
         `)
         .eq('user_id', userId)
         .eq('status', SESSION_STATUS.SENT)
-        .order('updated_at', { ascending: false })
+        .order('created_at', { ascending: false })
         .limit(20); // Limit to recent 20 finished sessions
 
-      if (error) return { data: null, error };
+      if (error) {
+        console.error(`[SessionService] Error fetching finished sessions for user ${userId}:`, error);
+        return { data: null, error };
+      }
+
+      console.log(`[SessionService] Found ${data?.length || 0} finished sessions for user ${userId}`);
 
       // Transform the data to match the expected format
       const transformedData = data?.map(session => ({
@@ -579,8 +619,12 @@ export class SessionService {
         items: session.restock_items || []
       }));
 
+      console.log(`[SessionService] Returning ${transformedData?.length || 0} transformed finished sessions:`,
+        transformedData?.map(s => ({ id: s.id, status: s.status, items: s.totalItems })) || []);
+      
       return { data: transformedData, error: null };
     } catch (error) {
+      console.error(`[SessionService] Exception getting finished sessions for user ${userId}:`, error);
       return { data: null, error };
     }
   }
@@ -808,12 +852,12 @@ export class SessionService {
   static async getUnfinishedSessions(userId: string) {
     try {
       console.log(`[SessionService] Getting unfinished sessions for user with fixed FK: ${userId}`);
-      // 1) Fetch sessions only (no nested selects) - only draft status sessions are active
+      // 1) Fetch sessions only (no nested selects) - include both draft AND email_generated statuses
       const { data: sessions, error: sessionsErr } = await supabase
         .from(TABLES.RESTOCK_SESSIONS)
         .select('id, name, created_at, status')
         .eq('user_id', userId)
-        .eq('status', SESSION_STATUS.DRAFT)
+        .in('status', [SESSION_STATUS.DRAFT, SESSION_STATUS.EMAIL_GENERATED])
         .order('created_at', { ascending: false });
 
       if (sessionsErr) {
@@ -822,8 +866,12 @@ export class SessionService {
       }
 
       if (!sessions || sessions.length === 0) {
+        console.log(`[SessionService] No unfinished sessions found for user ${userId}`);
         return { data: [], error: null };
       }
+      
+      console.log(`[SessionService] Found ${sessions.length} unfinished sessions:`, 
+        sessions.map(s => ({ id: s.id, status: s.status, name: s.name })));
 
       // 2) Fetch items from restock_items table (now with fixed FK constraint)
       const sessionIds = sessions.map(s => s.id);

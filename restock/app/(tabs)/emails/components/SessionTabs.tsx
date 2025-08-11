@@ -132,7 +132,6 @@ const styles = StyleSheet.create({
   },
   tabsContainer: {
     paddingHorizontal: 16,
-    gap: 12,
   },
   tab: {
     minWidth: 120,
@@ -141,6 +140,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     alignItems: 'center',
     position: 'relative',
+    marginRight: 12,
   },
   tabHeader: {
     flexDirection: 'row',

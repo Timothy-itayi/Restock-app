@@ -49,8 +49,10 @@ export const UnfinishedSessions: React.FC<UnfinishedSessionsProps> = ({
     const supplierCounts: { [key: string]: number } = {};
     
     session.items.forEach(item => {
-      const suppliers = Array.isArray(item.suppliers) ? item.suppliers[0] : item.suppliers;
-      const supplierName = suppliers?.name || 'Unknown Supplier';
+      const suppliers = item && item.suppliers
+        ? (Array.isArray(item.suppliers) ? item.suppliers[0] : item.suppliers)
+        : null;
+      const supplierName = suppliers && suppliers.name ? suppliers.name : 'Unknown Supplier';
       supplierCounts[supplierName] = (supplierCounts[supplierName] || 0) + 1;
     });
 
@@ -67,9 +69,11 @@ export const UnfinishedSessions: React.FC<UnfinishedSessionsProps> = ({
     const supplierData: { [key: string]: SupplierInfo } = {};
     
     session.items.forEach(item => {
-      const suppliers = Array.isArray(item.suppliers) ? item.suppliers[0] : item.suppliers;
-      const supplierName = suppliers?.name || 'Unknown Supplier';
-      const supplierId = suppliers?.id || 'unknown';
+      const suppliers = item && item.suppliers
+        ? (Array.isArray(item.suppliers) ? item.suppliers[0] : item.suppliers)
+        : null;
+      const supplierName = suppliers && suppliers.name ? suppliers.name : 'Unknown Supplier';
+      const supplierId = suppliers && suppliers.id ? suppliers.id : 'unknown';
       
       if (!supplierData[supplierId]) {
         supplierData[supplierId] = {
@@ -159,7 +163,10 @@ export const UnfinishedSessions: React.FC<UnfinishedSessionsProps> = ({
                     }
                   ]} />
                   <Text style={dashboardStyles.sessionTitle}>
-                    {session.name ? `${session.name} • ` : `Session #{index + 1} • `}{formatDate(session.createdAt)}
+                    {session.name
+                      ? `${session.name} • `
+                      : `Session #${(session.id && typeof session.id === 'string') ? session.id.slice(-4) : (index + 1)} • `}
+                    {formatDate(session.createdAt)}
                   </Text>
                 </View>
                 <Text style={dashboardStyles.sessionSubtitle}>

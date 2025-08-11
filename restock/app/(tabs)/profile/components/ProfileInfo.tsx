@@ -1,5 +1,7 @@
 import React from 'react';
-import { View, Text, Image } from 'react-native';
+import { View, Text } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import colors from '@/app/theme/colors';
 import { profileStyles } from '../../../../styles/components/profile';
 
 interface ProfileInfoProps {
@@ -15,19 +17,26 @@ export const ProfileInfo: React.FC<ProfileInfoProps> = ({
 }) => {
   return (
     <View style={profileStyles.profileSection}>
-      <Image 
-        source={require('../../../../assets/images/user_name.png')}
-        style={profileStyles.profileImage}
-        resizeMode="contain"
-      />
+      <View style={profileStyles.profileAvatar}>
+        <Ionicons 
+          name="person" 
+          size={40} 
+          color={colors.brand.primary} 
+        />
+      </View>
       
       <View style={profileStyles.profileInfo}>
         <Text style={profileStyles.userName}>
-          {userProfile?.name || userFirstName || 'Not set'}
+          {userProfile?.name || userFirstName || 'Welcome!'}
         </Text>
         <Text style={profileStyles.userEmail}>
-          {userEmail || 'Not available'}
+          {userEmail || 'Email not available'}
         </Text>
+        {userProfile?.store_name && (
+          <Text style={profileStyles.storeTag}>
+            {userProfile.store_name}
+          </Text>
+        )}
       </View>
     </View>
   );

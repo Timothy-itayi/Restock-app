@@ -6,3 +6,4 @@ export { EmptyState } from './EmptyState';
 export { ActionButtons } from './ActionButtons';
 export { SessionTabs } from './SessionTabs';
 export { SendConfirmationModal } from './SendConfirmationModal';
+export { EmailDetailModal } from './EmailDetailModal';

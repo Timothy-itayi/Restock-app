@@ -156,7 +156,7 @@ export default function AuthIndexScreen() {
   return (
     <View style={authIndexStyles.container}>
         <Text style={authIndexStyles.title}>Welcome to Restock</Text>
-        <Text style={authIndexStyles.subtitle}>Choose how you&apos;d like to get started</Text>
+        <Text style={authIndexStyles.subtitle}>Choose how you'd like to get started</Text>
         
         <TouchableOpacity 
           style={authIndexStyles.primaryButton}

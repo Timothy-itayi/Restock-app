@@ -26,10 +26,10 @@ export interface SessionColor {
 const SESSION_COLORS_KEY = 'sessionColors';
 
 // Get color for a session ID (async version)
-export const getSessionColor = async (sessionId: string, index?: number): Promise<SessionColor> => {
+export const getSessionColor = async (sessionId?: string, index?: number): Promise<SessionColor> => {
   // Try to get stored color first
   const storedColors = await getStoredSessionColors();
-  if (storedColors[sessionId]) {
+  if (sessionId && storedColors[sessionId]) {
     return storedColors[sessionId];
   }
 
@@ -40,14 +40,16 @@ export const getSessionColor = async (sessionId: string, index?: number): Promis
   
   const color = SESSION_COLORS[colorIndex];
   
-  // Store the color for this session
-  await storeSessionColor(sessionId, color);
+  // Store the color for this session if we have a valid sessionId
+  if (sessionId && sessionId.trim() !== '') {
+    await storeSessionColor(sessionId, color);
+  }
   
   return color;
 };
 
 // Synchronous version for immediate use (doesn't store)
-export const getSessionColorSync = (sessionId: string, index?: number): SessionColor => {
+export const getSessionColorSync = (sessionId?: string, index?: number): SessionColor => {
   const colorIndex = sessionId 
     ? hashStringToIndex(sessionId, SESSION_COLORS.length)
     : (index || 0) % SESSION_COLORS.length;
@@ -61,7 +63,7 @@ const hashStringToIndex = (str: string, maxIndex: number): number => {
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
     hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32bit integer
+    hash |= 0; // Convert to 32bit integer
   }
   return Math.abs(hash) % maxIndex;
 };

@@ -190,11 +190,13 @@ export class SupplierService {
 
       const supplierIds = Array.from(new Set((items || []).map((it: any) => it.supplier_id).filter(Boolean)));
 
-      const { data: suppliers } = supplierIds.length > 0
+      const secondQuery = supplierIds.length > 0
         ? await supabase.from(TABLES.SUPPLIERS).select('id,name,email,phone').in('id', supplierIds)
-        : { data: [] as any[] } as any;
+        : ({ data: [] as any[], error: null } as any);
 
-      return { data: suppliers, error };
+      const { data: suppliers, error: suppliersError } = secondQuery;
+
+      return { data: suppliers, error: suppliersError || error };
     } catch (error) {
       return { data: null, error };
     }

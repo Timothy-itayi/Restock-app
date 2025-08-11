@@ -1,5 +1,7 @@
 import React from 'react';
-import { View, Text, Image } from 'react-native';
+import { View, Text } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import colors from '@/app/theme/colors';
 import { profileStyles } from '../../../../styles/components/profile';
 
 interface StorePlanCardProps {
@@ -12,11 +14,11 @@ export const StorePlanCard: React.FC<StorePlanCardProps> = ({
   return (
     <View style={profileStyles.planCard}>
       <View style={profileStyles.planHeader}>
-        <View style={profileStyles.planIcon}>
-          <Image 
-            source={require('../../../../assets/images/keys.png')}
-            style={profileStyles.planIconImage}
-            resizeMode="contain"
+        <View style={[profileStyles.planIcon, { backgroundColor: colors.brand.accent + '22' }]}>
+          <Ionicons 
+            name="storefront-outline" 
+            size={28} 
+            color={colors.brand.accent} 
           />
         </View>
         <View style={profileStyles.planInfo}>

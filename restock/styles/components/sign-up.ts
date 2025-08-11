@@ -1,12 +1,13 @@
 import { StyleSheet } from 'react-native';
 import { typography } from '../typography';
+import colors from '@/app/theme/colors';
 
 export const signUpStyles = StyleSheet.create({
  
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: colors.neutral.lighter,
     justifyContent: 'center',
   },
   titleContainer: {
@@ -15,20 +16,20 @@ export const signUpStyles = StyleSheet.create({
   },
   title: {
     ...typography.appTitle,
-    color: '#2c3e50',
+    color: colors.neutral.darkest,
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
     ...typography.bodyMedium,
-    color: '#7f8c8d',
+    color: colors.neutral.medium,
     marginBottom: 32,
     textAlign: 'center',
   },
   googleButton: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.neutral.lightest,
     borderWidth: 1,
-    borderColor: '#e1e8ed',
+    borderColor: colors.neutral.light,
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
@@ -36,7 +37,7 @@ export const signUpStyles = StyleSheet.create({
   },
   googleButtonText: {
     ...typography.buttonText,
-    color: '#2c3e50',
+    color: colors.neutral.darkest,
     fontWeight: '600',
   },
   divider: {
@@ -47,30 +48,30 @@ export const signUpStyles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#e1e8ed',
+    backgroundColor: colors.neutral.light,
   },
   dividerText: {
     ...typography.bodySmall,
     marginHorizontal: 16,
-    color: '#7f8c8d',
+    color: colors.neutral.medium,
   },
   input: {
     ...typography.bodyMedium,
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.neutral.lightest,
     borderWidth: 1,
-    borderColor: '#e1e8ed',
+    borderColor: colors.neutral.light,
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 20,
     marginBottom: 16,
-    color: '#000000',
+    color: colors.neutral.darkest,
     minHeight: 56,
   },
   inputError: {
-    borderColor: '#e74c3c',
+    borderColor: colors.status.error,
   },
   button: {
-    backgroundColor: '#6B7F6B',
+    backgroundColor: colors.brand.primary,
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
@@ -81,17 +82,17 @@ export const signUpStyles = StyleSheet.create({
   },
   buttonText: {
     ...typography.buttonText,
-    color: '#ffffff',
+    color: colors.neutral.lightest,
     fontWeight: '600',
   },
   errorText: {
     ...typography.bodySmall,
-    color: '#e74c3c',
+    color: colors.status.error,
     marginBottom: 16,
   },
   helpText: {
     ...typography.bodySmall,
-    color: '#7f8c8d',
+    color: colors.neutral.medium,
     marginBottom: 16,
   },
   linkContainer: {
@@ -102,27 +103,27 @@ export const signUpStyles = StyleSheet.create({
   },
   linkText: {
     ...typography.bodyMedium,
-    color: '#6B7F6B',
+    color: colors.brand.primary,
   },
   linkTextBold: {
     ...typography.productName,
-    color: '#6B7F6B',
+    color: colors.brand.primary,
     fontWeight: '600',
   },
   passwordRules: {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: colors.neutral.lighter,
     borderRadius: 8,
     padding: 12,
     marginBottom: 16,
   },
   ruleText: {
     ...typography.bodySmall,
-    color: '#7f8c8d',
+    color: colors.neutral.medium,
     marginBottom: 4,
     fontSize: 13,
   },
   ruleTextValid: {
-    color: '#27ae60',
+    color: colors.status.success,
     fontWeight: '500',
   },
 }); 

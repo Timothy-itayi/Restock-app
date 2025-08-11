@@ -1,10 +1,11 @@
 import { StyleSheet } from 'react-native';
 import { fontFamily } from '../typography';
+import colors from '@/app/theme/colors';
 
 export const authIndexStyles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: colors.neutral.lighter,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
@@ -15,18 +16,18 @@ export const authIndexStyles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 8,
     textAlign: 'center',
-    color: '#2c3e50',
+    color: colors.neutral.darkest,
   },
   subtitle: {
     fontFamily: fontFamily.satoshiBold,
     fontSize: 16,
-    color: '#6B7F6B',
+    color: colors.brand.secondary,
     textAlign: 'center',
     marginBottom: 32,
     fontWeight: '600',
   },
   primaryButton: {
-    backgroundColor: '#6B7F6B',
+    backgroundColor: colors.brand.primary,
     paddingVertical: 16,
     paddingHorizontal: 32,
     borderRadius: 8,
@@ -37,13 +38,13 @@ export const authIndexStyles = StyleSheet.create({
   },
   primaryButtonText: {
     fontFamily: fontFamily.satoshiBold,
-    color: '#FFFFFF',
+    color: colors.neutral.lightest,
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
   },
   secondaryButton: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.neutral.lightest,
     paddingVertical: 16,
     paddingHorizontal: 32,
     borderRadius: 8,
@@ -51,12 +52,12 @@ export const authIndexStyles = StyleSheet.create({
     width: '100%',
     maxWidth: 300,
     borderWidth: 1,
-    borderColor: '#6B7F6B',
+    borderColor: colors.brand.primary,
     alignItems: 'center',
   },
   secondaryButtonText: {
     fontFamily: fontFamily.satoshiBold,
-    color: '#6B7F6B',
+    color: colors.brand.primary,
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
@@ -67,7 +68,7 @@ export const authIndexStyles = StyleSheet.create({
   },
   linkButtonText: {
     fontFamily: fontFamily.satoshi,
-    color: '#6B7F6B',
+    color: colors.brand.primary,
     fontSize: 14,
     fontWeight: '500',
     textAlign: 'center',

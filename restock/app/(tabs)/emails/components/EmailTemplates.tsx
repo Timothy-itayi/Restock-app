@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { EmailDraft } from '../hooks';
@@ -81,7 +81,7 @@ export const EmailTemplates: React.FC<EmailTemplatesProps> = ({
     return templates;
   };
 
-  const templates = generateTemplates();
+  const templates = useMemo(() => generateTemplates(), [recentEmails]);
 
   const handleUseTemplate = (template: EmailTemplate) => {
     Alert.alert(

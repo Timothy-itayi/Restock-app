@@ -1,22 +1,34 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { profileStyles } from '../../../../styles/components/profile';
+import colors from '@/app/theme/colors';
+import useThemeStore from '@/app/stores/useThemeStore';
 
 export const ProfileHeader: React.FC = () => {
-  const handleSettingsPress = () => {
-    Alert.alert(
-      'Settings',
-      'Settings functionality coming soon!',
-      [{ text: 'OK' }]
-    );
-  };
+  const { mode, theme, toggleMode } = useThemeStore();
+  const isDark = mode === 'dark';
 
   return (
     <View style={profileStyles.header}>
-      <Text style={profileStyles.headerTitle}>Account</Text>
-      <TouchableOpacity style={profileStyles.settingsButton} onPress={handleSettingsPress}>
-        <Ionicons name="settings-outline" size={24} color="#6C757D" />
+      <View style={profileStyles.headerContent}>
+        <Text style={profileStyles.headerTitle}>Profile</Text>
+        <Text style={profileStyles.headerSubtitle}>Manage your account and preferences</Text>
+      </View>
+      <TouchableOpacity
+        style={[
+          profileStyles.settingsButton,
+          { backgroundColor: theme.neutral.lighter },
+        ]}
+        onPress={toggleMode}
+        accessibilityRole="button"
+        accessibilityLabel="Toggle dark mode"
+      >
+        <Ionicons
+          name={isDark ? 'moon' : 'sunny-outline'}
+          size={22}
+          color={isDark ? colors.dark.brand.primary : colors.light.brand.primary}
+        />
       </TouchableOpacity>
     </View>
   );
