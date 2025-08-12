@@ -4,12 +4,14 @@ import { router } from 'expo-router';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { UserProfileService } from '../../../backend/services/user-profile';
 import { SessionManager } from '../../../backend/services/session-manager';
+import { useUnifiedAuth } from '../../_contexts/UnifiedAuthProvider';
 import UnifiedAuthGuard from '../../components/UnifiedAuthGuard';
 import { profileSetupStyles } from '../../../styles/components/auth/traditional/profile-setup';
 
 export default function ProfileSetupScreen() {
   const { isSignedIn, userId } = useAuth();
   const { user } = useUser();
+  const { triggerAuthCheck } = useUnifiedAuth();
   
   const [name, setName] = useState('');
   const [storeName, setStoreName] = useState('');
@@ -53,10 +55,16 @@ export default function ProfileSetupScreen() {
         return;
       }
 
-      // Create user profile in Supabase with proper error handling
+      // Create user profile via backend Edge Function with proper error handling
       let result;
       try {
-        result = await UserProfileService.ensureUserProfile(userId, userEmail, storeName, name);
+        result = await UserProfileService.createProfileViaBackend(
+          userId, 
+          userEmail, 
+          storeName, 
+          name, 
+          'email' // Specify email/password as auth method
+        );
       } catch (error) {
         // Quiet network error; user will see alert
         Alert.alert('Error', 'Network error while creating your profile. Please check your connection and try again.');
@@ -76,7 +84,8 @@ export default function ProfileSetupScreen() {
         Alert.alert('Error', message);
         return;
       } else {
-        // Success; no verbose logs
+        // Success - profile created successfully!
+        console.log('✅ ProfileSetup: Profile creation successful', result.data);
         
         // Save session data for returning user detection
         await SessionManager.saveUserSession({
@@ -88,7 +97,29 @@ export default function ProfileSetupScreen() {
           lastAuthMethod: 'email',
         });
         
-        // Navigate to dashboard
+        // Wait a moment for database consistency before triggering auth check
+        console.log('⏳ Waiting for database consistency...');
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Verify profile was actually created before triggering auth check
+        console.log('🔍 Verifying profile creation...');
+        const verificationResult = await UserProfileService.hasCompletedProfileSetup(userId);
+        console.log('📊 Profile verification result:', verificationResult);
+        
+        if (!verificationResult.hasCompletedSetup) {
+          console.log('⚠️ Profile verification failed, waiting longer...');
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          const secondVerification = await UserProfileService.hasCompletedProfileSetup(userId);
+          console.log('📊 Second verification result:', secondVerification);
+        }
+        
+        // Trigger auth state refresh to update profile setup status
+        console.log('🔄 Triggering auth state refresh...');
+        triggerAuthCheck();
+        
+        // Navigate immediately to dashboard
+        console.log('🚀 Navigating to dashboard...');
         router.replace('/(tabs)/dashboard');
       }
     } catch (error) {

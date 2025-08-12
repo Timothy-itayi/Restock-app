@@ -3,6 +3,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, View } from "react-native";
 import { SessionService } from "../../../backend/services/sessions";
+import { SecureDataService } from "../../../backend/services/secure-data";
 import { RestockSessionsSkeleton } from "../../components/skeleton";
 import { ConfirmationDialog } from "../../components/ConfirmationDialog";
 import { NameSessionModal } from "../../components";
@@ -217,9 +218,9 @@ const RestockSessionsContent: React.FC = () => {
   React.useEffect(() => {
     const testDatabaseConnection = async () => {
       // Quiet DB test logs in production
-      if (isDataReady) {
+      if (isDataReady && userId) {
         try {
-          await SessionService.getUserSessions('test-user');
+          await SessionService.getUserSessions(userId);
         } catch (error) {
           // noop
         }

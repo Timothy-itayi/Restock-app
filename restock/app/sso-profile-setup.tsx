@@ -12,7 +12,7 @@ import { ErrorLogger } from '../backend/utils/error-logger';
 
 export default function SSOProfileSetupScreen() {
   const { user } = useUser();
-  const { isAuthenticated, userId, authType } = useUnifiedAuth();
+  const { isAuthenticated, userId, authType, triggerAuthCheck } = useUnifiedAuth();
   
   // Quiet verbose render log
   
@@ -136,22 +136,36 @@ export default function SSOProfileSetupScreen() {
   }, [isAuthenticated, userId, user, email, name]);
 
   const handleCreateProfile = async () => {
+    console.log('🚀 SSOProfileSetup: handleCreateProfile called');
+    console.log('📊 SSOProfileSetup: Validation data:', {
+      storeName: storeName.trim(),
+      name: name.trim(),
+      isAuthenticated,
+      userId,
+      authType,
+      email
+    });
+
     if (!storeName.trim()) {
+      console.log('❌ SSOProfileSetup: Store name validation failed');
       Alert.alert('Error', 'Please enter your store name');
       return;
     }
 
     if (!name.trim()) {
+      console.log('❌ SSOProfileSetup: Name validation failed');
       Alert.alert('Error', 'Please enter your name');
       return;
     }
 
     if (!isAuthenticated || !userId) {
+      console.log('❌ SSOProfileSetup: Authentication validation failed', { isAuthenticated, userId });
       Alert.alert('Authentication Error', 'You must be signed in to complete your profile setup');
       return;
     }
 
     if (authType.type !== 'google') {
+      console.log('❌ SSOProfileSetup: Auth type validation failed', { authType });
       Alert.alert('Access Error', 'This screen is for Google OAuth users only. If you signed up with email/password, please use the regular profile setup.');
       // Redirect to appropriate screen
       router.replace('/auth/traditional/profile-setup');
@@ -159,10 +173,12 @@ export default function SSOProfileSetupScreen() {
     }
 
     if (!email) {
+      console.log('❌ SSOProfileSetup: Email validation failed', { email });
       Alert.alert('Email Error', 'Unable to retrieve your email from Google. Please try signing in again.');
       return;
     }
 
+    console.log('✅ SSOProfileSetup: All validations passed, proceeding with profile creation');
     setLoading(true);
     try {
       ErrorLogger.info('SSOProfileSetup: Creating profile for Google user', {
@@ -173,8 +189,14 @@ export default function SSOProfileSetupScreen() {
         authType: authType.type
       }, { component: 'SSOProfileSetup', action: 'handleCreateProfile' });
       
-      // Use the ensureUserProfile method specifically designed for SSO users
-      const result = await UserProfileService.ensureUserProfile(userId, email, storeName.trim(), name.trim());
+      // Use the backend Edge Function for secure profile creation
+      const result = await UserProfileService.createProfileViaBackend(
+        userId, 
+        email, 
+        storeName.trim(), 
+        name.trim(), 
+        'google' // Specify Google OAuth as auth method
+      );
       
       if (result.error) {
         const message = (result.error as any)?.code === 'EMAIL_TAKEN'
@@ -188,7 +210,8 @@ export default function SSOProfileSetupScreen() {
         });
         Alert.alert('Setup Failed', message);
       } else {
-         // Success path; no verbose data logging
+         // Success path - profile created successfully!
+         console.log('✅ SSOProfileSetup: Profile creation successful', result.data);
          ErrorLogger.info('SSOProfileSetup: Profile creation successful', {
           component: 'SSOProfileSetup', 
           action: 'handleCreateProfile',
@@ -206,10 +229,32 @@ export default function SSOProfileSetupScreen() {
           lastAuthMethod: 'google',
         });
         
-        // Clear the SSO sign-up flags and navigate immediately
+        // Clear the SSO sign-up flags
         await ClerkClientService.clearSSOSignUpFlags();
-        // Quiet navigation
         
+        // Wait a moment for database consistency before triggering auth check
+        console.log('⏳ Waiting for database consistency...');
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Verify profile was actually created before triggering auth check
+        console.log('🔍 Verifying profile creation...');
+        const verificationResult = await UserProfileService.hasCompletedProfileSetup(userId);
+        console.log('📊 Profile verification result:', verificationResult);
+        
+        if (!verificationResult.hasCompletedSetup) {
+          console.log('⚠️ Profile verification failed, waiting longer...');
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          const secondVerification = await UserProfileService.hasCompletedProfileSetup(userId);
+          console.log('📊 Second verification result:', secondVerification);
+        }
+        
+        // Trigger auth state refresh to update profile setup status
+        console.log('🔄 Triggering auth state refresh...');
+        triggerAuthCheck();
+        
+        // Navigate immediately to dashboard
+        console.log('🚀 Navigating to dashboard...');
         router.replace('/(tabs)/dashboard');
       }
     } catch (error) {
@@ -285,7 +330,10 @@ export default function SSOProfileSetupScreen() {
             
             <TouchableOpacity 
               style={[ssoProfileSetupStyles.button, loading && ssoProfileSetupStyles.buttonDisabled]}
-              onPress={handleCreateProfile}
+              onPress={() => {
+                console.log('🎯 SSOProfileSetup: Button pressed!');
+                handleCreateProfile();
+              }}
               disabled={loading}
             >
               <Text style={ssoProfileSetupStyles.buttonText}>

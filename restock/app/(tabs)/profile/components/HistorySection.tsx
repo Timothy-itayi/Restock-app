@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'rea
 import { Ionicons } from '@expo/vector-icons';
 import { SessionService } from '../../../../backend/services/sessions';
 import { EmailService } from '../../../../backend/services/emails';
+import { SecureDataService } from '../../../../backend/services/secure-data';
 import { useFocusEffect } from 'expo-router';
 
 interface HistoryItem {
@@ -30,20 +31,46 @@ export const HistorySection: React.FC<HistorySectionProps> = ({ userId }) => {
     
     setLoading(true);
     try {
-      // Load both unfinished (draft) and finished sessions for complete history
-      const [allSessionsResult, finishedSessionsResult, emailsResult] = await Promise.all([
-        SessionService.getUserSessions(userId),
-        SessionService.getFinishedSessions(userId),
-        EmailService.getUserEmails(userId)
-      ]);
-
+      console.log('📋 HistorySection: Loading history via SecureDataService');
+      
+      // Try to get all user data via SecureDataService
+      const secureDataResult = await SecureDataService.getUserData(userId, 'all', true);
+      
       const items: HistoryItem[] = [];
+      let allSessions: any[] = [];
+      let emailsData: any[] = [];
+      
+      if (secureDataResult.error) {
+        console.warn('📋 HistorySection: SecureDataService failed, falling back to individual services');
+        
+        // Fallback to original services
+        const [allSessionsResult, finishedSessionsResult, emailsResult] = await Promise.all([
+          SessionService.getUserSessions(userId),
+          SessionService.getFinishedSessions(userId),
+          EmailService.getUserEmails(userId)
+        ]);
 
-      // Add all sessions to history (both active and completed)
-      const allSessions = [
-        ...(allSessionsResult.data || []),
-        ...(finishedSessionsResult.data || [])
-      ];
+        // Add all sessions to history (both active and completed)
+        allSessions = [
+          ...(allSessionsResult.data || []),
+          ...(finishedSessionsResult.data || [])
+        ];
+        
+        emailsData = emailsResult.data || [];
+      } else {
+        console.log('📋 HistorySection: SecureDataService success, using secure data');
+        
+        // Use secure data results
+        const sessions = secureDataResult.data?.sessions;
+        allSessions = [
+          ...(sessions?.unfinished || []),
+          ...(sessions?.finished || [])
+        ];
+        
+        // Still need EmailService for emails
+        const emailsResult = await EmailService.getUserEmails(userId);
+        emailsData = emailsResult.data || [];
+      }
       
       // Deduplicate sessions by ID
       const uniqueSessions = allSessions.reduce((acc: any[], session: any) => {

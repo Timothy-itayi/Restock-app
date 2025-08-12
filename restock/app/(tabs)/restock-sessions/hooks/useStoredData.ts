@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from "@clerk/clerk-expo";
 import { ProductService } from "../../../../backend/services/products";
 import { SupplierService } from "../../../../backend/services/suppliers";
+import { SecureDataService } from "../../../../backend/services/secure-data";
 import { StoredProduct, StoredSupplier, ErrorState, LoadingState } from '../utils/types';
 import { Logger } from '../utils/logger';
 
@@ -57,13 +58,38 @@ export const useStoredData = () => {
     setErrorState({ hasError: false, errorMessage: '', timestamp: new Date() });
     
     try {
-      Logger.info('Loading stored data from database', { userId });
+      Logger.info('Loading stored data via SecureDataService', { userId });
       
-      // Load products and suppliers from Supabase
-      const [productsResult, suppliersResult] = await Promise.all([
-        ProductService.getUserProducts(userId),
-        SupplierService.getUserSuppliers(userId),
-      ]);
+      // Try to load via SecureDataService first
+      const secureDataResult = await SecureDataService.getUserData(userId, 'all', false);
+      
+      let productsResult: any;
+      let suppliersResult: any;
+      
+      if (secureDataResult.error) {
+        Logger.warning('SecureDataService failed, falling back to individual services', { error: secureDataResult.error });
+        
+        // Fallback to original services
+        const [fallbackProductsResult, fallbackSuppliersResult] = await Promise.all([
+          ProductService.getUserProducts(userId),
+          SupplierService.getUserSuppliers(userId),
+        ]);
+        
+        productsResult = fallbackProductsResult;
+        suppliersResult = fallbackSuppliersResult;
+      } else {
+        Logger.success('SecureDataService success, using secure data');
+        
+        // Use secure data results
+        productsResult = { 
+          data: secureDataResult.data?.products || [], 
+          error: null 
+        };
+        suppliersResult = { 
+          data: secureDataResult.data?.suppliers || [], 
+          error: null 
+        };
+      }
       
       // Handle products result
       if (productsResult.error) {

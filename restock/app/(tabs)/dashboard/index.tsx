@@ -56,6 +56,7 @@ export default function DashboardScreen() {
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [displayStartTime] = useState(Date.now());
+  const [lastRefreshTime, setLastRefreshTime] = useState<number>(0);
 
 
   // Component display logging
@@ -109,12 +110,20 @@ export default function DashboardScreen() {
     console.log('📺 Dashboard: All conditions met, starting sessions fetch');
 
     const fetchSessions = async () => {
-      console.log('📺 Dashboard: Fetching sessions...');
+      console.log('📺 Dashboard: Fetching sessions via SessionService...');
       try {
+        // Use only SessionService for consistent data
         const [unfinishedResult, finishedResult] = await Promise.all([
           SessionService.getUnfinishedSessions(userId),
           SessionService.getFinishedSessions(userId)
         ]);
+        
+        console.log('📺 Dashboard: Initial fetch results', {
+          unfinishedCount: unfinishedResult.data?.length || 0,
+          finishedCount: finishedResult.data?.length || 0,
+          unfinishedError: unfinishedResult.error,
+          finishedError: finishedResult.error
+        });
         
         if (unfinishedResult.data) {
           setUnfinishedSessions(unfinishedResult.data);
@@ -123,6 +132,8 @@ export default function DashboardScreen() {
         if (finishedResult.data) {
           setFinishedSessions(finishedResult.data);
         }
+        
+        setLastRefreshTime(Date.now());
       } catch (error) {
         console.error('❌ Dashboard: Error fetching sessions:', error);
       } finally {
@@ -146,10 +157,23 @@ export default function DashboardScreen() {
     return () => clearTimeout(timer);
   }, [sessionsLoading]);
 
-  // Refresh data when user returns to dashboard
+  // Refresh data when user returns to dashboard (with throttling)
   useFocusEffect(
     React.useCallback(() => {
-      if (userId) {
+      if (userId && authReady && isAuthenticated && !authType?.needsProfileSetup) {
+        const now = Date.now();
+        const timeSinceLastRefresh = now - lastRefreshTime;
+        const THROTTLE_TIME = 2000; // 2 seconds throttle
+        
+        // Skip refresh if too soon after last refresh
+        if (timeSinceLastRefresh < THROTTLE_TIME) {
+          console.log('📊 Dashboard: Skipping refresh - too soon after last refresh', {
+            timeSinceLastRefresh,
+            throttleTime: THROTTLE_TIME
+          });
+          return;
+        }
+        
         const refreshData = async () => {
           try {
             console.log('📊 Dashboard: Starting data refresh...');
@@ -172,6 +196,8 @@ export default function DashboardScreen() {
             if (finishedResult.data) {
               setFinishedSessions(finishedResult.data);
             }
+            
+            setLastRefreshTime(Date.now());
           } catch (error) {
             console.error('Error refreshing dashboard sessions data:', error);
           }
@@ -194,7 +220,7 @@ export default function DashboardScreen() {
           sub.remove();
         };
       }
-    }, [userId])
+    }, [userId, authReady, isAuthenticated, authType?.needsProfileSetup, lastRefreshTime])
   );
 
   const onRefresh = async () => {
@@ -217,6 +243,8 @@ export default function DashboardScreen() {
       if (finishedResult.data) {
         setFinishedSessions(finishedResult.data);
       }
+      
+      setLastRefreshTime(Date.now());
     } catch (error) {
       console.error('Error during refresh:', error);
     } finally {

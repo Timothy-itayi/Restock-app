@@ -3,6 +3,7 @@ import { DeviceEventEmitter } from 'react-native';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { EmailService } from "../../../../backend/services/emails";
 import { SessionService } from "../../../../backend/services/sessions";
+import { SecureDataService } from "../../../../backend/services/secure-data";
 import { supabase } from "../../../../backend/config/supabase";
 import { UserProfile } from './useUserProfile';
 import { EmailDraft, EmailSession } from './useEmailSession';
