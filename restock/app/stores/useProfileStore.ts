@@ -31,6 +31,18 @@ const useProfileStore = create<ProfileState>((set, get) => ({
     
     try {
       console.log('📊 ProfileStore: Fetching profile for userId:', userId);
+      
+      // Import UserContextService dynamically to avoid circular imports
+      const { UserContextService } = await import('../../backend/services/user-context');
+      
+      // Set user context before fetching profile to handle RLS
+      try {
+        await UserContextService.setUserContext(userId);
+        console.log('📊 ProfileStore: User context set for profile fetch');
+      } catch (contextError) {
+        console.warn('📊 ProfileStore: Could not set user context, trying without:', contextError);
+      }
+      
       const result = await UserProfileService.getUserProfile(userId);
       
       if (result.data) {

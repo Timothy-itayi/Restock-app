@@ -10,3 +10,6 @@
 # Markdown files
 *.md
 !README.md
+# SQL migration and setup files
+*.sql
+restock/**/*.sql

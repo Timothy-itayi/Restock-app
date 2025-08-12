@@ -3,6 +3,7 @@ import { Alert, DeviceEventEmitter } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from "@clerk/clerk-expo";
 import { SessionService } from "../../../../backend/services/sessions";
+import { SecureDataService } from "../../../../backend/services/secure-data";
 import { RestockSession, Product } from '../utils/types';
 import { Logger } from '../utils/logger';
 
@@ -20,18 +21,31 @@ export const useRestockSessions = () => {
     
     setIsLoadingSessions(true);
     try {
-      console.log('[RestockSessions] Loading unfinished sessions from database', { userId });
-      Logger.info('Loading unfinished sessions', { userId });
+      console.log('[RestockSessions] Loading unfinished sessions via SecureDataService', { userId });
+      Logger.info('Loading unfinished sessions via SecureDataService', { userId });
       
-      // Get unfinished sessions (draft status) with their items
-      const sessionsResult = await SessionService.getUnfinishedSessions(userId);
+      // Try to get sessions via SecureDataService first
+      const secureSessionsResult = await SecureDataService.getUserSessions(userId, false);
       
-      if (sessionsResult.error) {
-        Logger.error('Failed to load unfinished sessions', sessionsResult.error, { userId });
-        return;
+      let unfinishedSessions = [];
+      
+      if (secureSessionsResult.error) {
+        console.warn('[RestockSessions] SecureDataService failed, falling back to SessionService');
+        Logger.warning('SecureDataService failed, using fallback', { error: secureSessionsResult.error });
+        
+        // Fallback to original SessionService
+        const sessionsResult = await SessionService.getUnfinishedSessions(userId);
+        
+        if (sessionsResult.error) {
+          Logger.error('Failed to load unfinished sessions via fallback', sessionsResult.error, { userId });
+          return;
+        }
+        
+        unfinishedSessions = sessionsResult.data || [];
+      } else {
+        console.log('[RestockSessions] SecureDataService success, using secure data');
+        unfinishedSessions = secureSessionsResult.unfinished || [];
       }
-      
-      const unfinishedSessions = sessionsResult.data || [];
       
       console.log('[RestockSessions] Unfinished sessions found', { 
         totalSessions: unfinishedSessions.length,

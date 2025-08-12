@@ -20,7 +20,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 
 // Database table names
 export const TABLES = {
-  USERS: 'users',
+   USERS: 'users',
   PRODUCTS: 'products',
   SUPPLIERS: 'suppliers',
   RESTOCK_SESSIONS: 'restock_sessions',

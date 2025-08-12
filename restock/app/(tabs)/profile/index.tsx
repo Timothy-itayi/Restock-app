@@ -5,6 +5,7 @@ import { useUser } from '@clerk/clerk-expo';
 import { UserProfileService } from '../../../backend/services/user-profile';
 import { SessionService } from '../../../backend/services/sessions';
 import { EmailService } from '../../../backend/services/emails';
+import { SecureDataService } from '../../../backend/services/secure-data';
 import { useUnifiedAuth } from '../../_contexts/UnifiedAuthProvider';
 import SignOutButton from '../../components/SignOutButton';
 import { getProfileStyles } from '../../../styles/components/profile';
@@ -66,19 +67,43 @@ export default function ProfileScreen() {
       if (!userId) return;
 
       try {
-        // Get session count
-        const sessionsResult = await SessionService.getUserSessions(userId);
-        if (sessionsResult.data) {
-          setSessionCount(sessionsResult.data.length);
-        }
-
-        // Get email count
-        const emailsResult = await EmailService.getUserEmails(userId);
-        if (emailsResult.data) {
-          setEmailCount(emailsResult.data.length);
+        console.log('📊 Profile: Fetching stats via SecureDataService');
+        
+        // Try to get all user data via SecureDataService
+        const secureDataResult = await SecureDataService.getUserData(userId, 'all', true);
+        
+        if (secureDataResult.error) {
+          console.warn('📊 Profile: SecureDataService failed, falling back to individual services');
+          
+          // Fallback to original services
+          const [sessionsResult, emailsResult] = await Promise.all([
+            SessionService.getUserSessions(userId),
+            EmailService.getUserEmails(userId)
+          ]);
+          
+          if (sessionsResult.data) {
+            setSessionCount(sessionsResult.data.length);
+          }
+          
+          if (emailsResult.data) {
+            setEmailCount(emailsResult.data.length);
+          }
+        } else {
+          console.log('📊 Profile: SecureDataService success, using secure data');
+          
+          // Use secure data results
+          const sessions = secureDataResult.data?.sessions;
+          const totalSessions = (sessions?.unfinished?.length || 0) + (sessions?.finished?.length || 0);
+          setSessionCount(totalSessions);
+          
+          // For email count, we'll still need EmailService since it's not in SecureDataService yet
+          const emailsResult = await EmailService.getUserEmails(userId);
+          if (emailsResult.data) {
+            setEmailCount(emailsResult.data.length);
+          }
         }
       } catch (error) {
-        console.error('Error fetching stats:', error);
+        console.error('❌ Profile: Error fetching stats:', error);
       }
     };
 

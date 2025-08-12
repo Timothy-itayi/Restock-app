@@ -30,6 +30,7 @@ export const SendConfirmationModal: React.FC<SendConfirmationModalProps> = ({
   supplierName = '',
 }) => {
   const { theme } = useThemeStore();
+  const styles = createStyles(theme);
   return (
     <Modal
       visible={visible}
@@ -101,7 +102,7 @@ export const SendConfirmationModal: React.FC<SendConfirmationModalProps> = ({
 
 const { width: screenWidth } = Dimensions.get('window');
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -153,7 +154,7 @@ const styles = StyleSheet.create({
   },
 
   message: {
-    ...typography.body,
+    ...typography.bodyMedium,
     color: theme.neutral.dark,
     lineHeight: 22,
     textAlign: 'center',
@@ -188,7 +189,7 @@ const styles = StyleSheet.create({
   },
 
   note: {
-    ...typography.small,
+    ...typography.bodySmall,
     color: theme.neutral.medium,
     textAlign: 'center',
     lineHeight: 18,
@@ -213,7 +214,7 @@ const styles = StyleSheet.create({
   },
 
   cancelButtonText: {
-    ...typography.body,
+    ...typography.bodyMedium,
     color: theme.neutral.medium,
     fontWeight: '600',
   },
@@ -235,7 +236,7 @@ const styles = StyleSheet.create({
   },
 
   confirmButtonText: {
-    ...typography.body,
+    ...typography.bodyMedium,
     color: theme.neutral.lightest,
     fontWeight: '600',
   },

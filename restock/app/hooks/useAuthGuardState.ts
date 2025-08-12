@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { router, useSegments } from 'expo-router';
 import { useUnifiedAuth } from '../_contexts/UnifiedAuthProvider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -40,6 +40,30 @@ export function useAuthGuardState({
 
   // UX context flags
   const [isFirstLaunch, setIsFirstLaunch] = useState<boolean | null>(null);
+  
+  // Throttling to prevent excessive effect calls
+  const lastEffectCall = useRef<number>(0);
+  const EFFECT_THROTTLE_MS = 100; // 100ms throttle
+  
+  // Memoize stable auth state to reduce effect triggers
+  const authState = useMemo(() => ({
+    isReady,
+    isAuthenticated,
+    isLoading,
+    needsProfileSetup: authType?.needsProfileSetup || false,
+    authTypeKey: `${authType?.type || 'none'}-${authType?.isNewSignUp || false}` // Stable identifier instead of full object
+  }), [isReady, isAuthenticated, isLoading, authType?.needsProfileSetup, authType?.type, authType?.isNewSignUp]);
+  
+  // Memoize current route to avoid array changes
+  const currentRoute = useMemo(() => segments[0] || '', [segments]);
+  
+  // Memoize requirements to avoid recreating object
+  const requirements = useMemo(() => ({
+    requireAuth,
+    requireNoAuth,
+    requireProfileSetup,
+    redirectTo
+  }), [requireAuth, requireNoAuth, requireProfileSetup, redirectTo]);
 
   // Initialize app state
   useEffect(() => {
@@ -95,19 +119,22 @@ export function useAuthGuardState({
 
   // Main auth guard logic
   useEffect(() => {
+    const now = Date.now();
+    
+    // Throttle effect calls to prevent excessive triggering
+    if (now - lastEffectCall.current < EFFECT_THROTTLE_MS) {
+      return;
+    }
+    lastEffectCall.current = now;
+    
     console.log('🚨 useAuthGuardState: Effect triggered', {
-      isReady,
-      isAuthenticated,
-      authType,
-      requireAuth,
-      requireNoAuth,
-      requireProfileSetup,
-      currentRoute: segments[0],
-      segments,
+      ...authState,
+      ...requirements,
+      currentRoute,
       guardId: Math.random().toString(36).substr(2, 9)
     });
 
-    if (!isReady) {
+    if (!authState.isReady) {
       console.log('⏳ useAuthGuardState: Auth not ready yet, waiting...');
       // Set phase to auth-checking when auth context is loading
       if (loadingPhase === 'initializing') {
@@ -117,18 +144,13 @@ export function useAuthGuardState({
     }
 
     console.log('🔍 useAuthGuardState: Auth is ready, analyzing conditions:', {
-      isAuthenticated,
-      authType,
-      requireAuth,
-      requireNoAuth,
-      requireProfileSetup,
-      currentRoute: segments[0],
-      segments,
-      needsProfileSetup: authType?.needsProfileSetup
+      ...authState,
+      ...requirements,
+      currentRoute
     });
 
     // If no auth is required but user is authenticated, redirect to dashboard
-    if (requireNoAuth && isAuthenticated) {
+    if (requirements.requireNoAuth && authState.isAuthenticated) {
       console.log('🚫 useAuthGuardState: No auth required but user is authenticated, redirecting to dashboard');
       try {
         router.replace('/(tabs)/dashboard');
@@ -139,7 +161,7 @@ export function useAuthGuardState({
     }
 
     // If auth is required but user is not authenticated
-    if (requireAuth && !isAuthenticated) {
+    if (requirements.requireAuth && !authState.isAuthenticated) {
       console.log('🚫 useAuthGuardState: Auth required but user not authenticated, redirecting to welcome');
       try {
         router.replace('/welcome');
@@ -150,15 +172,14 @@ export function useAuthGuardState({
     }
 
     // If user is authenticated and needs profile setup
-    if (isAuthenticated && authType.needsProfileSetup) {
+    if (authState.isAuthenticated && authState.needsProfileSetup) {
       console.log('🚫 useAuthGuardState: Profile setup required but not completed', {
-        isNewSignUp: authType.isNewSignUp,
-        userType: authType.type,
-        currentRoute: segments[0]
+        isNewSignUp: authType?.isNewSignUp,
+        userType: authType?.type,
+        currentRoute
       });
       
       // Don't redirect if already on profile setup page
-      const currentRoute = segments[0];
       const alreadyOnSetupPage = currentRoute === 'sso-profile-setup' || 
         (segments[0] === 'auth' && segments[1] === 'traditional' && segments[2] === 'profile-setup');
 
@@ -184,7 +205,7 @@ export function useAuthGuardState({
     }
 
     // If user is authenticated and has completed setup, redirect to dashboard if on auth screens
-    if (isAuthenticated && !authType.needsProfileSetup) {
+    if (authState.isAuthenticated && !authState.needsProfileSetup) {
       const currentRoute = segments[0];
       const isOnAuthScreen = currentRoute === 'auth' || currentRoute === 'welcome' || currentRoute === 'sso-profile-setup';
       
@@ -203,10 +224,10 @@ export function useAuthGuardState({
     }
 
     // If redirectTo is specified and user is authenticated
-    if (redirectTo && isAuthenticated && !authType.needsProfileSetup) {
-      console.log(`🚀 useAuthGuardState: Redirecting to specified route: ${redirectTo}`);
+    if (requirements.redirectTo && authState.isAuthenticated && !authState.needsProfileSetup) {
+      console.log(`🚀 useAuthGuardState: Redirecting to specified route: ${requirements.redirectTo}`);
       try {
-        router.replace(redirectTo as any);
+        router.replace(requirements.redirectTo as any);
       } catch (err) {
         console.error('❌ useAuthGuardState: Redirect to specified route failed:', err);
       }
@@ -219,12 +240,12 @@ export function useAuthGuardState({
     if (loadingPhase !== 'ready' && !isRedirectingToSetup) {
       setLoadingPhase('ready');
     }
-  }, [isReady, isAuthenticated, authType, requireAuth, requireNoAuth, requireProfileSetup, redirectTo, segments, loadingPhase, isRedirectingToSetup]);
+  }, [authState, requirements, currentRoute, loadingPhase, isRedirectingToSetup]);
 
   // Smart loading screen decision
   const shouldShowLoader = (
     initializing ||                  // Initial app mount
-    (!isReady || isLoading) ||       // Auth context not ready
+    (!authState.isReady || authState.isLoading) ||       // Auth context not ready
     isRedirectingToSetup ||          // We're mid-SSO profile redirect
     isRedirecting                    // Navigating to a destination (e.g., dashboard)
   );
@@ -249,7 +270,7 @@ export function useAuthGuardState({
       return 'Setting up your account...';
     }
     
-    if (loadingPhase === 'creating-dashboard' || (isRedirecting && isAuthenticated && !authType?.needsProfileSetup)) {
+    if (loadingPhase === 'creating-dashboard' || (isRedirecting && authState.isAuthenticated && !authState.needsProfileSetup)) {
       return 'Creating your dashboard...';
     }
 
