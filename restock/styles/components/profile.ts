@@ -1,8 +1,8 @@
 import { StyleSheet } from 'react-native';
 import { fontFamily } from '../typography';
-import colors from '@/app/theme/colors';
+import colors, { type AppColors } from '@/app/theme/colors';
 
-export const getProfileStyles = (t: typeof colors) => StyleSheet.create({
+export const getProfileStyles = (t: AppColors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: t.neutral.lighter,

@@ -1,5 +1,6 @@
 import { supabase, TABLES } from '../config/supabase';
 import type { Product, InsertProduct, UpdateProduct } from '../types/database';
+import { UserContextService } from './user-context';
 
 export class ProductService {
   /**
@@ -7,21 +8,24 @@ export class ProductService {
    */
   static async getUserProducts(userId: string) {
     try {
-      const { data, error } = await supabase
-        .from(TABLES.PRODUCTS)
-        .select(`
-          *,
-          suppliers!default_supplier_id (
-            id,
-            name,
-            email
-          )
-        `)
-        .eq('user_id', userId)
-        .order('name');
+      return await UserContextService.withUserContext(userId, async () => {
+        const { data, error } = await supabase
+          .from(TABLES.PRODUCTS)
+          .select(`
+            *,
+            suppliers!default_supplier_id (
+              id,
+              name,
+              email
+            )
+          `)
+          .eq('user_id', userId)
+          .order('name');
 
-      return { data, error };
+        return { data, error };
+      });
     } catch (error) {
+      console.error('[ProductService] Error getting user products', { error, userId });
       return { data: null, error };
     }
   }
@@ -54,15 +58,22 @@ export class ProductService {
    * Create a new product
    */
   static async createProduct(product: InsertProduct) {
-    try {
-      const { data, error } = await supabase
-        .from(TABLES.PRODUCTS)
-        .insert(product)
-        .select()
-        .single();
+    if (!product.user_id) {
+      return { data: null, error: new Error('User ID is required to create a product') };
+    }
 
-      return { data, error };
+    try {
+      return await UserContextService.withUserContext(product.user_id, async () => {
+        const { data, error } = await supabase
+          .from(TABLES.PRODUCTS)
+          .insert(product)
+          .select()
+          .single();
+
+        return { data, error };
+      });
     } catch (error) {
+      console.error('[ProductService] Error creating product', { error, userId: product.user_id });
       return { data: null, error };
     }
   }

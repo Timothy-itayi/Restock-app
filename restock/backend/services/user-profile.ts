@@ -156,6 +156,17 @@ export class UserProfileService {
    */
   static async getUserProfile(clerkUserId: string) {
     try {
+      // Import UserContextService to set context for RLS
+      const { UserContextService } = await import('./user-context');
+      
+      // Set user context before querying to satisfy RLS policies
+      try {
+        await UserContextService.setUserContext(clerkUserId);
+        console.log('👤 UserProfileService: User context set for profile fetch');
+      } catch (contextError) {
+        console.warn('👤 UserProfileService: Could not set user context, trying without:', contextError);
+      }
+
       const { data, error } = await supabase
         .from('users')
         .select('*')
@@ -163,10 +174,20 @@ export class UserProfileService {
         .maybeSingle(); // Use maybeSingle() instead of single()
 
       if (error) throw error;
+      
+      if (data) {
+        console.log('👤 UserProfileService: Profile fetched successfully', { 
+          id: data.id, 
+          name: data.name, 
+          storeName: data.store_name 
+        });
+      } else {
+        console.log('👤 UserProfileService: No profile data found for user');
+      }
 
       return { data, error: null };
     } catch (error) {
-      console.error('Error getting user profile:', error);
+      console.error('👤 UserProfileService: Error getting user profile:', error);
       return { data: null, error };
     }
   }
@@ -193,9 +214,55 @@ export class UserProfileService {
 
   /**
    * Check if user has completed profile setup (has store_name)
+   * Uses admin privileges via backend to bypass RLS issues
    */
   static async hasCompletedProfileSetup(clerkUserId: string) {
     try {
+      console.log('🔍 Checking profile setup via backend for:', clerkUserId);
+      
+      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+      if (!supabaseUrl) {
+        throw new Error('Supabase URL not configured');
+      }
+
+      // Call a simplified endpoint to check profile completion
+      const response = await fetch(`${supabaseUrl}/functions/v1/check-profile-completion`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({ clerkUserId })
+      });
+
+      if (!response.ok) {
+        console.log('⚠️ Backend check failed, falling back to regular client');
+        // Fallback to regular client if backend fails
+        return await this.hasCompletedProfileSetupFallback(clerkUserId);
+      }
+
+      const result = await response.json();
+      console.log('📊 Backend profile check result:', result);
+      
+      return { 
+        hasCompletedSetup: result.hasCompletedSetup || false, 
+        error: result.error || null 
+      };
+
+    } catch (error) {
+      console.error('Error checking profile setup via backend:', error);
+      // Fallback to regular client
+      return await this.hasCompletedProfileSetupFallback(clerkUserId);
+    }
+  }
+
+  /**
+   * Fallback method using regular Supabase client (may have RLS issues)
+   */
+  static async hasCompletedProfileSetupFallback(clerkUserId: string) {
+    try {
+      console.log('🔄 Using fallback profile check for:', clerkUserId);
+      
       const { data, error } = await supabase
         .from('users')
         .select('store_name')
@@ -207,7 +274,7 @@ export class UserProfileService {
       // User has completed setup if they have a store_name
       const hasCompletedSetup = !!(data && data.store_name && data.store_name.trim() !== '');
       
-      console.log('Profile setup check:', {
+      console.log('Profile setup check (fallback):', {
         userId: clerkUserId,
         hasStoreName: !!(data && data.store_name),
         storeName: data?.store_name,
@@ -216,7 +283,7 @@ export class UserProfileService {
 
       return { hasCompletedSetup, error: null };
     } catch (error) {
-      console.error('Error checking profile setup completion:', error);
+      console.error('Error checking profile setup completion (fallback):', error);
       return { hasCompletedSetup: false, error };
     }
   }
@@ -249,30 +316,67 @@ export class UserProfileService {
   }
 
   /**
+   * Create user profile via backend Edge Function with service role privileges
+   * This bypasses RLS policies and handles both email and SSO users
+   */
+  static async createProfileViaBackend(clerkUserId: string, email: string, storeName: string, name?: string, authMethod: 'email' | 'google' | 'sso' = 'email') {
+    try {
+      console.log('Creating user profile via backend:', { clerkUserId, email, storeName, name, authMethod });
+      
+      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+      if (!supabaseUrl) {
+        throw new Error('Supabase URL not configured');
+      }
+
+      const response = await fetch(`${supabaseUrl}/functions/v1/create-user-profile`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          clerkUserId,
+          email: email.toLowerCase().trim(),
+          storeName: storeName.trim(),
+          name: name?.trim(),
+          authMethod
+        })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        console.error('Backend profile creation failed:', result);
+        return { data: null, error: result };
+      }
+
+      if (!result.success) {
+        console.error('Profile creation error:', result.error);
+        const error = new Error(result.details || result.error);
+        // @ts-ignore add code for upstream handlers
+        (error as any).code = result.error;
+        return { data: null, error };
+      }
+
+      console.log('✅ User profile created successfully via backend:', result.data.id);
+      console.log('📊 Returning success result to frontend:', { data: result.data, error: null });
+      return { data: result.data, error: null };
+
+    } catch (error) {
+      console.error('Error calling backend profile creation:', error);
+      return { data: null, error };
+    }
+  }
+
+  /**
    * Ensure user profile exists - creates if doesn't exist
-   * This implements the recommended flow pattern
+   * Uses backend Edge Function for secure profile creation
    */
   static async ensureUserProfile(clerkUserId: string, email: string, storeName: string, name?: string) {
     try {
       console.log('Ensuring user profile exists for:', { clerkUserId, email, storeName, name });
-      console.log('Name details:', {
-        name,
-        nameType: typeof name,
-        nameLength: name?.length || 0,
-        nameIsEmpty: !name || name.trim() === '',
-        nameTrimmed: name?.trim()
-      });
       
-      // First, enforce unique email across any account
-      const existingByEmail = await this.emailExists(email);
-      if (existingByEmail.exists && existingByEmail.ownerId !== clerkUserId) {
-        const err = new Error('Email already associated with another account');
-        // @ts-ignore add code for upstream handlers
-        (err as any).code = 'EMAIL_TAKEN';
-        return { data: null, error: err };
-      }
-
-      // Next, check if user exists by id
+      // First check if user already exists (read-only operation)
       const { data: existingUser, error: checkError } = await supabase
         .from('users')
         .select('*')
@@ -281,7 +385,7 @@ export class UserProfileService {
 
       if (checkError) {
         console.error('Error checking existing user:', checkError);
-        throw checkError;
+        // If we can't check, try creating via backend anyway
       }
 
       if (existingUser) {
@@ -289,37 +393,14 @@ export class UserProfileService {
         return { data: existingUser, error: null };
       }
 
-      // User doesn't exist, create profile
-      console.log('User profile does not exist, creating new profile');
-      console.log('Creating profile with data:', {
-        id: clerkUserId,
-        email,
-        name,
-        store_name: storeName,
-        nameType: typeof name,
-        nameLength: name?.length || 0
-      });
+      // User doesn't exist, create via backend Edge Function
+      console.log('User profile does not exist, creating via backend...');
       
-      const { data: newUser, error: insertError } = await supabase
-        .from('users')
-        .insert({
-          id: clerkUserId,
-          email,
-          name,
-          store_name: storeName,
-          created_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
+      // Determine auth method based on context or default to email
+      const authMethod = 'email'; // You can enhance this logic based on your needs
+      
+      return await this.createProfileViaBackend(clerkUserId, email, storeName, name, authMethod);
 
-      if (insertError) {
-        console.error('Error creating user profile:', insertError);
-        return { data: null, error: insertError };
-      }
-
-      console.log('User profile created successfully:', newUser);
-      console.log('Created profile name field:', newUser.name);
-      return { data: newUser, error: null };
     } catch (error) {
       console.error('Error ensuring user profile:', error);
       return { data: null, error };

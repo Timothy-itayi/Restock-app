@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { SessionService } from '../../../../backend/services/sessions';
+
 import { getSessionColorTheme } from '../utils/colorUtils';
 import { RestockSession } from '../utils/types';
+import { useRestockApplicationService } from '../hooks/useService';
 
 interface ReplaySession {
   id: string;
@@ -25,6 +26,7 @@ export const ReplaySuggestions: React.FC<ReplaySuggestionsProps> = ({
   onReplaySession,
   currentSession
 }) => {
+  const app = useRestockApplicationService();
   const [suggestions, setSuggestions] = useState<ReplaySession[]>([]);
   const [loading, setLoading] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
@@ -47,12 +49,17 @@ export const ReplaySuggestions: React.FC<ReplaySuggestionsProps> = ({
     
     setLoading(true);
     try {
-      // Get all completed sessions
-      const result = await SessionService.getUserSessions(userId);
-      
-      if (!controller?.signal.aborted && isMounted && result.data && result.data.length > 0) {
+      // Get all sessions via application service
+      const result = await app.getSessions({ userId, includeCompleted: true });
+      if (!controller?.signal.aborted && isMounted && result.success && result.sessions) {
+        const data = result.sessions.all.map((s) => ({
+          id: s.id,
+          created_at: s.createdAt,
+          products: s.items.map(i => ({ name: i.productName, supplierName: i.supplierName })),
+          status: s.status,
+        }));
         // Analyze sessions to find patterns
-        const sessionPatterns = analyzeSessionPatterns(result.data);
+        const sessionPatterns = analyzeSessionPatterns(data);
         
         // Filter and sort suggestions
         const filteredSuggestions = sessionPatterns

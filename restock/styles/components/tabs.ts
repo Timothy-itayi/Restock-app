@@ -1,9 +1,9 @@
 import { StyleSheet } from "react-native";
 import { typography } from "../typography";
-import colors from '@/app/theme/colors';
+import colors, { type AppColors } from '@/app/theme/colors';
 
 // Tabs styling using the unified semantic color system
-export const getTabsStyles = (t: typeof colors) => StyleSheet.create({
+export const getTabsStyles = (t: AppColors) => StyleSheet.create({
   // Tab bar container styles
   tabBar: {
     backgroundColor: t.neutral.lightest, // Pure white background (paper)

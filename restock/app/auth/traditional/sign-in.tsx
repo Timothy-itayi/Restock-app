@@ -167,7 +167,7 @@ export default function SignInScreen() {
           await AsyncStorage.setItem('recentSignIn', 'true');
           triggerAuthCheck();
           
-          // Let AuthContext handle the navigation - the loading screen will auto-complete
+          // Let UnifiedAuthProvider handle the navigation - the loading screen will auto-complete
           
           // Save session data for returning user detection
           // Extract email from user object after OAuth completion

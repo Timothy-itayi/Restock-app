@@ -1,5 +1,6 @@
 import { supabase, TABLES } from '../config/supabase';
 import type { Supplier, InsertSupplier, UpdateSupplier } from '../types/database';
+import { UserContextService } from './user-context';
 
 export class SupplierService {
   /**
@@ -7,14 +8,17 @@ export class SupplierService {
    */
   static async getUserSuppliers(userId: string) {
     try {
-      const { data, error } = await supabase
-        .from(TABLES.SUPPLIERS)
-        .select('*')
-        .eq('user_id', userId)
-        .order('name');
+      return await UserContextService.withUserContext(userId, async () => {
+        const { data, error } = await supabase
+          .from(TABLES.SUPPLIERS)
+          .select('*')
+          .eq('user_id', userId)
+          .order('name');
 
-      return { data, error };
+        return { data, error };
+      });
     } catch (error) {
+      console.error('[SupplierService] Error getting user suppliers', { error, userId });
       return { data: null, error };
     }
   }
@@ -40,15 +44,22 @@ export class SupplierService {
    * Create a new supplier
    */
   static async createSupplier(supplier: InsertSupplier) {
-    try {
-      const { data, error } = await supabase
-        .from(TABLES.SUPPLIERS)
-        .insert(supplier)
-        .select()
-        .single();
+    if (!supplier.user_id) {
+      return { data: null, error: new Error('User ID is required to create a supplier') };
+    }
 
-      return { data, error };
+    try {
+      return await UserContextService.withUserContext(supplier.user_id, async () => {
+        const { data, error } = await supabase
+          .from(TABLES.SUPPLIERS)
+          .insert(supplier)
+          .select()
+          .single();
+
+        return { data, error };
+      });
     } catch (error) {
+      console.error('[SupplierService] Error creating supplier', { error, userId: supplier.user_id });
       return { data: null, error };
     }
   }

@@ -1,433 +1,297 @@
-import { useState, useCallback } from 'react';
-import { useAuth } from "@clerk/clerk-expo";
-import { ProductService } from "../../../../backend/services/products";
-import { SupplierService } from "../../../../backend/services/suppliers";
-import { SessionService } from "../../../../backend/services/sessions";
-import { 
-  FormState, 
-  Product, 
-  RestockSession, 
-  StoredProduct, 
-  StoredSupplier 
-} from '../utils/types';
-import { ValidationUtils } from '../utils/validation';
-import { Logger } from '../utils/logger';
+/**
+ * PRODUCT FORM HOOK - CLEAN VERSION
+ * 
+ * Focused hook for managing product form state and validation
+ * No business logic - only UI form concerns
+ */
 
-export const useProductForm = () => {
-  const { userId } = useAuth();
-  
+import { useState, useCallback } from 'react';
+import { useRestockApplicationService } from './useService';
+
+export interface ProductFormData {
+  productName: string;
+  quantity: string;
+  supplierName: string;
+  supplierEmail: string;
+  notes?: string;
+}
+
+export interface ProductFormState {
+  formData: ProductFormData;
+  isSubmitting: boolean;
+  error: string | null;
+  isFormVisible: boolean;
+  validationErrors: Partial<ProductFormData>;
+}
+
+export interface ProductFormActions {
+  updateField: (field: keyof ProductFormData, value: string) => void;
+  validateForm: () => boolean;
+  resetForm: () => void;
+  openForm: () => void;
+  closeForm: () => void;
+  setError: (error: string | null) => void;
+  submitForm: (onSuccess?: () => void) => Promise<{ success: boolean; error?: string }>;
+}
+
+export interface ProductSuggestion {
+  id: string;
+  name: string;
+  defaultQuantity: number;
+  defaultSupplierId?: string;
+}
+
+export interface SupplierSuggestion {
+  id: string;
+  name: string;
+  email: string;
+}
+
+/**
+ * Clean product form hook
+ * 
+ * Handles only form state, validation, and UI concerns
+ * Business logic is delegated to application service
+ */
+export function useProductForm(): ProductFormState & ProductFormActions {
+  const restockService = useRestockApplicationService();
+
   // Form state
-  const [formState, setFormState] = useState<FormState>({
+  const [formData, setFormData] = useState<ProductFormData>({
     productName: '',
     quantity: '1',
     supplierName: '',
     supplierEmail: '',
-    errorMessage: ''
+    notes: ''
   });
 
-  // Autocomplete state
-  const [filteredProducts, setFilteredProducts] = useState<StoredProduct[]>([]);
-  const [filteredSuppliers, setFilteredSuppliers] = useState<StoredSupplier[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isFormVisible, setIsFormVisible] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<Partial<ProductFormData>>({});
 
-  // Form controls
-  const [showAddProductForm, setShowAddProductForm] = useState(false);
-  const [showEditProductForm, setShowEditProductForm] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  /**
+   * Update a form field
+   */
+  const updateField = useCallback((field: keyof ProductFormData, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    
+    // Clear validation error for this field
+    if (validationErrors[field]) {
+      setValidationErrors(prev => ({ ...prev, [field]: undefined }));
+    }
+    
+    // Clear general error
+    if (error) {
+      setError(null);
+    }
+  }, [validationErrors, error]);
 
-  const updateFormField = useCallback((field: keyof FormState, value: string) => {
-    setFormState(prev => ({ ...prev, [field]: value }));
-  }, []);
+  /**
+   * Validate the form
+   */
+  const validateForm = useCallback((): boolean => {
+    const errors: Partial<ProductFormData> = {};
 
-  const setErrorMessage = useCallback((message: string) => {
-    setFormState(prev => ({ ...prev, errorMessage: message }));
-  }, []);
+    // Product name validation
+    if (!formData.productName.trim()) {
+      errors.productName = 'Product name is required';
+    } else if (formData.productName.length < 2) {
+      errors.productName = 'Product name must be at least 2 characters';
+    }
 
+    // Quantity validation
+    const quantity = parseInt(formData.quantity);
+    if (!formData.quantity.trim() || isNaN(quantity)) {
+      errors.quantity = 'Quantity is required';
+    } else if (quantity <= 0) {
+      errors.quantity = 'Quantity must be greater than 0';
+    } else if (quantity > 10000) {
+      errors.quantity = 'Quantity cannot exceed 10,000';
+    }
+
+    // Supplier name validation
+    if (!formData.supplierName.trim()) {
+      errors.supplierName = 'Supplier name is required';
+    } else if (formData.supplierName.length < 2) {
+      errors.supplierName = 'Supplier name must be at least 2 characters';
+    }
+
+    // Supplier email validation
+    if (!formData.supplierEmail.trim()) {
+      errors.supplierEmail = 'Supplier email is required';
+    } else if (!isValidEmail(formData.supplierEmail)) {
+      errors.supplierEmail = 'Please enter a valid email address';
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  }, [formData]);
+
+  /**
+   * Reset form to initial state
+   */
   const resetForm = useCallback(() => {
-    setFormState({
+    setFormData({
       productName: '',
       quantity: '1',
       supplierName: '',
       supplierEmail: '',
-      errorMessage: ''
+      notes: ''
     });
-    setFilteredProducts([]);
-    setFilteredSuppliers([]);
+    setValidationErrors({});
+    setError(null);
+    setIsSubmitting(false);
   }, []);
 
-  const handleProductNameChange = useCallback((text: string, storedProducts: StoredProduct[]) => {
-    updateFormField('productName', text);
-    if (text.length > 0) {
-      const filtered = storedProducts
-        .filter(product => product.name.toLowerCase().includes(text.toLowerCase()))
-        .slice(0, 5);
-      setFilteredProducts(filtered);
-    } else {
-      setFilteredProducts([]);
-    }
-  }, [updateFormField]);
+  /**
+   * Show the form
+   */
+  const openForm = useCallback(() => {
+    setIsFormVisible(true);
+    setError(null);
+  }, []);
 
-  const handleSupplierNameChange = useCallback((text: string, storedSuppliers: StoredSupplier[]) => {
-    updateFormField('supplierName', text);
-    if (text.length > 0) {
-      const filtered = storedSuppliers
-        .filter(supplier => supplier.name.toLowerCase().includes(text.toLowerCase()))
-        .slice(0, 5);
-      setFilteredSuppliers(filtered);
-    } else {
-      setFilteredSuppliers([]);
-    }
-  }, [updateFormField]);
+  /**
+   * Hide the form
+   */
+  const closeForm = useCallback(() => {
+    setIsFormVisible(false);
+    resetForm();
+  }, [resetForm]);
 
-  const selectProductSuggestion = useCallback((product: StoredProduct) => {
-    // Quiet noisy selection logs
-    updateFormField('productName', product.name);
-    if (product.supplier) {
-      updateFormField('supplierName', product.supplier.name);
-      updateFormField('supplierEmail', product.supplier.email);
-      // Avoid verbose autofill logging
-    }
-    setFilteredProducts([]);
-  }, [updateFormField]);
+  /**
+   * Set error message
+   */
+  const setErrorMessage = useCallback((error: string | null) => {
+    setError(error);
+  }, []);
 
-  const selectSupplierSuggestion = useCallback((supplier: StoredSupplier) => {
-    // Quiet noisy selection logs
-    // Ensure email is properly set
-    if (!supplier.email) {
-      Logger.warning('Supplier has no email', { supplierId: supplier.id, supplierName: supplier.name });
-    }
-    
-    updateFormField('supplierName', supplier.name);
-    updateFormField('supplierEmail', supplier.email || '');
-    setFilteredSuppliers([]);
-  }, [updateFormField]);
-
-  const incrementQuantity = useCallback(() => {
-    const currentQty = parseInt(formState.quantity) || 0;
-    const newQty = currentQty + 1;
-    updateFormField('quantity', newQty.toString());
-  }, [formState.quantity, updateFormField]);
-
-  const decrementQuantity = useCallback(() => {
-    const currentQty = parseInt(formState.quantity) || 1;
-    if (currentQty > 1) {
-      const newQty = currentQty - 1;
-      updateFormField('quantity', newQty.toString());
-    }
-  }, [formState.quantity, updateFormField]);
-
-  const validateForm = useCallback(() => {
-    const { productName, quantity, supplierName, supplierEmail } = formState;
-    const validation = ValidationUtils.validateProductForm(
-      productName, 
-      quantity, 
-      supplierName, 
-      supplierEmail
-    );
-    
-    if (!validation.isValid) {
-      setErrorMessage(validation.errorMessage);
-    }
-    
-    return validation.isValid;
-  }, [formState, setErrorMessage]);
-
-  const addProduct = useCallback(async (
-    currentSession: RestockSession,
-    storedProducts: StoredProduct[],
-    storedSuppliers: StoredSupplier[],
-    onUpdateStoredProducts: (products: StoredProduct[]) => void,
-    onUpdateStoredSuppliers: (suppliers: StoredSupplier[]) => void
-  ): Promise<{ success: boolean; product?: Product; error?: string }> => {
-    const { productName, quantity, supplierName, supplierEmail } = formState;
-    
-    Logger.info('Adding product to session', { productName, quantity, supplierName, supplierEmail });
-    
-    setErrorMessage("");
-    
+  /**
+   * Submit the form
+   */
+  const submitForm = useCallback(async (onSuccess?: () => void) => {
     if (!validateForm()) {
-      Logger.warning('Form validation failed', { errorMessage: formState.errorMessage });
-      return { success: false, error: formState.errorMessage };
+      return { success: false, error: 'Please fix validation errors' };
     }
 
-    if (!currentSession) {
-      Logger.error('Cannot add product: no active session');
-      return { success: false, error: 'No active session found' };
-    }
-
-    if (!userId) {
-      Logger.error('Cannot add product: no userId');
-      return { success: false, error: 'User not authenticated' };
-    }
+    setIsSubmitting(true);
+    setError(null);
 
     try {
-      // Step 1: Ensure supplier exists (create if needed)
-      let supplierId: string;
-      const existingSupplier = storedSuppliers.find(s => 
-        s.name.toLowerCase() === supplierName.toLowerCase()
-      );
+      // Note: In the clean architecture, the form doesn't directly
+      // interact with the application service. This should be handled
+      // by the parent component that has access to the session.
+      // For now, we'll return the form data for the parent to handle.
       
-      if (existingSupplier) {
-        Logger.info('Using existing supplier', { 
-          supplierId: existingSupplier.id, 
-          supplierName: existingSupplier.name,
-          supplierEmail: existingSupplier.email // Add email to logging
-        });
-        supplierId = existingSupplier.id;
-        
-        // Ensure the existing supplier has an email
-        if (!existingSupplier.email) {
-          Logger.warning('Existing supplier has no email, updating with provided email', { 
-            supplierId: existingSupplier.id, 
-            supplierName: existingSupplier.name,
-            providedEmail: supplierEmail 
-          });
-          
-          // Update the supplier with the provided email
-          const updateResult = await SupplierService.updateSupplier(existingSupplier.id, {
-            email: supplierEmail.trim()
-          });
-          
-          if (updateResult.error) {
-            Logger.error('Failed to update supplier email', updateResult.error, { supplierId: existingSupplier.id });
-          } else {
-            Logger.success('Supplier email updated successfully', { 
-              supplierId: existingSupplier.id, 
-              email: supplierEmail.trim() 
-            });
-            
-            // Update local state with the updated supplier
-            const updatedSupplier = { ...existingSupplier, email: supplierEmail.trim() };
-            const updatedSuppliers = storedSuppliers.map(s => 
-              s.id === existingSupplier.id ? updatedSupplier : s
-            );
-            onUpdateStoredSuppliers(updatedSuppliers);
-          }
+      const result = {
+        success: true,
+        formData: {
+          productName: formData.productName.trim(),
+          quantity: parseInt(formData.quantity),
+          supplierName: formData.supplierName.trim(),
+          supplierEmail: formData.supplierEmail.trim().toLowerCase(),
+          notes: formData.notes?.trim() || undefined
         }
-      } else {
-        Logger.info('Creating new supplier', { supplierName, supplierEmail });
-        
-        // Validate email before creating supplier
-        if (!supplierEmail || supplierEmail.trim() === '') {
-          Logger.error('Cannot create supplier: email is required', { supplierName, supplierEmail });
-          return { success: false, error: 'Supplier email is required' };
-        }
-        
-        const supplierResult = await SupplierService.createSupplier({
-          user_id: userId,
-          name: supplierName.trim(),
-          email: supplierEmail.trim(),
-        });
-        
-        if (supplierResult.error) {
-          Logger.error('Failed to create supplier', supplierResult.error, { supplierName, supplierEmail });
-          return { success: false, error: 'Failed to create supplier' };
-        }
-        
-        supplierId = supplierResult.data.id;
-        Logger.success('Supplier created successfully', { 
-          supplierId, 
-          supplierName,
-          supplierEmail: supplierResult.data.email // Log the saved email
-        });
-        
-        // Add to local state for autocomplete
-        onUpdateStoredSuppliers([...storedSuppliers, supplierResult.data]);
-      }
-
-      // Step 2: Ensure product exists (create if needed)
-      let productId: string;
-      const existingProduct = storedProducts.find(p => 
-        p.name.toLowerCase() === productName.toLowerCase()
-      );
-      
-      if (existingProduct) {
-        Logger.info('Using existing product', { productId: existingProduct.id, productName });
-        productId = existingProduct.id;
-      } else {
-        Logger.info('Creating new product', { productName, supplierId });
-        
-        const productResult = await ProductService.createProduct({
-          user_id: userId,
-          name: productName.trim(),
-          default_quantity: parseInt(quantity),
-          default_supplier_id: supplierId,
-        });
-        
-        if (productResult.error) {
-          Logger.error('Failed to create product', productResult.error, { productName, supplierId });
-          return { success: false, error: 'Failed to create product' };
-        }
-        
-        productId = productResult.data.id;
-        Logger.success('Product created successfully', { productId, productName });
-        
-        // Add to local state for autocomplete
-        onUpdateStoredProducts([...storedProducts, productResult.data]);
-      }
-
-      // Step 3: Add item to restock session
-      Logger.info('Adding item to restock session', { sessionId: currentSession.id, productId, supplierId, quantity });
-      
-      const sessionItemResult = await SessionService.addSessionItem({
-        session_id: currentSession.id,
-        product_id: productId,
-        supplier_id: supplierId,
-        quantity: parseInt(quantity),
-      });
-      
-      if (sessionItemResult.error) {
-        Logger.error('Failed to add item to session', sessionItemResult.error, { 
-          sessionId: currentSession.id, 
-          productId, 
-          supplierId 
-        });
-        return { success: false, error: 'Failed to add product to session' };
-      }
-      
-      Logger.success('Item added to session successfully', { 
-        itemId: sessionItemResult.data.id,
-        sessionId: currentSession.id 
-      });
-
-      // Step 4: Create the new product object
-      const newProduct: Product = {
-        id: sessionItemResult.data.id, // Use the database item ID
-        name: productName.trim(),
-        quantity: parseInt(quantity),
-        supplierName: supplierName.trim(),
-        supplierEmail: supplierEmail.trim(),
       };
 
-      // Reset form
-      resetForm();
-      setShowAddProductForm(false);
-      
-      Logger.success('Product added to session successfully', { 
-        productId: newProduct.id
-      });
-
-      return { success: true, product: newProduct };
-      
-    } catch (error) {
-      Logger.error('Unexpected error adding product', error, { 
-        productName, 
-        supplierName, 
-        supplierEmail,
-        sessionId: currentSession.id 
-      });
-      return { success: false, error: 'Failed to add product to session' };
-    }
-  }, [formState, validateForm, setErrorMessage, resetForm, userId]);
-
-  const editProduct = useCallback((product: Product) => {
-    Logger.info('Editing product', { productId: product.id, productName: product.name });
-    
-    setEditingProduct(product);
-    setFormState({
-      productName: product.name,
-      quantity: product.quantity.toString(),
-      supplierName: product.supplierName,
-      supplierEmail: product.supplierEmail,
-      errorMessage: ''
-    });
-    setShowEditProductForm(true);
-    setFilteredProducts([]);
-    setFilteredSuppliers([]);
-  }, []);
-
-  const saveEditedProduct = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
-    const { quantity } = formState;
-    
-    Logger.info('Saving edited product', { 
-      productId: editingProduct?.id, 
-      productName: editingProduct?.name 
-    });
-    
-    setErrorMessage("");
-    
-    if (!validateForm() || !editingProduct) {
-      Logger.warning('Cannot save edited product: validation failed or missing data', {
-        validationPassed: validateForm(),
-        hasEditingProduct: !!editingProduct
-      });
-      return { success: false, error: formState.errorMessage || 'Missing product data' };
-    }
-
-    try {
-      // Update the session item in the database
-      const updateResult = await SessionService.updateSessionItem(editingProduct.id, {
-        quantity: parseInt(quantity),
-      });
-      
-      if (updateResult.error) {
-        Logger.error('Failed to update session item', updateResult.error, { itemId: editingProduct.id });
-        return { success: false, error: 'Failed to update product' };
+      if (onSuccess) {
+        onSuccess();
       }
-      
-      Logger.success('Session item updated successfully', { itemId: editingProduct.id });
 
-      // Reset form
-      setEditingProduct(null);
-      resetForm();
-      setShowEditProductForm(false);
-      
-      Logger.success('Product edited successfully', { 
-        productId: editingProduct.id
-      });
-
-      return { success: true };
-    } catch (error) {
-      Logger.error('Unexpected error updating product', error, { productId: editingProduct.id });
-      return { success: false, error: 'Failed to update product' };
+      return result;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
+    } finally {
+      setIsSubmitting(false);
     }
-  }, [formState, validateForm, setErrorMessage, editingProduct, resetForm]);
-
-  const cancelEdit = useCallback(() => {
-    Logger.info('Canceling product edit');
-    
-    setEditingProduct(null);
-    resetForm();
-    setShowEditProductForm(false);
-  }, [resetForm]);
-
-  const cancelAddProduct = useCallback(() => {
-    Logger.info('Canceling add product form');
-    
-    setShowAddProductForm(false);
-    resetForm();
-  }, [resetForm]);
+  }, [formData, validateForm]);
 
   return {
-    // Form state
-    formState,
-    filteredProducts,
-    filteredSuppliers,
-    editingProduct,
-    showAddProductForm,
-    showEditProductForm,
+    // State
+    formData,
+    isSubmitting,
+    error,
+    isFormVisible,
+    validationErrors,
 
-    // Form actions
-    updateFormField,
-    handleProductNameChange,
-    handleSupplierNameChange,
-    selectProductSuggestion,
-    selectSupplierSuggestion,
-    incrementQuantity,
-    decrementQuantity,
+    // Actions
+    updateField,
     validateForm,
     resetForm,
-    setErrorMessage,
-
-    // Product operations
-    addProduct,
-    editProduct,
-    saveEditedProduct,
-    cancelEdit,
-    cancelAddProduct,
-
-    // Form controls
-    setShowAddProductForm,
-    setShowEditProductForm,
-    setEditingProduct
+    openForm,
+    closeForm,
+    setError: setErrorMessage,
+    submitForm
   };
-};
+}
+
+/**
+ * Hook for product autocomplete suggestions
+ */
+export function useProductSuggestions(searchTerm: string): {
+  suggestions: ProductSuggestion[];
+  isLoading: boolean;
+  error: string | null;
+} {
+  const [suggestions, setSuggestions] = useState<ProductSuggestion[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // In a real implementation, this would fetch from the application service
+  // For now, return empty suggestions
+  return {
+    suggestions: [],
+    isLoading: false,
+    error: null
+  };
+}
+
+/**
+ * Hook for supplier autocomplete suggestions
+ */
+export function useSupplierSuggestions(searchTerm: string): {
+  suggestions: SupplierSuggestion[];
+  isLoading: boolean;
+  error: string | null;
+} {
+  const [suggestions, setSuggestions] = useState<SupplierSuggestion[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // In a real implementation, this would fetch from the application service
+  // For now, return empty suggestions
+  return {
+    suggestions: [],
+    isLoading: false,
+    error: null
+  };
+}
+
+// Helper functions
+
+/**
+ * Validate email format
+ */
+function isValidEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
+/**
+ * Helper to increment quantity safely
+ */
+export function incrementQuantity(currentValue: string): string {
+  const current = parseInt(currentValue) || 0;
+  return Math.min(current + 1, 10000).toString();
+}
+
+/**
+ * Helper to decrement quantity safely
+ */
+export function decrementQuantity(currentValue: string): string {
+  const current = parseInt(currentValue) || 0;
+  return Math.max(current - 1, 1).toString();
+}

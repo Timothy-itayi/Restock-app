@@ -1,31 +1,35 @@
 import React from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { RestockSession } from '../utils/types';
 import { formatDate, formatProductCount, formatSupplierCount } from '../utils/formatters';
 import { getRestockSessionsStyles } from '../../../../styles/components/restock-sessions';
 import { useThemedStyles } from '../../../../styles/useThemedStyles';
 
 interface SessionSelectionProps {
-  allSessions: RestockSession[];
-  onSelectSession: (session: RestockSession) => void;
-  onDeleteSession: (session: RestockSession) => void;
-  onStartNewSession: () => void;
+  sessions: any[]; // array of domain sessions or legacy UI sessions
+  onSelectSession: (sessionId: string) => void;
+  onDeleteSession: (sessionId: string) => void;
+  onClose: () => void;
+  isLoading?: boolean;
 }
 
 export const SessionSelection: React.FC<SessionSelectionProps> = ({
-  allSessions,
+  sessions,
   onSelectSession,
   onDeleteSession,
-  onStartNewSession
+  onClose,
+  isLoading
 }) => {
   const restockSessionsStyles = useThemedStyles(getRestockSessionsStyles);
-  const getSupplierCount = (session: RestockSession): number => {
-    return new Set(session.products.map(p => p.supplierName)).size;
+  const getSupplierCount = (session: any): number => {
+    const products = session.products || session.toValue?.().items || [];
+    const supplierNames = products.map((p: any) => p.supplierName).filter(Boolean);
+    return new Set(supplierNames).size;
   };
 
-  const getTotalQuantity = (session: RestockSession): number => {
-    return session.products.reduce((sum, p) => sum + p.quantity, 0);
+  const getTotalQuantity = (session: any): number => {
+    const products = session.products || session.toValue?.().items || [];
+    return products.reduce((sum: number, p: any) => sum + (p.quantity || 0), 0);
   };
 
   return (
@@ -33,24 +37,29 @@ export const SessionSelection: React.FC<SessionSelectionProps> = ({
       <View style={restockSessionsStyles.sessionSelectionHeader}>
         <Text style={restockSessionsStyles.sessionSelectionTitle}>Choose a Session</Text>
         <Text style={restockSessionsStyles.sessionSelectionSubtitle}>
-          You have {allSessions.length} unfinished session{allSessions.length !== 1 ? 's' : ''}
+          {isLoading ? 'Loading sessions...' : `You have ${sessions.length} unfinished session${sessions.length !== 1 ? 's' : ''}`}
         </Text>
       </View>
       
       <ScrollView style={restockSessionsStyles.sessionList}>
-        {allSessions.map((session, index) => (
+        {sessions.map((session, index) => {
+          const id = session.toValue?.().id || session.id;
+          const name = session.toValue?.().name || session.name;
+          const createdAt = session.toValue?.().createdAt || session.createdAt;
+          const products = session.products || session.toValue?.().items || [];
+          return (
           <TouchableOpacity
-            key={session.id}
+            key={id}
             style={restockSessionsStyles.sessionCard}
-            onPress={() => onSelectSession(session)}
+            onPress={() => onSelectSession(id)}
           >
             <View style={restockSessionsStyles.sessionCardHeader}>
               <Text style={restockSessionsStyles.sessionCardTitle}>
-                {session.name ? `${session.name} • ` : `Session #${index + 1} • `}{formatDate(session.createdAt)}
+                {name ? `${name} • ` : `Session #${index + 1} • `}{formatDate(createdAt)}
               </Text>
               <TouchableOpacity
                 style={restockSessionsStyles.sessionDeleteButton}
-                onPress={() => onDeleteSession(session)}
+                onPress={() => onDeleteSession(id)}
               >
                 <Ionicons name="trash" size={16} color="#EF4444" />
               </TouchableOpacity>
@@ -58,11 +67,10 @@ export const SessionSelection: React.FC<SessionSelectionProps> = ({
             
             <View style={restockSessionsStyles.sessionCardContent}>
               <Text style={restockSessionsStyles.sessionCardSubtitle}>
-                {formatProductCount(session.products.length)} • 
-                {getTotalQuantity(session)} total quantity
+                {formatProductCount(products.length)} • {getTotalQuantity(session)} total quantity
               </Text>
               
-              {session.products.length > 0 && (
+              {products.length > 0 && (
                 <View style={restockSessionsStyles.sessionCardSuppliers}>
                   <Text style={restockSessionsStyles.sessionCardSuppliersText}>
                     {formatSupplierCount(getSupplierCount(session))}
@@ -75,15 +83,15 @@ export const SessionSelection: React.FC<SessionSelectionProps> = ({
               <Text style={restockSessionsStyles.sessionCardAction}>Tap to continue</Text>
             </View>
           </TouchableOpacity>
-        ))}
+        );})}
       </ScrollView>
       
       <View style={restockSessionsStyles.sessionSelectionFooter}>
         <TouchableOpacity 
           style={restockSessionsStyles.newSessionButton}
-          onPress={onStartNewSession}
+          onPress={onClose}
         >
-          <Text style={restockSessionsStyles.newSessionButtonText}>Create New Session</Text>
+          <Text style={restockSessionsStyles.newSessionButtonText}>Close</Text>
         </TouchableOpacity>
       </View>
     </View>

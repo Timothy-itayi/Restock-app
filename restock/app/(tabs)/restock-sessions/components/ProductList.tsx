@@ -1,24 +1,24 @@
 import React from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Product, RestockSession } from '../utils/types';
 import { getRestockSessionsStyles } from '../../../../styles/components/restock-sessions';
 import { useThemedStyles } from '../../../../styles/useThemedStyles';
 
 interface ProductListProps {
-  currentSession: RestockSession | null;
-  onEditProduct: (product: Product) => void;
-  onRemoveProduct: (productId: string) => void;
-  onAddProduct: () => void;
+  session: any | null; // domain session or legacy UI type
+  onEditProduct: (productId: string) => void;
+  onDeleteProduct: (productId: string) => void;
 }
 
 export const ProductList: React.FC<ProductListProps> = ({
-  currentSession,
+  session,
   onEditProduct,
-  onRemoveProduct,
-  onAddProduct
+  onDeleteProduct
 }) => {
   const restockSessionsStyles = useThemedStyles(getRestockSessionsStyles);
+  const items = session && typeof session.toValue === 'function'
+    ? session.toValue().items
+    : (session?.products || []);
   return (
     <ScrollView 
       style={restockSessionsStyles.productList}
@@ -26,21 +26,21 @@ export const ProductList: React.FC<ProductListProps> = ({
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
     >
-      {currentSession && currentSession.products.length > 0 ? (
-        currentSession.products.map((product, index) => (
+      {items && items.length > 0 ? (
+        items.map((product: any, index: number) => (
           <View key={product.id} style={restockSessionsStyles.productItem}>
             <View style={restockSessionsStyles.productHeader}>
-              <Text style={restockSessionsStyles.productName}>{product.name}</Text>
+              <Text style={restockSessionsStyles.productName}>{product.name || product.productName}</Text>
               <Text style={restockSessionsStyles.productQuantity}>Qty: {product.quantity}</Text>
               <TouchableOpacity
                 style={restockSessionsStyles.editIconButton}
-                onPress={() => onEditProduct(product)}
+                onPress={() => onEditProduct(product.id)}
               >
                 <Ionicons name="pencil" size={16} color="#FFFFFF" />
               </TouchableOpacity>
               <TouchableOpacity
                 style={restockSessionsStyles.deleteIconButton}
-                onPress={() => onRemoveProduct(product.id)}
+                onPress={() => onDeleteProduct(product.id)}
               >
                 <Ionicons name="trash" size={16} color="#FFFFFF" />
               </TouchableOpacity>
@@ -51,7 +51,7 @@ export const ProductList: React.FC<ProductListProps> = ({
             
             <View style={restockSessionsStyles.productInfoRow}>
               <Text style={restockSessionsStyles.productInfoLabel}>Name: </Text>
-              <Text style={restockSessionsStyles.productInfoValue}>{product.name}</Text>
+              <Text style={restockSessionsStyles.productInfoValue}>{product.name || product.productName}</Text>
             </View>
             
             {/* Notepad divider line */}
@@ -78,15 +78,6 @@ export const ProductList: React.FC<ProductListProps> = ({
           </Text>
         </View>
       )}
-      
-      {/* Integrated Add Product button */}
-      <TouchableOpacity 
-        style={restockSessionsStyles.integratedAddButton}
-        onPress={onAddProduct}
-      >
-        <Text style={restockSessionsStyles.integratedAddButtonIcon}>+</Text>
-        <Text style={restockSessionsStyles.integratedAddButtonText}>Add Product</Text>
-      </TouchableOpacity>
     </ScrollView>
   );
 };

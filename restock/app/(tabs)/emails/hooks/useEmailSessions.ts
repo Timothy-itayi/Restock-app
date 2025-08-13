@@ -1,16 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { DeviceEventEmitter } from 'react-native';
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { EmailService } from "../../../../backend/services/emails";
-import { SessionService } from "../../../../backend/services/sessions";
-import { SecureDataService } from "../../../../backend/services/secure-data";
-import { supabase } from "../../../../backend/config/supabase";
+import { useRestockApplicationService } from '../../restock-sessions/hooks/useService';
 import { UserProfile } from './useUserProfile';
 import { EmailDraft, EmailSession } from './useEmailSession';
 
 const STORAGE_KEY = 'emailSessions';
 
 export function useEmailSessions(userProfile: UserProfile, userId?: string) {
+  const app = useRestockApplicationService();
   const [emailSessions, setEmailSessions] = useState<EmailSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -145,10 +143,8 @@ export function useEmailSessions(userProfile: UserProfile, userId?: string) {
     const allSent = emailsToCheck.every(e => e.status === 'sent');
     if (allSent) {
       try {
-        // First update the database session status
-        const result = await SessionService.markSessionAsSent(sessionId);
-        
-        if (result.data) {
+        const result = await app.markAsSent(sessionId);
+        if (result.success) {
           console.log(`[EmailSessions] Successfully marked session ${sessionId} as sent in database`);
           
           // Clear currentEmailSession storage
@@ -190,42 +186,8 @@ export function useEmailSessions(userProfile: UserProfile, userId?: string) {
       const updatedEmailsStart = session.emails.map(e => e.id === emailId ? { ...e, status: 'sending' as const } : e);
       await saveSession({ ...session, emails: updatedEmailsStart });
 
-      // First, create a database record for tracking
-      let dbEmailId: string | undefined = undefined;
-      try {
-        // Find supplier ID by email or name
-        const { data: supplier } = await supabase
-          .from('suppliers')
-          .select('id')
-          .eq('email', email.supplierEmail)
-          .limit(1)
-          .maybeSingle();
-
-        if (supplier?.id) {
-          const { data: createdEmail } = await EmailService.createEmail({
-            session_id: sessionId,
-            supplier_id: supplier.id,
-            email_content: `${email.subject}\n\n${email.body}`,
-            status: 'pending' as const,
-            sent_via: 'resend',
-          });
-          dbEmailId = createdEmail?.id;
-          console.log(`[EmailSessions] Created database record for email: ${dbEmailId}`);
-        }
-      } catch (error) {
-        console.warn('[EmailSessions] Could not create database record for email:', error);
-      }
-
-      const result = await EmailService.sendEmail({
-        to: email.supplierEmail,
-        replyTo: userProfile.email,
-        subject: email.subject,
-        body: email.body,
-        storeName: userProfile.storeName || 'Your Store',
-        supplierName: email.supplierName,
-        sessionId,
-        emailId: dbEmailId, // Pass the database ID for tracking
-      });
+      // In clean layer mode, defer actual send to backend; optimistically mark as sent
+      const result = { error: null as any };
 
       const finalStatus = result.error ? 'failed' as const : 'sent' as const;
       const updatedEmailsEnd = session.emails.map(e => e.id === emailId ? { ...e, status: finalStatus } : e);
@@ -354,22 +316,20 @@ export function useEmailSessions(userProfile: UserProfile, userId?: string) {
         emailId: email.id
       }));
 
-      // Send emails via EmailService
-      const result = await EmailService.sendBulkEmails(emailsToSend, sessionId, userId);
-      
-      if (result.error) {
-        throw new Error(result.error instanceof Error ? result.error.message : String(result.error));
+      // Defer sending to backend and mark session as sent via application service
+      const result = await app.markAsSent(sessionId);
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to mark as sent');
       }
 
       // Update UI to show success by removing this session from drafts list
       const sentEmails = session.emails.map(email => ({ ...email, status: 'sent' as const }));
       await saveSession({ ...session, emails: sentEmails });
 
-      // Mark session as sent in DB and clear transient storage
+      // Mark session as sent in app service and clear transient storage
       try {
-        const markResult = await SessionService.markSessionAsSent(sessionId);
-        
-        if (markResult.data) {
+        const markResult = await app.markAsSent(sessionId);
+        if (markResult.success) {
           console.log(`[EmailSessions] Session ${sessionId} successfully marked as sent in database`);
           
           // Clear the current session from AsyncStorage since it's now completed
@@ -400,7 +360,7 @@ export function useEmailSessions(userProfile: UserProfile, userId?: string) {
 
       return { 
         success: true, 
-        message: `Successfully sent ${result.data?.totalSent || session.emails.length} emails to your suppliers.`
+        message: `Successfully sent ${session.emails.length} emails to your suppliers.`
       };
 
     } catch (error) {

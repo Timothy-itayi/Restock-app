@@ -1,6 +1,6 @@
 import { StyleSheet } from "react-native";
 import { typography } from "../typography";
-import colors from '@/app/theme/colors';
+import colors, { type AppColors } from '@/app/theme/colors';
 
 // Notepad Color Palette with semantic button colors
 // Primary: Industrial Grey (#6C757D)
@@ -9,7 +9,7 @@ import colors from '@/app/theme/colors';
 // Text: Dark grey (#212529)
 // Buttons: Green for progress, Yellow/Brown for edit, Red for delete
 
-export const getRestockSessionsStyles = (t: typeof colors) => StyleSheet.create({
+export const getRestockSessionsStyles = (t: AppColors) => StyleSheet.create({
   // Main container with notepad background
   container: {
     flex: 1,

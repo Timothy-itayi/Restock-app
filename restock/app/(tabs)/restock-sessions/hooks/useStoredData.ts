@@ -1,8 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from "@clerk/clerk-expo";
-import { ProductService } from "../../../../backend/services/products";
-import { SupplierService } from "../../../../backend/services/suppliers";
-import { SecureDataService } from "../../../../backend/services/secure-data";
+// Clean layer: remove direct backend imports
 import { StoredProduct, StoredSupplier, ErrorState, LoadingState } from '../utils/types';
 import { Logger } from '../utils/logger';
 

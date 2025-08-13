@@ -95,7 +95,7 @@ export default function SSOProfileSetupScreen() {
         }
         
         // Don't clear the newSSOSignUp flag here - keep it until profile is actually completed
-        // This ensures AuthContext knows this is a new sign-up throughout the entire setup process
+        // This ensures UnifiedAuthProvider knows this is a new sign-up throughout the entire setup process
         // Quiet flag retention
       } catch (error) {
         // Keep errors in ErrorLogger elsewhere if needed

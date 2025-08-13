@@ -1,28 +1,23 @@
 import React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
-import { RestockSession } from '../utils/types';
 import { getRestockSessionsStyles } from '../../../../styles/components/restock-sessions';
 import { useThemedStyles } from '../../../../styles/useThemedStyles';
 
 interface FinishSectionProps {
-  currentSession: RestockSession | null;
-  showAddProductForm: boolean;
-  showEditProductForm: boolean;
+  session: any | null; // domain session or legacy type
   onFinishSession: () => void;
 }
 
 export const FinishSection: React.FC<FinishSectionProps> = ({
-  currentSession,
-  showAddProductForm,
-  showEditProductForm,
+  session,
   onFinishSession
 }) => {
   const restockSessionsStyles = useThemedStyles(getRestockSessionsStyles);
-  // Only show if we have products and not in form mode
-  if (!currentSession || 
-      currentSession.products.length === 0 || 
-      showAddProductForm || 
-      showEditProductForm) {
+  const productsCount = session && typeof session.toValue === 'function'
+    ? (session.toValue().items?.length || 0)
+    : (session?.products?.length || 0);
+  // Only show if we have products
+  if (!session || productsCount === 0) {
     return null;
   }
 
