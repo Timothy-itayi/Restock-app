@@ -1,5 +1,6 @@
 # Restock - Streamlining Restocking for Independent Retailers
-walk, log, send" flow
+
+> "walk, log, send" flow
 
 ## Main Screens
 | App Icon | Onboard/Auth | Dashboard |
@@ -31,30 +32,35 @@ Restock is a mobile-first app that replicates the clipboard experience but with 
 - Generate and send professional emails in minutes
 - Track past orders and save time every week
 
-## 🏗️ Architectural Evolution: From Functional Services to Clean Hexagonal Architecture
+## Progressive Learning & AI Enhancement
 
-### The Initial Approach: Functional Service Architecture
-Our development journey began with what we initially called a "functional, domain-driven service architecture." This approach featured:
+The app builds a database from the user's own data, learning and remembering product-to-supplier mappings over time:
 
-- **Direct service imports** in React hooks (e.g., `SessionService`, `EmailService`)
-- **Mixed concerns** where business logic lived alongside UI state management
-- **Tight coupling** between frontend components and backend services
-- **Multiple auth systems** creating complexity (UnifiedAuthProvider, AuthContext, ClerkAuthContext)
-- **Inconsistent data access** patterns mixing direct Supabase calls with edge functions
+- Initially, users input products manually as usual
+- Over weeks, the system offers smarter autocomplete suggestions
+- The AI uses this data to generate emails with minimal input from the user
+- Eventually, the process shifts from manual entry toward smart, predictive restocking assistance
 
-**Why it seemed to work initially:**
-- Fast development velocity for MVP features
-- Direct access to services made implementation straightforward
-- Functional composition appeared clean at the component level
+## Core Features
 
-**Where it broke down:**
-- **Testing complexity**: Business logic couldn't be tested without React/Supabase
-- **Maintenance overhead**: Changes in one layer cascaded unpredictably
-- **Scalability issues**: Adding new features required understanding multiple layers
-- **Error handling**: Failures in one service could crash entire UI flows
+### Core Functionality
+- Restock Sessions: Create and manage restocking sessions with real-time product tracking
+- Smart Product Entry: Auto-complete suggestions based on previously used products
+- Supplier Management: Automatic supplier linking and email generation
+- Email Generation: AI-powered email creation grouped by supplier
+- Session History: Track and review past restocking sessions
 
-### The Transition: Recognizing Architectural Debt
-As the codebase grew to 10,000+ lines, we identified critical architectural flaws:
+### User Experience
+- Mobile-First Design: Optimized for on-the-go store walking
+- Minimalistic UI: Clean, distraction-free interface following user preferences
+- One-Task-Per-Screen: Mental simplicity with focused workflows
+- Smart Suggestions: Progressive learning system for faster data entry
+
+## Technical Architecture
+
+### Clean Hexagonal Architecture Implementation
+
+Our development journey began with a functional service architecture that worked for initial development but created significant technical debt as the codebase grew to 10,000+ lines. We identified critical architectural flaws:
 
 1. **Violation of Single Responsibility**: React contexts handling business logic
 2. **Dependency Inversion Violations**: UI directly importing concrete service implementations
@@ -62,28 +68,29 @@ As the codebase grew to 10,000+ lines, we identified critical architectural flaw
 4. **Context Pollution**: Business rules scattered across React state management
 
 ### The Solution: Clean Hexagonal Architecture
+
 We refactored to a clean hexagonal architecture following dependency inversion principles:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                    RESTOCK APP - HEXAGONAL ARCHITECTURE        │
 ├─────────────────────────────────────────────────────────────────┤
-│ 🎯 DOMAIN LAYER ✅ COMPLETED                                    │
+│ DOMAIN LAYER (╯°□°）╯ COMPLETED                                │
 │ ├── Pure business logic & invariants                           │
 │ ├── No external dependencies                                   │
 │ └── Repository interfaces (contracts only)                     │
 ├─────────────────────────────────────────────────────────────────┤
-│ 🔧 APPLICATION LAYER ✅ COMPLETED                               │
+│ APPLICATION LAYER (╯°□°）╯ COMPLETED                           │
 │ ├── Use cases orchestrate domain + infrastructure             │
 │ ├── Clean interface for UI layer                              │
 │ └── Single responsibility per operation                       │
 ├─────────────────────────────────────────────────────────────────┤
-│ 🔌 INFRASTRUCTURE LAYER ✅ COMPLETED                           │
+│ INFRASTRUCTURE LAYER (╯°□°）╯ COMPLETED                        │
 │ ├── Repository implementations (Supabase)                     │
 │ ├── External service adapters (Clerk, GROQ)                  │
 │ └── Dependency injection container                            │
 ├─────────────────────────────────────────────────────────────────┤
-│ 🎨 UI LAYER ✅ COMPLETED                                       │
+│ UI LAYER (╯°□°）╯ COMPLETED                                    │
 │ ├── React hooks with dependency injection                     │
 │ ├── No direct service imports                                 │
 │ └── Clean separation of concerns                              │
@@ -92,22 +99,22 @@ We refactored to a clean hexagonal architecture following dependency inversion p
 
 ### Key Benefits Achieved
 
-**✅ Testability**
+**Testability** (╯°□°）╯
 - Domain logic testable without React/Supabase (27/27 tests passing)
 - Use cases testable in isolation
 - Mock interfaces instead of concrete services
 
-**✅ Flexibility**
+**Flexibility** (╯°□°）╯
 - Swap Supabase for different database without changing domain/application
 - Replace GROQ with OpenAI without affecting business logic
 - Change from Clerk to different auth provider
 
-**✅ Maintainability**
+**Maintainability** (╯°□°）╯
 - Clear boundaries between layers
 - Business logic separated from infrastructure
 - Single responsibility per use case
 
-**✅ Production Readiness**
+**Production Readiness** (╯°□°）╯
 - Error boundaries handling failures gracefully
 - Service health monitoring
 - Comprehensive logging and error handling
@@ -123,130 +130,126 @@ This architectural evolution represents a significant investment in code quality
 
 ## Development Progress
 
-### Current Status: **Clean Architecture Implementation Complete - Production Ready**
+### Current Status: Clean Architecture Implementation Complete - Production Ready
 
-**✅ COMPLETED PHASES**
+**COMPLETED PHASES** (╯°□°）╯
 
-- [x] **🏗️ Core Infrastructure**
-  - React Native + Expo Router with TypeScript implementation
-  - File-based routing with 4-tab navigation architecture
-  - Complete Supabase database schema (6 tables with full relationships)
-  - Comprehensive backend services layer (10+ services)
-  - Production-grade authentication system using Clerk
+**Core Infrastructure**
+- React Native + Expo Router with TypeScript implementation
+- File-based routing with 4-tab navigation architecture
+- Complete Supabase database schema (6 tables with full relationships)
+- Comprehensive backend services layer (10+ services)
+- Production-grade authentication system using Clerk
 
-- [x] **🔐 Authentication & Security**
-  - Multi-provider authentication (email/password, Google SSO)
-  - Email verification flow with password strength validation
-  - Protected routes with session management
-  - OAuth flow optimization with race condition fixes
-  - User profile service with real-time data integration
+**Authentication & Security**
+- Multi-provider authentication (email/password, Google SSO)
+- Email verification flow with password strength validation
+- Protected routes with session management
+- OAuth flow optimization with race condition fixes
+- User profile service with real-time data integration
 
-- [x] **🤖 AI Integration**
-  - GROQ API integration for fast, cost-effective email generation
-  - Context-aware LLM prompts using authenticated user data
-  - Professional email templates with dynamic personalization
-  - Fallback email system for AI unavailability
-  - Email regeneration with proper context passing
+**AI Integration**
+- GROQ API integration for fast, cost-effective email generation
+- Context-aware LLM prompts using authenticated user data
+- Professional email templates with dynamic personalization
+- Fallback email system for AI unavailability
+- Email regeneration with proper context passing
 
-- [x] **📊 Data Management**
-  - Complete CRUD operations for all entities
-  - Real-time dashboard with Supabase integration
-  - Session management with 20+ methods
-  - Product/supplier autocomplete and validation
-  - Email tracking and delivery status monitoring
-  - Lightweight ReminderService for pattern mining, ranking, and repeat-avoidance via `lastShownAt`
+**Data Management**
+- Complete CRUD operations for all entities
+- Real-time dashboard with Supabase integration
+- Session management with 20+ methods
+- Product/supplier autocomplete and validation
+- Email tracking and delivery status monitoring
+- Lightweight ReminderService for pattern mining, ranking, and repeat-avoidance via `lastShownAt`
 
-- [x] **🎨 UI/UX Implementation**
-  - Mobile-first design with sage green theme
-  - Custom notification system with animations
-  - Form validation and error handling
-  - Email editing interface with visual feedback
-  - Empty state handling and pull-to-refresh functionality
-  - Loading skeletons and smooth transitions
-  - Smart reminder banner on Dashboard (personalized repeat-order nudges)
-  - Finished Sessions → "Repeat order" with quick tweak presets (e.g., +10%)
-  - In-session hint to add items from the last supplier order
+**UI/UX Implementation**
+- Mobile-first design with sage green theme
+- Custom notification system with animations
+- Form validation and error handling
+- Email editing interface with visual feedback
+- Empty state handling and pull-to-refresh functionality
+- Loading skeletons and smooth transitions
+- Smart reminder banner on Dashboard (personalized repeat-order nudges)
+- Finished Sessions → "Repeat order" with quick tweak presets (e.g., +10%)
+- In-session hint to add items from the last supplier order
 
-- [x] **🏗️ Clean Architecture Implementation**
-  - **Domain Layer**: 100% Complete - Pure business logic with 85 comprehensive tests
-  - **Application Layer**: 100% Complete - Use cases orchestrating domain operations
-  - **Infrastructure Layer**: 100% Complete - Repository implementations and DI container
-  - **UI Layer**: 95% Complete - All main tabs using clean architecture with dependency injection
+**Clean Architecture Implementation**
+- **Domain Layer**: 100% Complete - Pure business logic with 85 comprehensive tests
+- **Application Layer**: 100% Complete - Use cases orchestrating domain operations
+- **Infrastructure Layer**: 100% Complete - Repository implementations and DI container
+- **UI Layer**: 95% Complete - All main tabs using clean architecture with dependency injection
 
-- [x] **🧪 Quality Assurance & Testing**
-  - **Domain Tests**: 85/85 tests passing (100% business rule coverage)
-  - **Integration Tests**: Runtime validation tests passing (17/17)
-  - **Test Infrastructure**: Jest + React Native Testing Library with comprehensive setup
-  - **TypeScript**: Strict mode with full type safety and comprehensive interfaces
-  - **Code Coverage**: Domain entities fully tested with edge case coverage
+**Quality Assurance & Testing**
+- **Domain Tests**: 85/85 tests passing (100% business rule coverage)
+- **Integration Tests**: Runtime validation tests passing (17/17)
+- **Test Infrastructure**: Jest + React Native Testing Library with comprehensive setup
+- **TypeScript**: Strict mode with full type safety and comprehensive interfaces
+- **Code Coverage**: Domain entities fully tested with edge case coverage
 
-**🔄 RECENTLY COMPLETED**
+**RECENTLY COMPLETED** (╯°□°）╯
 
-- [x] **📧 Email Delivery System**
-  - Resend integration for actual email sending
-  - Email delivery tracking and status updates
-  - Bounce handling and retry mechanisms
-  - Production-ready edge functions deployment
+**Email Delivery System**
+- Resend integration for actual email sending
+- Email delivery tracking and status updates
+- Bounce handling and retry mechanisms
+- Production-ready edge functions deployment
 
-- [x] **🔒 Security Hardening**
-  - Row Level Security (RLS) policies implementation
-  - Data encryption and privacy compliance
-  - Rate limiting and abuse prevention
-  - Audit logging and monitoring
-  - Complete database security with user isolation
+**Security Hardening**
+- Row Level Security (RLS) policies implementation
+- Data encryption and privacy compliance
+- Rate limiting and abuse prevention
+- Audit logging and monitoring
+- Complete database security with user isolation
 
-- [x] **⚡ Performance Optimization**
-  - Fixed dashboard data inconsistency and "wigging out" issues
-  - Optimized authentication guards with throttling and memoization
-  - Reduced auth effect triggers by 80%+ for smoother performance
-  - Consolidated data services for consistent API behavior
+**Performance Optimization**
+- Fixed dashboard data inconsistency and "wigging out" issues
+- Optimized authentication guards with throttling and memoization
+- Reduced auth effect triggers by 80%+ for smoother performance
+- Consolidated data services for consistent API behavior
 
-- [ ] **🧠 AI Feedback Loop & Supplier Preferences**
-  - Capture edits/ratings on generated emails with “Apply next time” option
-  - Persist per-supplier preferences (tone, brevity, urgency, custom instructions)
-  - Use preferences and `supplierHistory` in `backend/services/ai/email-generator.ts`
-  - Add `supplier_preferences` and `email_feedback` tables in Supabase
-  - One-tap follow-up generator for unacknowledged orders (concise ETA requests)
+**IN PROGRESS** (；￣Д￣）
 
-**📋 PENDING PHASES**
+**AI Feedback Loop & Supplier Preferences**
+- Capture edits/ratings on generated emails with "Apply next time" option
+- Persist per-supplier preferences (tone, brevity, urgency, custom instructions)
+- Use preferences and `supplierHistory` in `backend/services/ai/email-generator.ts`
+- Add `supplier_preferences` and `email_feedback` tables in Supabase
+- One-tap follow-up generator for unacknowledged orders (concise ETA requests)
 
-- [ ] **🚀 Production Deployment**
-  - Environment configuration and app store preparation
-  - CI/CD pipeline setup
-  - Performance optimization and monitoring
-  - App store submission and review process
+**PENDING PHASES** (︶︹︺)
 
-- [ ] **📱 Mobile App Store Release**
-  - iOS App Store submission
-  - Google Play Store submission
-  - Beta testing and user feedback collection
-  - App store optimization (ASO)
+**Production Deployment**
+- Environment configuration and app store preparation
+- CI/CD pipeline setup
+- Performance optimization and monitoring
+- App store submission and review process
 
-- [ ] **🔄 Data Migration**
-  - Transition from AsyncStorage to full Supabase integration
-  - Data migration scripts and validation
-  - Backup and recovery procedures
-  - Performance optimization for large datasets
+**Mobile App Store Release**
+- iOS App Store submission
+- Google Play Store submission
+- Beta testing and user feedback collection
+- App store optimization (ASO)
 
-- [ ] **📊 Analytics & Monitoring**
-  - User analytics and usage tracking
-  - Performance monitoring and alerting
-  - Error tracking and crash reporting
-  - Business metrics dashboard
+**Data Migration**
+- Transition from AsyncStorage to full Supabase integration
+- Data migration scripts and validation
+- Backup and recovery procedures
+- Performance optimization for large datasets
 
-- [ ] **🧪 Test Suite Completion**
-  - Fix remaining TypeScript issues in infrastructure tests
-  - Complete UI layer test coverage
-  - Add performance and stress testing
-  - Achieve 90%+ overall test coverage
+**Analytics & Monitoring**
+- User analytics and usage tracking
+- Performance monitoring and alerting
+- Error tracking and crash reporting
+- Business metrics dashboard
 
-### Technical Architecture
+**Test Suite Completion**
+- Fix remaining TypeScript issues in infrastructure tests
+- Complete UI layer test coverage
+- Add performance and stress testing
+- Achieve 90%+ overall test coverage
 
-**🏗️ Clean Hexagonal Architecture**
-- **Domain Layer**: Pure business logic with no external dependencies
-- **Application Layer**: Use cases orchestrating domain operations
-- **Infrastructure Layer**: Repository implementations and external service adapters
-- **UI Layer**: React hooks with dependency injection, no direct service imports
+## Technical Stack
 
 **Frontend Stack**
 - React Native with Expo SDK 53
@@ -267,7 +270,7 @@ This architectural evolution represents a significant investment in code quality
 - Path aliases for clean imports
 - Comprehensive test coverage with domain layer isolation
 
-### Database Schema
+## Database Schema
 - **Users**: Authentication and profile management
 - **Products**: User's restock items with supplier defaults
 - **Suppliers**: Contact information for ordering
@@ -275,7 +278,7 @@ This architectural evolution represents a significant investment in code quality
 - **Restock Items**: Products and quantities per session
 - **Emails Sent**: Email tracking and delivery status
 
-### Key Metrics
+## Key Metrics
 - **25+ reusable components** built following single responsibility principles
 - **6 database tables** with full relationships and RLS security
 - **Complete authentication flows** with OAuth support and optimization
@@ -287,49 +290,21 @@ This architectural evolution represents a significant investment in code quality
 - **95% UI layer conversion** to clean architecture - minimal direct service imports
 - **Comprehensive test infrastructure** with Jest + React Native Testing Library
 
-## Progressive Learning & AI Enhancement
-
-The app builds a database from the user's own data, learning and remembering product-to-supplier mappings over time:
-
-- Initially, users input products manually as usual
-- Over weeks, the system offers smarter autocomplete suggestions
-- The AI uses this data to generate emails with minimal input from the user
-- Eventually, the process shifts from manual entry toward smart, predictive restocking assistance
-
-## Features
-
-### Core Functionality
-- Restock Sessions: Create and manage restocking sessions with real-time product tracking
-- Smart Product Entry: Auto-complete suggestions based on previously used products
-- Supplier Management: Automatic supplier linking and email generation
-- Email Generation: AI-powered email creation grouped by supplier
-- Session History: Track and review past restocking sessions
-
-### User Experience
-- Mobile-First Design: Optimized for on-the-go store walking
-- Minimalistic UI: Clean, distraction-free interface following user preferences
-- One-Task-Per-Screen: Mental simplicity with focused workflows
-- Smart Suggestions: Progressive learning system for faster data entry
-
----
-
-**Status**: 🚧 Active Development - 95% Complete
-
-## 🧪 Testing & Quality Assurance
+## Testing & Quality Assurance
 
 ### Test Coverage Status
-- **Domain Layer**: ✅ 100% Complete (85/85 tests passing)
+- **Domain Layer**: 100% Complete (85/85 tests passing)
   - RestockSession: 33/33 tests passing
   - Product: 25/25 tests passing  
   - RestockSessionActual: 27/27 tests passing
-- **Infrastructure Layer**: 🚧 85% Complete (TypeScript issues blocking execution)
+- **Infrastructure Layer**: 85% Complete (TypeScript issues blocking execution)
   - DI Container: Core functionality implemented, tests need TypeScript fixes
   - Service Registry: Core functionality implemented, tests need TypeScript fixes
-- **Application Layer**: 🚧 90% Complete (TypeScript issues blocking execution)
+- **Application Layer**: 90% Complete (TypeScript issues blocking execution)
   - Use cases implemented, tests need TypeScript fixes
-- **UI Layer**: 🚧 80% Complete (Core functionality working, tests need completion)
+- **UI Layer**: 80% Complete (Core functionality working, tests need TypeScript fixes)
   - Hooks using clean architecture, tests need TypeScript fixes
-- **Integration Tests**: ✅ 100% Complete (17/17 tests passing)
+- **Integration Tests**: 100% Complete (17/17 tests passing)
   - Runtime validation tests passing
   - Full stack integration tests need TypeScript fixes
 
@@ -340,7 +315,10 @@ The app builds a database from the user's own data, learning and remembering pro
 - **Mock System**: Comprehensive mocking for external dependencies
 - **CI/CD Ready**: Tests can run in automated environments
 
+---
 
-The main application code is located in the `restock/` directory. This is a mobile-first application designed for inventory management workflows.
+**Status**: Active Development - 95% Complete
+
+> Still a work in progress...
 
 
