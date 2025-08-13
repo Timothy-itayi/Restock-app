@@ -11,6 +11,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import '../global.css';
 import { BaseLoadingScreen } from './components/loading/BaseLoadingScreen';
 import { SessionManager } from '../backend/services/session-manager';
+import { registerServices, initializeServices } from './infrastructure/di/ServiceRegistry';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -37,6 +38,7 @@ const createTokenCache = () => {
 
 export default function RootLayout() {
   const [showFirstRunSplash, setShowFirstRunSplash] = useState(false);
+  const [servicesReady, setServicesReady] = useState(false);
   const [loaded, error] = useFonts({
     'Satoshi-Black': require('../assets/fonts/Satoshi/Satoshi-Black.otf'),
     'Satoshi-BlackItalic': require('../assets/fonts/Satoshi/Satoshi-BlackItalic.otf'),
@@ -59,6 +61,28 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [loaded]);
+
+  // Initialize dependency injection services
+  useEffect(() => {
+    const initializeApp = async () => {
+      try {
+        console.log('[RootLayout] Registering services...');
+        registerServices();
+        
+        console.log('[RootLayout] Initializing services...');
+        await initializeServices();
+        
+        console.log('[RootLayout] ✅ Services ready');
+        setServicesReady(true);
+      } catch (error) {
+        console.error('[RootLayout] ❌ Failed to initialize services:', error);
+        // Continue anyway - app can work without some services
+        setServicesReady(true);
+      }
+    };
+
+    initializeApp();
+  }, []);
 
   // First-run splash overlay that reveals auth cleanly
   useEffect(() => {
@@ -89,7 +113,7 @@ export default function RootLayout() {
         console.log("Root layout: OAuth deep link detected, waiting for session hydration");
         
         // Instead of a fixed delay, wait for Clerk to signal session is ready
-        // This will be handled by the AuthContext which listens to Clerk's state changes
+        // This will be handled by the UnifiedAuthProvider which listens to Clerk's state changes
       }
     };
 
@@ -107,7 +131,7 @@ export default function RootLayout() {
     return () => subscription.remove();
   }, []);
 
-  if (!loaded) {
+  if (!loaded || !servicesReady) {
     return null;
   }
 

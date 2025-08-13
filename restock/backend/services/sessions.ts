@@ -1,4 +1,5 @@
 import { supabase, TABLES, SESSION_STATUS } from '../config/supabase';
+import { UserContextService } from './user-context';
 import type { 
   RestockSession, 
   RestockItem, 
@@ -19,14 +20,17 @@ export class SessionService {
    */
   static async getUserSessions(userId: string) {
     try {
-      const { data, error } = await supabase
-        .from(TABLES.RESTOCK_SESSIONS)
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+      return await UserContextService.withUserContext(userId, async () => {
+        const { data, error } = await supabase
+          .from(TABLES.RESTOCK_SESSIONS)
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false });
 
-      return { data, error };
+        return { data, error };
+      });
     } catch (error) {
+      console.error('[SessionService] Error getting user sessions', { error, userId });
       return { data: null, error };
     }
   }
@@ -67,7 +71,19 @@ export class SessionService {
    * Create a new restock session
    */
   static async createSession(session: InsertRestockSession) {
+    if (!session.user_id) {
+      return { data: null, error: new Error('User ID is required to create a session') };
+    }
+
     try {
+      // Try to set user context if the RPC function exists
+      try {
+        await supabase.rpc('set_current_user_id', { user_id: session.user_id });
+        console.log('[SessionService] User context set successfully');
+      } catch (contextError) {
+        console.log('[SessionService] User context setting failed, trying direct insert:', contextError.message);
+      }
+
       const { data, error } = await supabase
         .from(TABLES.RESTOCK_SESSIONS)
         .insert(session)
@@ -76,6 +92,7 @@ export class SessionService {
 
       return { data, error };
     } catch (error) {
+      console.error('[SessionService] Error creating session', { error, userId: session.user_id });
       return { data: null, error };
     }
   }
@@ -83,17 +100,32 @@ export class SessionService {
   /**
    * Update session status
    */
-  static async updateSession(sessionId: string, updates: UpdateRestockSession) {
+  static async updateSession(sessionId: string, updates: UpdateRestockSession, userId?: string) {
     try {
-      const { data, error } = await supabase
-        .from(TABLES.RESTOCK_SESSIONS)
-        .update(updates)
-        .eq('id', sessionId)
-        .select()
-        .single();
+      // If userId is provided, set context; otherwise assume context is already set
+      if (userId) {
+        return await UserContextService.withUserContext(userId, async () => {
+          const { data, error } = await supabase
+            .from(TABLES.RESTOCK_SESSIONS)
+            .update(updates)
+            .eq('id', sessionId)
+            .select()
+            .single();
 
-      return { data, error };
+          return { data, error };
+        });
+      } else {
+        const { data, error } = await supabase
+          .from(TABLES.RESTOCK_SESSIONS)
+          .update(updates)
+          .eq('id', sessionId)
+          .select()
+          .single();
+
+        return { data, error };
+      }
     } catch (error) {
+      console.error('[SessionService] Error updating session', { error, sessionId, userId });
       return { data: null, error };
     }
   }

@@ -86,9 +86,9 @@ export default function AuthIndexScreen() {
           console.log('✅ OAuth session activated');
         }
         
-        // Don't set recentSignIn flag for new SSO sign-ups to avoid AuthContext interference
+        // Don't set recentSignIn flag for new SSO sign-ups to avoid UnifiedAuthProvider interference
         // The profile setup will handle authentication state appropriately
-        console.log('⏳ Skipping recentSignIn flag for new SSO sign-up to prevent AuthContext interference');
+        console.log('⏳ Skipping recentSignIn flag for new SSO sign-up to prevent UnifiedAuthProvider interference');
         
       } else {
         console.log('OAuth result was not successful:', result.authSessionResult);
@@ -117,7 +117,7 @@ export default function AuthIndexScreen() {
     console.log('🔍 Auth Index: Welcome complete, transitioning to complete');
     setAuthFlowState('complete');
     // Don't clear the newSSOSignUp flag here - let the profile setup screen clear it
-    // This ensures AuthContext knows this is a new sign-up during any timing conflicts
+            // This ensures UnifiedAuthProvider knows this is a new sign-up during any timing conflicts
     
     // Navigate to SSO profile setup with a small delay to ensure navigation is ready
     console.log('🚀 Navigating to SSO profile setup');

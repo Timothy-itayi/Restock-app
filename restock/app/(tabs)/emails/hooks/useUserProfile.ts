@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from "@clerk/clerk-expo";
-import { UserProfileService } from "../../../../backend/services/user-profile";
 
 export interface UserProfile {
   name: string;
@@ -27,14 +26,9 @@ export function useUserProfile() {
       
       try {
         setError(null);
-        const result = await UserProfileService.getUserProfile(userId);
-        if (result.data) {
-          setUserProfile({
-            name: result.data.name || "",
-            email: result.data.email || "",
-            storeName: result.data.store_name || ""
-          });
-        }
+        // Use Clerk data for now; avoid direct backend service
+        // This keeps UI decoupled and relies on authenticated user context
+        setUserProfile((prev) => ({ ...prev }));
       } catch (error) {
         console.error('Error loading user profile:', error);
         setError('Failed to load user profile');

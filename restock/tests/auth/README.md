@@ -46,8 +46,8 @@ This directory contains all authentication-related tests for the Restock app, in
 - Store name setup validation
 
 ### 4. **Authentication Context**
-- AuthContext state management
-- SSOAuthContext state management
+- UnifiedAuthProvider state management
+- Authentication flow management
 - User session management
 - Authentication state persistence
 

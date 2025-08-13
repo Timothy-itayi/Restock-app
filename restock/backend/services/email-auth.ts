@@ -81,7 +81,7 @@ export class EmailAuthService {
         
         console.log('📧 EmailAuthService: Session saved, triggering auth check');
         
-        // Trigger the AuthContext to check for recent sign-ins
+         // Trigger the UnifiedAuthProvider to check for recent sign-ins
         triggerAuthCheck();
         
         console.log('📧 EmailAuthService: Email sign-in flow completed successfully');

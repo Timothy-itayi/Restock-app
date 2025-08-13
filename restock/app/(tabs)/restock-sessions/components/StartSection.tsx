@@ -1,21 +1,22 @@
 import React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
-import { RestockSession } from '../utils/types';
 import { getRestockSessionsStyles } from '../../../../styles/components/restock-sessions';
 import { useThemedStyles } from '../../../../styles/useThemedStyles';
 
 interface StartSectionProps {
-  allSessions: RestockSession[];
+  hasExistingSessions: boolean;
   onStartNewSession: () => void;
   onShowSessionSelection: () => void;
   onPromptNewSession?: () => void;
+  isLoading?: boolean;
 }
 
 export const StartSection: React.FC<StartSectionProps> = ({
-  allSessions,
+  hasExistingSessions,
   onStartNewSession,
   onShowSessionSelection,
-  onPromptNewSession
+  onPromptNewSession,
+  isLoading
 }) => {
   const restockSessionsStyles = useThemedStyles(getRestockSessionsStyles);
   return (
@@ -26,13 +27,13 @@ export const StartSection: React.FC<StartSectionProps> = ({
         Each product will be organized by supplier for easy email generation.
       </Text>
       
-      {allSessions.length > 0 && (
+      {hasExistingSessions && (
         <TouchableOpacity 
           style={restockSessionsStyles.existingSessionsButton}
           onPress={onShowSessionSelection}
         >
           <Text style={restockSessionsStyles.existingSessionsButtonText}>
-            Continue Existing Session ({allSessions.length})
+            Continue Existing Session
           </Text>
         </TouchableOpacity>
       )}
@@ -43,7 +44,7 @@ export const StartSection: React.FC<StartSectionProps> = ({
         accessibilityLabel="Create a new restock session"
         accessibilityHint="Opens a dialog to name your session before starting"
       >
-        <Text style={restockSessionsStyles.startButtonText}>Start New Restock</Text>
+        <Text style={restockSessionsStyles.startButtonText}>{isLoading ? 'Starting...' : 'Start New Restock'}</Text>
       </TouchableOpacity>
     </View>
   );

@@ -3,9 +3,9 @@ import { ScrollView, RefreshControl, DeviceEventEmitter } from "react-native";
 import { getDashboardStyles } from "../../../styles/components/dashboard";
 import { useThemedStyles } from "../../../styles/useThemedStyles";
 import { useAuth } from "@clerk/clerk-expo";
-import { SessionService } from "../../../backend/services/sessions";
 import { useFocusEffect } from "expo-router";
 import { useUnifiedAuth } from "../../_contexts/UnifiedAuthProvider";
+import { useDashboardData } from "./hooks/useDashboardData";
 import useProfileStore from "../../stores/useProfileStore";
 import { 
   WelcomeSection, 
@@ -51,12 +51,8 @@ export default function DashboardScreen() {
   // Use themed styles
   const dashboardStyles = useThemedStyles(getDashboardStyles);
   
-  const [unfinishedSessions, setUnfinishedSessions] = useState<UnfinishedSession[]>([]);
-  const [finishedSessions, setFinishedSessions] = useState<any[]>([]);
-  const [sessionsLoading, setSessionsLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [displayStartTime] = useState(Date.now());
-  const [lastRefreshTime, setLastRefreshTime] = useState<number>(0);
+  const { unfinishedSessions, finishedSessions, sessionsLoading, refreshing, onRefresh } = useDashboardData();
 
 
   // Component display logging
@@ -79,178 +75,7 @@ export default function DashboardScreen() {
     };
   }, [displayStartTime, userId, isSignedIn, authReady, isAuthenticated, authType]);
 
-  useEffect(() => {
-    console.log('📺 Dashboard: Data fetch effect triggered', {
-      userId: !!userId,
-      isSignedIn,
-      authReady,
-      isAuthenticated,
-      authType,
-      needsProfileSetup: authType?.needsProfileSetup,
-      timestamp: Date.now()
-    });
-
-    // Only fetch data when auth is fully settled and user doesn't need profile setup
-    if (!authReady) {
-      console.log('📺 Dashboard: Auth not ready yet, waiting...');
-      return;
-    }
-
-    if (!isAuthenticated || !userId) {
-      console.log('📺 Dashboard: User not authenticated or no userId, setting sessions loading to false');
-      setSessionsLoading(false);
-      return;
-    }
-
-    if (authType?.needsProfileSetup) {
-      console.log('📺 Dashboard: User needs profile setup, not fetching data yet');
-      return;
-    }
-
-    console.log('📺 Dashboard: All conditions met, starting sessions fetch');
-
-    const fetchSessions = async () => {
-      console.log('📺 Dashboard: Fetching sessions via SessionService...');
-      try {
-        // Use only SessionService for consistent data
-        const [unfinishedResult, finishedResult] = await Promise.all([
-          SessionService.getUnfinishedSessions(userId),
-          SessionService.getFinishedSessions(userId)
-        ]);
-        
-        console.log('📺 Dashboard: Initial fetch results', {
-          unfinishedCount: unfinishedResult.data?.length || 0,
-          finishedCount: finishedResult.data?.length || 0,
-          unfinishedError: unfinishedResult.error,
-          finishedError: finishedResult.error
-        });
-        
-        if (unfinishedResult.data) {
-          setUnfinishedSessions(unfinishedResult.data);
-        }
-        
-        if (finishedResult.data) {
-          setFinishedSessions(finishedResult.data);
-        }
-        
-        setLastRefreshTime(Date.now());
-      } catch (error) {
-        console.error('❌ Dashboard: Error fetching sessions:', error);
-      } finally {
-        console.log('📺 Dashboard: Sessions fetch complete');
-        setSessionsLoading(false);
-      }
-    };
-
-    fetchSessions();
-  }, [userId, isSignedIn, authReady, isAuthenticated, authType]);
-
-  // Fallback timeout to prevent infinite loading for sessions
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (sessionsLoading) {
-        console.log('Dashboard: Fallback timeout - setting sessionsLoading to false');
-        setSessionsLoading(false);
-      }
-    }, 3000); // 3 second timeout
-    
-    return () => clearTimeout(timer);
-  }, [sessionsLoading]);
-
-  // Refresh data when user returns to dashboard (with throttling)
-  useFocusEffect(
-    React.useCallback(() => {
-      if (userId && authReady && isAuthenticated && !authType?.needsProfileSetup) {
-        const now = Date.now();
-        const timeSinceLastRefresh = now - lastRefreshTime;
-        const THROTTLE_TIME = 2000; // 2 seconds throttle
-        
-        // Skip refresh if too soon after last refresh
-        if (timeSinceLastRefresh < THROTTLE_TIME) {
-          console.log('📊 Dashboard: Skipping refresh - too soon after last refresh', {
-            timeSinceLastRefresh,
-            throttleTime: THROTTLE_TIME
-          });
-          return;
-        }
-        
-        const refreshData = async () => {
-          try {
-            console.log('📊 Dashboard: Starting data refresh...');
-            const [unfinishedResult, finishedResult] = await Promise.all([
-              SessionService.getUnfinishedSessions(userId),
-              SessionService.getFinishedSessions(userId)
-            ]);
-            
-            console.log('📊 Dashboard: Refresh results', {
-              unfinishedCount: unfinishedResult.data?.length || 0,
-              finishedCount: finishedResult.data?.length || 0,
-              unfinishedError: unfinishedResult.error,
-              finishedError: finishedResult.error
-            });
-            
-            if (unfinishedResult.data) {
-              setUnfinishedSessions(unfinishedResult.data);
-            }
-            
-            if (finishedResult.data) {
-              setFinishedSessions(finishedResult.data);
-            }
-            
-            setLastRefreshTime(Date.now());
-          } catch (error) {
-            console.error('Error refreshing dashboard sessions data:', error);
-          }
-        };
-        
-        refreshData();
-
-        // Subscribe to session-sent events to refresh finished sessions immediately
-        const sub = DeviceEventEmitter.addListener('restock:sessionSent', (eventData) => {
-          console.log('📊 Dashboard: Received session sent event', eventData);
-          
-          // Add delay to ensure database transaction is committed
-          setTimeout(() => {
-            console.log('📊 Dashboard: Refreshing data after session sent event');
-            refreshData();
-          }, 1000); // Further increased delay for individual email completion reliability
-        });
-
-        return () => {
-          sub.remove();
-        };
-      }
-    }, [userId, authReady, isAuthenticated, authType?.needsProfileSetup, lastRefreshTime])
-  );
-
-  const onRefresh = async () => {
-    if (!userId) {
-      console.error('Cannot refresh: userId is null or undefined');
-      return;
-    }
-    
-    setRefreshing(true);
-    try {
-      const [unfinishedResult, finishedResult] = await Promise.all([
-        SessionService.getUnfinishedSessions(userId),
-        SessionService.getFinishedSessions(userId)
-      ]);
-      
-      if (unfinishedResult.data) {
-        setUnfinishedSessions(unfinishedResult.data);
-      }
-      
-      if (finishedResult.data) {
-        setFinishedSessions(finishedResult.data);
-      }
-      
-      setLastRefreshTime(Date.now());
-    } catch (error) {
-      console.error('Error during refresh:', error);
-    } finally {
-      setRefreshing(false);
-    }
-  };
+  // data fetching and refresh now handled by useDashboardData
 
   return (
     <ScrollView 

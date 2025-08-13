@@ -1,7 +1,7 @@
 import { StyleSheet } from "react-native";
-import colors from '@/app/theme/colors';
+import colors, { type AppColors } from '@/app/theme/colors';
 
-export const getEmailsStyles = (t: typeof colors) => StyleSheet.create({
+export const getEmailsStyles = (t: AppColors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: t.neutral.lighter, // Warm paper background like restock sessions

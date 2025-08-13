@@ -7,8 +7,20 @@ export { default as UnifiedAuthGuard } from './UnifiedAuthGuard';
 export { default as AuthLayout } from './AuthLayout';
 export { default as FullScreenLoader } from './FullScreenLoader';
 export { default as NameSessionModal } from './NameSessionModal';
-
 export { default as SignOutButton } from './SignOutButton';
+
+// Error boundary components
+export { 
+  ErrorBoundary, 
+  useErrorHandler, 
+  withErrorBoundary 
+} from './ErrorBoundary';
+export { 
+  HookErrorBoundary, 
+  useAsyncError, 
+  usePromiseRejectionHandler, 
+  useSafeAsync 
+} from './HookErrorBoundary';
 
 // Loading transition components
 export * from './loading';

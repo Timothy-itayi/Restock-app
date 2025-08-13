@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { SessionService } from '../../../../backend/services/sessions';
-import { EmailService } from '../../../../backend/services/emails';
-import { SecureDataService } from '../../../../backend/services/secure-data';
 import { useFocusEffect } from 'expo-router';
+import { useRestockApplicationService } from '../../restock-sessions/hooks/useService';
 
 interface HistoryItem {
   id: string;
@@ -25,89 +23,29 @@ export const HistorySection: React.FC<HistorySectionProps> = ({ userId }) => {
   const [activeTab, setActiveTab] = useState<'sessions' | 'emails'>('sessions');
   const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const app = useRestockApplicationService();
 
   const loadHistory = async () => {
     if (!userId) return;
     
     setLoading(true);
     try {
-      console.log('📋 HistorySection: Loading history via SecureDataService');
-      
-      // Try to get all user data via SecureDataService
-      const secureDataResult = await SecureDataService.getUserData(userId, 'all', true);
-      
       const items: HistoryItem[] = [];
-      let allSessions: any[] = [];
-      let emailsData: any[] = [];
-      
-      if (secureDataResult.error) {
-        console.warn('📋 HistorySection: SecureDataService failed, falling back to individual services');
-        
-        // Fallback to original services
-        const [allSessionsResult, finishedSessionsResult, emailsResult] = await Promise.all([
-          SessionService.getUserSessions(userId),
-          SessionService.getFinishedSessions(userId),
-          EmailService.getUserEmails(userId)
-        ]);
-
-        // Add all sessions to history (both active and completed)
-        allSessions = [
-          ...(allSessionsResult.data || []),
-          ...(finishedSessionsResult.data || [])
-        ];
-        
-        emailsData = emailsResult.data || [];
-      } else {
-        console.log('📋 HistorySection: SecureDataService success, using secure data');
-        
-        // Use secure data results
-        const sessions = secureDataResult.data?.sessions;
-        allSessions = [
-          ...(sessions?.unfinished || []),
-          ...(sessions?.finished || [])
-        ];
-        
-        // Still need EmailService for emails
-        const emailsResult = await EmailService.getUserEmails(userId);
-        emailsData = emailsResult.data || [];
-      }
-      
-      // Deduplicate sessions by ID
-      const uniqueSessions = allSessions.reduce((acc: any[], session: any) => {
-        if (!acc.find(s => s.id === session.id)) {
-          acc.push(session);
-        }
-        return acc;
-      }, []);
-
-      uniqueSessions.forEach((session: any) => {
-        const created = new Date(session.created_at || session.createdAt);
-        const readableDate = created.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        const sessionName = session.name || `Session • ${readableDate}`;
-        items.push({
-          id: session.id,
-          type: 'session',
-          title: sessionName,
-          date: new Date(session.created_at || session.createdAt),
-          status: session.status || 'completed',
-          details: `${session.total_items || session.totalItems || 0} items, ${session.unique_suppliers || session.uniqueSuppliers || 0} suppliers`,
-          metadata: session
-        });
-      });
-
-      // Add emails to history
-      if (emailsResult.data) {
-        emailsResult.data.forEach((email: any) => {
-          const supplierName = email.suppliers?.name || email.supplier_name || email.supplierName || 'Unknown Supplier';
-          const sessionName = email.restock_sessions?.name || email.session_name || 'Restock Session';
+      const result = await app.getSessions({ userId, includeCompleted: true });
+      if (result.success && result.sessions) {
+        const all = result.sessions.all;
+        all.forEach((session) => {
+          const created = session.createdAt;
+          const readableDate = created.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          const sessionName = session.name || `Session • ${readableDate}`;
           items.push({
-            id: email.id,
-            type: 'email',
-            title: `Email to ${supplierName}`,
-            date: new Date(email.sent_at || email.createdAt),
-            status: email.status || 'sent',
-            details: `${email.subject || 'Restock Order'} • From: ${sessionName}`,
-            metadata: email
+            id: session.id,
+            type: 'session',
+            title: sessionName,
+            date: created,
+            status: session.status,
+            details: `${session.items.length} items, ${session.getUniqueSupplierCount()} suppliers`,
+            metadata: session
           });
         });
       }
@@ -138,7 +76,7 @@ export const HistorySection: React.FC<HistorySectionProps> = ({ userId }) => {
     }, [isExpanded, userId])
   );
 
-  const filteredItems = historyItems.filter(item => item.type === activeTab);
+  const filteredItems = historyItems.filter(item => (activeTab === 'sessions' ? item.type === 'session' : item.type === 'email'));
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-US', { 

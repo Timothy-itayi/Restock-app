@@ -4,7 +4,7 @@ import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { getEmailsStyles } from "../../../styles/components/emails";
 import { useThemedStyles } from "../../../styles/useThemedStyles";
-import { useUserProfile, useEmailSessions, useEmailEditor, EmailDraft } from './hooks';
+import { useUserProfile, useEmailEditor, EmailDraft, useEmailScreens } from './hooks';
 import { 
   EmailCard, 
   EmailEditModal, 
@@ -23,18 +23,18 @@ export default function EmailsScreen() {
   const { theme } = useThemeStore();
   
   // Custom hooks for separation of concerns
-  const { userProfile, isLoading: isUserLoading, userId } = useUserProfile();
-  const { 
-    emailSessions,
-    activeSession, 
+  const { userProfile, isLoading: isUserLoading } = useUserProfile();
+  const {
+    sessions: emailSessions,
+    activeSession,
     activeSessionId,
-    isLoading: isSessionLoading, 
+    isLoading: isSessionLoading,
     setActiveSessionId,
-    updateEmailInSession, 
+    updateEmailInSession,
     sendAllEmails,
     sendEmail,
-    refreshSessions
-  } = useEmailSessions(userProfile, userId || undefined);
+    refreshSessions,
+  } = useEmailScreens();
   const { 
     editingEmail, 
     editedSubject, 

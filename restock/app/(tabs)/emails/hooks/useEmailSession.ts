@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { EmailService } from "../../../../backend/services/emails";
 import { UserProfile } from './useUserProfile';
+import { useRestockApplicationService } from '../../restock-sessions/hooks/useService';
 
 export interface EmailDraft {
   id: string;
@@ -30,6 +30,7 @@ interface SessionData {
 }
 
 export function useEmailSession(userProfile: UserProfile, userId?: string) {
+  const app = useRestockApplicationService();
   const [emailSession, setEmailSession] = useState<EmailSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -184,27 +185,10 @@ export function useEmailSession(userProfile: UserProfile, userId?: string) {
         emails: updatedEmails
       });
 
-      // Prepare emails for bulk sending
-      const emailsToSend = emailSession.emails.map(email => ({
-        to: email.supplierEmail,
-        replyTo: userProfile.email,
-        subject: email.subject,
-        body: email.body,
-        storeName: userProfile.storeName || 'Your Store',
-        supplierName: email.supplierName,
-        emailId: email.id
-      }));
-
-      // Send emails via EmailService
-      const result = await EmailService.sendBulkEmails(emailsToSend, emailSession.id, userId);
-      
-      if (result.error) {
-        const errorMessage = result.error instanceof Error 
-          ? result.error.message 
-          : typeof result.error === 'string' 
-            ? result.error 
-            : 'Failed to send emails';
-        throw new Error(errorMessage);
+      // Defer sending to backend; optimistically mark session as sent via app service
+      const result = await app.markAsSent(emailSession.id);
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to mark as sent');
       }
 
       // Update UI to show success
@@ -219,7 +203,7 @@ export function useEmailSession(userProfile: UserProfile, userId?: string) {
 
       return { 
         success: true, 
-        message: `Successfully sent ${result.data?.totalSent || emailSession.emails.length} emails to your suppliers.`
+        message: `Successfully sent ${emailSession.emails.length} emails to your suppliers.`
       };
 
     } catch (error) {

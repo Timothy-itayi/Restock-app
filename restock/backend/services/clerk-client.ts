@@ -217,7 +217,7 @@ export class ClerkClientService {
 
   /**
    * Check if this is a new SSO sign-up flow
-   * This helps prevent AuthContext interference with SSO flows
+   * This helps prevent UnifiedAuthProvider interference with SSO flows
    */
   static async isNewSSOSignUp(): Promise<boolean> {
     try {

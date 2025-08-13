@@ -255,8 +255,7 @@ restock/
 ├── app/
 │   ├── _contexts/          # Auth contexts
 │   │   ├── UnifiedAuthProvider.tsx
-│   │   ├── AuthContext.tsx
-│   │   └── ClerkAuthContext.tsx
+│   │   └── UnifiedAuthProvider.tsx
 │   ├── (tabs)/            # Main tab screens
 │   ├── components/         # Reusable components
 │   │   └── UnifiedAuthGuard.tsx

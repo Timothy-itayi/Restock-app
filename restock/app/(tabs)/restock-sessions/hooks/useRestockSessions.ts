@@ -2,49 +2,36 @@ import { useState, useCallback, useEffect } from 'react';
 import { Alert, DeviceEventEmitter } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from "@clerk/clerk-expo";
-import { SessionService } from "../../../../backend/services/sessions";
-import { SecureDataService } from "../../../../backend/services/secure-data";
+import { useRestockApplicationService } from './useService';
 import { RestockSession, Product } from '../utils/types';
 import { Logger } from '../utils/logger';
 
+
+
+
 export const useRestockSessions = () => {
   const { userId } = useAuth();
+  const app = useRestockApplicationService();
   const [allSessions, setAllSessions] = useState<RestockSession[]>([]);
   const [currentSession, setCurrentSession] = useState<RestockSession | null>(null);
   const [isSessionActive, setIsSessionActive] = useState(false);
   const [showSessionSelection, setShowSessionSelection] = useState(false);
   const [isLoadingSessions, setIsLoadingSessions] = useState(false);
 
+
+  
   const loadAllSessions = useCallback(async () => {
     console.log('[RestockSessions] loadAllSessions called', { userId, hasUserId: !!userId });
     if (!userId) return;
     
     setIsLoadingSessions(true);
     try {
-      console.log('[RestockSessions] Loading unfinished sessions via SecureDataService', { userId });
-      Logger.info('Loading unfinished sessions via SecureDataService', { userId });
-      
-      // Try to get sessions via SecureDataService first
-      const secureSessionsResult = await SecureDataService.getUserSessions(userId, false);
-      
-      let unfinishedSessions = [];
-      
-      if (secureSessionsResult.error) {
-        console.warn('[RestockSessions] SecureDataService failed, falling back to SessionService');
-        Logger.warning('SecureDataService failed, using fallback', { error: secureSessionsResult.error });
-        
-        // Fallback to original SessionService
-        const sessionsResult = await SessionService.getUnfinishedSessions(userId);
-        
-        if (sessionsResult.error) {
-          Logger.error('Failed to load unfinished sessions via fallback', sessionsResult.error, { userId });
-          return;
-        }
-        
-        unfinishedSessions = sessionsResult.data || [];
-      } else {
-        console.log('[RestockSessions] SecureDataService success, using secure data');
-        unfinishedSessions = secureSessionsResult.unfinished || [];
+      Logger.info('Loading unfinished sessions via application service', { userId });
+      const sessionsResult = await app.getSessions({ userId, includeCompleted: true });
+      let unfinishedSessions: any[] = [];
+      if (sessionsResult.success && sessionsResult.sessions) {
+        const { draft, emailGenerated } = sessionsResult.sessions;
+        unfinishedSessions = [...draft, ...emailGenerated];
       }
       
       console.log('[RestockSessions] Unfinished sessions found', { 
@@ -64,30 +51,15 @@ export const useRestockSessions = () => {
         Logger.info('Found unfinished sessions', { sessionCount: unfinishedSessions.length });
         
         // Convert the processed sessions to our local format
-        const sessionsWithProducts = unfinishedSessions.map((session) => {
+        const sessionsWithProducts: RestockSession[] = unfinishedSessions.map((session: any) => {
           // Convert items to Product format
-          const products: Product[] = session.items?.map((item: any) => {
-            const products = Array.isArray(item.products) ? item.products[0] : item.products;
-            const suppliers = Array.isArray(item.suppliers) ? item.suppliers[0] : item.suppliers;
-            
-            // Debug supplier data
-            console.log('[RestockSessions] Processing item supplier data', {
-              itemId: item.id,
-              productName: products?.name,
-              supplierName: suppliers?.name,
-              supplierEmail: suppliers?.email,
-              hasSupplierEmail: !!suppliers?.email,
-              supplierData: suppliers
-            });
-            
-            return {
-              id: item.id,
-              name: products?.name || 'Unknown Product',
-              quantity: item.quantity || 0,
-              supplierName: suppliers?.name || 'Unknown Supplier',
-              supplierEmail: suppliers?.email || '',
-            };
-          }) || [];
+          const products: Product[] = (session.items || []).map((item: any) => ({
+            id: item.productId,
+            name: item.productName || 'Unknown Product',
+            quantity: item.quantity || 0,
+            supplierName: item.supplierName || 'Unknown Supplier',
+            supplierEmail: item.supplierEmail || '',
+          }));
           
           // Log products with supplier emails for debugging
           const productsWithoutEmails = products.filter(p => !p.supplierEmail || p.supplierEmail.trim() === '');
@@ -104,7 +76,7 @@ export const useRestockSessions = () => {
             name: session.name || undefined,
             products,
             createdAt: new Date(session.createdAt),
-            status: session.status as 'draft' | 'sent'
+            status: (session.status === 'sent' ? 'sent' : 'draft') as 'draft' | 'sent',
           };
         });
         
@@ -175,7 +147,7 @@ export const useRestockSessions = () => {
 
   const startNewSession = useCallback(async () => {
     console.log('[RestockSessions] startNewSession called', { userId, hasUserId: !!userId });
-    Logger.info('Starting new restock session');
+      Logger.info('Starting new restock session');
     
     if (!userId) {
       console.log('[RestockSessions] Cannot start session: no userId');
@@ -184,32 +156,27 @@ export const useRestockSessions = () => {
     }
     
     try {
-      console.log('[RestockSessions] Creating session in database', { userId });
-      // Create session in database first
-      const sessionResult = await SessionService.createSession({
-        user_id: userId,
-        status: 'draft',
-        // name can be set later via setSessionName; leave undefined initially
-      });
+      console.log('[RestockSessions] Creating session via application service', { userId });
+      const sessionResult = await app.createSession({ userId });
       
       console.log('[RestockSessions] Session creation result', { 
         hasError: !!sessionResult.error, 
         error: sessionResult.error,
-        data: sessionResult.data 
+        data: sessionResult.session 
       });
       
-      if (sessionResult.error) {
+      if (!sessionResult.success || !sessionResult.session) {
         console.log('[RestockSessions] Failed to create session in database', sessionResult.error);
         Logger.error('Failed to create session in database', sessionResult.error, { userId });
         return { success: false, error: 'Failed to start session' };
       }
       
       const newSession: RestockSession = {
-        id: sessionResult.data.id,
+        id: sessionResult.session.id,
         products: [],
-        createdAt: new Date(sessionResult.data.created_at),
-        status: sessionResult.data.status as 'draft' | 'sent',
-        name: sessionResult.data.name || undefined,
+        createdAt: new Date(sessionResult.session.createdAt),
+        status: 'draft',
+        name: sessionResult.session.name || undefined,
       };
       
       console.log('[RestockSessions] New session created', { 
@@ -236,10 +203,7 @@ export const useRestockSessions = () => {
         showSessionSelection: false 
       });
       
-      Logger.success('New session created in database', { 
-        sessionId: newSession.id,
-        databaseId: sessionResult.data.id 
-      });
+      Logger.success('New session created', { sessionId: newSession.id });
 
       return { success: true, session: newSession };
     } catch (error) {
@@ -262,13 +226,8 @@ export const useRestockSessions = () => {
   const setSessionName = useCallback(async (sessionId: string, name: string) => {
     try {
       Logger.info('Setting session name', { sessionId, name });
-      
-      // Update database first
-      const updateResult = await SessionService.updateSession(sessionId, { name });
-      if (updateResult.error) {
-        Logger.error('Failed to update session name in database', updateResult.error, { sessionId, name });
-        throw new Error('Failed to save session name');
-      }
+      const updateResult = await app.setSessionName(sessionId, name);
+      if (!updateResult.success) throw new Error(updateResult.error || 'Failed to save session name');
       
       // Update local state
       setAllSessions(prev => prev.map(s => s.id === sessionId ? { ...s, name } : s));
@@ -300,9 +259,8 @@ export const useRestockSessions = () => {
             style: "destructive",
             onPress: async () => {
               try {
-                const deleteResult = await SessionService.deleteSession(session.id);
-                
-                if (deleteResult.error) {
+                const deleteResult = await app.deleteSession(session.id);
+                if (!deleteResult.success) {
                   Logger.error('Failed to delete session', deleteResult.error, { sessionId: session.id });
                   resolve({ success: false, error: 'Failed to delete session' });
                   return;

@@ -1,48 +1,49 @@
 import React, { useState, useEffect } from 'react';
 import { Text, TouchableOpacity, View, TextInput } from 'react-native';
-import { RestockSession } from '../utils/types';
 import { formatDate, formatProductCount } from '../utils/formatters';
 import { getSessionColorTheme } from '../utils/colorUtils';
 import { getRestockSessionsStyles } from '../../../../styles/components/restock-sessions';
 import { useThemedStyles } from '../../../../styles/useThemedStyles';
-import { useRestockSessionContext } from '../context/RestockSessionContext';
 
 interface SessionHeaderProps {
-  currentSession: RestockSession | null;
-  allSessionsCount: number;
+  currentSession: any | null; // Accept domain session or legacy type
   onShowSessionSelection: () => void;
+  onNameSession?: () => void;
+  allSessionsCount?: number;
 }
 
 export const SessionHeader: React.FC<SessionHeaderProps> = ({
   currentSession,
-  allSessionsCount,
-  onShowSessionSelection
+  allSessionsCount = 0,
+  onShowSessionSelection,
+  onNameSession
 }) => {
   const restockSessionsStyles = useThemedStyles(getRestockSessionsStyles);
-  const sessionColor = currentSession ? getSessionColorTheme(currentSession.id) : null;
-  const { setSessionName } = useRestockSessionContext();
+  const sessionId = currentSession && typeof currentSession.toValue === 'function' 
+    ? currentSession.toValue().id 
+    : currentSession?.id;
+  const sessionColor = sessionId ? getSessionColorTheme(sessionId) : null;
   const [isRenaming, setIsRenaming] = useState(false);
-  const [tempName, setTempName] = useState(currentSession?.name || '');
+  const currentName = currentSession && typeof currentSession.toValue === 'function'
+    ? currentSession.toValue().name
+    : currentSession?.name;
+  const createdAt = currentSession && typeof currentSession.toValue === 'function'
+    ? currentSession.toValue().createdAt
+    : currentSession?.createdAt;
+  const productsCount = currentSession && typeof currentSession.toValue === 'function'
+    ? (currentSession.toValue().items?.length || 0)
+    : (currentSession?.products?.length || 0);
+  const [tempName, setTempName] = useState(currentName || '');
 
   // Update temp name when session changes
   useEffect(() => {
-    setTempName(currentSession?.name || '');
-  }, [currentSession?.name]);
+    setTempName(currentName || '');
+  }, [currentName]);
 
   const handleSaveSessionName = async () => {
     setIsRenaming(false);
-    if (currentSession && tempName.trim().length > 0) {
-      try {
-        await setSessionName(currentSession.id, tempName.trim());
-      } catch (error) {
-        console.error('Failed to set session name:', error);
-        // Revert to original name if update failed
-        setTempName(currentSession.name || '');
-      }
-    } else {
-      // Revert if empty
-      setTempName(currentSession?.name || '');
-    }
+    // In the new architecture, naming is handled by parent modal
+    if (onNameSession) onNameSession();
   };
 
   return (
@@ -82,13 +83,13 @@ export const SessionHeader: React.FC<SessionHeaderProps> = ({
                 }}
               />
             ) : (
-              <Text style={restockSessionsStyles.sessionHeaderTitle} onPress={() => setIsRenaming(true)}>
-                {(currentSession?.name ? currentSession.name + ' • ' : 'Session • ') +
-                  formatDate(currentSession?.createdAt || new Date())}
+              <Text style={restockSessionsStyles.sessionHeaderTitle} onPress={() => onNameSession?.()}>
+                {(currentName ? currentName + ' • ' : 'Session • ') +
+                  formatDate(createdAt || new Date())}
               </Text>
             )}
           </View>
-          {allSessionsCount > 1 && (
+          {allSessionsCount > 0 && (
             <TouchableOpacity
               style={restockSessionsStyles.sessionSwitcherButton}
               onPress={onShowSessionSelection}
@@ -102,10 +103,10 @@ export const SessionHeader: React.FC<SessionHeaderProps> = ({
       </View>
 
       {/* Session summary */}
-      {currentSession && currentSession.products.length > 0 && (
+      {productsCount > 0 && (
         <View style={restockSessionsStyles.sessionSummary}>
           <Text style={restockSessionsStyles.summaryText}>
-            {formatProductCount(currentSession.products.length)} added • 
+            {formatProductCount(productsCount)} added • 
             Ready to generate supplier emails
           </Text>
         </View>

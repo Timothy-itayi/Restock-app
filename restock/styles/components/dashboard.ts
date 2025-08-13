@@ -2,9 +2,9 @@
 
 import { StyleSheet } from "react-native";
 import { fontFamily } from "../typography";
-import colors from '@/app/theme/colors';
+import colors, { type AppColors } from '@/app/theme/colors';
 
-export const getDashboardStyles = (t: typeof colors) => StyleSheet.create({
+export const getDashboardStyles = (t: AppColors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: t.neutral.lightest,
