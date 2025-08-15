@@ -143,6 +143,43 @@ export function useAuthGuardState({
       return;
     }
 
+    // CRITICAL: Immediate profile setup check - if user needs profile setup, redirect immediately
+    // This prevents any race conditions where users might access protected routes
+    if (authState.isAuthenticated && authState.needsProfileSetup) {
+      console.log('🚨 useAuthGuardState: CRITICAL - User needs profile setup, immediate redirect required', {
+        isNewSignUp: authType?.isNewSignUp,
+        userType: authType?.type,
+        currentRoute,
+        segments: segments.join('/')
+      });
+      
+      // Don't redirect if already on profile setup page
+      const alreadyOnSetupPage = currentRoute === 'sso-profile-setup' || 
+        (segments[0] === 'auth' && segments[1] === 'traditional' && segments[2] === 'profile-setup');
+
+      if (!alreadyOnSetupPage) {
+        console.log('🚨 useAuthGuardState: EMERGENCY REDIRECT to profile setup');
+        setIsRedirectingToSetup(true);
+        setSetupRedirectType(authType.type === 'google' ? 'google' : 'email');
+        setLoadingPhase('setup-redirect');
+        
+        const route = authType.type === 'google'
+          ? '/sso-profile-setup'
+          : '/auth/traditional/profile-setup';
+
+        console.log(`🚨 useAuthGuardState: EMERGENCY REDIRECT to: ${route}`);
+        
+        try {
+          router.replace(route);
+          console.log('✅ useAuthGuardState: Emergency redirect initiated');
+        } catch (err) {
+          console.error('❌ useAuthGuardState: Emergency redirect failed:', err);
+          router.replace('/welcome');
+        }
+        return;
+      }
+    }
+
     console.log('🔍 useAuthGuardState: Auth is ready, analyzing conditions:', {
       ...authState,
       ...requirements,
@@ -176,14 +213,29 @@ export function useAuthGuardState({
       console.log('🚫 useAuthGuardState: Profile setup required but not completed', {
         isNewSignUp: authType?.isNewSignUp,
         userType: authType?.type,
-        currentRoute
+        currentRoute,
+        segments: segments.join('/'),
+        authState: {
+          isReady: authState.isReady,
+          isLoading: authState.isLoading,
+          needsProfileSetup: authState.needsProfileSetup
+        }
       });
       
       // Don't redirect if already on profile setup page
       const alreadyOnSetupPage = currentRoute === 'sso-profile-setup' || 
         (segments[0] === 'auth' && segments[1] === 'traditional' && segments[2] === 'profile-setup');
 
+      console.log('🔍 useAuthGuardState: Setup page check:', {
+        alreadyOnSetupPage,
+        currentRoute,
+        segments: segments.join('/'),
+        isSSOSetupPage: currentRoute === 'sso-profile-setup',
+        isTraditionalSetupPage: segments[0] === 'auth' && segments[1] === 'traditional' && segments[2] === 'profile-setup'
+      });
+
       if (!alreadyOnSetupPage) {
+        console.log('🚀 useAuthGuardState: Starting profile setup redirect...');
         setIsRedirectingToSetup(true);
         setSetupRedirectType(authType.type === 'google' ? 'google' : 'email');
         setLoadingPhase('setup-redirect');
@@ -192,15 +244,21 @@ export function useAuthGuardState({
           ? '/sso-profile-setup'
           : '/auth/traditional/profile-setup';
 
-        console.log(`🚀 useAuthGuardState: Redirecting to setup: ${route}`);
+        console.log(`🚀 useAuthGuardState: Redirecting to setup: ${route}`, {
+          authType: authType.type,
+          isNewSignUp: authType?.isNewSignUp
+        });
         
         try {
           router.replace(route);
+          console.log('✅ useAuthGuardState: Redirect to setup initiated successfully');
         } catch (err) {
           console.error('❌ useAuthGuardState: Redirect failed:', err);
           router.replace('/welcome');
         }
         return;
+      } else {
+        console.log('✅ useAuthGuardState: User already on setup page, no redirect needed');
       }
     }
 

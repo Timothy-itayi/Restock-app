@@ -9,10 +9,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useUnifiedAuth } from './_contexts/UnifiedAuthProvider';
 import { ssoProfileSetupStyles } from '../styles/components/auth/sso/profile-setup';
 import { ErrorLogger } from '../backend/utils/error-logger';
+import { DIContainer } from '../app/infrastructure/di/Container';
+import { UserContextService } from '../backend/services/user-context';
 
 export default function SSOProfileSetupScreen() {
   const { user } = useUser();
-  const { isAuthenticated, userId, authType, triggerAuthCheck } = useUnifiedAuth();
+  const { isAuthenticated, userId, authType, triggerAuthCheck, markNewSSOUserReady } = useUnifiedAuth();
   
   // Quiet verbose render log
   
@@ -137,82 +139,99 @@ export default function SSOProfileSetupScreen() {
 
   const handleCreateProfile = async () => {
     console.log('🚀 SSOProfileSetup: handleCreateProfile called');
-    console.log('📊 SSOProfileSetup: Validation data:', {
-      storeName: storeName.trim(),
-      name: name.trim(),
-      isAuthenticated,
-      userId,
-      authType,
-      email
-    });
 
-    if (!storeName.trim()) {
-      console.log('❌ SSOProfileSetup: Store name validation failed');
-      Alert.alert('Error', 'Please enter your store name');
-      return;
-    }
-
-    if (!name.trim()) {
-      console.log('❌ SSOProfileSetup: Name validation failed');
-      Alert.alert('Error', 'Please enter your name');
+    // Validate required fields
+    if (!name.trim() || !storeName.trim() || !email.trim()) {
+      Alert.alert('Missing Information', 'Please fill in all required fields.');
       return;
     }
 
     if (!isAuthenticated || !userId) {
-      console.log('❌ SSOProfileSetup: Authentication validation failed', { isAuthenticated, userId });
-      Alert.alert('Authentication Error', 'You must be signed in to complete your profile setup');
+      Alert.alert('Authentication Error', 'Please sign in again.');
       return;
     }
 
-    if (authType.type !== 'google') {
-      console.log('❌ SSOProfileSetup: Auth type validation failed', { authType });
-      Alert.alert('Access Error', 'This screen is for Google OAuth users only. If you signed up with email/password, please use the regular profile setup.');
-      // Redirect to appropriate screen
-      router.replace('/auth/traditional/profile-setup');
-      return;
-    }
-
-    if (!email) {
-      console.log('❌ SSOProfileSetup: Email validation failed', { email });
-      Alert.alert('Email Error', 'Unable to retrieve your email from Google. Please try signing in again.');
-      return;
-    }
+    console.log('📊 SSOProfileSetup: Validation data:', {
+      name,
+      storeName,
+      email,
+      userId,
+      isAuthenticated,
+      authType
+    });
 
     console.log('✅ SSOProfileSetup: All validations passed, proceeding with profile creation');
+
     setLoading(true);
+
     try {
+      // CRITICAL: Ensure user context is properly set before profile creation
+      console.log('🔧 SSOProfileSetup: Setting user context before profile creation');
+      const container = DIContainer.getInstance();
+      if (container.has('UserContextService')) {
+        await UserContextService.setUserContext(userId);
+        console.log('✅ SSOProfileSetup: User context set successfully');
+        
+        // Wait a moment for the context to propagate
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
+      // Log the profile creation attempt
       ErrorLogger.info('SSOProfileSetup: Creating profile for Google user', {
         userId,
         email,
-        storeName: storeName.trim(),
-        name: name.trim(),
-        authType: authType.type
-      }, { component: 'SSOProfileSetup', action: 'handleCreateProfile' });
+        storeName,
+        name,
+        authType: authType?.type
+      });
+
+      console.log('Creating user profile via Convex:', {
+        authMethod: 'google',
+        clerkUserId: userId,
+        email,
+        name,
+        storeName
+      });
+
+      // Create profile with retry mechanism
+      let result;
+      let attempts = 0;
+      const maxAttempts = 3;
       
-      // Use the backend Edge Function for secure profile creation
-      const result = await UserProfileService.createProfileViaBackend(
-        userId, 
-        email, 
-        storeName.trim(), 
-        name.trim(), 
-        'google' // Specify Google OAuth as auth method
-      );
-      
-      if (result.error) {
-        const message = (result.error as any)?.code === 'EMAIL_TAKEN'
-          ? 'An account already exists with this email. Please sign in with your email/password or contact support.'
-          : 'Failed to save your Google account profile. Please try again.';
-        ErrorLogger.error('SSOProfileSetup: Profile creation failed', result.error, { 
-          component: 'SSOProfileSetup', 
-          action: 'handleCreateProfile',
-          userId,
-          email 
-        });
-        Alert.alert('Setup Failed', message);
-      } else {
-         // Success path - profile created successfully!
-         console.log('✅ SSOProfileSetup: Profile creation successful', result.data);
-         ErrorLogger.info('SSOProfileSetup: Profile creation successful', {
+      while (attempts < maxAttempts) {
+        try {
+          attempts++;
+          console.log(`🔄 SSOProfileSetup: Profile creation attempt ${attempts}/${maxAttempts}`);
+          
+          result = await UserProfileService.createProfileViaBackend(
+            userId,
+            email,
+            storeName,
+            name,
+            'google'
+          );
+          
+          console.log('✅ SSOProfileSetup: Profile creation successful on attempt', attempts);
+          break; // Success, exit retry loop
+          
+        } catch (error: any) {
+          console.error(`❌ SSOProfileSetup: Profile creation attempt ${attempts} failed:`, error);
+          
+          if (attempts >= maxAttempts) {
+            throw error; // Give up after max attempts
+          }
+          
+          // Wait before retry with exponential backoff
+          const waitTime = Math.pow(2, attempts) * 1000; // 2s, 4s, 8s
+          console.log(`⏳ SSOProfileSetup: Waiting ${waitTime}ms before retry...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+        }
+      }
+
+      if (result?.data && !result.error) {
+        // Success path - profile created successfully!
+        console.log('✅ SSOProfileSetup: Profile creation successful', result.data);
+        ErrorLogger.info('SSOProfileSetup: Profile creation successful', {
           component: 'SSOProfileSetup', 
           action: 'handleCreateProfile',
           userId,
@@ -231,6 +250,12 @@ export default function SSOProfileSetupScreen() {
         
         // Clear the SSO sign-up flags
         await ClerkClientService.clearSSOSignUpFlags();
+        
+        // CRITICAL: Mark the new SSO user as ready in UnifiedAuthProvider
+        // This allows them to access the dashboard and completes the auth flow
+        console.log('🔧 SSOProfileSetup: Marking new SSO user as ready in UnifiedAuthProvider');
+        await markNewSSOUserReady();
+        console.log('✅ SSOProfileSetup: New SSO user marked as ready');
         
         // Wait a moment for database consistency before triggering auth check
         console.log('⏳ Waiting for database consistency...');
@@ -256,16 +281,36 @@ export default function SSOProfileSetupScreen() {
         // Navigate immediately to dashboard
         console.log('🚀 Navigating to dashboard...');
         router.replace('/(tabs)/dashboard');
+      } else {
+        const message = result?.error || 'Failed to create profile. Please try again.';
+        console.error('❌ SSOProfileSetup: Profile creation failed:', message);
+        Alert.alert('Setup Failed', message as string);
       }
-    } catch (error) {
-      ErrorLogger.error('SSOProfileSetup: Unexpected error during profile creation', error, { 
-        component: 'SSOProfileSetup', 
+    } catch (error: any) {
+      console.error('❌ SSOProfileSetup: Profile creation failed:', error);
+      
+      // Enhanced error logging
+      ErrorLogger.error('SSOProfileSetup: Profile creation failed', {
+        component: 'SSOProfileSetup',
         action: 'handleCreateProfile',
         userId,
         email,
-        authType: authType.type
+        error: error?.message || 'Unknown error',
+        stack: error?.stack
       });
-      Alert.alert('Setup Error', 'An unexpected error occurred while setting up your Google account. Please try again.');
+      
+      let userMessage = 'Failed to create profile. Please try again.';
+      
+      // Provide more specific error messages
+      if (error?.message?.includes('Not authenticated')) {
+        userMessage = 'Authentication error. Please sign in again.';
+      } else if (error?.message?.includes('already exists')) {
+        userMessage = 'Profile already exists. Please contact support.';
+      } else if (error?.message?.includes('network') || error?.message?.includes('timeout')) {
+        userMessage = 'Network error. Please check your connection and try again.';
+      }
+      
+      Alert.alert('Setup Failed', userMessage);
     } finally {
       setLoading(false);
     }

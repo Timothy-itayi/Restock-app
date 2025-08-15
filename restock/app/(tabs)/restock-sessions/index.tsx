@@ -14,6 +14,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useSessionList } from './hooks/useSessionList';
 import { useRestockSession } from './hooks/useRestockSession';
 import { useProductForm } from './hooks/useProductForm';
+import { useServiceHealth } from './hooks/useService';
 
 // UI Components (keeping existing components)
 import { SessionHeader } from './components/SessionHeader';
@@ -22,6 +23,7 @@ import { StartSection } from './components/StartSection';
 import { ProductForm } from './components/ProductForm';
 import { ProductList } from './components/ProductList';
 import { FinishSection } from './components/FinishSection';
+import { ConvexTest } from './components/ConvexTest';
 import NameSessionModal from '../../components/NameSessionModal';
 import CustomToast from '../../components/CustomToast';
 
@@ -43,12 +45,53 @@ const RestockSessionsContent: React.FC = () => {
   const sessionList = useSessionList();
   const currentSession = useRestockSession();
   const productForm = useProductForm();
+  const serviceHealth = useServiceHealth();
 
   // Local UI state
   const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
   const [showNameModal, setShowNameModal] = useState(false);
   const [sessionNameInput, setSessionNameInput] = useState('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Check service health on mount
+  useEffect(() => {
+    if (!serviceHealth.isHealthy) {
+      console.warn('[RestockSessions] Service health issues detected:', serviceHealth.issues);
+      
+      // Check if it's a database setup issue
+      const hasDatabaseSetupIssue = serviceHealth.issues.some(issue => 
+        issue.includes('Database security setup incomplete') ||
+        issue.includes('RPC function') ||
+        issue.includes('permission denied')
+      );
+      
+      if (hasDatabaseSetupIssue) {
+        setToastMessage('Database setup incomplete. Please run the database setup script or contact support.');
+      } else {
+        setToastMessage(`Service issues detected: ${serviceHealth.issues.join(', ')}`);
+      }
+    }
+  }, [serviceHealth.isHealthy, serviceHealth.issues]);
+
+  // Check if services are ready
+  const isServiceReady = useCallback(() => {
+    return serviceHealth.isHealthy && 
+           sessionList.sessions !== undefined && 
+           currentSession.session !== undefined;
+  }, [serviceHealth.isHealthy, sessionList.sessions, currentSession.session]);
+
+  // Show service not ready message
+  useEffect(() => {
+    if (userId && !isServiceReady()) {
+      const timer = setTimeout(() => {
+        if (!isServiceReady()) {
+          setToastMessage('Initializing services... Please wait a moment.');
+        }
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [userId, isServiceReady]);
 
   /**
    * Handle starting a new session
@@ -153,27 +196,38 @@ const RestockSessionsContent: React.FC = () => {
    * Handle naming a session
    */
   const handleNameSession = useCallback(async () => {
-    if (!currentSession.session || !sessionNameInput.trim()) {
+    if (!sessionNameInput.trim()) {
       setToastMessage('Please enter a session name');
       return;
     }
 
     try {
-      const result = await currentSession.updateSessionName(
-        currentSession.session.toValue().id,
-        sessionNameInput.trim()
-      );
+      let result;
+      
+      if (currentSession.session) {
+        // Update existing session name
+        console.log('[RestockSessions] Updating existing session name');
+        result = await currentSession.updateSessionName(
+          currentSession.session.toValue().id,
+          sessionNameInput.trim()
+        );
+      } else {
+        // Create new session with the specified name
+        console.log('[RestockSessions] Creating new session with name');
+        result = await currentSession.createSession(sessionNameInput.trim());
+      }
 
       if (result.success) {
-        setToastMessage('Session name updated successfully!');
+        const action = currentSession.session ? 'updated' : 'created';
+        setToastMessage(`Session ${action} successfully!`);
         setShowNameModal(false);
         setSessionNameInput('');
       } else {
-        setToastMessage(result.error || 'Failed to update session name');
+        setToastMessage(result.error || 'Failed to process session');
       }
     } catch (error) {
-      setToastMessage('An error occurred while updating the session name');
-      console.error('[RestockSessions] Error updating session name:', error);
+      setToastMessage('An error occurred while processing the session');
+      console.error('[RestockSessions] Error in handleNameSession:', error);
     }
   }, [currentSession, sessionNameInput]);
 
@@ -194,9 +248,14 @@ const RestockSessionsContent: React.FC = () => {
   // Auto-load sessions on mount
   useEffect(() => {
     if (userId) {
-      sessionList.loadSessions();
+      // Add a small delay to ensure services are initialized
+      const timer = setTimeout(() => {
+        sessionList.loadSessions();
+      }, 100);
+      
+      return () => clearTimeout(timer);
     }
-  }, [userId]);
+  }, [userId, sessionList.loadSessions]);
 
   // Handle continue action from dashboard
   useEffect(() => {
@@ -241,7 +300,8 @@ const RestockSessionsContent: React.FC = () => {
         }
       };
       
-      loadSessionAndOpenForm();
+      // Add delay to ensure services are ready
+      setTimeout(loadSessionAndOpenForm, 200);
     }
   }, [params.sessionId, params.action, currentSession.session, currentSession.loadSession, productForm]);
 
@@ -258,12 +318,20 @@ const RestockSessionsContent: React.FC = () => {
   const hasActiveSessions = sessionList.sessions.length > 0;
   const hasActiveSession = currentSession.session !== null;
   const isLoading = sessionList.isLoading || currentSession.isLoading;
+  const isServiceInitializing = !serviceHealth.isHealthy || !isServiceReady();
 
-  // Show loading if still loading and no sessions
-  if (isLoading && !hasActiveSessions) {
+  // Show loading if still loading and no sessions, or if services are initializing
+  if ((isLoading && !hasActiveSessions) || isServiceInitializing) {
     return (
       <View style={restockSessionsStyles.container}>
-        <Text style={restockSessionsStyles.loadingText}>Loading sessions...</Text>
+        <Text style={restockSessionsStyles.loadingText}>
+          {isServiceInitializing ? 'Initializing services...' : 'Loading sessions...'}
+        </Text>
+        {serviceHealth.issues.length > 0 && (
+          <Text style={restockSessionsStyles.errorText}>
+            Issues: {serviceHealth.issues.join(', ')}
+          </Text>
+        )}
       </View>
     );
   }
@@ -273,10 +341,21 @@ const RestockSessionsContent: React.FC = () => {
       {/* Header */}
         <SessionHeader
           currentSession={currentSession.session}
-          onNameSession={() => setShowNameModal(true)}
+          onNameSession={() => {
+            // Pre-populate with current session name if updating
+            if (currentSession.session) {
+              setSessionNameInput(currentSession.session.toValue().name || '');
+            } else {
+              setSessionNameInput('');
+            }
+            setShowNameModal(true);
+          }}
           onShowSessionSelection={() => sessionList.openSelectionModal()}
           allSessionsCount={sessionList.sessions.length}
         />
+
+      {/* Temporary Convex Test Component */}
+      <ConvexTest />
 
       <ScrollView>
         {/* Show existing sessions first if no active session */}
@@ -313,26 +392,11 @@ const RestockSessionsContent: React.FC = () => {
             {/* Product Form */}
             {productForm.isFormVisible && (
               <ProductForm
-                mode="add"
-                formState={{
-                  productName: productForm.formData.productName,
-                  quantity: productForm.formData.quantity,
-                  supplierName: productForm.formData.supplierName,
-                  supplierEmail: productForm.formData.supplierEmail,
-                  errorMessage: productForm.error || ''
+                onSuccess={() => {
+                  productForm.closeForm();
+                  // Refresh the session list to show the new product
+                  sessionList.refreshSessions();
                 }}
-                filteredProducts={[]}
-                filteredSuppliers={[]}
-                onProductNameChange={(v) => productForm.updateField('productName', v)}
-                onQuantityChange={(v) => productForm.updateField('quantity', v)}
-                onSupplierNameChange={(v) => productForm.updateField('supplierName', v)}
-                onSupplierEmailChange={(v) => productForm.updateField('supplierEmail', v)}
-                onIncrementQuantity={() => productForm.updateField('quantity', (parseInt(productForm.formData.quantity || '0') + 1).toString())}
-                onDecrementQuantity={() => productForm.updateField('quantity', (Math.max(1, parseInt(productForm.formData.quantity || '0') - 1)).toString())}
-                onSelectProductSuggestion={() => {}}
-                onSelectSupplierSuggestion={() => {}}
-                onSubmit={handleAddProduct}
-                onCancel={productForm.closeForm}
               />
             )}
 
@@ -422,8 +486,11 @@ const RestockSessionsContent: React.FC = () => {
       {showNameModal && (
         <NameSessionModal
           visible={showNameModal}
-          title="Name Your Session"
-          message="Give this restock session a helpful name. You can change it later."
+          title={currentSession.session ? "Rename Session" : "Name Your Session"}
+          message={currentSession.session 
+            ? "Give this session a new name to help you identify it later."
+            : "Give this restock session a helpful name. You can change it later."
+          }
           inputValue={sessionNameInput}
           onChangeInput={setSessionNameInput}
           onConfirm={handleNameSession}

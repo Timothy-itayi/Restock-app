@@ -1,26 +1,20 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, Alert } from 'react-native';
-import { useSessionStateManager } from '../hooks/useSessionStateManager';
-import { Input } from '../../../components/Input';
-import { Button } from '../../../components/Button';
-import { Card } from '../../../components/Card';
-import { CustomToast } from '../../../components/CustomToast';
+import { useProductForm } from '../hooks/useProductForm';
+import { useRestockSession } from '../hooks/useRestockSession';
+import Input from '../../../components/Input';
+import Button from '../../../components/Button';
+import Card from '../../../components/Card';
+import CustomToast from '../../../components/CustomToast';
 import { Logger } from '../utils/logger';
 
 interface ProductFormProps {
-  onProductAdded?: () => void;
+  onSuccess?: () => void;
 }
 
-export function ProductForm({ onProductAdded }: ProductFormProps) {
-  const sessionManager = useSessionStateManager();
-  const [formData, setFormData] = useState({
-    productName: '',
-    quantity: '',
-    supplierName: '',
-    supplierEmail: '',
-    notes: '',
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
+export function ProductForm({ onSuccess }: ProductFormProps) {
+  const productForm = useProductForm();
+  const currentSession = useRestockSession();
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
@@ -32,114 +26,75 @@ export function ProductForm({ onProductAdded }: ProductFormProps) {
     setShowToast(true);
   }, []);
 
-  // Validate form data
-  const validateForm = useCallback(() => {
-    const errors: string[] = [];
-
-    if (!formData.productName.trim()) {
-      errors.push('Product name is required');
-    }
-
-    if (!formData.quantity.trim()) {
-      errors.push('Quantity is required');
-    } else {
-      const quantity = parseInt(formData.quantity);
-      if (isNaN(quantity) || quantity <= 0) {
-        errors.push('Quantity must be a positive number');
-      }
-    }
-
-    if (!formData.supplierName.trim()) {
-      errors.push('Supplier name is required');
-    }
-
-    if (!formData.supplierEmail.trim()) {
-      errors.push('Supplier email is required');
-    } else {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(formData.supplierEmail.trim())) {
-        errors.push('Please enter a valid email address');
-      }
-    }
-
-    return errors;
-  }, [formData]);
-
   // Handle form submission
   const handleSubmit = useCallback(async () => {
-    if (!sessionManager.state.currentSession) {
+    if (!currentSession.session) {
       showToastMessage('No active session. Please start a new session first.', 'error');
       return;
     }
 
-    const errors = validateForm();
-    if (errors.length > 0) {
-      Alert.alert('Validation Error', errors.join('\n'));
+    // Validate form using the hook
+    if (!productForm.validateForm()) {
+      // Show validation errors
+      const errors = Object.values(productForm.validationErrors).filter(Boolean);
+      if (errors.length > 0) {
+        Alert.alert('Validation Error', errors.join('\n'));
+        return;
+      }
       return;
     }
 
-    setIsSubmitting(true);
-
     try {
-      const result = await sessionManager.addItemToSession({
-        productName: formData.productName.trim(),
-        quantity: parseInt(formData.quantity),
-        supplierName: formData.supplierName.trim(),
-        supplierEmail: formData.supplierEmail.trim().toLowerCase(),
-        notes: formData.notes.trim() || undefined,
+      const result = await currentSession.addProduct({
+        productName: productForm.formData.productName.trim(),
+        quantity: parseInt(productForm.formData.quantity),
+        supplierName: productForm.formData.supplierName.trim(),
+        supplierEmail: productForm.formData.supplierEmail.trim().toLowerCase(),
+        notes: productForm.formData.notes?.trim() || undefined,
       });
 
       if (result.success) {
-        // Clear form
-        setFormData({
-          productName: '',
-          quantity: '',
-          supplierName: '',
-          supplierEmail: '',
-          notes: '',
-        });
-
+        // Clear form using the hook
+        productForm.resetForm();
         showToastMessage('Product added successfully!');
         
         // Notify parent component
-        if (onProductAdded) {
-          onProductAdded();
+        if (onSuccess) {
+          onSuccess();
         }
 
         Logger.info('Product added to session', {
-          sessionId: sessionManager.state.currentSession?.id,
-          productName: formData.productName,
-          quantity: formData.quantity,
-          supplierName: formData.supplierName,
+          sessionId: currentSession.session?.toValue().id,
+          productName: productForm.formData.productName,
+          quantity: productForm.formData.quantity,
+          supplierName: productForm.formData.supplierName,
         });
       } else {
         showToastMessage(result.error || 'Failed to add product', 'error');
       }
     } catch (error) {
       Logger.error('Failed to add product to session', error, {
-        sessionId: sessionManager.state.currentSession?.id,
-        formData,
+        sessionId: currentSession.session?.toValue().id,
+        formData: productForm.formData,
       });
       showToastMessage('An unexpected error occurred', 'error');
-    } finally {
-      setIsSubmitting(false);
     }
-  }, [formData, sessionManager, validateForm, showToastMessage, onProductAdded]);
+  }, [productForm, currentSession, showToastMessage, onSuccess]);
 
-  // Handle input changes
-  const handleInputChange = useCallback((field: keyof typeof formData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  }, []);
+  // Handle input changes using the hook
+  const handleInputChange = useCallback((field: keyof typeof productForm.formData, value: string) => {
+    productForm.updateField(field, value);
+  }, [productForm]);
 
   // Check if form can be submitted
-  const canSubmit = formData.productName.trim() && 
-                   formData.quantity.trim() && 
-                   formData.supplierName.trim() && 
-                   formData.supplierEmail.trim() &&
-                   !isSubmitting;
+  const canSubmit = productForm.formData.productName.trim() && 
+                   productForm.formData.quantity.trim() && 
+                   productForm.formData.supplierName.trim() && 
+                   productForm.formData.supplierEmail.trim() &&
+                   !productForm.isSubmitting;
 
   // Check if there's an active session
-  const hasActiveSession = !!sessionManager.state.currentSession;
+  const hasActiveSession = !!currentSession.session;
 
   if (!hasActiveSession) {
     return (
@@ -159,44 +114,56 @@ export function ProductForm({ onProductAdded }: ProductFormProps) {
       <View style={styles.form}>
         <Input
           label="Product Name"
-          value={formData.productName}
+          value={productForm.formData.productName}
           onChangeText={(value) => handleInputChange('productName', value)}
           placeholder="e.g., Organic Bananas"
           autoCapitalize="words"
           style={styles.input}
         />
+        {productForm.validationErrors.productName && (
+          <Text style={styles.errorText}>{productForm.validationErrors.productName}</Text>
+        )}
 
         <Input
           label="Quantity"
-          value={formData.quantity}
+          value={productForm.formData.quantity}
           onChangeText={(value) => handleInputChange('quantity', value)}
           placeholder="e.g., 10"
           keyboardType="numeric"
           style={styles.input}
         />
+        {productForm.validationErrors.quantity && (
+          <Text style={styles.errorText}>{productForm.validationErrors.quantity}</Text>
+        )}
 
         <Input
           label="Supplier Name"
-          value={formData.supplierName}
+          value={productForm.formData.supplierName}
           onChangeText={(value) => handleInputChange('supplierName', value)}
           placeholder="e.g., Fresh Farms Co"
           autoCapitalize="words"
           style={styles.input}
         />
+        {productForm.validationErrors.supplierName && (
+          <Text style={styles.errorText}>{productForm.validationErrors.supplierName}</Text>
+        )}
 
         <Input
           label="Supplier Email"
-          value={formData.supplierEmail}
+          value={productForm.formData.supplierEmail}
           onChangeText={(value) => handleInputChange('supplierEmail', value)}
           placeholder="e.g., orders@freshfarms.com"
           keyboardType="email-address"
           autoCapitalize="none"
           style={styles.input}
         />
+        {productForm.validationErrors.supplierEmail && (
+          <Text style={styles.errorText}>{productForm.validationErrors.supplierEmail}</Text>
+        )}
 
         <Input
           label="Notes (Optional)"
-          value={formData.notes}
+          value={productForm.formData.notes || ''}
           onChangeText={(value) => handleInputChange('notes', value)}
           placeholder="e.g., Organic preferred, urgent delivery"
           multiline
@@ -205,7 +172,7 @@ export function ProductForm({ onProductAdded }: ProductFormProps) {
         />
 
         <Button
-          title={isSubmitting ? "Adding Product..." : "Add Product"}
+          title={productForm.isSubmitting ? "Adding Product..." : "Add Product"}
           onPress={handleSubmit}
           disabled={!canSubmit}
           style={styles.submitButton}
@@ -216,7 +183,7 @@ export function ProductForm({ onProductAdded }: ProductFormProps) {
         visible={showToast}
         message={toastMessage}
         type={toastType}
-        onHide={() => setShowToast(false)}
+        onDismiss={() => setShowToast(false)}
       />
     </Card>
   );
@@ -259,5 +226,11 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     textAlign: 'center',
     lineHeight: 24,
+  },
+  errorText: {
+    color: '#DC2626',
+    fontSize: 14,
+    marginTop: -8,
+    marginBottom: 8,
   },
 });

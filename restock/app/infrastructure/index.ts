@@ -65,6 +65,12 @@ export { ServiceHealthMonitor } from './monitoring/ServiceHealthMonitor';
 export { DependencyGraphVisualizer } from './devtools/DependencyGraphVisualizer';
 export { RuntimePerformanceDashboard } from './devtools/RuntimePerformanceDashboard';
 
+// Testing Utilities (only export in development/testing)
+export { 
+  UserContextTestHelper,
+  TestPatterns 
+} from './testing';
+
 // Type exports for infrastructure interfaces
 export type { 
   AuthUser, 

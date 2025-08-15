@@ -63,9 +63,7 @@ export const UnfinishedSessions: React.FC<UnfinishedSessionsProps> = ({
     <View style={dashboardStyles.section}>
       <View style={dashboardStyles.sectionHeader}>
         <Text style={dashboardStyles.sectionTitle}>Unfinished Sessions</Text>
-        <Text style={[dashboardStyles.sectionTitle, { fontSize: 14, fontWeight: '400', marginTop: 4 }]}>
-          Swipe left on any session to delete it
-        </Text>
+      
       </View>
       
       {sessions.map((session, index) => (

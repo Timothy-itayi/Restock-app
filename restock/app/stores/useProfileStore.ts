@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { UserProfileService } from '../../backend/services/user-profile';
+import { DIContainer } from '../infrastructure/di/Container';
+import type { UserContextService } from '../infrastructure/services/UserContextService';
 
 interface ProfileState {
   // Profile data
@@ -32,12 +34,13 @@ const useProfileStore = create<ProfileState>((set, get) => ({
     try {
       console.log('📊 ProfileStore: Fetching profile for userId:', userId);
       
-      // Import UserContextService dynamically to avoid circular imports
-      const { UserContextService } = await import('../../backend/services/user-context');
+      // Get UserContextService from DI container
+      const container = DIContainer.getInstance();
+      const userContextService = container.get<UserContextService>('UserContextService');
       
       // Set user context before fetching profile to handle RLS
       try {
-        await UserContextService.setUserContext(userId);
+        await userContextService.setUserContext(userId);
         console.log('📊 ProfileStore: User context set for profile fetch');
       } catch (contextError) {
         console.warn('📊 ProfileStore: Could not set user context, trying without:', contextError);

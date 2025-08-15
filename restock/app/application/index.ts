@@ -26,3 +26,4 @@ export { AddProductToSessionUseCase } from './use-cases/AddProductToSessionUseCa
 export { AddItemToSessionUseCase } from './use-cases/AddItemToSessionUseCase';
 export { GenerateEmailsUseCase } from './use-cases/GenerateEmailsUseCase';
 export { GetUserSessionsUseCase } from './use-cases/GetUserSessionsUseCase';
+export { UpdateSessionNameUseCase } from './use-cases/UpdateSessionNameUseCase';

@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@clerk/clerk-expo": "^2.14.12",
+    "@clerk/clerk-react": "^5.42.1",
     "@expo/vector-icons": "^14.1.0",
     "@react-native-async-storage/async-storage": "2.1.2",
     "@react-navigation/bottom-tabs": "^7.3.10",
@@ -30,6 +31,7 @@
     "@react-navigation/native": "^7.1.6",
     "@supabase/supabase-js": "^2.52.1",
     "@tanstack/react-query": "^5.83.0",
+    "convex": "^1.25.4",
     "dotenv": "^17.2.1",
     "expo": "~53.0.20",
     "expo-auth-session": "^6.2.1",

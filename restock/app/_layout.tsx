@@ -1,18 +1,16 @@
-import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
-import * as SplashScreen from "expo-splash-screen";
-import { useEffect, useState } from "react";
-import { ClerkProvider } from "@clerk/clerk-expo";
-import { CLERK_PUBLISHABLE_KEY } from "../backend/config/clerk";
-import { UnifiedAuthProvider } from "./_contexts/UnifiedAuthProvider";
-import UnifiedAuthGuard from "./components/UnifiedAuthGuard";
-import * as Linking from 'expo-linking';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import '../global.css';
-import { BaseLoadingScreen } from './components/loading/BaseLoadingScreen';
-import { SessionManager } from '../backend/services/session-manager';
-import { registerServices, initializeServices } from './infrastructure/di/ServiceRegistry';
+import React, { useState, useEffect } from 'react';
+import { Stack } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { ClerkProvider } from '@clerk/clerk-expo';
+import { ConvexProviderWithClerk } from './_contexts/ConvexProvider';
+import { UnifiedAuthProvider } from './_contexts/UnifiedAuthProvider';
+import { BaseLoadingScreen } from './components/loading/BaseLoadingScreen';
+import { CLERK_PUBLISHABLE_KEY } from '../backend/config/clerk';
+import { SessionManager } from '../backend/services/session-manager';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SplashScreen from 'expo-splash-screen';
+import { registerServices, initializeServices } from './infrastructure/di/ServiceRegistry';
+import * as Linking from 'expo-linking';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -37,26 +35,75 @@ const createTokenCache = () => {
   };
 };
 
+// Component to handle new SSO user redirects
+function NewSSOUserRedirectHandler() {
+  const [hasChecked, setHasChecked] = useState(false);
+
+  useEffect(() => {
+    const checkAndRedirectNewSSOUser = async () => {
+      if (hasChecked) return;
+      
+      try {
+        // Check if this is a new SSO sign-up
+        const newSSOSignUp = await AsyncStorage.getItem('newSSOSignUp');
+        const isNewSignUp = newSSOSignUp === 'true';
+
+        if (isNewSignUp) {
+          console.log('🚨 NewSSOUserRedirectHandler: New SSO user detected, redirecting to profile setup');
+          
+          // Small delay to ensure navigation is ready
+          setTimeout(() => {
+            try {
+              const { router } = require('expo-router');
+              router.replace('/sso-profile-setup');
+              console.log('✅ NewSSOUserRedirectHandler: Successfully redirected new SSO user to profile setup');
+            } catch (error) {
+              console.error('❌ NewSSOUserRedirectHandler: Failed to redirect to profile setup:', error);
+              // Fallback: try to navigate to welcome
+              try {
+                const { router } = require('expo-router');
+                router.replace('/welcome');
+              } catch (fallbackError) {
+                console.error('❌ NewSSOUserRedirectHandler: Fallback navigation also failed:', fallbackError);
+              }
+            }
+          }, 100);
+        }
+        
+        setHasChecked(true);
+      } catch (error) {
+        console.error('❌ NewSSOUserRedirectHandler: Error checking SSO status:', error);
+        setHasChecked(true);
+      }
+    };
+
+    checkAndRedirectNewSSOUser();
+  }, [hasChecked]);
+
+  return null; // This component doesn't render anything
+}
+
 export default function RootLayout() {
   const [showFirstRunSplash, setShowFirstRunSplash] = useState(false);
   const [servicesReady, setServicesReady] = useState(false);
-  const [loaded, error] = useFonts({
-    'Satoshi-Black': require('../assets/fonts/Satoshi/Satoshi-Black.otf'),
-    'Satoshi-BlackItalic': require('../assets/fonts/Satoshi/Satoshi-BlackItalic.otf'),
-    'Satoshi-Bold': require('../assets/fonts/Satoshi/Satoshi-Bold.otf'),
-    'Satoshi-BoldItalic': require('../assets/fonts/Satoshi/Satoshi-BoldItalic.otf'),
-    'Satoshi-Medium': require('../assets/fonts/Satoshi/Satoshi-Medium.otf'),
-    'Satoshi-MediumItalic': require('../assets/fonts/Satoshi/Satoshi-MediumItalic.otf'),
-    'Satoshi-Regular': require('../assets/fonts/Satoshi/Satoshi-Regular.otf'),
-    'Satoshi-Italic': require('../assets/fonts/Satoshi/Satoshi-Italic.otf'),
-    'Satoshi-Light': require('../assets/fonts/Satoshi/Satoshi-Light.otf'),
-    'Satoshi-LightItalic': require('../assets/fonts/Satoshi/Satoshi-LightItalic.otf'),
-  });
+  const [loaded, setLoaded] = useState(false);
 
+  // Initialize Clerk
   useEffect(() => {
-    if (error) throw error;
-  }, [error]);
+    const initializeClerk = async () => {
+      try {
+        // Wait for Clerk to be ready
+        setLoaded(true);
+      } catch (error) {
+        console.error('❌ RootLayout: Clerk initialization error:', error);
+        setLoaded(true); // Continue anyway
+      }
+    };
 
+    initializeClerk();
+  }, []);
+
+  // Hide splash screen when loaded
   useEffect(() => {
     if (loaded) {
       SplashScreen.hideAsync();
@@ -138,60 +185,65 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ClerkProvider 
-        publishableKey={CLERK_PUBLISHABLE_KEY}
-        tokenCache={createTokenCache()} // This is crucial for session persistence in React Native
-      >
-        <UnifiedAuthProvider>
-          {showFirstRunSplash ? (
-            <BaseLoadingScreen
-              title="Restock"
-              subtitle="Preparing your experience..."
-              icon="cart"
-              color="#6B7F6B"
-              showProgress={false}
-              progressDuration={1000}
-            />
-          ) : (
-            <Stack
-              screenOptions={{
-                headerStyle: {
-                  backgroundColor: "#f8f9fa",
-                },
-                headerTintColor: "#2c3e50",
-                headerTitleStyle: {
-                  fontWeight: "600",
-                },
-              }}
-            >
-              <Stack.Screen
-                name="(tabs)"
-                options={{  
-                  headerShown: false,
-                }}
+      <ConvexProviderWithClerk>
+        <ClerkProvider 
+          publishableKey={CLERK_PUBLISHABLE_KEY}
+          tokenCache={createTokenCache()} // This is crucial for session persistence in React Native
+        >
+          <UnifiedAuthProvider>
+            {/* Add the new SSO user redirect handler */}
+            <NewSSOUserRedirectHandler />
+            
+            {showFirstRunSplash ? (
+              <BaseLoadingScreen
+                title="Restock"
+                subtitle="Preparing your experience..."
+                icon="cart"
+                color="#6B7F6B"
+                showProgress={false}
+                progressDuration={1000}
               />
-              <Stack.Screen
-                name="auth"
-                options={{
-                  headerShown: false,
+            ) : (
+              <Stack
+                screenOptions={{
+                  headerStyle: {
+                    backgroundColor: "#f8f9fa",
+                  },
+                  headerTintColor: "#2c3e50",
+                  headerTitleStyle: {
+                    fontWeight: "600",
+                  },
                 }}
-              />
-              <Stack.Screen
-                name="welcome"
-                options={{
-                  headerShown: false,
-                }}
-              />
-              <Stack.Screen
-                name="sso-profile-setup"
-                options={{
-                  headerShown: false,
-                }}
-              />
-            </Stack>
-          )}
-        </UnifiedAuthProvider>
-      </ClerkProvider>
+              >
+                <Stack.Screen
+                  name="(tabs)"
+                  options={{  
+                    headerShown: false,
+                  }}
+                />
+                <Stack.Screen
+                  name="auth"
+                  options={{
+                    headerShown: false,
+                  }}
+                />
+                <Stack.Screen
+                  name="welcome"
+                  options={{
+                    headerShown: false,
+                  }}
+                />
+                <Stack.Screen
+                  name="sso-profile-setup"
+                  options={{
+                    headerShown: false,
+                  }}
+                />
+              </Stack>
+            )}
+          </UnifiedAuthProvider>
+        </ClerkProvider>
+      </ConvexProviderWithClerk>
     </GestureHandlerRootView>
   );
 }
