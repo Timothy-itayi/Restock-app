@@ -1,24 +1,23 @@
-import { supabase } from '../config/supabase';
-import type { InsertUser } from '../types/database';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../convex/_generated/api';
+
+// Initialize Convex client for backend usage
+const convex = new ConvexHttpClient(process.env.EXPO_PUBLIC_CONVEX_URL!);
 
 export class AuthService {
   /**
    * Sign up a new user (passwordless)
+   * Note: Since we're using Clerk for auth, this is mainly for profile creation
    */
   static async signUp(email: string, storeName?: string) {
     try {
-      const { data, error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          data: {
-            store_name: storeName,
-          },
-        },
+      // Create user profile in Convex
+      const userId = await convex.mutation(api.users.create, {
+        email: email.toLowerCase().trim(),
+        storeName: storeName?.trim() || '',
       });
 
-      if (error) throw error;
-
-      return { data, error: null };
+      return { data: { user: { id: userId } }, error: null };
     } catch (error) {
       return { data: null, error };
     }
@@ -26,14 +25,18 @@ export class AuthService {
 
   /**
    * Sign in existing user (passwordless)
+   * Note: Since we're using Clerk for auth, this is mainly for profile verification
    */
   static async signIn(email: string) {
     try {
-      const { data, error } = await supabase.auth.signInWithOtp({
-        email,
-      });
-
-      return { data, error };
+      // Check if user profile exists in Convex
+      const profile = await convex.query(api.users.get);
+      
+      if (profile) {
+        return { data: { user: profile }, error: null };
+      } else {
+        return { data: null, error: new Error('User profile not found') };
+      }
     } catch (error) {
       return { data: null, error };
     }
@@ -41,11 +44,12 @@ export class AuthService {
 
   /**
    * Sign out current user
+   * Note: Since we're using Clerk for auth, this is handled by Clerk
    */
   static async signOut() {
     try {
-      const { error } = await supabase.auth.signOut();
-      return { error };
+      // Clerk handles sign out, just return success
+      return { error: null };
     } catch (error) {
       return { error };
     }
@@ -53,11 +57,17 @@ export class AuthService {
 
   /**
    * Get current user
+   * Note: Since we're using Clerk for auth, this gets the profile from Convex
    */
   static async getCurrentUser() {
     try {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      return { user, error };
+      const profile = await convex.query(api.users.get);
+      
+      if (profile) {
+        return { user: profile, error: null };
+      } else {
+        return { user: null, error: null };
+      }
     } catch (error) {
       return { user: null, error };
     }
@@ -65,11 +75,17 @@ export class AuthService {
 
   /**
    * Get user session
+   * Note: Since we're using Clerk for auth, this gets the profile from Convex
    */
   static async getSession() {
     try {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      return { session, error };
+      const profile = await convex.query(api.users.get);
+      
+      if (profile) {
+        return { session: { user: profile }, error: null };
+      } else {
+        return { session: null, error: null };
+      }
     } catch (error) {
       return { session: null, error };
     }
@@ -78,16 +94,17 @@ export class AuthService {
   /**
    * Update user profile
    */
-  static async updateProfile(userId: string, updates: Partial<InsertUser>) {
+  static async updateProfile(userId: string, updates: any) {
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .update(updates)
-        .eq('id', userId)
-        .select()
-        .single();
+      const updateData: any = {};
+      
+      if (updates.name !== undefined) updateData.name = updates.name;
+      if (updates.storeName !== undefined) updateData.storeName = updates.storeName;
+      if (updates.email !== undefined) updateData.email = updates.email;
 
-      return { data, error };
+      const updatedId = await convex.mutation(api.users.update, updateData);
+
+      return { data: { id: updatedId }, error: null };
     } catch (error) {
       return { data: null, error };
     }
@@ -98,13 +115,13 @@ export class AuthService {
    */
   static async getUserProfile(userId: string) {
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      return { data, error };
+      const profile = await convex.query(api.users.get);
+      
+      if (profile) {
+        return { data: profile, error: null };
+      } else {
+        return { data: null, error: null };
+      }
     } catch (error) {
       return { data: null, error };
     }
@@ -112,15 +129,12 @@ export class AuthService {
 
   /**
    * Resend email confirmation
+   * Note: Since we're using Clerk for auth, this is handled by Clerk
    */
   static async resendConfirmation(email: string) {
     try {
-      const { data, error } = await supabase.auth.resend({
-        type: 'signup',
-        email,
-      });
-
-      return { data, error };
+      // Clerk handles email confirmation, just return success
+      return { data: { success: true }, error: null };
     } catch (error) {
       return { data: null, error };
     }

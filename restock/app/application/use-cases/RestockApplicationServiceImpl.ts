@@ -31,6 +31,7 @@ import { AddProductToSessionUseCase } from './AddProductToSessionUseCase';
 import { AddItemToSessionUseCase } from './AddItemToSessionUseCase';
 import { GenerateEmailsUseCase } from './GenerateEmailsUseCase';
 import { GetUserSessionsUseCase } from './GetUserSessionsUseCase';
+import { UpdateSessionNameUseCase } from './UpdateSessionNameUseCase';
 
 export class RestockApplicationServiceImpl implements RestockApplicationService {
   private readonly createSessionUseCase: CreateRestockSessionUseCase;
@@ -38,6 +39,7 @@ export class RestockApplicationServiceImpl implements RestockApplicationService 
   private readonly addItemUseCase: AddItemToSessionUseCase;
   private readonly generateEmailsUseCase: GenerateEmailsUseCase;
   private readonly getUserSessionsUseCase: GetUserSessionsUseCase;
+  private readonly updateSessionNameUseCase: UpdateSessionNameUseCase;
 
   constructor(
     private readonly sessionRepository: SessionRepository,
@@ -69,6 +71,11 @@ export class RestockApplicationServiceImpl implements RestockApplicationService 
     
     this.getUserSessionsUseCase = new GetUserSessionsUseCase(
       sessionRepository
+    );
+    
+    this.updateSessionNameUseCase = new UpdateSessionNameUseCase(
+      sessionRepository,
+      idGenerator
     );
   }
 
@@ -180,24 +187,40 @@ export class RestockApplicationServiceImpl implements RestockApplicationService 
 
   async setSessionName(sessionId: string, name: string): Promise<SessionResult> {
     try {
+      // First get the session to get the user ID
       const session = await this.sessionRepository.findById(sessionId);
       if (!session) {
         throw new SessionNotFoundError(sessionId);
       }
 
-      const updatedSession = session.setName(name);
-      await this.sessionRepository.save(updatedSession);
+      // Use the new use case for better logic handling
+      const result = await this.updateSessionNameUseCase.execute({
+        sessionId,
+        userId: session.userId,
+        newName: name,
+      });
 
-      return {
-        success: true,
-        session: updatedSession,
-      };
+      if (result.success && result.session) {
+        return {
+          success: true,
+          session: result.session,
+        };
+      } else {
+        return {
+          success: false,
+          error: result.error || 'Failed to update session name',
+        };
+      }
     } catch (error) {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to set session name',
       };
     }
+  }
+
+  async updateSessionName(command: { sessionId?: string; userId: string; newName: string }): Promise<SessionResult> {
+    return await this.updateSessionNameUseCase.execute(command);
   }
 
   // Email operations

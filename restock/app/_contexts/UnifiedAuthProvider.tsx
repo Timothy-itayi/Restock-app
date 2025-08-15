@@ -6,6 +6,8 @@ import { UserProfileService } from '../../backend/services/user-profile';
 import { ClerkClientService } from '../../backend/services/clerk-client';
 import { EmailAuthService } from '../../backend/services/email-auth';
 import useProfileStore from '../stores/useProfileStore';
+import { DIContainer } from '../infrastructure/di/Container';
+import { UserContextService } from '../infrastructure/services/UserContextService';
 
 interface AuthType {
   type: 'google' | 'email' | null;
@@ -21,6 +23,7 @@ interface UnifiedAuthContextType {
   userId: string | null;
   authType: AuthType;
   triggerAuthCheck: () => void;
+  markNewSSOUserReady: () => Promise<void>; // Add this to the interface
 }
 
 const UnifiedAuthContext = createContext<UnifiedAuthContextType | undefined>(undefined);
@@ -97,15 +100,34 @@ export const UnifiedAuthProvider: React.FC<UnifiedAuthProviderProps> = ({ childr
 
   // Complete loading when both auth is ready and minimum time is met
   useEffect(() => {
-    if (minimumLoadingMet && isReady && isLoading) {
-      console.log('⏰ UnifiedAuth: Both conditions met, completing loading', {
-        minimumLoadingMet,
-        isReady,
-        isLoading
-      });
+    if (isReady && minimumLoadingMet) {
+      console.log('⏰ UnifiedAuth: Both ready state and minimum time met, completing loading');
       setIsLoading(false);
+    } else if (isReady && !minimumLoadingMet) {
+      console.log('⏰ UnifiedAuth: Ready state met but waiting for minimum time', {
+        isReady,
+        minimumLoadingMet,
+        timeRemaining: MIN_LOADING_TIME - (Date.now() - loadingStartTime)
+      });
+    } else if (!isReady && minimumLoadingMet) {
+      console.log('⏰ UnifiedAuth: Minimum time met but not ready yet', {
+        isReady,
+        minimumLoadingMet,
+        authType
+      });
     }
-  }, [minimumLoadingMet, isReady, isLoading]);
+  }, [isReady, minimumLoadingMet, loadingStartTime, MIN_LOADING_TIME, authType]);
+
+  // Add debug logging for auth state changes
+  useEffect(() => {
+    console.log('🔍 UnifiedAuth: Auth state changed:', {
+      isReady,
+      isLoading,
+      authType,
+      minimumLoadingMet,
+      hasInitialized
+    });
+  }, [isReady, isLoading, authType, minimumLoadingMet, hasInitialized]);
 
   // Check if user is a Google user
   const checkIfGoogleUser = (user: any): boolean => {
@@ -169,7 +191,7 @@ export const UnifiedAuthProvider: React.FC<UnifiedAuthProviderProps> = ({ childr
         await SessionManager.saveUserSession({
           userId,
           email: userEmail || '',
-          storeName: profileResult.data?.store_name || '',
+          storeName: profileResult.data?.storeName || '',
           wasSignedIn: true,
           lastSignIn: Date.now(),
           lastAuthMethod: isGoogle ? 'google' : 'email',
@@ -202,32 +224,56 @@ export const UnifiedAuthProvider: React.FC<UnifiedAuthProviderProps> = ({ childr
     const isGoogle = checkIfGoogleUser(user);
     console.log('🔍 UnifiedAuth: User type detected:', { isGoogle, userId });
     
-    // Check if this is a new SSO sign-up
+    // CRITICAL: Check for new SSO sign-up BEFORE setting any auth state
+    // This prevents the dashboard from ever mounting for new users
     const newSSOSignUp = await AsyncStorage.getItem('newSSOSignUp');
     const isNewSignUp = newSSOSignUp === 'true';
     
-    console.log('🔍 UnifiedAuth: Sign-up status:', { isNewSignUp, newSSOSignUp });
-    
-    // If this is a new SSO sign-up, skip profile verification and let the SSO flow handle it
     if (isNewSignUp) {
-      console.log('⏳ UnifiedAuth: New SSO sign-up detected, skipping profile verification');
+      console.log('🚨 UnifiedAuth: CRITICAL - New SSO user detected, IMMEDIATE redirect required');
+      
+      // Set auth type but keep user in loading state
       const newAuthType: AuthType = {
         type: isGoogle ? 'google' : 'email',
         isNewSignUp: true,
-        needsProfileSetup: true // New SSO users always need profile setup
+        needsProfileSetup: true
       };
-      console.log('🔍 UnifiedAuth: Setting auth type for new SSO user:', newAuthType);
       setAuthType(newAuthType);
-      setIsReady(true);
-      console.log('✅ UnifiedAuth: New SSO sign-up flow complete');
-      // Set loading to false only if minimum time has passed
-      if (minimumLoadingMet) {
-        console.log('⏰ UnifiedAuth: Minimum time met, setting loading to false');
-        setIsLoading(false);
-      } else {
-        console.log('⏰ UnifiedAuth: Waiting for minimum loading time before completing');
+      setIsReady(false); // Keep in loading state
+      
+      // IMMEDIATE redirect to profile setup - no delay, no dashboard mounting
+      console.log('🚨 UnifiedAuth: Executing IMMEDIATE redirect to profile setup');
+      try {
+        const { router } = require('expo-router');
+        router.replace('/sso-profile-setup');
+        console.log('✅ UnifiedAuth: IMMEDIATE redirect to profile setup successful');
+      } catch (error) {
+        console.error('❌ UnifiedAuth: IMMEDIATE redirect failed:', error);
+        // Fallback: try to navigate to welcome
+        try {
+          const { router } = require('expo-router');
+          router.replace('/welcome');
+        } catch (fallbackError) {
+          console.error('❌ UnifiedAuth: Fallback navigation also failed:', fallbackError);
+        }
       }
       return;
+    }
+    
+    // Set user context in database for RLS policies
+    try {
+      const container = DIContainer.getInstance();
+      if (container.has('UserContextService')) {
+        const userContextService = container.get<UserContextService>('UserContextService');
+        console.log('🔧 UnifiedAuth: Setting user context in database for RLS policies');
+        await userContextService.setUserContext(userId);
+        console.log('✅ UnifiedAuth: User context set successfully for RLS policies');
+      } else {
+        console.warn('⚠️ UnifiedAuth: UserContextService not available in DI container');
+      }
+    } catch (error) {
+      console.error('❌ UnifiedAuth: Failed to set user context for RLS policies:', error);
+      // Don't fail the auth flow - the app can work with degraded functionality
     }
     
     // Create base auth type for returning users
@@ -261,6 +307,20 @@ export const UnifiedAuthProvider: React.FC<UnifiedAuthProviderProps> = ({ childr
   // Handle unauthenticated user
   const handleUnauthenticatedUser = async () => {
     console.log('❌ UnifiedAuth: User is not authenticated');
+    
+    // Clear user context in database
+    try {
+      const container = DIContainer.getInstance();
+      if (container.has('UserContextService')) {
+        const userContextService = container.get<UserContextService>('UserContextService');
+        console.log('🔧 UnifiedAuth: Clearing user context in database');
+        await userContextService.clearUserContext();
+        console.log('✅ UnifiedAuth: User context cleared successfully');
+      }
+    } catch (error) {
+      console.error('❌ UnifiedAuth: Failed to clear user context:', error);
+      // Don't fail the auth flow
+    }
     
     // Clear profile store
     clearProfile();
@@ -334,6 +394,30 @@ export const UnifiedAuthProvider: React.FC<UnifiedAuthProviderProps> = ({ childr
     setForceCheck(prev => prev + 1);
   };
 
+  // Function to mark new SSO user as ready after profile setup completion
+  const markNewSSOUserReady = useCallback(async () => {
+    console.log('🔧 UnifiedAuth: Marking new SSO user as ready after profile setup completion');
+    
+    // Clear the new SSO sign-up flag
+    try {
+      await AsyncStorage.removeItem('newSSOSignUp');
+      console.log('✅ UnifiedAuth: newSSOSignUp flag cleared');
+    } catch (error) {
+      console.error('❌ UnifiedAuth: Failed to clear newSSOSignUp flag:', error);
+    }
+    
+    // Update auth type to reflect profile setup completion
+    setAuthType(prev => ({
+      ...prev,
+      isNewSignUp: false,
+      needsProfileSetup: false
+    }));
+    
+    // Mark as ready
+    setIsReady(true);
+    console.log('✅ UnifiedAuth: New SSO user marked as ready');
+  }, []);
+
   const value: UnifiedAuthContextType = {
     isReady,
     isAuthenticated: isSignedIn || false,
@@ -342,6 +426,7 @@ export const UnifiedAuthProvider: React.FC<UnifiedAuthProviderProps> = ({ childr
     userId: userId || null,
     authType,
     triggerAuthCheck,
+    markNewSSOUserReady, // Expose the new function
   };
 
   return (

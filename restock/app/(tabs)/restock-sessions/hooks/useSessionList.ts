@@ -51,6 +51,13 @@ export function useSessionList(): SessionListState & SessionListActions {
       return;
     }
 
+    // Check if service is ready
+    if (!restockService || typeof restockService.getSessions !== 'function') {
+      console.log('[useSessionList] Service not ready yet, skipping load');
+      setError('Service not ready yet');
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
@@ -60,8 +67,21 @@ export function useSessionList(): SessionListState & SessionListActions {
       const result = await restockService.getSessions({ userId });
       
       if (result.success && result.sessions) {
-        setSessions(result.sessions);
-        console.log('[useSessionList] Loaded sessions:', result.sessions.length);
+        // Flatten the sessions from the grouped structure
+        const allSessions = [
+          ...(result.sessions.draft || []),
+          ...(result.sessions.emailGenerated || []),
+          ...(result.sessions.sent || []),
+          ...(result.sessions.all || [])
+        ];
+        
+        // Remove duplicates by ID
+        const uniqueSessions = allSessions.filter((session, index, self) => 
+          index === self.findIndex(s => s.toValue().id === session.toValue().id)
+        );
+        
+        setSessions(uniqueSessions);
+        console.log('[useSessionList] Loaded sessions:', uniqueSessions.length);
       } else {
         setError(result.error || 'Failed to load sessions');
         setSessions([]);
@@ -82,6 +102,10 @@ export function useSessionList(): SessionListState & SessionListActions {
   const createNewSession = useCallback(async (name?: string) => {
     if (!userId) {
       return { success: false, error: 'User not authenticated' };
+    }
+
+    if (!restockService || typeof restockService.createSession !== 'function') {
+      return { success: false, error: 'Service not ready yet' };
     }
 
     setIsLoading(true);
@@ -126,6 +150,10 @@ export function useSessionList(): SessionListState & SessionListActions {
    * Delete a session
    */
   const deleteSession = useCallback(async (sessionId: string) => {
+    if (!restockService || typeof restockService.deleteSession !== 'function') {
+      return { success: false, error: 'Service not ready yet' };
+    }
+
     setIsLoading(true);
     setError(null);
 

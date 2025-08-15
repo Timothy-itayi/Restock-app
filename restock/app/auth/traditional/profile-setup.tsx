@@ -11,7 +11,7 @@ import { profileSetupStyles } from '../../../styles/components/auth/traditional/
 export default function ProfileSetupScreen() {
   const { isSignedIn, userId } = useAuth();
   const { user } = useUser();
-  const { triggerAuthCheck } = useUnifiedAuth();
+  const { triggerAuthCheck, markNewSSOUserReady } = useUnifiedAuth();
   
   const [name, setName] = useState('');
   const [storeName, setStoreName] = useState('');
@@ -84,7 +84,7 @@ export default function ProfileSetupScreen() {
         Alert.alert('Error', message);
         return;
       } else {
-        // Success - profile created successfully!
+        // Success path - profile created successfully!
         console.log('✅ ProfileSetup: Profile creation successful', result.data);
         
         // Save session data for returning user detection
@@ -97,22 +97,11 @@ export default function ProfileSetupScreen() {
           lastAuthMethod: 'email',
         });
         
-        // Wait a moment for database consistency before triggering auth check
-        console.log('⏳ Waiting for database consistency...');
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Verify profile was actually created before triggering auth check
-        console.log('🔍 Verifying profile creation...');
-        const verificationResult = await UserProfileService.hasCompletedProfileSetup(userId);
-        console.log('📊 Profile verification result:', verificationResult);
-        
-        if (!verificationResult.hasCompletedSetup) {
-          console.log('⚠️ Profile verification failed, waiting longer...');
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
-          const secondVerification = await UserProfileService.hasCompletedProfileSetup(userId);
-          console.log('📊 Second verification result:', secondVerification);
-        }
+        // CRITICAL: Mark the new email user as ready in UnifiedAuthProvider
+        // This allows them to access the dashboard and completes the auth flow
+        console.log('🔧 ProfileSetup: Marking new email user as ready in UnifiedAuthProvider');
+        await markNewSSOUserReady();
+        console.log('✅ ProfileSetup: New email user marked as ready');
         
         // Trigger auth state refresh to update profile setup status
         console.log('🔄 Triggering auth state refresh...');

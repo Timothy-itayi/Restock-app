@@ -87,6 +87,7 @@ export interface RestockApplicationService {
   removeProduct(sessionId: string, productId: string): Promise<SessionResult>;
   updateProduct(sessionId: string, productId: string, quantity: number, notes?: string): Promise<SessionResult>;
   setSessionName(sessionId: string, name: string): Promise<SessionResult>;
+  updateSessionName(command: { sessionId?: string; userId: string; newName: string }): Promise<SessionResult>;
   
   // Email operations
   generateEmails(command: GenerateEmailsCommand): Promise<EmailsResult>;
