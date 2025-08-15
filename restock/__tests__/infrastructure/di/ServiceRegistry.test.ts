@@ -96,12 +96,24 @@ describe('ServiceRegistry', () => {
     });
 
     test('should handle registration errors gracefully', () => {
-      // Mock a service that throws during registration
-      jest.doMock('../../../app/infrastructure/index', () => {
-        throw new Error('Mock registration error');
-      });
+      // Mock the container to throw during registration
+      const mockContainer = {
+        register: jest.fn().mockImplementation(() => {
+          throw new Error('Mock registration error');
+        }),
+        get: jest.fn(),
+        has: jest.fn(),
+        debugServices: jest.fn()
+      };
+      
+      // Mock the DIContainer.getInstance to return our mock
+      const originalGetInstance = DIContainer.getInstance;
+      DIContainer.getInstance = jest.fn().mockReturnValue(mockContainer);
 
       expect(() => registerServices()).toThrow(/Service registration failed/);
+      
+      // Restore the original method
+      DIContainer.getInstance = originalGetInstance;
     });
 
     test('should log successful registration', () => {
@@ -138,7 +150,7 @@ describe('ServiceRegistry', () => {
     });
 
     test('should resolve application service with all dependencies', () => {
-      const applicationService = container.get('RestockApplicationService');
+      const applicationService = container.get('RestockApplicationService') as any;
       
       expect(applicationService).toBeDefined();
       expect(applicationService.name).toBe('RestockApplicationServiceImpl');
@@ -180,7 +192,8 @@ describe('ServiceRegistry', () => {
       await expect(initializeServices()).resolves.not.toThrow();
       
       expect(console.warn).toHaveBeenCalledWith(
-        expect.stringContaining('Service initialization completed with warnings')
+        expect.stringContaining('Service initialization completed with warnings'),
+        expect.any(Error)
       );
     });
 
@@ -225,7 +238,7 @@ describe('ServiceRegistry', () => {
       const health = healthCheck();
       
       expect(health.healthy).toBe(false);
-      expect(health.issues).toContain(
+      expect(health.issues).toContainEqual(
         expect.stringContaining('Failed to create RestockApplicationService')
       );
     });
@@ -276,8 +289,8 @@ describe('ServiceRegistry', () => {
       try {
         container.get('NonExistentService');
       } catch (error) {
-        expect(error.message).toContain('Service \'NonExistentService\' not found in container');
-        expect(error.message).toContain('Available services:');
+        expect((error as Error).message).toContain('Service \'NonExistentService\' not found in container');
+        expect((error as Error).message).toContain('Available services:');
       }
     });
 

@@ -106,7 +106,7 @@ describe('DIContainer', () => {
       try {
         container.get('NonExistentService');
       } catch (error) {
-        expect(error.message).toContain('ServiceA, ServiceB');
+        expect((error as Error).message).toContain('ServiceA, ServiceB');
       }
     });
 
@@ -134,7 +134,7 @@ describe('DIContainer', () => {
         return { ...mainService, dependency };
       });
       
-      const service = container.get('MainService');
+      const service = container.get('MainService') as any;
       
       expect(service.dependency).toBe(dependencyService);
     });
@@ -174,7 +174,7 @@ describe('DIContainer', () => {
       
       const info = container.getServiceInfo('TestService');
       
-      expect(info.hasInstance).toBe(true);
+      expect(info!.hasInstance).toBe(true);
     });
 
     test('should return null for unregistered service info', () => {

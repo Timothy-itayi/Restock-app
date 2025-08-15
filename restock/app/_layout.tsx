@@ -151,44 +151,42 @@ export default function RootLayout() {
             progressDuration={1000}
           />
         ) : (
-          <UnifiedAuthGuard requireAuth={false}>
-            <Stack
-              screenOptions={{
-                headerStyle: {
-                  backgroundColor: "#f8f9fa",
-                },
-                headerTintColor: "#2c3e50",
-                headerTitleStyle: {
-                  fontWeight: "600",
-                },
+          <Stack
+            screenOptions={{
+              headerStyle: {
+                backgroundColor: "#f8f9fa",
+              },
+              headerTintColor: "#2c3e50",
+              headerTitleStyle: {
+                fontWeight: "600",
+              },
+            }}
+          >
+            <Stack.Screen
+              name="(tabs)"
+              options={{  
+                headerShown: false,
               }}
-            >
-              <Stack.Screen
-                name="(tabs)"
-                options={{  
-                  headerShown: false,
-                }}
-              />
-              <Stack.Screen
-                name="auth"
-                options={{
-                  headerShown: false,
-                }}
-              />
-              <Stack.Screen
-                name="welcome"
-                options={{
-                  headerShown: false,
-                }}
-              />
-              <Stack.Screen
-                name="sso-profile-setup"
-                options={{
-                  headerShown: false,
-                }}
-              />
-            </Stack>
-          </UnifiedAuthGuard>
+            />
+            <Stack.Screen
+              name="auth"
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="welcome"
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="sso-profile-setup"
+              options={{
+                headerShown: false,
+              }}
+            />
+          </Stack>
         )}
       </UnifiedAuthProvider>
     </ClerkProvider>

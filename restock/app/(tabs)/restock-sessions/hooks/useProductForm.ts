@@ -120,7 +120,7 @@ export function useProductForm(): ProductFormState & ProductFormActions {
     // Supplier email validation
     if (!formData.supplierEmail.trim()) {
       errors.supplierEmail = 'Supplier email is required';
-    } else if (!isValidEmail(formData.supplierEmail)) {
+    } else if (!isValidEmail(formData.supplierEmail.trim())) {
       errors.supplierEmail = 'Please enter a valid email address';
     }
 
