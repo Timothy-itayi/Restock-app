@@ -60,6 +60,11 @@ export {
   EmailGenerationError
 } from './adapters/GroqEmailAdapter';
 
+// Monitoring and DevTools
+export { ServiceHealthMonitor } from './monitoring/ServiceHealthMonitor';
+export { DependencyGraphVisualizer } from './devtools/DependencyGraphVisualizer';
+export { RuntimePerformanceDashboard } from './devtools/RuntimePerformanceDashboard';
+
 // Type exports for infrastructure interfaces
 export type { 
   AuthUser, 

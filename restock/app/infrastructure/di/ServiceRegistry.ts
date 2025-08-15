@@ -47,7 +47,11 @@ export function registerServices(): void {
 
     // 2. Repository Implementations
     container.register('SupabaseSessionRepository', () => {
+      
+            
       const userContextService = container.get<UserContextService>('UserContextService');
+
+      
       return new SupabaseSessionRepository(supabaseClient, userContextService);
     });
 

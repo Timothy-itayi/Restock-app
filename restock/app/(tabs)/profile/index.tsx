@@ -12,7 +12,7 @@ import { useProfileData } from './hooks/useProfileData';
 
 export default function ProfileScreen() {
   const { user } = useUser();
-  const { userId } = useUnifiedAuth();
+ 
   const { theme } = useThemeStore();
   const profileStyles = useThemedStyles(getProfileStyles); // must be called every render before any early returns
   const [minLoadingTime, setMinLoadingTime] = useState(true);
@@ -53,7 +53,7 @@ export default function ProfileScreen() {
         userFirstName={user?.firstName} 
       />
          
-      <StorePlanCard storeName={userProfile?.store_name} />
+      <StorePlanCard storeName={userProfile?.storeName} />
      
       <StatsCards sessionCount={sessionCount} emailCount={emailCount} />
       

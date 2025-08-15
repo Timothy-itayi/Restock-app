@@ -6,14 +6,12 @@
  */
 
 import { RestockApplicationServiceImpl } from '../../../app/application/use-cases/RestockApplicationServiceImpl';
-import type { 
-  SessionRepository,
-  ProductRepository,
-  SupplierRepository 
-} from '../../../app/domain/interfaces';
-import type { RestockSession } from '../../../app/domain/entities/RestockSession';
-import type { Product } from '../../../app/domain/entities/Product';
-import type { Supplier } from '../../../app/domain/entities/Supplier';
+import type { SessionRepository } from '../../../app/domain/interfaces/SessionRepository';
+import type { ProductRepository } from '../../../app/domain/interfaces/ProductRepository';
+import type { SupplierRepository } from '../../../app/domain/interfaces/SupplierRepository';
+import { RestockSession, SessionStatus } from '../../../app/domain/entities/RestockSession';
+import { Product } from '../../../app/domain/entities/Product';
+import { Supplier } from '../../../app/domain/entities/Supplier';
 
 // Mock implementations
 class MockSessionRepository implements SessionRepository {
@@ -23,19 +21,48 @@ class MockSessionRepository implements SessionRepository {
     return this.sessions.get(sessionId) || null;
   }
   
-  async findByUserId(userId: string): Promise<RestockSession[]> {
+  async findByUserId(userId: string): Promise<ReadonlyArray<RestockSession>> {
     return Array.from(this.sessions.values()).filter(
       session => session.toValue().userId === userId
     );
   }
   
-  async save(session: RestockSession): Promise<RestockSession> {
+  async save(session: RestockSession): Promise<void> {
     this.sessions.set(session.toValue().id, session);
-    return session;
   }
   
   async delete(sessionId: string): Promise<void> {
     this.sessions.delete(sessionId);
+  }
+
+  async findUnfinishedByUserId(userId: string): Promise<ReadonlyArray<RestockSession>> {
+    return Array.from(this.sessions.values()).filter(
+      session => session.toValue().userId === userId && session.toValue().status !== SessionStatus.SENT
+    );
+  }
+
+  async findCompletedByUserId(userId: string): Promise<ReadonlyArray<RestockSession>> {
+    return Array.from(this.sessions.values()).filter(
+      session => session.toValue().userId === userId && session.toValue().status === SessionStatus.SENT
+    );
+  }
+
+  async findByStatus(userId: string, status: SessionStatus): Promise<ReadonlyArray<RestockSession>> {
+    return Array.from(this.sessions.values()).filter(
+      session => session.toValue().userId === userId && session.toValue().status === status
+    );
+  }
+
+  async countByUserId(userId: string): Promise<number> {
+    return Array.from(this.sessions.values()).filter(
+      session => session.toValue().userId === userId
+    ).length;
+  }
+
+  async findRecentByUserId(userId: string, limit: number): Promise<ReadonlyArray<RestockSession>> {
+    return Array.from(this.sessions.values())
+      .filter(session => session.toValue().userId === userId)
+      .slice(0, limit);
   }
 }
 
@@ -46,19 +73,49 @@ class MockProductRepository implements ProductRepository {
     return this.products.get(productId) || null;
   }
   
-  async findByUserId(userId: string): Promise<Product[]> {
+  async findByUserId(userId: string): Promise<ReadonlyArray<Product>> {
     return Array.from(this.products.values()).filter(
       product => product.toValue().userId === userId
     );
   }
   
-  async save(product: Product): Promise<Product> {
+  async save(product: Product): Promise<void> {
     this.products.set(product.toValue().id, product);
-    return product;
   }
   
   async delete(productId: string): Promise<void> {
     this.products.delete(productId);
+  }
+
+  async findByName(userId: string, name: string): Promise<ReadonlyArray<Product>> {
+    return Array.from(this.products.values()).filter(
+      product => product.toValue().userId === userId && product.toValue().name === name
+    );
+  }
+
+  async search(userId: string, searchTerm: string): Promise<ReadonlyArray<Product>> {
+    return Array.from(this.products.values()).filter(
+      product => product.toValue().userId === userId && 
+                 product.toValue().name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }
+
+  async findBySupplierId(userId: string, supplierId: string): Promise<ReadonlyArray<Product>> {
+    return Array.from(this.products.values()).filter(
+      product => product.toValue().userId === userId && product.toValue().defaultSupplierId === supplierId
+    );
+  }
+
+  async countByUserId(userId: string): Promise<number> {
+    return Array.from(this.products.values()).filter(
+      product => product.toValue().userId === userId
+    ).length;
+  }
+
+  async findMostUsed(userId: string, limit: number): Promise<ReadonlyArray<Product>> {
+    return Array.from(this.products.values())
+      .filter(product => product.toValue().userId === userId)
+      .slice(0, limit);
   }
 }
 
@@ -69,7 +126,7 @@ class MockSupplierRepository implements SupplierRepository {
     return this.suppliers.get(supplierId) || null;
   }
   
-  async findByUserId(userId: string): Promise<Supplier[]> {
+  async findByUserId(userId: string): Promise<ReadonlyArray<Supplier>> {
     return Array.from(this.suppliers.values()).filter(
       supplier => supplier.toValue().userId === userId
     );
@@ -81,13 +138,31 @@ class MockSupplierRepository implements SupplierRepository {
     ) || null;
   }
   
-  async save(supplier: Supplier): Promise<Supplier> {
+  async save(supplier: Supplier): Promise<void> {
     this.suppliers.set(supplier.toValue().id, supplier);
-    return supplier;
   }
   
   async delete(supplierId: string): Promise<void> {
     this.suppliers.delete(supplierId);
+  }
+
+  async search(userId: string, searchTerm: string): Promise<ReadonlyArray<Supplier>> {
+    return Array.from(this.suppliers.values()).filter(
+      supplier => supplier.toValue().userId === userId && 
+                 supplier.toValue().name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }
+
+  async countByUserId(userId: string): Promise<number> {
+    return Array.from(this.suppliers.values()).filter(
+      supplier => supplier.toValue().userId === userId
+    ).length;
+  }
+
+  async findMostUsed(userId: string, limit: number): Promise<ReadonlyArray<Supplier>> {
+    return Array.from(this.suppliers.values())
+      .filter(supplier => supplier.toValue().userId === userId)
+      .slice(0, limit);
   }
 }
 
@@ -97,37 +172,63 @@ class MockIdGeneratorService {
   }
 }
 
-class MockEmailAdapter {
-  async initialize(): Promise<void> {
-    // Mock initialization
-  }
-  
-  async generateEmails(session: RestockSession, options: any): Promise<any[]> {
-    return [];
-  }
-}
-
 describe('RestockApplicationService', () => {
   let applicationService: RestockApplicationServiceImpl;
   let mockSessionRepository: MockSessionRepository;
   let mockProductRepository: MockProductRepository;
   let mockSupplierRepository: MockSupplierRepository;
   let mockIdGenerator: MockIdGeneratorService;
-  let mockEmailAdapter: MockEmailAdapter;
 
   beforeEach(() => {
     mockSessionRepository = new MockSessionRepository();
     mockProductRepository = new MockProductRepository();
     mockSupplierRepository = new MockSupplierRepository();
     mockIdGenerator = new MockIdGeneratorService();
-    mockEmailAdapter = new MockEmailAdapter();
+    
+    // Initialize test data
+    const testProduct1 = Product.create({
+      id: 'product-1',
+      userId: 'user-1',
+      name: 'Test Product 1',
+      defaultQuantity: 1,
+      defaultSupplierId: 'supplier-1'
+    });
+    
+    const testProduct2 = Product.create({
+      id: 'product-2',
+      userId: 'user-1',
+      name: 'Test Product 2',
+      defaultQuantity: 1,
+      defaultSupplierId: 'supplier-2'
+    });
+    
+    const testSupplier1 = Supplier.create({
+      id: 'supplier-1',
+      userId: 'user-1',
+      name: 'Test Supplier 1',
+      email: 'supplier1@test.com',
+      phone: '123-456-7890'
+    });
+    
+    const testSupplier2 = Supplier.create({
+      id: 'supplier-2',
+      userId: 'user-1',
+      name: 'Test Supplier 2',
+      email: 'supplier2@test.com',
+      phone: '098-765-4321'
+    });
+    
+    // Add test data to mock repositories
+    mockProductRepository.save(testProduct1);
+    mockProductRepository.save(testProduct2);
+    mockSupplierRepository.save(testSupplier1);
+    mockSupplierRepository.save(testSupplier2);
     
     applicationService = new RestockApplicationServiceImpl(
       mockSessionRepository,
       mockProductRepository,
       mockSupplierRepository,
-      mockIdGenerator,
-      mockEmailAdapter
+      () => mockIdGenerator.generate()
     );
   });
 
@@ -192,7 +293,7 @@ describe('RestockApplicationService', () => {
       const result = await applicationService.getSession('non-existent-id');
       
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Session not found');
+      expect(result.error).toContain('Session with ID non-existent-id not found');
       expect(result.session).toBeUndefined();
     });
 
@@ -270,7 +371,7 @@ describe('RestockApplicationService', () => {
       const result = await applicationService.addProduct(command);
       
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Session not found');
+      expect(result.error).toContain('Session with ID non-existent-session not found');
     });
 
     test('should validate product quantity', async () => {
@@ -284,7 +385,7 @@ describe('RestockApplicationService', () => {
       const result = await applicationService.addProduct(command);
       
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Quantity must be greater than 0');
+      expect(result.error).toContain('Quantity must be greater than zero');
     });
 
     test('should remove product from session', async () => {
@@ -421,7 +522,7 @@ describe('RestockApplicationService', () => {
       const result = await applicationService.markAsSent(sessionId);
       
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Cannot mark session as sent');
+      expect(result.error).toContain('Can only send emails that have been generated');
     });
 
     test('should validate business constraints', async () => {
@@ -439,7 +540,7 @@ describe('RestockApplicationService', () => {
       });
       
       expect(emailResult.success).toBe(false);
-      expect(emailResult.error).toContain('Cannot generate emails for empty session');
+      expect(emailResult.error).toContain('Session must contain at least one product');
     });
   });
 });

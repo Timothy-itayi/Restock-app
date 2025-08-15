@@ -13,6 +13,8 @@ export interface ServiceDefinition<T = any> {
   factory: ServiceFactory<T>;
   singleton: boolean;
   instance?: T;
+  instanceCreatedAt?: number;
+  accessCount?: number;
 }
 
 /**
@@ -23,7 +25,11 @@ export interface ServiceDefinition<T = any> {
  */
 export class DIContainer {
   private static instance: DIContainer | null = null;
-  private services = new Map<string, ServiceDefinition>();
+  private services: Map<string, ServiceDefinition> = new Map();
+  
+  // Performance monitoring
+  private static performanceMetrics: Map<string, number[]> = new Map();
+  private static readonly MAX_METRICS = 100;
 
   /**
    * Get the singleton container instance
@@ -68,29 +74,44 @@ export class DIContainer {
    * Get a service from the container
    */
   get<T>(key: string): T {
-    const serviceDefinition = this.services.get(key);
+    const definition = this.services.get(key);
+    if (!definition) {
+      const availableServices = Array.from(this.services.keys()).join(', ');
+      throw new Error(
+        `Service '${key}' not found in container. Available services: ${availableServices}`
+      );
+    }
+
+    const startTime = performance.now();
     
-    if (!serviceDefinition) {
-      throw new Error(`Service '${key}' not found in container. Available services: ${Array.from(this.services.keys()).join(', ')}`);
-    }
-
-    // Return existing instance for singletons
-    if (serviceDefinition.singleton && serviceDefinition.instance) {
-      return serviceDefinition.instance as T;
-    }
-
     try {
-      // Create new instance
-      const instance = serviceDefinition.factory() as T;
+      let instance: T;
       
-      // Store instance for singletons
-      if (serviceDefinition.singleton) {
-        serviceDefinition.instance = instance;
+      if (definition.singleton && definition.instance) {
+        instance = definition.instance as T;
+      } else {
+        instance = definition.factory();
+        
+        if (definition.singleton) {
+          definition.instance = instance;
+          definition.instanceCreatedAt = Date.now();
+        }
       }
+      
+      // Record access count
+      definition.accessCount = (definition.accessCount || 0) + 1;
+      
+      const endTime = performance.now();
+      DIContainer.recordMetric(`service_get_${key}`, endTime - startTime);
       
       return instance;
     } catch (error) {
-      throw new Error(`Failed to create service '${key}': ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const endTime = performance.now();
+      DIContainer.recordMetric(`service_get_${key}_error`, endTime - startTime);
+      
+      throw new Error(
+        `Failed to create service '${key}': ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -151,5 +172,136 @@ export class DIContainer {
     this.services.forEach((definition, key) => {
       console.log(`  - ${key}: singleton=${definition.singleton}, hasInstance=${!!definition.instance}`);
     });
+  }
+
+  /**
+   * Get performance metrics for service operations
+   */
+  static getPerformanceMetrics(): { [key: string]: { avg: number; min: number; max: number; count: number } } {
+    const metrics: { [key: string]: { avg: number; min: number; max: number; count: number } } = {};
+    
+    this.performanceMetrics.forEach((times, operation) => {
+      if (times.length === 0) return;
+      
+      const sum = times.reduce((a, b) => a + b, 0);
+      const avg = sum / times.length;
+      const min = Math.min(...times);
+      const max = Math.max(...times);
+      
+      metrics[operation] = { avg, min, max, count: times.length };
+    });
+    
+    return metrics;
+  }
+
+  /**
+   * Record performance metric for an operation
+   */
+  private static recordMetric(operation: string, duration: number): void {
+    if (!this.performanceMetrics.has(operation)) {
+      this.performanceMetrics.set(operation, []);
+    }
+    
+    const metrics = this.performanceMetrics.get(operation)!;
+    metrics.push(duration);
+    
+    // Keep only the most recent metrics
+    if (metrics.length > this.MAX_METRICS) {
+      metrics.splice(0, metrics.length - this.MAX_METRICS);
+    }
+  }
+
+  /**
+   * Benchmark service creation performance
+   */
+  async benchmarkServiceCreation(serviceName: string, iterations: number = 10): Promise<{
+    serviceName: string;
+    avgTime: number;
+    minTime: number;
+    maxTime: number;
+    totalTime: number;
+  }> {
+    if (!this.has(serviceName)) {
+      throw new Error(`Service '${serviceName}' not found for benchmarking`);
+    }
+
+    const times: number[] = [];
+    
+    for (let i = 0; i < iterations; i++) {
+      const start = performance.now();
+      
+      // Create service instance
+      await this.get(serviceName);
+      
+      const end = performance.now();
+      times.push(end - start);
+      
+      // Small delay between iterations
+      await new Promise(resolve => setTimeout(resolve, 1));
+    }
+    
+    const avgTime = times.reduce((a, b) => a + b, 0) / times.length;
+    const minTime = Math.min(...times);
+    const maxTime = Math.max(...times);
+    const totalTime = times.reduce((a, b) => a + b, 0);
+    
+    return {
+      serviceName,
+      avgTime,
+      minTime,
+      maxTime,
+      totalTime
+    };
+  }
+
+  /**
+   * Get service lifecycle information for optimization
+   */
+  getServiceLifecycleInfo(): Array<{
+    name: string;
+    singleton: boolean;
+    hasInstance: boolean;
+    instanceAge: number | null;
+    accessCount: number;
+  }> {
+    const now = Date.now();
+    return Array.from(this.services.entries()).map(([name, definition]) => ({
+      name,
+      singleton: definition.singleton,
+      hasInstance: !!definition.instance,
+      instanceAge: definition.instance ? now - (definition.instanceCreatedAt || 0) : null,
+      accessCount: definition.accessCount || 0
+    }));
+  }
+
+  /**
+   * Reset performance metrics (useful for testing)
+   */
+  static resetPerformanceMetrics(): void {
+    this.performanceMetrics.clear();
+  }
+
+  /**
+   * Get memory usage statistics
+   */
+  getMemoryStats(): {
+    serviceCount: number;
+    singletonInstances: number;
+    totalServices: number;
+    estimatedMemoryUsage: number;
+  } {
+    const serviceCount = this.services.size;
+    const singletonInstances = Array.from(this.services.values())
+      .filter(def => def.singleton && def.instance).length;
+    
+    // Rough estimate: each service definition ~100 bytes, each instance ~500 bytes
+    const estimatedMemoryUsage = (serviceCount * 100) + (singletonInstances * 500);
+    
+    return {
+      serviceCount,
+      singletonInstances,
+      totalServices: serviceCount,
+      estimatedMemoryUsage
+    };
   }
 }
