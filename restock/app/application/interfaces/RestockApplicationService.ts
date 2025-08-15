@@ -21,6 +21,16 @@ export interface AddProductCommand {
   readonly notes?: string;
 }
 
+export interface AddItemCommand {
+  readonly sessionId: string;
+  readonly productName: string;
+  readonly quantity: number;
+  readonly supplierName: string;
+  readonly supplierEmail: string;
+  readonly notes?: string;
+  readonly existingSession?: any; // Allow passing existing session to avoid repository lookup
+}
+
 export interface GenerateEmailsCommand {
   readonly sessionId: string;
   readonly userStoreName?: string;
@@ -73,6 +83,7 @@ export interface RestockApplicationService {
   
   // Session modification
   addProduct(command: AddProductCommand): Promise<SessionResult>;
+  addItem(command: AddItemCommand): Promise<SessionResult>;
   removeProduct(sessionId: string, productId: string): Promise<SessionResult>;
   updateProduct(sessionId: string, productId: string, quantity: number, notes?: string): Promise<SessionResult>;
   setSessionName(sessionId: string, name: string): Promise<SessionResult>;

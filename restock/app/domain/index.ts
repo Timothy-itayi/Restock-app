@@ -13,8 +13,9 @@ export { Supplier, type SupplierValue } from './entities/Supplier';
 // Domain Services
 export { 
   RestockSessionDomainService, 
-  type EmailDraft, 
-  type SessionSummary 
+  type AddItemRequest,
+  type AddItemResult,
+  type EmailDraft
 } from './services/RestockSessionDomainService';
 
 // Repository Interfaces

@@ -42,7 +42,7 @@ export class AddProductToSessionUseCase {
       if (!command.sessionId || !command.productId || !command.supplierId) {
         return {
           success: false,
-          error: 'Session ID, Product ID, and Supplier ID are required',
+          error: 'Session ID, Product ID, and Supplier ID are required for this operation',
         };
       }
 

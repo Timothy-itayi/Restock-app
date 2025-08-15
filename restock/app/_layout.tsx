@@ -12,6 +12,7 @@ import '../global.css';
 import { BaseLoadingScreen } from './components/loading/BaseLoadingScreen';
 import { SessionManager } from '../backend/services/session-manager';
 import { registerServices, initializeServices } from './infrastructure/di/ServiceRegistry';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -136,59 +137,61 @@ export default function RootLayout() {
   }
 
   return (
-    <ClerkProvider 
-      publishableKey={CLERK_PUBLISHABLE_KEY}
-      tokenCache={createTokenCache()} // This is crucial for session persistence in React Native
-    >
-      <UnifiedAuthProvider>
-        {showFirstRunSplash ? (
-          <BaseLoadingScreen
-            title="Restock"
-            subtitle="Preparing your experience..."
-            icon="cart"
-            color="#6B7F6B"
-            showProgress={false}
-            progressDuration={1000}
-          />
-        ) : (
-          <Stack
-            screenOptions={{
-              headerStyle: {
-                backgroundColor: "#f8f9fa",
-              },
-              headerTintColor: "#2c3e50",
-              headerTitleStyle: {
-                fontWeight: "600",
-              },
-            }}
-          >
-            <Stack.Screen
-              name="(tabs)"
-              options={{  
-                headerShown: false,
-              }}
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ClerkProvider 
+        publishableKey={CLERK_PUBLISHABLE_KEY}
+        tokenCache={createTokenCache()} // This is crucial for session persistence in React Native
+      >
+        <UnifiedAuthProvider>
+          {showFirstRunSplash ? (
+            <BaseLoadingScreen
+              title="Restock"
+              subtitle="Preparing your experience..."
+              icon="cart"
+              color="#6B7F6B"
+              showProgress={false}
+              progressDuration={1000}
             />
-            <Stack.Screen
-              name="auth"
-              options={{
-                headerShown: false,
+          ) : (
+            <Stack
+              screenOptions={{
+                headerStyle: {
+                  backgroundColor: "#f8f9fa",
+                },
+                headerTintColor: "#2c3e50",
+                headerTitleStyle: {
+                  fontWeight: "600",
+                },
               }}
-            />
-            <Stack.Screen
-              name="welcome"
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="sso-profile-setup"
-              options={{
-                headerShown: false,
-              }}
-            />
-          </Stack>
-        )}
-      </UnifiedAuthProvider>
-    </ClerkProvider>
+            >
+              <Stack.Screen
+                name="(tabs)"
+                options={{  
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="auth"
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="welcome"
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="sso-profile-setup"
+                options={{
+                  headerShown: false,
+                }}
+              />
+            </Stack>
+          )}
+        </UnifiedAuthProvider>
+      </ClerkProvider>
+    </GestureHandlerRootView>
   );
 }

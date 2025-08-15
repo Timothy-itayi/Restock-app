@@ -90,6 +90,16 @@ export function useDashboardData() {
     return () => sub.remove();
   }, [fetchSessions]);
 
+  // listen for session updates to refresh
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener('restock:sessionUpdated', () => {
+      setTimeout(() => {
+        fetchSessions();
+      }, 500);
+    });
+    return () => sub.remove();
+  }, [fetchSessions]);
+
   // refresh on focus with throttle
   useFocusEffect(
     useCallback(() => {

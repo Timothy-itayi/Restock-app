@@ -9,6 +9,7 @@ import {
   RestockApplicationService,
   CreateSessionCommand,
   AddProductCommand,
+  AddItemCommand,
   GenerateEmailsCommand,
   GetSessionsQuery,
   SessionResult,
@@ -27,12 +28,14 @@ import {
 
 import { CreateRestockSessionUseCase } from './CreateRestockSessionUseCase';
 import { AddProductToSessionUseCase } from './AddProductToSessionUseCase';
+import { AddItemToSessionUseCase } from './AddItemToSessionUseCase';
 import { GenerateEmailsUseCase } from './GenerateEmailsUseCase';
 import { GetUserSessionsUseCase } from './GetUserSessionsUseCase';
 
 export class RestockApplicationServiceImpl implements RestockApplicationService {
   private readonly createSessionUseCase: CreateRestockSessionUseCase;
   private readonly addProductUseCase: AddProductToSessionUseCase;
+  private readonly addItemUseCase: AddItemToSessionUseCase;
   private readonly generateEmailsUseCase: GenerateEmailsUseCase;
   private readonly getUserSessionsUseCase: GetUserSessionsUseCase;
 
@@ -49,6 +52,12 @@ export class RestockApplicationServiceImpl implements RestockApplicationService 
     );
     
     this.addProductUseCase = new AddProductToSessionUseCase(
+      sessionRepository,
+      productRepository,
+      supplierRepository
+    );
+    
+    this.addItemUseCase = new AddItemToSessionUseCase(
       sessionRepository,
       productRepository,
       supplierRepository
@@ -110,6 +119,14 @@ export class RestockApplicationServiceImpl implements RestockApplicationService 
   // Session modification
   async addProduct(command: AddProductCommand): Promise<SessionResult> {
     return await this.addProductUseCase.execute(command);
+  }
+
+  async addItem(command: AddItemCommand): Promise<SessionResult> {
+    // If we have an existing session, pass it to avoid repository lookup
+    if (command.existingSession) {
+      console.log('[RestockApplicationServiceImpl] Using existing session for addItem');
+    }
+    return await this.addItemUseCase.execute(command);
   }
 
   async removeProduct(sessionId: string, productId: string): Promise<SessionResult> {
