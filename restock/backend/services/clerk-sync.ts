@@ -8,7 +8,7 @@ export class ClerkSyncService {
   /**
    * Sync Clerk user data to Convex users table
    */
-  static async syncUserToSupabase(clerkUserId: string, email: string, storeName?: string) {
+  static async syncUserToConvex(clerkUserId: string, email: string, storeName?: string) {
     try {
       // Check if user already exists
       const existingUser = await convex.query(api.users.get);
@@ -35,7 +35,7 @@ export class ClerkSyncService {
   /**
    * Get user from Convex by Clerk user ID
    */
-  static async getUserFromSupabase(clerkUserId: string) {
+  static async getUserFromConvex(clerkUserId: string) {
     try {
       const profile = await convex.query(api.users.get);
       

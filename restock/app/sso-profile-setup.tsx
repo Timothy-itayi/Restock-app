@@ -2,19 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, TextInput, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { useUser } from '@clerk/clerk-expo';
-import { UserProfileService } from '../backend/services/user-profile';
-import { SessionManager } from '../backend/services/session-manager';
+import { useUserRepository } from './infrastructure/convex/ConvexHooksProvider';
 import { ClerkClientService } from '../backend/services/clerk-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useUnifiedAuth } from './_contexts/UnifiedAuthProvider';
 import { ssoProfileSetupStyles } from '../styles/components/auth/sso/profile-setup';
 import { ErrorLogger } from '../backend/utils/error-logger';
-import { DIContainer } from '../app/infrastructure/di/Container';
-import { UserContextService } from '../backend/services/user-context';
+import { UserProfileService } from '../backend/services/user-profile';
 
 export default function SSOProfileSetupScreen() {
   const { user } = useUser();
   const { isAuthenticated, userId, authType, triggerAuthCheck, markNewSSOUserReady } = useUnifiedAuth();
+  
+  // Repository hook for creating user profile
+  const { createProfile } = useUserRepository();
   
   // Quiet verbose render log
   
@@ -167,14 +168,9 @@ export default function SSOProfileSetupScreen() {
     try {
       // CRITICAL: Ensure user context is properly set before profile creation
       console.log('🔧 SSOProfileSetup: Setting user context before profile creation');
-      const container = DIContainer.getInstance();
-      if (container.has('UserContextService')) {
-        await UserContextService.setUserContext(userId);
-        console.log('✅ SSOProfileSetup: User context set successfully');
-        
-        // Wait a moment for the context to propagate
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
+      
+      // Wait a moment for the context to propagate
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       // Log the profile creation attempt
       ErrorLogger.info('SSOProfileSetup: Creating profile for Google user', {
@@ -203,13 +199,11 @@ export default function SSOProfileSetupScreen() {
           attempts++;
           console.log(`🔄 SSOProfileSetup: Profile creation attempt ${attempts}/${maxAttempts}`);
           
-          result = await UserProfileService.createProfileViaBackend(
-            userId,
-            email,
-            storeName,
-            name,
-            'google'
-          );
+          result = await createProfile({
+            email: email.toLowerCase().trim(),
+            name: name?.trim(),
+            storeName: storeName.trim()
+          });
           
           console.log('✅ SSOProfileSetup: Profile creation successful on attempt', attempts);
           break; // Success, exit retry loop
@@ -228,24 +222,14 @@ export default function SSOProfileSetupScreen() {
         }
       }
 
-      if (result?.data && !result.error) {
+      if (result) {
         // Success path - profile created successfully!
-        console.log('✅ SSOProfileSetup: Profile creation successful', result.data);
+        console.log('✅ SSOProfileSetup: Profile creation successful', result);
         ErrorLogger.info('SSOProfileSetup: Profile creation successful', {
           component: 'SSOProfileSetup', 
           action: 'handleCreateProfile',
           userId,
           email 
-        });
-        
-        // Save session data for returning user detection
-        await SessionManager.saveUserSession({
-          userId,
-          email,
-          storeName,
-          wasSignedIn: true,
-          lastSignIn: Date.now(),
-          lastAuthMethod: 'google',
         });
         
         // Clear the SSO sign-up flags
@@ -282,9 +266,10 @@ export default function SSOProfileSetupScreen() {
         console.log('🚀 Navigating to dashboard...');
         router.replace('/(tabs)/dashboard');
       } else {
-        const message = result?.error || 'Failed to create profile. Please try again.';
+        // Profile creation failed - result is falsy
+        const message = 'Failed to create profile. Please try again.';
         console.error('❌ SSOProfileSetup: Profile creation failed:', message);
-        Alert.alert('Setup Failed', message as string);
+        Alert.alert('Setup Failed', message);
       }
     } catch (error: any) {
       console.error('❌ SSOProfileSetup: Profile creation failed:', error);

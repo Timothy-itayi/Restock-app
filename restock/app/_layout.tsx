@@ -9,8 +9,9 @@ import { CLERK_PUBLISHABLE_KEY } from '../backend/config/clerk';
 import { SessionManager } from '../backend/services/session-manager';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SplashScreen from 'expo-splash-screen';
-import { registerServices, initializeServices } from './infrastructure/di/ServiceRegistry';
+import { registerServices } from './infrastructure/di/ServiceRegistry';
 import * as Linking from 'expo-linking';
+import { ConvexReactClient } from 'convex/react';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -87,7 +88,7 @@ export default function RootLayout() {
   const [showFirstRunSplash, setShowFirstRunSplash] = useState(false);
   const [servicesReady, setServicesReady] = useState(false);
   const [loaded, setLoaded] = useState(false);
-
+  const convexClient = new ConvexReactClient(process.env.EXPO_PUBLIC_CONVEX_URL!);
   // Initialize Clerk
   useEffect(() => {
     const initializeClerk = async () => {
@@ -115,10 +116,10 @@ export default function RootLayout() {
     const initializeApp = async () => {
       try {
         console.log('[RootLayout] Registering services...');
-        registerServices();
+         registerServices(convexClient);
         
         console.log('[RootLayout] Initializing services...');
-        await initializeServices();
+        // await initializeServices();
         
         console.log('[RootLayout] ✅ Services ready');
         setServicesReady(true);
@@ -185,11 +186,11 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ConvexProviderWithClerk>
-        <ClerkProvider 
-          publishableKey={CLERK_PUBLISHABLE_KEY}
-          tokenCache={createTokenCache()} // This is crucial for session persistence in React Native
-        >
+      <ClerkProvider 
+        publishableKey={CLERK_PUBLISHABLE_KEY}
+        tokenCache={createTokenCache()} // This is crucial for session persistence in React Native
+      >
+        <ConvexProviderWithClerk>
           <UnifiedAuthProvider>
             {/* Add the new SSO user redirect handler */}
             <NewSSOUserRedirectHandler />
@@ -242,8 +243,8 @@ export default function RootLayout() {
               </Stack>
             )}
           </UnifiedAuthProvider>
-        </ClerkProvider>
-      </ConvexProviderWithClerk>
+        </ConvexProviderWithClerk>
+      </ClerkProvider>
     </GestureHandlerRootView>
   );
 }

@@ -1,9 +1,23 @@
-import { supabase } from '../config/supabase';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../convex/_generated/api';
 
 export class SecureDataService {
+  private static convexClient: ConvexHttpClient | null = null;
+
+  private static getConvexClient(): ConvexHttpClient {
+    if (!this.convexClient) {
+      const convexUrl = process.env.EXPO_PUBLIC_CONVEX_URL;
+      if (!convexUrl) {
+        throw new Error('EXPO_PUBLIC_CONVEX_URL not configured');
+      }
+      this.convexClient = new ConvexHttpClient(convexUrl);
+    }
+    return this.convexClient;
+  }
+
   /**
-   * Get user data securely via backend Edge Function
-   * This bypasses RLS issues by using service role privileges
+   * Get user data securely via Convex
+   * Clerk auth context is automatically available
    */
   static async getUserData(
     userId: string, 
@@ -13,168 +27,139 @@ export class SecureDataService {
     try {
       console.log(`🔐 SecureDataService: Getting ${dataType} data for user:`, userId);
       
-      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-      if (!supabaseUrl) {
-        throw new Error('Supabase URL not configured');
-      }
-
-      const response = await fetch(`${supabaseUrl}/functions/v1/get-user-data`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
-        },
-        body: JSON.stringify({
-          userId,
-          dataType,
-          includeFinished
-        })
-      });
-
-      if (!response.ok) {
-        console.error('🚨 SecureDataService: Backend request failed:', response.status);
-        // Fallback to direct database query if backend fails
-        return await this.getUserDataFallback(userId, dataType, includeFinished);
-      }
-
-      const result = await response.json();
-      
-      if (!result.success) {
-        console.error('🚨 SecureDataService: Backend error:', result.error);
-        // Fallback to direct database query
-        return await this.getUserDataFallback(userId, dataType, includeFinished);
-      }
-
-      console.log(`✅ SecureDataService: Successfully retrieved ${dataType} data via backend`);
-      return { data: result.data, error: null };
-
-    } catch (error) {
-      console.error('🚨 SecureDataService: Error calling backend:', error);
-      // Fallback to direct database query
-      return await this.getUserDataFallback(userId, dataType, includeFinished);
-    }
-  }
-
-  /**
-   * Fallback method using direct database queries
-   * May have limited access due to RLS policies
-   */
-  static async getUserDataFallback(
-    userId: string, 
-    dataType: 'sessions' | 'products' | 'suppliers' | 'all' = 'all',
-    includeFinished: boolean = true
-  ) {
-    try {
-      console.log(`🔄 SecureDataService: Using fallback for ${dataType} data`);
-      
+      const client = this.getConvexClient();
       const result: any = {};
 
       // Get sessions
       if (dataType === 'sessions' || dataType === 'all') {
-        const { data: sessions, error: sessionsError } = await supabase
-          .from('restock_sessions')
-          .select('*')
-          .eq('user_id', userId)
-          .order('created_at', { ascending: false });
-
-        if (sessionsError) {
-          console.warn('⚠️ SecureDataService: Sessions query failed:', sessionsError);
-        } else {
-          const unfinishedSessions = sessions?.filter(s => s.status !== 'sent') || [];
-          const finishedSessions = sessions?.filter(s => s.status === 'sent') || [];
+        try {
+          const sessions = await client.query(api.restockSessions.list, {});
+          
+          const unfinishedSessions = sessions?.filter((s: any) => s.status !== 'sent') || [];
+          const finishedSessions = sessions?.filter((s: any) => s.status === 'sent') || [];
           
           result.sessions = {
             unfinished: unfinishedSessions,
             finished: includeFinished ? finishedSessions : [],
             total: sessions?.length || 0
           };
+        } catch (error) {
+          console.warn('⚠️ SecureDataService: Sessions query failed:', error);
+          result.sessions = { unfinished: [], finished: [], total: 0 };
         }
       }
 
       // Get products
       if (dataType === 'products' || dataType === 'all') {
-        const { data: products, error: productsError } = await supabase
-          .from('products')
-          .select('*')
-          .eq('user_id', userId)
-          .order('name');
-
-        if (productsError) {
-          console.warn('⚠️ SecureDataService: Products query failed:', productsError);
-        } else {
+        try {
+          const products = await client.query(api.products.list, {});
           result.products = products || [];
+        } catch (error) {
+          console.warn('⚠️ SecureDataService: Products query failed:', error);
+          result.products = [];
         }
       }
 
       // Get suppliers
       if (dataType === 'suppliers' || dataType === 'all') {
-        const { data: suppliers, error: suppliersError } = await supabase
-          .from('suppliers')
-          .select('*')
-          .eq('user_id', userId)
-          .order('name');
-
-        if (suppliersError) {
-          console.warn('⚠️ SecureDataService: Suppliers query failed:', suppliersError);
-        } else {
+        try {
+          const suppliers = await client.query(api.suppliers.list, {});
           result.suppliers = suppliers || [];
+        } catch (error) {
+          console.warn('⚠️ SecureDataService: Suppliers query failed:', error);
+          result.suppliers = [];
         }
       }
 
-      // Get profile
-      if (dataType === 'all') {
-        const { data: profile, error: profileError } = await supabase
-          .from('users')
-          .select('id, email, name, store_name, created_at')
-          .eq('id', userId)
-          .maybeSingle();
-
-        if (!profileError && profile) {
-          result.profile = profile;
-        }
-      }
-
-      console.log(`✅ SecureDataService: Fallback ${dataType} data retrieved`);
+      console.log(`✅ SecureDataService: Successfully retrieved ${dataType} data via Convex`);
       return { data: result, error: null };
 
     } catch (error) {
-      console.error('🚨 SecureDataService: Fallback failed:', error);
+      console.error('🚨 SecureDataService: Error getting data:', error);
       return { data: null, error };
     }
   }
 
   /**
-   * Get user sessions specifically
+   * Get user profile data
    */
-  static async getUserSessions(userId: string, includeFinished: boolean = true) {
-    const result = await this.getUserData(userId, 'sessions', includeFinished);
-    return {
-      unfinished: result.data?.sessions?.unfinished || [],
-      finished: result.data?.sessions?.finished || [],
-      total: result.data?.sessions?.total || 0,
-      error: result.error
-    };
+  static async getUserProfile(userId: string) {
+    try {
+      const client = this.getConvexClient();
+      const profile = await client.query(api.users.get, {});
+      
+      if (!profile) {
+        return { data: null, error: 'Profile not found' };
+      }
+
+      return { data: profile, error: null };
+    } catch (error) {
+      console.error('🚨 SecureDataService: Error getting user profile:', error);
+      return { data: null, error };
+    }
   }
 
   /**
-   * Get user products specifically
+   * Get session summary data
    */
-  static async getUserProducts(userId: string) {
-    const result = await this.getUserData(userId, 'products');
-    return {
-      products: result.data?.products || [],
-      error: result.error
-    };
+  static async getSessionSummary(sessionId: string) {
+    try {
+      const client = this.getConvexClient();
+      const summary = await client.query(api.restockItems.getSessionSummary, { 
+        sessionId: sessionId as any 
+      });
+      
+      return { data: summary, error: null };
+    } catch (error) {
+      console.error('🚨 SecureDataService: Error getting session summary:', error);
+      return { data: null, error };
+    }
   }
 
   /**
-   * Get user suppliers specifically
+   * Get email analytics for user
    */
-  static async getUserSuppliers(userId: string) {
-    const result = await this.getUserData(userId, 'suppliers');
-    return {
-      suppliers: result.data?.suppliers || [],
-      error: result.error
-    };
+  static async getEmailAnalytics(days: number = 30) {
+    try {
+      const client = this.getConvexClient();
+      const analytics = await client.query(api.emails.getAnalytics, { days });
+      
+      return { data: analytics, error: null };
+    } catch (error) {
+      console.error('🚨 SecureDataService: Error getting email analytics:', error);
+      return { data: null, error };
+    }
+  }
+
+  /**
+   * Check if user has any data
+   */
+  static async hasUserData(userId: string) {
+    try {
+      const client = this.getConvexClient();
+      
+      // Check sessions
+      const sessions = await client.query(api.restockSessions.list, {});
+      if (sessions && sessions.length > 0) {
+        return { hasData: true, dataType: 'sessions' };
+      }
+
+      // Check products
+      const products = await client.query(api.products.list, {});
+      if (products && products.length > 0) {
+        return { hasData: true, dataType: 'products' };
+      }
+
+      // Check suppliers
+      const suppliers = await client.query(api.suppliers.list, {});
+      if (suppliers && suppliers.length > 0) {
+        return { hasData: true, dataType: 'suppliers' };
+      }
+
+      return { hasData: false, dataType: null };
+    } catch (error) {
+      console.error('🚨 SecureDataService: Error checking user data:', error);
+      return { hasData: false, dataType: null, error };
+    }
   }
 }

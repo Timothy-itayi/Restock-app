@@ -1,7 +1,6 @@
 // Backend services and utilities exports
 
 // Configuration
-export { supabase, TABLES, SESSION_STATUS, EMAIL_STATUS } from './config/supabase';
 export { CLERK_PUBLISHABLE_KEY, clerkConfig } from './config/clerk';
 
 // Services
@@ -45,6 +44,6 @@ export {
   formatPhoneNumber,
   getCurrentUserId,
   isAuthenticated,
-  handleSupabaseError,
+
   debounce,
 } from './utils/helpers'; 

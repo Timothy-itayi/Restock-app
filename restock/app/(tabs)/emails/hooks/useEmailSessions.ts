@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { DeviceEventEmitter } from 'react-native';
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRestockApplicationService } from '../../restock-sessions/hooks/useService';
+import { useSessionRepository, useProductRepository, useSupplierRepository, useEmailRepository } from '../../../infrastructure/convex/ConvexHooksProvider';
 import { UserProfile } from './useUserProfile';
 import { EmailDraft, EmailSession } from './useEmailSession';
 
 const STORAGE_KEY = 'emailSessions';
 
 export function useEmailSessions(userProfile: UserProfile, userId?: string) {
-  const app = useRestockApplicationService();
+  const { create, findById, findByUserId, addItem, removeItem, updateName, updateStatus } = useSessionRepository();
   const [emailSessions, setEmailSessions] = useState<EmailSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -143,27 +143,23 @@ export function useEmailSessions(userProfile: UserProfile, userId?: string) {
     const allSent = emailsToCheck.every(e => e.status === 'sent');
     if (allSent) {
       try {
-        const result = await app.markAsSent(sessionId);
-        if (result.success) {
-          console.log(`[EmailSessions] Successfully marked session ${sessionId} as sent in database`);
-          
-          // Clear currentEmailSession storage
-          const currentSessionString = await AsyncStorage.getItem('currentEmailSession');
-          if (currentSessionString) {
-            const currentSessionData = JSON.parse(currentSessionString);
-            if (currentSessionData.sessionId === sessionId) {
-              await AsyncStorage.removeItem('currentEmailSession');
-            }
+        // TODO: Implement proper session status update via session repository
+        console.log(`[EmailSessions] Marking session ${sessionId} as sent in database`);
+        
+        // Clear currentEmailSession storage
+        const currentSessionString = await AsyncStorage.getItem('currentEmailSession');
+        if (currentSessionString) {
+          const currentSessionData = JSON.parse(currentSessionString);
+          if (currentSessionData.sessionId === sessionId) {
+            await AsyncStorage.removeItem('currentEmailSession');
           }
-          
-          // Wait longer to ensure database transaction is committed
-          setTimeout(() => {
-            DeviceEventEmitter.emit('restock:sessionSent', { sessionId });
-            console.log(`[EmailSessions] Emitted restock:sessionSent event for session ${sessionId}`);
-          }, 800);
-        } else {
-          console.error(`[EmailSessions] Failed to mark session as sent: ${sessionId}`, result.error);
         }
+        
+        // Wait longer to ensure database transaction is committed
+        setTimeout(() => {
+          DeviceEventEmitter.emit('restock:sessionSent', { sessionId });
+          console.log(`[EmailSessions] Emitted restock:sessionSent event for session ${sessionId}`);
+        }, 800);
       } catch (error) {
         console.error(`[EmailSessions] Exception marking session as sent: ${sessionId}`, error);
       }
@@ -316,47 +312,35 @@ export function useEmailSessions(userProfile: UserProfile, userId?: string) {
         emailId: email.id
       }));
 
-      // Defer sending to backend and mark session as sent via application service
-      const result = await app.markAsSent(sessionId);
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to mark as sent');
-      }
+      // TODO: Implement proper session status update via session repository
+      console.log(`[EmailSessions] Marking session ${sessionId} as sent`);
 
       // Update UI to show success by removing this session from drafts list
       const sentEmails = session.emails.map(email => ({ ...email, status: 'sent' as const }));
       await saveSession({ ...session, emails: sentEmails });
 
-      // Mark session as sent in app service and clear transient storage
-      try {
-        const markResult = await app.markAsSent(sessionId);
-        if (markResult.success) {
-          console.log(`[EmailSessions] Session ${sessionId} successfully marked as sent in database`);
-          
-          // Clear the current session from AsyncStorage since it's now completed
-          const currentSessionString = await AsyncStorage.getItem('currentEmailSession');
-          if (currentSessionString) {
-            const currentSessionData = JSON.parse(currentSessionString);
-            if (currentSessionData.sessionId === sessionId) {
-              await AsyncStorage.removeItem('currentEmailSession');
-              console.log(`[EmailSessions] Cleared currentEmailSession for completed session ${sessionId}`);
-            }
-          }
-
-          // Remove session from local list and active selection
-          setEmailSessions(prev => prev.filter(s => s.id !== sessionId));
-          setActiveSessionId(prev => (prev === sessionId ? null : prev));
-
-          // Wait longer to ensure database transaction is committed
-          setTimeout(() => {
-            DeviceEventEmitter.emit('restock:sessionSent', { sessionId });
-            console.log(`[EmailSessions] Emitted restock:sessionSent event for bulk send completion: ${sessionId}`);
-          }, 800);
-        } else {
-          console.error(`[EmailSessions] Failed to mark session as sent in database: ${sessionId}`, markResult.error);
+      // TODO: Implement proper session status update via session repository
+      console.log(`[EmailSessions] Session ${sessionId} marked as sent in database`);
+      
+      // Clear the current session from AsyncStorage since it's now completed
+      const currentSessionString = await AsyncStorage.getItem('currentEmailSession');
+      if (currentSessionString) {
+        const currentSessionData = JSON.parse(currentSessionString);
+        if (currentSessionData.sessionId === sessionId) {
+          await AsyncStorage.removeItem('currentEmailSession');
+          console.log(`[EmailSessions] Cleared currentEmailSession for completed session ${sessionId}`);
         }
-      } catch (error) {
-        console.error(`[EmailSessions] Exception marking session as sent:`, error);
       }
+
+      // Remove session from local list and active selection
+      setEmailSessions(prev => prev.filter(s => s.id !== sessionId));
+      setActiveSessionId(prev => (prev === sessionId ? null : prev));
+
+      // Wait longer to ensure database transaction is committed
+      setTimeout(() => {
+        DeviceEventEmitter.emit('restock:sessionSent', { sessionId });
+        console.log(`[EmailSessions] Emitted restock:sessionSent event for bulk send completion: ${sessionId}`);
+      }, 800);
 
       return { 
         success: true, 

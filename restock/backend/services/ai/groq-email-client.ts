@@ -1,18 +1,20 @@
 import { GeneratedEmail, EmailContext } from './types';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../../convex/_generated/api';
 
 export class GroqEmailClient {
   private isInitialized = false;
-  private functionUrl: string;
+  private convexClient: ConvexHttpClient | null = null;
   private isConfigured = false;
 
   constructor() {
-    // This will be set when the function is deployed
-    this.functionUrl = process.env.EXPO_PUBLIC_SUPABASE_FUNCTION_URL || 
-                      'https://your-project-id.functions.supabase.co/generate-email';
+    // Check if we have Convex configured
+    const convexUrl = process.env.EXPO_PUBLIC_CONVEX_URL;
+    this.isConfigured = !!convexUrl;
     
-    // Check if we have a real function URL (not the placeholder)
-    this.isConfigured = this.functionUrl !== 'https://your-project-id.functions.supabase.co/generate-email' && 
-                       this.functionUrl.includes('supabase.co');
+    if (this.isConfigured) {
+      this.convexClient = new ConvexHttpClient(convexUrl!);
+    }
   }
 
   async initialize(): Promise<void> {
@@ -28,23 +30,16 @@ export class GroqEmailClient {
     }
 
     try {
-      console.log('🤖 Initializing Groq Email Client...');
+      console.log('🤖 Initializing Groq Email Client with Convex...');
       
-      // Test the connection
-      const testResponse = await fetch(this.functionUrl, {
-        method: 'OPTIONS',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
-          'apikey': process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
-        },
-      });
-
-      if (testResponse.ok) {
+      // Test the connection by calling a simple Convex query
+      if (this.convexClient) {
+        // Try to get user profile to test connection
+        await this.convexClient.query(api.users.get, {});
         this.isInitialized = true;
-        console.log('✅ Groq Email Client initialized successfully');
+        console.log('✅ Groq Email Client initialized successfully with Convex');
       } else {
-        throw new Error(`Function not accessible: ${testResponse.status}`);
+        throw new Error('Convex client not available');
       }
     } catch (error) {
       console.error('❌ Error initializing Groq Email Client:', error);
@@ -69,7 +64,7 @@ export class GroqEmailClient {
     try {
       console.log(`📧 Generating email for ${context.supplierName}...`);
 
-      // Prepare the request payload
+      // Prepare the request payload for Convex function
       const payload = {
         supplier: context.supplierName,
         email: context.supplierEmail,
@@ -84,36 +79,25 @@ export class GroqEmailClient {
         tone: context.tone || 'professional'
       };
 
-      // Call the Supabase Edge Function
-      const response = await fetch(this.functionUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
-          'apikey': process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
-        },
-        body: JSON.stringify(payload),
-      });
+      // Call the Convex function for email generation
+      if (this.convexClient) {
+        const result = await this.convexClient.mutation(api.ai.generateEmail, payload);
+        
+        const generationTime = Date.now() - startTime;
 
-      if (!response.ok) {
-        const errorData = await response.text();
-        console.error('Function error response:', errorData);
-        throw new Error(`Email generation failed: ${response.status} - ${errorData}`);
+        return {
+          subject: result.subject || 'Restock Order Request',
+          body: result.body || '',
+          confidence: result.confidence || 0.95,
+          generationTime
+        };
+      } else {
+        throw new Error('Convex client not available');
       }
-
-      const data = await response.json();
-      const generationTime = Date.now() - startTime;
-
-      return {
-        subject: data.subject || 'Restock Order Request',
-        body: data.body || data.emailText || '',
-        confidence: data.confidence || 0.95,
-        generationTime
-      };
 
     } catch (error) {
       const generationTime = Date.now() - startTime;
-      console.error('Error generating email with Groq:', error);
+      console.error('Error generating email with Groq via Convex:', error);
       // Fall back to template generation
       console.log('🔄 Falling back to template email generation...');
       return this.generateFallbackEmail(context, maxLength);
@@ -199,14 +183,19 @@ Thank you for your continued partnership and excellent service.
 
 Best regards,
 ${userName}
-${context.storeName}
-${context.userEmail}`;
+${context.storeName}`;
 
     switch (context.tone) {
       case 'friendly':
-        return `Looking forward to hearing from you soon!\n\n${baseClosing}`;
+        return `Looking forward to hearing from you soon!
+
+Thanks,
+${userName}
+${context.storeName}`;
       case 'urgent':
-        return `Your prompt response would be greatly appreciated.\n\n${baseClosing}`;
+        return `Please respond as soon as possible.
+
+${baseClosing}`;
       case 'professional':
       default:
         return baseClosing;
@@ -248,6 +237,7 @@ ${context.userEmail}`;
 
   // Method to update the function URL (useful for development)
   setFunctionUrl(url: string): void {
-    this.functionUrl = url;
+    // Store URL for future use if needed
+    console.log('Function URL updated:', url);
   }
 } 

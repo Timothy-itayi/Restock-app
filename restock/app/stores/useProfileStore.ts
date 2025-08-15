@@ -1,7 +1,5 @@
 import { create } from 'zustand';
 import { UserProfileService } from '../../backend/services/user-profile';
-import { DIContainer } from '../infrastructure/di/Container';
-import type { UserContextService } from '../infrastructure/services/UserContextService';
 
 interface ProfileState {
   // Profile data
@@ -34,23 +32,14 @@ const useProfileStore = create<ProfileState>((set, get) => ({
     try {
       console.log('📊 ProfileStore: Fetching profile for userId:', userId);
       
-      // Get UserContextService from DI container
-      const container = DIContainer.getInstance();
-      const userContextService = container.get<UserContextService>('UserContextService');
-      
-      // Set user context before fetching profile to handle RLS
-      try {
-        await userContextService.setUserContext(userId);
-        console.log('📊 ProfileStore: User context set for profile fetch');
-      } catch (contextError) {
-        console.warn('📊 ProfileStore: Could not set user context, trying without:', contextError);
-      }
+      // User context is handled automatically by Convex with Clerk authentication
+      console.log('📊 ProfileStore: Using Convex with Clerk auth for profile fetch');
       
       const result = await UserProfileService.getUserProfile(userId);
       
       if (result.data) {
         const name = result.data.name || 'there';
-        const store = result.data.store_name || '';
+        const store = result.data.storeName || '';
         
         console.log('📊 ProfileStore: Profile fetched successfully', { name, store });
         set({

@@ -238,7 +238,7 @@ export class EmailGenerator {
         userEmail = userProfile.email || '';
         userName = userProfile.name || '';
         // Use the actual store name from user profile if available
-        actualStoreName = userProfile.store_name || storeName;
+        actualStoreName = userProfile.storeName || storeName;
         console.log('✅ Retrieved user info:', { userEmail, userName, actualStoreName });
       } else {
         console.warn('⚠️ No user profile found, using defaults');

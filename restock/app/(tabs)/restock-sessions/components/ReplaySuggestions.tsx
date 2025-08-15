@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { getSessionColorTheme } from '../utils/colorUtils';
 import { RestockSession } from '../utils/types';
-import { useRestockApplicationService } from '../hooks/useService';
+import { useSessionRepository } from '../../../infrastructure/convex/ConvexHooksProvider';
 
 interface ReplaySession {
   id: string;
@@ -26,7 +26,7 @@ export const ReplaySuggestions: React.FC<ReplaySuggestionsProps> = ({
   onReplaySession,
   currentSession
 }) => {
-  const app = useRestockApplicationService();
+  const { findByUserId, findCompletedByUserId } = useSessionRepository();
   const [suggestions, setSuggestions] = useState<ReplaySession[]>([]);
   const [loading, setLoading] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
@@ -49,13 +49,13 @@ export const ReplaySuggestions: React.FC<ReplaySuggestionsProps> = ({
     
     setLoading(true);
     try {
-      // Get all sessions via application service
-      const result = await app.getSessions({ userId, includeCompleted: true });
-      if (!controller?.signal.aborted && isMounted && result.success && result.sessions) {
-        const data = result.sessions.all.map((s) => ({
+      // Get all sessions via repository
+      const sessions = await findCompletedByUserId(userId);
+      if (!controller?.signal.aborted && isMounted && sessions) {
+        const data = sessions.map((s: any) => ({
           id: s.id,
           created_at: s.createdAt,
-          products: s.items.map(i => ({ name: i.productName, supplierName: i.supplierName })),
+          products: s.items.map((i: any) => ({ name: i.productName, supplierName: i.supplierName })),
           status: s.status,
         }));
         // Analyze sessions to find patterns

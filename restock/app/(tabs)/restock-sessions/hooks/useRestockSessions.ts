@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { Alert, DeviceEventEmitter } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from "@clerk/clerk-expo";
-import { useRestockApplicationService } from './useService';
+import { useSessionRepository, useProductRepository, useSupplierRepository, useEmailRepository } from '../../../infrastructure/convex/ConvexHooksProvider';
 import { RestockSession, Product } from '../utils/types';
 import { Logger } from '../utils/logger';
 
@@ -11,7 +11,7 @@ import { Logger } from '../utils/logger';
 
 export const useRestockSessions = () => {
   const { userId } = useAuth();
-  const app = useRestockApplicationService();
+  const { create, findById, findByUserId, addItem, removeItem, updateName, updateStatus } = useSessionRepository();
   const [allSessions, setAllSessions] = useState<RestockSession[]>([]);
   const [currentSession, setCurrentSession] = useState<RestockSession | null>(null);
   const [isSessionActive, setIsSessionActive] = useState(false);
@@ -27,7 +27,7 @@ export const useRestockSessions = () => {
     setIsLoadingSessions(true);
     try {
       Logger.info('Loading unfinished sessions via application service', { userId });
-      const sessionsResult = await app.getSessions({ userId, includeCompleted: true });
+      const sessionsResult = await findByUserId({ userId, includeCompleted: true });
       let unfinishedSessions: any[] = [];
       if (sessionsResult.success && sessionsResult.sessions) {
         const { draft, emailGenerated } = sessionsResult.sessions;
@@ -157,7 +157,7 @@ export const useRestockSessions = () => {
     
     try {
       console.log('[RestockSessions] Creating session via application service', { userId });
-      const sessionResult = await app.createSession({ userId });
+      const sessionResult = await create({ userId });
       
       console.log('[RestockSessions] Session creation result', { 
         hasError: !!sessionResult.error, 
@@ -226,7 +226,7 @@ export const useRestockSessions = () => {
   const setSessionName = useCallback(async (sessionId: string, name: string) => {
     try {
       Logger.info('Setting session name', { sessionId, name });
-      const updateResult = await app.setSessionName(sessionId, name);
+      const updateResult = await updateName(sessionId, name);
       if (!updateResult.success) throw new Error(updateResult.error || 'Failed to save session name');
       
       // Update local state

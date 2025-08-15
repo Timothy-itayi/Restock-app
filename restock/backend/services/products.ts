@@ -35,21 +35,17 @@ export class ProductService {
    * Create a new product
    */
   static async createProduct(product: any) {
-    if (!product.user_id) {
-      return { data: null, error: new Error('User ID is required to create a product') };
-    }
-
     try {
       const productId = await convex.mutation(api.products.create, {
         name: product.name,
-        defaultQuantity: product.default_quantity || product.defaultQuantity || 1,
-        defaultSupplierId: product.default_supplier_id || product.defaultSupplierId,
+        defaultQuantity: product.defaultQuantity || 1,
+        defaultSupplierId: product.defaultSupplierId,
         notes: product.notes
       });
 
       return { data: { id: productId }, error: null };
     } catch (error) {
-      console.error('[ProductService] Error creating product', { error, userId: product.user_id });
+      console.error('[ProductService] Error creating product', { error, product });
       return { data: null, error };
     }
   }

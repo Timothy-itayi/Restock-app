@@ -13,24 +13,24 @@ export function ConvexTest() {
   const [testResults, setTestResults] = useState<string[]>([]);
 
   // Convex hooks for sessions
-  const sessions = useQuery(api.restockSessions.list);
+  const sessions = useQuery(api.restockSessions.list, {});
   const createSession = useMutation(api.restockSessions.create);
   const deleteSession = useMutation(api.restockSessions.remove);
 
   // Convex hooks for products
-  const products = useQuery(api.products.list);
+  const products = useQuery(api.products.list, {});
   const createProduct = useMutation(api.products.create);
   const deleteProduct = useMutation(api.products.remove);
 
   // Convex hooks for suppliers
-  const suppliers = useQuery(api.suppliers.list);
+  const suppliers = useQuery(api.suppliers.list, {});
   const createSupplier = useMutation(api.suppliers.create);
   const deleteSupplier = useMutation(api.suppliers.remove);
 
   // Convex hooks for users
-  const userProfile = useQuery(api.users.get);
+  const userProfile = useQuery(api.users.get, {});
   const createUserProfile = useMutation(api.users.create);
-  const checkProfileCompletion = useQuery(api.users.checkProfileCompletion);
+  const checkProfileCompletion = useQuery(api.users.checkProfileCompletion, {});
 
   const addTestResult = (result: string) => {
     setTestResults(prev => [...prev, `${new Date().toLocaleTimeString()}: ${result}`]);

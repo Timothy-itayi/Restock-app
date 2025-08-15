@@ -35,10 +35,6 @@ export class SupplierService {
    * Create a new supplier
    */
   static async createSupplier(supplier: any) {
-    if (!supplier.user_id) {
-      return { data: null, error: new Error('User ID is required to create a supplier') };
-    }
-
     try {
       const supplierId = await convex.mutation(api.suppliers.create, {
         name: supplier.name,
@@ -49,7 +45,7 @@ export class SupplierService {
 
       return { data: { id: supplierId }, error: null };
     } catch (error) {
-      console.error('[SupplierService] Error creating supplier', { error, userId: supplier.user_id });
+      console.error('[SupplierService] Error creating supplier', { error, supplier });
       return { data: null, error };
     }
   }

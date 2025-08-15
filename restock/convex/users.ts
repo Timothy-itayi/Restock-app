@@ -191,6 +191,27 @@ export const getByEmail = query({
   },
 });
 
+// List all users (for admin purposes - only returns current user's data)
+export const list = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+
+    const userId = identity.subject;
+
+    // Only return the current user's profile for security
+    const userProfile = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_user_id", (q) => q.eq("clerkUserId", userId))
+      .first();
+
+    return userProfile ? [userProfile] : [];
+  },
+});
+
 // Delete user profile (for account deletion)
 export const remove = mutation({
   args: {},

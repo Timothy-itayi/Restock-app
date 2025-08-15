@@ -35,7 +35,7 @@ export class SessionService {
       
       const sessionWithItems = {
         ...session,
-        restock_items: items
+        restockItems: items
       };
 
       return { data: sessionWithItems, error: null };
@@ -48,10 +48,6 @@ export class SessionService {
    * Create a new restock session
    */
   static async createSession(session: any) {
-    if (!session.user_id) {
-      return { data: null, error: new Error('User ID is required to create a session') };
-    }
-
     try {
       const sessionId = await convex.mutation(api.restockSessions.create, {
         name: session.name || `Restock Session ${new Date().toLocaleDateString()}`
@@ -59,7 +55,7 @@ export class SessionService {
 
       return { data: { id: sessionId }, error: null };
     } catch (error) {
-      console.error('[SessionService] Error creating session', { error, userId: session.user_id });
+      console.error('[SessionService] Error creating session', { error, session });
       return { data: null, error };
     }
   }

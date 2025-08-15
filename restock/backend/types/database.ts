@@ -1,98 +1,89 @@
-// Database types for Supabase integration
+// Database types for Convex integration
 
 export interface User {
-  id: string; // Clerk user ID (text, not UUID)
+  _id: string; // Convex document ID
+  clerkUserId: string; // Clerk user ID
   email: string;
   name?: string; // User's first name for personalized greetings
-  store_name?: string;
-  created_at: string;
-  updated_at?: string;
+  storeName?: string;
+  createdAt: number; // Unix timestamp
+  updatedAt: number; // Unix timestamp
 }
 
 export interface Product {
-  id: string;
-  user_id: string; // References Clerk user ID
+  _id: string; // Convex document ID
+  userId: string; // References Clerk user ID
   name: string;
-  default_quantity: number;
-  default_supplier_id?: string;
-  created_at: string;
+  defaultQuantity: number;
+  defaultSupplierId?: string; // Convex document ID reference
+  notes?: string;
+  createdAt: number; // Unix timestamp
+  updatedAt: number; // Unix timestamp
 }
 
 export interface Supplier {
-  id: string;
-  user_id: string; // References Clerk user ID
+  _id: string; // Convex document ID
+  userId: string; // References Clerk user ID
   name: string;
   email: string;
   phone?: string;
   notes?: string;
-  created_at: string;
+  createdAt: number; // Unix timestamp
+  updatedAt: number; // Unix timestamp
 }
 
 export interface RestockSession {
-  id: string;
-  user_id: string; // References Clerk user ID
-  created_at: string;
-  status: 'draft' | 'email_generated' | 'sent';
+  _id: string; // Convex document ID
+  userId: string; // References Clerk user ID
   name?: string;
-}
-
-export interface RestockSessionSupplier {
-  id: string;
-  restock_session_id: string;
-  supplier_id: string;
-  created_at: string;
-}
-
-export interface RestockSessionProduct {
-  id: string;
-  restock_session_id: string;
-  product_id: string;
-  quantity: number;
-  created_at: string;
+  status: 'draft' | 'email_generated' | 'sent';
+  createdAt: number; // Unix timestamp
+  updatedAt: number; // Unix timestamp
+  completedAt?: number; // Unix timestamp
 }
 
 export interface RestockItem {
-  id: string;
-  session_id: string;
-  product_id: string;
-  supplier_id: string;
+  _id: string; // Convex document ID
+  sessionId: string; // Convex document ID reference
+  userId: string; // References Clerk user ID
+  productName: string;
   quantity: number;
+  supplierName: string;
+  supplierEmail: string;
   notes?: string;
+  createdAt: number; // Unix timestamp
 }
 
 export interface EmailSent {
-  id: string;
-  session_id: string;
-  supplier_id: string;
-  email_content: string;
-  sent_at: string;
-  status: 'pending' | 'sent' | 'failed';
-  error_message?: string;
-  // New Resend integration fields
-  delivery_status?: string; // delivered, bounced, complained, etc.
-  sent_via?: string; // resend, sendgrid, etc.
-  tracking_id?: string; // Resend message ID
-  resend_webhook_data?: string; // JSON string of webhook data
-  updated_at?: string;
+  _id: string; // Convex document ID
+  sessionId: string; // Convex document ID reference
+  userId: string; // References Clerk user ID
+  supplierEmail: string;
+  supplierName: string;
+  emailContent: string;
+  sentAt: number; // Unix timestamp
+  status: 'sent' | 'delivered' | 'failed';
+  errorMessage?: string;
 }
 
 // Insert types
 export interface InsertUser {
-  id: string;
+  clerkUserId: string;
   email: string;
   name?: string;
-  store_name?: string;
+  storeName?: string;
 }
 
 export interface InsertProduct {
-  user_id: string;
+  userId: string;
   name: string;
-  default_quantity: number;
-  default_supplier_id?: string;
+  defaultQuantity: number;
+  defaultSupplierId?: string;
+  notes?: string;
 }
 
 export interface InsertSupplier {
-  user_id: string;
+  userId: string;
   name: string;
   email: string;
   phone?: string;
@@ -100,48 +91,40 @@ export interface InsertSupplier {
 }
 
 export interface InsertRestockSession {
-  user_id: string;
-  status?: 'draft' | 'email_generated' | 'sent';
+  userId: string;
   name?: string;
-}
-
-export interface InsertRestockSessionSupplier {
-  restock_session_id: string;
-  supplier_id: string;
-}
-
-export interface InsertRestockSessionProduct {
-  restock_session_id: string;
-  product_id: string;
-  quantity: number;
+  status?: 'draft' | 'email_generated' | 'sent';
 }
 
 export interface InsertRestockItem {
-  session_id: string;
-  product_id: string;
-  supplier_id: string;
+  sessionId: string;
+  userId: string;
+  productName: string;
   quantity: number;
+  supplierName: string;
+  supplierEmail: string;
   notes?: string;
 }
 
 export interface InsertEmailSent {
-  session_id: string;
-  supplier_id: string;
-  email_content: string;
-  status?: 'pending' | 'sent' | 'failed';
-  error_message?: string;
-  // New Resend integration fields
-  delivery_status?: string;
-  sent_via?: string;
-  tracking_id?: string;
-  resend_webhook_data?: string;
+  sessionId: string;
+  userId: string;
+  supplierEmail: string;
+  supplierName: string;
+  emailContent: string;
 }
 
 // Update types
+export interface UpdateUser {
+  name?: string;
+  storeName?: string;
+}
+
 export interface UpdateProduct {
   name?: string;
-  default_quantity?: number;
-  default_supplier_id?: string;
+  defaultQuantity?: number;
+  defaultSupplierId?: string;
+  notes?: string;
 }
 
 export interface UpdateSupplier {
@@ -152,18 +135,12 @@ export interface UpdateSupplier {
 }
 
 export interface UpdateRestockSession {
-  status?: 'draft' | 'email_generated' | 'sent';
   name?: string;
+  status?: 'draft' | 'email_generated' | 'sent';
+  completedAt?: number;
 }
 
 export interface UpdateEmailSent {
-  status?: 'pending' | 'sent' | 'failed';
-  error_message?: string;
-  // New Resend integration fields
-  delivery_status?: string;
-  sent_via?: string;
-  tracking_id?: string;
-  resend_webhook_data?: string;
-  sent_at?: string;
-  updated_at?: string;
+  status?: 'sent' | 'delivered' | 'failed';
+  errorMessage?: string;
 } 

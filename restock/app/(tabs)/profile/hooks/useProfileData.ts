@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useUnifiedAuth } from '../../../_contexts/UnifiedAuthProvider';
-import { useRestockApplicationService } from '../../restock-sessions/hooks/useService';
+import { useSessionRepository, useProductRepository, useSupplierRepository, useEmailRepository } from '../../../infrastructure/convex/ConvexHooksProvider';
 import useProfileStore from '../../../stores/useProfileStore';
 
 export interface ProfileData {
@@ -11,7 +11,7 @@ export interface ProfileData {
 
 export function useProfileData() {
   const { user, userId, isAuthenticated } = useUnifiedAuth();
-  const restockService = useRestockApplicationService();
+  const { create, findById, findByUserId, addItem, removeItem, updateName, updateStatus } = useSessionRepository();
   const { userName, storeName, fetchProfile, isLoading: profileLoading } = useProfileStore();
 
   const [profile, setProfile] = useState<ProfileData>({ name: '', email: '', storeName: '' });
@@ -40,13 +40,13 @@ export function useProfileData() {
         setProfile(baseProfile);
         
         // Load session data
-        const result = await restockService.getSessions({ userId, includeCompleted: true });
-        if (result.success && result.sessions) {
-          const total = result.sessions.all.length;
+        const sessions = await findByUserId(userId);
+        if (sessions) {
+          const total = sessions.length;
           setSessionCount(total);
           
           // Email count: approximate via sessions with email_generated + sent
-          const emailRelated = [...result.sessions.emailGenerated, ...result.sessions.sent].length;
+          const emailRelated = sessions.filter((s: any) => s.status === 'email_generated' || s.status === 'sent').length;
           setEmailCount(emailRelated);
         }
       } finally {
@@ -54,7 +54,7 @@ export function useProfileData() {
       }
     };
     load();
-  }, [baseProfile, isAuthenticated, restockService, userId, fetchProfile]);
+  }, [baseProfile, isAuthenticated, userId, fetchProfile]);
 
   return { profile, sessionCount, emailCount, loading: loading || profileLoading, userId };
 }

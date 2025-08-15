@@ -115,9 +115,9 @@ export class ModelManager {
         }
       );
 
-      const { uri } = await downloadResumable.downloadAsync();
+      const result = await downloadResumable.downloadAsync();
       
-      if (uri) {
+      if (result) {
         model.isDownloaded = true;
         await this.saveModelStatus(modelKey, true);
         console.log(`✅ ${model.name} downloaded successfully`);
@@ -133,7 +133,13 @@ export class ModelManager {
 
   private async getAvailableStorage(): Promise<number> {
     try {
-      const info = await FileSystem.getInfoAsync(FileSystem.documentDirectory);
+      const documentDir = FileSystem.documentDirectory;
+      if (!documentDir) {
+        console.warn('Document directory not available');
+        return 1000; // Assume 1GB available for now
+      }
+      
+      const info = await FileSystem.getInfoAsync(documentDir);
       // Estimate available space (this is approximate)
       return 1000; // Assume 1GB available for now
     } catch (error) {

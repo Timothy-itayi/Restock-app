@@ -13,6 +13,15 @@ export interface SessionRepository {
   findById(id: string): Promise<RestockSession | null>;
   findByUserId(userId: string): Promise<ReadonlyArray<RestockSession>>;
   delete(id: string): Promise<void>;
+  remove(id: string): Promise<void>; // Alias for delete for backward compatibility
+
+  // Session management operations (used by UI components)
+  create(session: Omit<RestockSession, 'id'>): Promise<string>;
+  addItem(sessionId: string, item: any): Promise<void>;
+  removeItem(sessionId: string, itemId: string): Promise<void>;
+  updateName(sessionId: string, name: string): Promise<void>;
+  updateStatus(sessionId: string, status: string): Promise<void>;
+  markAsSent(sessionId: string): Promise<{ success: boolean; error?: string }>;
 
   // Query operations
   findUnfinishedByUserId(userId: string): Promise<ReadonlyArray<RestockSession>>;
