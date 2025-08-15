@@ -64,6 +64,30 @@ export const getRestockSessionsStyles = (t: AppColors) => StyleSheet.create({
     fontWeight: "600",
   },
 
+  // Existing sessions section
+  existingSessionsSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+    alignItems: "center",
+  },
+
+  sectionTitle: {
+    fontFamily: 'Satoshi-Bold',
+    fontSize: 20,
+    fontWeight: "600",
+    color: t.neutral.darkest,
+    marginBottom: 8,
+    textAlign: "center",
+  },
+
+  sectionSubtitle: {
+    fontFamily: 'Satoshi-Regular',
+    fontSize: 16,
+    color: t.neutral.medium,
+    textAlign: "center",
+    marginBottom: 24,
+  },
+
   // Existing sessions button
   existingSessionsButton: {
     backgroundColor: t.neutral.lighter,
@@ -336,11 +360,36 @@ export const getRestockSessionsStyles = (t: AppColors) => StyleSheet.create({
     fontWeight: "600",
   },
   
-  // Product list container
-  productList: {
+  // Product list container and header
+  productListContainer: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 16,
+  },
+
+  productListHeader: {
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: t.neutral.light,
+    marginBottom: 16,
+  },
+
+  productListTitle: {
+    fontFamily: 'Satoshi-Bold',
+    fontSize: 18,
+    fontWeight: "600",
+    color: t.neutral.darkest,
+    marginBottom: 4,
+  },
+
+  productListSubtitle: {
+    fontFamily: 'Satoshi-Regular',
+    fontSize: 14,
+    color: t.neutral.medium,
+  },
+
+  // Product list styles
+  productList: {
+    flex: 1,
   },
   
   // Product list content container
@@ -402,12 +451,18 @@ export const getRestockSessionsStyles = (t: AppColors) => StyleSheet.create({
     alignItems: "center",
     marginBottom: 8,
   },
+
+  // Product info container
+  productInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
   
   // Product name
   productName: {
     ...typography.productName,
     color: t.neutral.darkest,
-    flex: 1,
+    marginBottom: 4,
   },
   
   // Product quantity
@@ -415,9 +470,28 @@ export const getRestockSessionsStyles = (t: AppColors) => StyleSheet.create({
     ...typography.bodySmall,
     color: t.neutral.darkest,
     fontWeight: "500",
-    marginRight: 12,
+  },
+
+  // Product actions container
+  productActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   
+  // Expand button
+  expandIconButton: {
+    padding: 4,
+    borderRadius: 4,
+  },
+
+  // Product details (expanded view)
+  productDetails: {
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: t.neutral.light,
+  },
+
   // Edit button (yellow/brown for edit)
   editButton: {
     backgroundColor: t.brand.accent, // Orange for edit
@@ -639,12 +713,25 @@ export const getRestockSessionsStyles = (t: AppColors) => StyleSheet.create({
     alignItems: "center",
     padding: 20,
   },
+
+  emptyStateIcon: {
+    marginBottom: 16,
+    opacity: 0.6,
+  },
   
   emptyStateText: {
     ...typography.bodyMedium,
     color: t.neutral.darkest,
     textAlign: "center",
     lineHeight: 24,
+    marginBottom: 8,
+  },
+
+  emptyStateSubtext: {
+    ...typography.bodySmall,
+    color: t.neutral.light,
+    textAlign: "center",
+    lineHeight: 20,
   },
   
   // Integrated Add Product button (inspired by the reference image)

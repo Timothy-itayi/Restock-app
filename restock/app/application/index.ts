@@ -23,5 +23,6 @@ export { RestockApplicationServiceImpl } from './use-cases/RestockApplicationSer
 // Individual Use Cases (for advanced usage or testing)
 export { CreateRestockSessionUseCase } from './use-cases/CreateRestockSessionUseCase';
 export { AddProductToSessionUseCase } from './use-cases/AddProductToSessionUseCase';
+export { AddItemToSessionUseCase } from './use-cases/AddItemToSessionUseCase';
 export { GenerateEmailsUseCase } from './use-cases/GenerateEmailsUseCase';
 export { GetUserSessionsUseCase } from './use-cases/GetUserSessionsUseCase';

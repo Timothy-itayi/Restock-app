@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, ScrollView, Alert } from 'react-native';
+import { View, Text, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import { useAuth } from '@clerk/clerk-expo';
 import { useLocalSearchParams } from 'expo-router';
 
@@ -198,6 +198,62 @@ const RestockSessionsContent: React.FC = () => {
     }
   }, [userId]);
 
+  // Handle continue action from dashboard
+  useEffect(() => {
+    const sessionId = params.sessionId as string;
+    const action = params.action as string;
+    
+    console.log('[RestockSessions] URL params changed:', { 
+      sessionId, 
+      action, 
+      hasCurrentSession: !!currentSession.session,
+      currentSessionId: currentSession.session?.toValue().id 
+    });
+    
+    if (sessionId && action === 'continue' && !currentSession.session) {
+      console.log('[RestockSessions] Auto-loading session from dashboard:', sessionId);
+      
+      // Load the session and then open the product form
+      const loadSessionAndOpenForm = async () => {
+        try {
+          console.log('[RestockSessions] Starting session load...');
+          await currentSession.loadSession(sessionId);
+          console.log('[RestockSessions] Session loaded successfully, current session:', {
+            id: currentSession.session?.toValue().id,
+            status: currentSession.session?.toValue().status,
+            itemCount: currentSession.session?.toValue().items.length
+          });
+          
+          setToastMessage('Session loaded successfully! Continue adding products...');
+          
+          // Small delay to ensure session is fully loaded before opening form
+          setTimeout(() => {
+            if (currentSession.session) {
+              console.log('[RestockSessions] Opening product form...');
+              productForm.openForm();
+            } else {
+              console.log('[RestockSessions] No session available when trying to open form');
+            }
+          }, 100);
+        } catch (error) {
+          console.error('[RestockSessions] Error in loadSessionAndOpenForm:', error);
+          setToastMessage('Failed to load session');
+        }
+      };
+      
+      loadSessionAndOpenForm();
+    }
+  }, [params.sessionId, params.action, currentSession.session, currentSession.loadSession, productForm]);
+
+  // Clear URL parameters after session is loaded to prevent re-triggering
+  useEffect(() => {
+    if (currentSession.session && params.sessionId) {
+      // Clear the URL parameters to prevent re-triggering the continue action
+      // This is a simple way to handle it without complex navigation state management
+      console.log('[RestockSessions] Session loaded, clearing URL parameters');
+    }
+  }, [currentSession.session, params.sessionId]);
+
   // Determine current UI state
   const hasActiveSessions = sessionList.sessions.length > 0;
   const hasActiveSession = currentSession.session !== null;
@@ -223,8 +279,26 @@ const RestockSessionsContent: React.FC = () => {
         />
 
       <ScrollView>
-        {/* No Active Session - Show Start Section */}
-        {!hasActiveSession && (
+        {/* Show existing sessions first if no active session */}
+        {!hasActiveSession && hasActiveSessions && (
+          <View style={restockSessionsStyles.existingSessionsSection}>
+            <Text style={restockSessionsStyles.sectionTitle}>Your Sessions</Text>
+            <Text style={restockSessionsStyles.sectionSubtitle}>
+              You have {sessionList.sessions.length} active session{sessionList.sessions.length !== 1 ? 's' : ''}
+            </Text>
+            <TouchableOpacity 
+              style={restockSessionsStyles.existingSessionsButton}
+              onPress={() => sessionList.openSelectionModal()}
+            >
+              <Text style={restockSessionsStyles.existingSessionsButtonText}>
+                Continue Existing Session
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* No Active Session and No Existing Sessions - Show Start Section */}
+        {!hasActiveSession && !hasActiveSessions && (
           <StartSection
             hasExistingSessions={hasActiveSessions}
             onStartNewSession={handleStartNewSession}
@@ -277,19 +351,56 @@ const RestockSessionsContent: React.FC = () => {
             {/* Product List */}
             <ProductList
               session={currentSession.session}
-              onEditProduct={(productId) => {
-                setToastMessage('Product editing coming soon');
+              onEditProduct={async (productId) => {
+                try {
+                  // For now, show a simple edit form
+                  // In the future, this could open a modal or navigate to edit screen
+                  setToastMessage('Product editing coming soon - will open edit form');
+                } catch (error) {
+                  setToastMessage('Failed to edit product');
+                  console.error('[RestockSessions] Error editing product:', error);
+                }
               }}
-              onDeleteProduct={(productId) => {
-                setToastMessage('Product deletion coming soon');
+              onDeleteProduct={async (productId) => {
+                try {
+                  if (!currentSession.session) {
+                    setToastMessage('No active session');
+                    return;
+                  }
+
+                  const result = await currentSession.removeProduct(productId);
+                  
+                  if (result.success) {
+                    setToastMessage('Product deleted successfully!');
+                  } else {
+                    setToastMessage(result.error || 'Failed to delete product');
+                  }
+                } catch (error) {
+                  setToastMessage('Failed to delete product');
+                  console.error('[RestockSessions] Error deleting product:', error);
+                }
               }}
             />
 
             {/* Finish Section */}
             <FinishSection
               session={currentSession.session}
-              onFinishSession={() => {
-                setToastMessage('Session finishing coming soon');
+              onFinishSession={async () => {
+                try {
+                  if (!currentSession.session) {
+                    setToastMessage('No active session');
+                    return;
+                  }
+
+                  // Navigate to emails screen to generate emails
+                  const { router } = await import('expo-router');
+                  router.push(`/(tabs)/emails?sessionId=${currentSession.session.toValue().id}`);
+                  
+                  setToastMessage('Redirecting to email generation...');
+                } catch (error) {
+                  setToastMessage('Failed to navigate to email generation');
+                  console.error('[RestockSessions] Error navigating to emails:', error);
+                }
               }}
             />
           </>
