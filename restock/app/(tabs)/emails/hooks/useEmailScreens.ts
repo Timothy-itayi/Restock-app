@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DeviceEventEmitter } from 'react-native';
 import { useUnifiedAuth } from '../../../_contexts/UnifiedAuthProvider';
-import { useRestockApplicationService } from '../../restock-sessions/hooks/useService';
+import { useSessionRepository, useProductRepository, useSupplierRepository, useEmailRepository } from '../../../infrastructure/convex/ConvexHooksProvider';
 import type { EmailDraft } from './useEmailSession';
 
 export interface EmailSessionView {
@@ -14,7 +14,7 @@ export interface EmailSessionView {
 
 export function useEmailScreens() {
   const { userId, isAuthenticated } = useUnifiedAuth();
-  const restockService = useRestockApplicationService();
+  const { create, findById, findByUserId, addItem, removeItem, updateName, updateStatus, markAsSent } = useSessionRepository();
 
   const [sessions, setSessions] = useState<EmailSessionView[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
@@ -80,7 +80,7 @@ export function useEmailScreens() {
     await updateEmailInSession(updated);
     const allSent = updated.every((e) => e.status === 'sent');
     if (allSent) {
-      const result = await restockService.markAsSent(activeSessionId);
+      const result = await markAsSent(activeSessionId);
       if (result.success) {
         await AsyncStorage.removeItem('currentEmailSession');
         setSessions([]);
@@ -89,12 +89,12 @@ export function useEmailScreens() {
       }
     }
     return { success: true, message: '' };
-  }, [activeSessionId, restockService, sessions, updateEmailInSession]);
+  }, [activeSessionId, markAsSent, sessions, updateEmailInSession]);
 
   const sendAllEmails = useCallback(async () => {
     if (!activeSessionId) return { success: false, message: 'No active session' };
     // Delegate to application layer to mark as sent once backend email send completes via functions
-    const result = await restockService.markAsSent(activeSessionId);
+    const result = await markAsSent(activeSessionId);
     if (result.success) {
       await AsyncStorage.removeItem('currentEmailSession');
       setSessions([]);
@@ -103,7 +103,7 @@ export function useEmailScreens() {
       return { success: true, message: 'Emails sent' };
     }
     return { success: false, message: result.error || 'Failed to mark session as sent' };
-  }, [activeSessionId, restockService]);
+  }, [activeSessionId, markAsSent]);
 
   useEffect(() => {
     load();

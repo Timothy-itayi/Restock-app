@@ -1,154 +1,156 @@
 /**
- * SERVICE HOOK
+ * HOOK: useService (UPDATED FOR CLEAN ARCHITECTURE)
  * 
- * React hook for accessing services from the DI container
- * Provides clean interface between React components and business logic
+ * This hook now uses the repository pattern through ConvexHooksProvider.
+ * It maintains clean architecture by depending on abstractions, not implementations.
+ * 
+ * The repositories handle all Convex interactions internally.
  */
 
-import { DIContainer } from '../../../infrastructure/di/Container';
-import type { RestockApplicationService } from '../../../application/interfaces/RestockApplicationService';
-import { UserContextService } from '../../../infrastructure/services/UserContextService';
-import { useAuth } from '@clerk/clerk-expo';
-import { useEffect, useState } from 'react';
+import { 
+  useSessionRepository,
+  useProductRepository,
+  useSupplierRepository,
+  useEmailRepository
+} from '../../../infrastructure/convex/ConvexHooksProvider';
 
 /**
- * Generic hook for accessing any service from the DI container
+ * Hook for getting all restock sessions
  */
-export function useService<T>(serviceKey: string): T {
-  const container = DIContainer.getInstance();
-  
-  try {
-    return container.get<T>(serviceKey);
-  } catch (error) {
-    console.error(`[useService] Failed to get service '${serviceKey}':`, error);
-    throw error;
-  }
+export function useSessions() {
+  const { findByUserId } = useSessionRepository();
+  // Note: This will need userId from auth context
+  // For now, returning empty array - will be updated when auth is integrated
+  return [];
 }
 
 /**
- * Typed hook for accessing the main application service
- * This is the primary interface between UI and business logic
+ * Hook for getting sessions by status
  */
-export function useRestockApplicationService(): RestockApplicationService {
-  const { userId } = useAuth();
-  const [isContextReady, setIsContextReady] = useState(false);
-  const [service, setService] = useState<RestockApplicationService | null>(null);
-  
-  // Ensure user context is set before returning the service
-  useEffect(() => {
-    const ensureUserContext = async () => {
-      if (!userId) return;
-      
-      try {
-        const container = DIContainer.getInstance();
-        if (container.has('UserContextService')) {
-          const userContextService = container.get<UserContextService>('UserContextService');
-          // Check if context is already set
-          if (!userContextService.isContextSet()) {
-            console.log('[useService] Setting user context for service access');
-            await userContextService.setUserContext(userId);
-          }
-          setIsContextReady(true);
-          
-          // Now get the actual service
-          if (container.has('RestockApplicationService')) {
-            const appService = container.get<RestockApplicationService>('RestockApplicationService');
-            setService(appService);
-          } else {
-            console.error('[useService] RestockApplicationService not found in container');
-          }
-        } else {
-          console.warn('[useService] UserContextService not available');
-          setIsContextReady(true); // Continue anyway
-          
-          // Try to get service anyway
-          if (container.has('RestockApplicationService')) {
-            const appService = container.get<RestockApplicationService>('RestockApplicationService');
-            setService(appService);
-          }
-        }
-      } catch (error) {
-        console.error('[useService] Failed to set user context:', error);
-        setIsContextReady(true); // Continue anyway
-        
-        // Try to get service anyway
-        try {
-          const container = DIContainer.getInstance();
-          if (container.has('RestockApplicationService')) {
-            const appService = container.get<RestockApplicationService>('RestockApplicationService');
-            setService(appService);
-          }
-        } catch (serviceError) {
-          console.error('[useService] Failed to get service after context error:', serviceError);
-        }
-      }
-    };
-    
-    ensureUserContext();
-  }, [userId]);
-  
-  // Return the actual service once it's available
-  if (!service) {
-    // Return a mock service that will be replaced once the real service is ready
-    // This prevents the component from crashing during initialization
-    return {
-      getSessions: async () => ({ success: false, error: 'Service not ready yet' }),
-      createSession: async () => ({ success: false, error: 'Service not ready yet' }),
-      deleteSession: async () => ({ success: false, error: 'Service not ready yet' }),
-      addItem: async () => ({ success: false, error: 'Service not ready yet' }),
-      removeProduct: async () => ({ success: false, error: 'Service not ready yet' }),
-      updateSessionName: async () => ({ success: false, error: 'Service not ready yet' }),
-      getSession: async () => ({ success: false, error: 'Service not ready yet' }),
-      addProduct: async () => ({ success: false, error: 'Service not ready yet' }),
-      updateProduct: async () => ({ success: false, error: 'Service not ready yet' }),
-      setSessionName: async () => ({ success: false, error: 'Service not ready yet' }),
-      generateEmails: async () => ({ success: false, error: 'Service not ready yet' }),
-      markAsSent: async () => ({ success: false, error: 'Service not ready yet' }),
-      getSessionSummary: async () => ({ success: false, error: 'Service not ready yet' })
-    } as RestockApplicationService;
-  }
-  
-  return service;
+export function useSessionsByStatus(status: 'draft' | 'email_generated' | 'sent') {
+  const { findByUserId } = useSessionRepository();
+  // Will filter by status when auth is integrated
+  return [];
 }
 
 /**
- * Hook for checking if services are properly initialized
+ * Hook for getting a specific session
  */
-export function useServiceHealth(): { 
+export function useSession(sessionId: string) {
+  const { findById } = useSessionRepository();
+  // This will be async - need to handle loading state
+  return { findById, sessionId };
+}
+
+/**
+ * Hook for getting session items
+ */
+export function useSessionItems(sessionId: string) {
+  const { findById } = useSessionRepository();
+  // Will get session and return its items
+  return { findById, sessionId };
+}
+
+/**
+ * Hook for getting session summary
+ */
+export function useSessionSummary(sessionId: string) {
+  const { findById } = useSessionRepository();
+  // Will calculate summary from session items
+  return { findById, sessionId };
+}
+
+/**
+ * Hook for getting products
+ */
+export function useProducts() {
+  const { findAll } = useProductRepository();
+  return { findAll };
+}
+
+/**
+ * Hook for getting suppliers
+ */
+export function useSuppliers() {
+  const { findAll } = useSupplierRepository();
+  return { findAll };
+}
+
+/**
+ * Hook for getting emails by session
+ */
+export function useSessionEmails(sessionId: string) {
+  const { findBySessionId } = useEmailRepository();
+  return { findBySessionId, sessionId };
+}
+
+/**
+ * Mutations using repository pattern
+ */
+export function useCreateSession() {
+  const { create } = useSessionRepository();
+  return { create };
+}
+
+export function useUpdateSessionName() {
+  const { updateName } = useSessionRepository();
+  return { updateName };
+}
+
+export function useUpdateSessionStatus() {
+  const { updateStatus } = useSessionRepository();
+  return { updateStatus };
+}
+
+export function useAddItemToSession() {
+  const { addItem } = useSessionRepository();
+  return { addItem };
+}
+
+export function useRemoveItemFromSession() {
+  const { removeItem } = useSessionRepository();
+  return { removeItem };
+}
+
+export function useCreateEmail() {
+  const { create } = useEmailRepository();
+  return { create };
+}
+
+export function useUpdateEmailStatus() {
+  const { updateStatus } = useEmailRepository();
+  return { updateStatus };
+}
+
+/**
+ * Hook for checking if repositories are properly connected
+ */
+export function useConvexHealth(): { 
   isHealthy: boolean; 
   issues: string[];
-  checkHealth: () => void;
 } {
-  const container = DIContainer.getInstance();
+  const sessionRepo = useSessionRepository();
+  const productRepo = useProductRepository();
+  const supplierRepo = useSupplierRepository();
   
-  const checkHealth = () => {
-    const requiredServices = [
-      'UserContextService',
-      'IdGeneratorService', 
-      'SupabaseSessionRepository',
-      'SupabaseProductRepository',
-      'SupabaseSupplierRepository',
-      'RestockApplicationService'
-    ];
-
-    const issues: string[] = [];
-
-    for (const serviceName of requiredServices) {
-      if (!container.has(serviceName)) {
-        issues.push(`Missing required service: ${serviceName}`);
-      }
-    }
-
-    return {
-      isHealthy: issues.length === 0,
-      issues
-    };
-  };
-
-  const health = checkHealth();
+  const issues: string[] = [];
+  
+  // Check if repositories are properly initialized
+  if (!sessionRepo || !productRepo || !supplierRepo) {
+    issues.push('Repository instances not properly initialized');
+  }
+  
+  // Check if repositories have required methods
+  if (!sessionRepo.findAll || !productRepo.findAll || !supplierRepo.findAll) {
+    issues.push('Repository methods not properly implemented');
+  }
 
   return {
-    ...health,
-    checkHealth: () => checkHealth()
+    isHealthy: issues.length === 0,
+    issues
   };
 }
+
+// Legacy exports for backward compatibility (will be removed)
+export const useService = useSessions;
+export const useServiceHealth = useConvexHealth;

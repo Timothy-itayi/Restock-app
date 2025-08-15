@@ -5,6 +5,7 @@ export interface UserProfile {
   name: string;
   email: string;
   storeName: string;
+  userName?: string; // Backward compatibility alias for name
 }
 
 export function useUserProfile() {
@@ -12,7 +13,8 @@ export function useUserProfile() {
   const [userProfile, setUserProfile] = useState<UserProfile>({
     name: "",
     email: "",
-    storeName: ""
+    storeName: "",
+    userName: ""
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

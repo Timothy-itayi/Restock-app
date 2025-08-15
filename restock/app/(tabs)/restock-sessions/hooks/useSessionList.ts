@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@clerk/clerk-expo';
-import { useRestockApplicationService } from './useService';
+import { useSessionRepository, useProductRepository, useSupplierRepository, useEmailRepository } from '../../../infrastructure/convex/ConvexHooksProvider';
 import type { RestockSession } from '../../../domain/entities/RestockSession';
 
 export interface SessionListState {
@@ -34,7 +34,7 @@ export interface SessionListActions {
  */
 export function useSessionList(): SessionListState & SessionListActions {
   const { userId } = useAuth();
-  const restockService = useRestockApplicationService();
+  const { create, findById, findByUserId, addItem, removeItem, updateName, updateStatus } = useSessionRepository();
 
   // State
   const [sessions, setSessions] = useState<RestockSession[]>([]);
@@ -64,7 +64,7 @@ export function useSessionList(): SessionListState & SessionListActions {
     try {
       console.log('[useSessionList] Loading sessions for user:', userId);
       
-      const result = await restockService.getSessions({ userId });
+      const result = await findByUserId({ userId });
       
       if (result.success && result.sessions) {
         // Flatten the sessions from the grouped structure
@@ -114,7 +114,7 @@ export function useSessionList(): SessionListState & SessionListActions {
     try {
       console.log('[useSessionList] Creating new session:', { userId, name });
       
-      const result = await restockService.createSession({ userId, name });
+      const result = await create({ userId, name });
       
       if (result.success && result.session) {
         // Add new session to the list

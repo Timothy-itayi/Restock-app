@@ -10,9 +10,7 @@ import { DIContainer } from '../../app/infrastructure/di/Container';
 import { useRestockSession } from '../../app/(tabs)/restock-sessions/hooks/useRestockSession';
 import { useProductForm } from '../../app/(tabs)/restock-sessions/hooks/useProductForm';
 import type { RestockApplicationService } from '../../app/application/interfaces/RestockApplicationService';
-import type { UserContextService } from '../../app/infrastructure/services/UserContextService';
 import type { IdGeneratorService } from '../../app/infrastructure/services/IdGeneratorService';
-import type { SupabaseSessionRepository } from '../../app/infrastructure/repositories/SupabaseSessionRepository';
 
 // Mock React Native modules
 jest.mock('react-native', () => ({

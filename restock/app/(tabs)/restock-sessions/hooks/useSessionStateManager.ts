@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from "@clerk/clerk-expo";
 import { RestockSession } from '../../../domain/entities/RestockSession';
 import { RestockSessionDomainService } from '../../../domain/services/RestockSessionDomainService';
-import { useRestockApplicationService } from './useService';
+import { useSessionRepository, useProductRepository, useSupplierRepository, useEmailRepository } from '../../../infrastructure/convex/ConvexHooksProvider';
 import { Logger } from '../utils/logger';
 
 interface SessionState {
@@ -37,7 +37,7 @@ const SESSIONS_HISTORY_KEY = 'restock_sessions_history';
 
 export function useSessionStateManager(): SessionStateManager {
   const { userId } = useAuth();
-  const app = useRestockApplicationService();
+  const { create, findById, findByUserId, addItem, removeItem, updateName, updateStatus } = useSessionRepository();
   const [state, setState] = useState<SessionState>({
     currentSession: null,
     allSessions: [],
@@ -59,7 +59,7 @@ export function useSessionStateManager(): SessionStateManager {
       const restored = await restoreSessionFromLocal();
       
       // Then load from server
-      const serverResult = await app.getSessions({ userId, includeCompleted: true });
+      const serverResult = await findByUserId({ userId, includeCompleted: true });
       
       if (serverResult.success && serverResult.sessions) {
         const { draft, emailGenerated, sent } = serverResult.sessions;

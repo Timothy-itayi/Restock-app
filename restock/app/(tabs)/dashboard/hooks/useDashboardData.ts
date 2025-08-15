@@ -3,7 +3,7 @@ import { DeviceEventEmitter } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useUnifiedAuth } from '../../../_contexts/UnifiedAuthProvider';
 import { RestockSession, SessionStatus } from '../../../domain/entities/RestockSession';
-import { useRestockApplicationService } from '../../restock-sessions/hooks/useService';
+import { useSessionRepository, useProductRepository, useSupplierRepository, useEmailRepository } from '../../../infrastructure/convex/ConvexHooksProvider';
 
 interface SessionItemView {
   id: string;
@@ -41,7 +41,7 @@ function mapDomainToView(session: RestockSession): SessionItemView {
 
 export function useDashboardData() {
   const { userId, isAuthenticated, isReady: authReady, authType } = useUnifiedAuth();
-  const restockService = useRestockApplicationService();
+  const { create, findById, findByUserId, addItem, removeItem, updateName, updateStatus } = useSessionRepository();
 
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [lastRefreshTime, setLastRefreshTime] = useState<number>(0);
@@ -58,22 +58,17 @@ export function useDashboardData() {
     }
     try {
       setSessionsLoading(true);
-      const result = await restockService.getSessions({ userId, includeCompleted: true });
-      if (result.success && result.sessions) {
-        const all = result.sessions.all.map(mapDomainToView);
-        const unfinished = all.filter((s) => s.status === SessionStatus.DRAFT || s.status === SessionStatus.EMAIL_GENERATED);
-        const finished = all.filter((s) => s.status === SessionStatus.SENT);
-        setUnfinishedSessions(unfinished);
-        setFinishedSessions(finished);
-      } else {
-        setUnfinishedSessions([]);
-        setFinishedSessions([]);
-      }
+      const sessions = await findByUserId(userId);
+      const all = sessions.map(mapDomainToView);
+      const unfinished = all.filter((s: SessionItemView) => s.status === SessionStatus.DRAFT || s.status === SessionStatus.EMAIL_GENERATED);
+      const finished = all.filter((s: SessionItemView) => s.status === SessionStatus.SENT);
+      setUnfinishedSessions(unfinished);
+      setFinishedSessions(finished);
       setLastRefreshTime(Date.now());
     } finally {
       setSessionsLoading(false);
     }
-  }, [canLoad, restockService, userId]);
+  }, [canLoad, findByUserId, userId]);
 
   // initial load
   useEffect(() => {

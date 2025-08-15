@@ -2,14 +2,13 @@
  * RESTOCK SESSION HOOK - CLEAN VERSION
  * 
  * Focused hook for managing a single restock session
- * Uses application service for all business logic
+ * Uses repository pattern for all data operations
  */
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@clerk/clerk-expo';
-import { useRestockApplicationService } from './useService';
-import { RestockSession } from '../../../domain/entities/RestockSession';
-import type { RestockItemValue } from '../../../domain/entities/RestockSession';
+import { useSessionRepository } from '../../../infrastructure/convex/ConvexHooksProvider';
+import { RestockSession, SessionStatus } from '../../../domain/entities/RestockSession';
 
 export interface RestockSessionState {
   session: RestockSession | null;
@@ -46,13 +45,10 @@ export interface SessionProduct {
 
 /**
  * Hook for managing a single restock session
- * 
- * This hook is focused only on session operations and state
- * All business logic is delegated to the application service
  */
 export function useRestockSession(sessionId?: string): RestockSessionState & RestockSessionActions {
   const { userId } = useAuth();
-  const restockService = useRestockApplicationService();
+  const sessionRepository = useSessionRepository();
 
   // State
   const [session, setSession] = useState<RestockSession | null>(null);
@@ -73,36 +69,33 @@ export function useRestockSession(sessionId?: string): RestockSessionState & Res
     try {
       console.log('[useRestockSession] Creating session:', { userId, name });
       
-      const result = await restockService.createSession({ userId, name });
+      const sessionName = name || `Restock Session ${new Date().toLocaleDateString()}`;
+      const sessionId = await sessionRepository.create({
+        userId,
+        name: sessionName,
+        status: SessionStatus.DRAFT,
+        items: [],
+        createdAt: new Date(),
+      } as any);
       
-      if (result.success && result.session) {
-        setSession(result.session);
-        console.log('[useRestockSession] Session created:', result.session.toValue().id);
-        
-        return { 
-          success: true, 
-          session: result.session 
-        };
+      // Load the created session
+      const newSession = await sessionRepository.findById(sessionId);
+      if (newSession) {
+        setSession(newSession);
+        console.log('[useRestockSession] Session created:', sessionId);
+        return { success: true, session: newSession };
       } else {
-        const errorMessage = result.error || 'Failed to create session';
-        setError(errorMessage);
-        return { 
-          success: false, 
-          error: errorMessage 
-        };
+        throw new Error('Failed to load created session');
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       console.error('[useRestockSession] Error creating session:', err);
       setError(errorMessage);
-      return { 
-        success: false, 
-        error: errorMessage 
-      };
+      return { success: false, error: errorMessage };
     } finally {
       setIsLoading(false);
     }
-  }, [userId, restockService]);
+  }, [userId, sessionRepository]);
 
   /**
    * Load an existing session
@@ -114,14 +107,13 @@ export function useRestockSession(sessionId?: string): RestockSessionState & Res
     try {
       console.log('[useRestockSession] Loading session:', sessionId);
       
-      const result = await restockService.getSession(sessionId);
+      const session = await sessionRepository.findById(sessionId);
       
-      if (result.success && result.session) {
-        setSession(result.session);
+      if (session) {
+        setSession(session);
         console.log('[useRestockSession] Session loaded:', sessionId);
       } else {
-        const errorMessage = result.error || 'Session not found';
-        setError(errorMessage);
+        setError('Session not found');
         setSession(null);
       }
     } catch (err) {
@@ -132,7 +124,7 @@ export function useRestockSession(sessionId?: string): RestockSessionState & Res
     } finally {
       setIsLoading(false);
     }
-  }, [restockService]);
+  }, [sessionRepository]);
 
   /**
    * Add a product to the current session
@@ -153,48 +145,38 @@ export function useRestockSession(sessionId?: string): RestockSessionState & Res
 
     try {
       console.log('[useRestockSession] Adding product to session:', {
-        sessionId: session.toValue().id,
+        sessionId: session.id,
         productName: params.productName,
-        sessionExists: !!session,
-        sessionStatus: session.toValue().status
       });
       
-      // Use the new user-friendly addItem method that doesn't require IDs
-      const result = await restockService.addItem({
-        sessionId: session.toValue().id,
+      const item = {
         productName: params.productName,
         quantity: params.quantity,
         supplierName: params.supplierName,
         supplierEmail: params.supplierEmail,
         notes: params.notes,
-        existingSession: session // Pass existing session to avoid repository lookup
-      });
+      };
       
-      if (result.success && result.session) {
-        setSession(result.session);
+      await sessionRepository.addItem(session.id, item);
+      
+      // Reload session to get updated data
+      const updatedSession = await sessionRepository.findById(session.id);
+      if (updatedSession) {
+        setSession(updatedSession);
         console.log('[useRestockSession] Product added successfully');
-        
         return { success: true };
       } else {
-        const errorMessage = result.error || 'Failed to add product';
-        setError(errorMessage);
-        return { 
-          success: false, 
-          error: errorMessage 
-        };
+        throw new Error('Failed to reload session after adding product');
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       console.error('[useRestockSession] Error adding product:', err);
       setError(errorMessage);
-      return { 
-        success: false, 
-        error: errorMessage 
-      };
+      return { success: false, error: errorMessage };
     } finally {
       setIsLoading(false);
     }
-  }, [session, restockService]);
+  }, [session, sessionRepository]);
 
   /**
    * Remove a product from the current session
@@ -208,31 +190,28 @@ export function useRestockSession(sessionId?: string): RestockSessionState & Res
     setError(null);
 
     try {
-      console.log('[useRestockSession] Removing product:', { productId, sessionId: session.toValue().id });
+      console.log('[useRestockSession] Removing product:', { productId, sessionId: session.id });
       
-      const result = await restockService.removeProduct(session.toValue().id, productId);
+      await sessionRepository.removeItem(session.id, productId);
       
-      if (result.success && result.session) {
-        setSession(result.session);
+      // Reload session to get updated data
+      const updatedSession = await sessionRepository.findById(session.id);
+      if (updatedSession) {
+        setSession(updatedSession);
         console.log('[useRestockSession] Product removed successfully');
         return { success: true };
       } else {
-        const errorMessage = result.error || 'Failed to remove product';
-        setError(errorMessage);
-        return { success: false, error: errorMessage };
+        throw new Error('Failed to reload session after removing product');
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       console.error('[useRestockSession] Error removing product:', err);
       setError(errorMessage);
-      return { 
-        success: false, 
-        error: errorMessage 
-      };
+      return { success: false, error: errorMessage };
     } finally {
       setIsLoading(false);
     }
-  }, [session, restockService]);
+  }, [session, sessionRepository]);
 
   /**
    * Update session name
@@ -244,46 +223,28 @@ export function useRestockSession(sessionId?: string): RestockSessionState & Res
     try {
       console.log('[useRestockSession] Updating session name:', { sessionId, name });
       
-      // Update the session name in the application service
-      const result = await restockService.setSessionName(sessionId, name);
+      await sessionRepository.updateName(sessionId, name);
       
-      if (result.success) {
-        // Update local session state
-        if (session && session.toValue().id === sessionId) {
-          const currentValue = session.toValue();
-          const updatedSession = RestockSession.fromValue({
-            ...currentValue,
-            name
-          });
-          
+      // Update local session state
+      if (session && session.id === sessionId) {
+        const updatedSession = await sessionRepository.findById(sessionId);
+        if (updatedSession) {
           setSession(updatedSession);
-          
-          // Emit event to refresh dashboard
-          const { DeviceEventEmitter } = await import('react-native');
-          DeviceEventEmitter.emit('restock:sessionUpdated', { sessionId, name });
-          
           console.log('[useRestockSession] Session name updated successfully:', name);
           return { success: true };
         }
-        
-        return { success: false, error: 'Session not found' };
-      } else {
-        const errorMessage = result.error || 'Failed to update session name';
-        setError(errorMessage);
-        return { success: false, error: errorMessage };
       }
+      
+      return { success: false, error: 'Session not found' };
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update session name';
       console.error('[useRestockSession] Error updating session name:', err);
       setError(errorMessage);
-      return { 
-        success: false, 
-        error: errorMessage 
-      };
+      return { success: false, error: errorMessage };
     } finally {
       setIsLoading(false);
     }
-  }, [session, restockService]);
+  }, [session, sessionRepository]);
 
   /**
    * Clear the current session
@@ -334,9 +295,7 @@ export function useRestockSession(sessionId?: string): RestockSessionState & Res
 export function getSessionProducts(session: RestockSession | null): SessionProduct[] {
   if (!session) return [];
   
-  const sessionValue = session.toValue();
-  
-  return sessionValue.items.map((item: RestockItemValue) => ({
+  return session.items.map((item: any) => ({
     id: item.productId,
     name: item.productName,
     quantity: item.quantity,
@@ -367,17 +326,15 @@ export function getSessionSummary(session: RestockSession | null): {
     };
   }
   
-  const sessionValue = session.toValue();
-  const products = sessionValue.items;
-  
-  const uniqueSuppliers = new Set(products.map((item: RestockItemValue) => item.supplierId));
-  const totalQuantity = products.reduce((sum: number, item: RestockItemValue) => sum + item.quantity, 0);
+  const products = session.items;
+  const uniqueSuppliers = new Set(products.map((item: any) => item.supplierId));
+  const totalQuantity = products.reduce((sum: number, item: any) => sum + item.quantity, 0);
   
   return {
     totalProducts: products.length,
     totalQuantity,
     supplierCount: uniqueSuppliers.size,
-    sessionName: sessionValue.name || 'Unnamed Session',
-    sessionId: sessionValue.id
+    sessionName: session.name || 'Unnamed Session',
+    sessionId: session.id
   };
 }

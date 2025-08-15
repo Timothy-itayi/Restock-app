@@ -6,7 +6,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { useRestockApplicationService } from './useService';
+import { useSessionRepository, useProductRepository, useSupplierRepository, useEmailRepository } from '../../../infrastructure/convex/ConvexHooksProvider';
 
 export interface ProductFormData {
   productName: string;
@@ -54,7 +54,7 @@ export interface SupplierSuggestion {
  * Business logic is delegated to application service
  */
 export function useProductForm(): ProductFormState & ProductFormActions {
-  const restockService = useRestockApplicationService();
+  const { create, findById, findByUserId, addItem, removeItem, updateName, updateStatus } = useSessionRepository();
 
   // Form state
   const [formData, setFormData] = useState<ProductFormData>({

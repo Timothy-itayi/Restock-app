@@ -13,7 +13,7 @@ import Animated, {
 import { getDashboardStyles } from '../../../../styles/components/dashboard';
 import { useThemedStyles } from '../../../../styles/useThemedStyles';
 import { getSessionColorTheme } from '../../restock-sessions/utils/colorUtils';
-import { useRestockApplicationService } from '../../restock-sessions/hooks/useService';
+import { useSessionRepository } from '../../../infrastructure/convex/ConvexHooksProvider';
 import { Logger } from '../../restock-sessions/utils/logger';
 
 interface UnfinishedSession {
@@ -52,7 +52,7 @@ export const SwipeableSessionCard: React.FC<SwipeableSessionCardProps> = ({
   onSessionDeleted,
 }) => {
   const dashboardStyles = useThemedStyles(getDashboardStyles);
-  const restockService = useRestockApplicationService();
+  const { remove } = useSessionRepository();
   const [isDeleting, setIsDeleting] = useState(false);
   
   const translateX = useSharedValue(0);
@@ -146,15 +146,9 @@ export const SwipeableSessionCard: React.FC<SwipeableSessionCardProps> = ({
             try {
               Logger.info('Deleting session from dashboard', { sessionId: session.id });
               
-              const result = await restockService.deleteSession(session.id);
-              
-              if (result.success) {
-                Logger.success('Session deleted successfully from dashboard', { sessionId: session.id });
-                onSessionDeleted(session.id);
-              } else {
-                Logger.error('Failed to delete session from dashboard', result.error, { sessionId: session.id });
-                Alert.alert('Error', result.error || 'Failed to delete session');
-              }
+              await remove(session.id);
+              Logger.success('Session deleted successfully from dashboard', { sessionId: session.id });
+              onSessionDeleted(session.id);
             } catch (error) {
               Logger.error('Unexpected error deleting session from dashboard', error, { sessionId: session.id });
               Alert.alert('Error', 'An unexpected error occurred while deleting the session');

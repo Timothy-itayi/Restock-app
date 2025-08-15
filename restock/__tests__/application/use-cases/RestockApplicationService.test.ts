@@ -64,6 +64,72 @@ class MockSessionRepository implements SessionRepository {
       .filter(session => session.toValue().userId === userId)
       .slice(0, limit);
   }
+
+  // Session management operations (used by UI components)
+  async create(session: Omit<RestockSession, 'id'>): Promise<string> {
+    const newSession = RestockSession.fromValue({
+      ...session,
+      id: `temp_${Date.now()}`,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+    this.sessions.set(newSession.id, newSession);
+    return newSession.id;
+  }
+
+  async addItem(sessionId: string, item: any): Promise<void> {
+    const session = this.sessions.get(sessionId);
+    if (session) {
+      // Mock implementation - in real app this would add to restockItems table
+      console.log('Mock: Adding item to session', { sessionId, item });
+    }
+  }
+
+  async removeItem(sessionId: string, itemId: string): Promise<void> {
+    const session = this.sessions.get(sessionId);
+    if (session) {
+      // Mock implementation - in real app this would remove from restockItems table
+      console.log('Mock: Removing item from session', { sessionId, itemId });
+    }
+  }
+
+  async updateName(sessionId: string, name: string): Promise<void> {
+    const session = this.sessions.get(sessionId);
+    if (session) {
+      const updatedSession = RestockSession.fromValue({
+        ...session.toValue(),
+        name,
+        updatedAt: new Date()
+      });
+      this.sessions.set(sessionId, updatedSession);
+    }
+  }
+
+  async updateStatus(sessionId: string, status: string): Promise<void> {
+    const session = this.sessions.get(sessionId);
+    if (session) {
+      const updatedSession = RestockSession.fromValue({
+        ...session.toValue(),
+        status: status as SessionStatus,
+        updatedAt: new Date()
+      });
+      this.sessions.set(sessionId, updatedSession);
+    }
+  }
+
+  async markAsSent(sessionId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.updateStatus(sessionId, 'sent');
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: 'Failed to mark session as sent' };
+    }
+  }
+
+  // Alias for delete for backward compatibility
+  async remove(sessionId: string): Promise<void> {
+    return this.delete(sessionId);
+  }
 }
 
 class MockProductRepository implements ProductRepository {

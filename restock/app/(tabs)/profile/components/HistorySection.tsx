@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
-import { useRestockApplicationService } from '../../restock-sessions/hooks/useService';
+import { useSessionRepository } from '../../../infrastructure/convex/ConvexHooksProvider';
+import { RestockSession } from '../../../domain/entities/RestockSession';
 
 interface HistoryItem {
   id: string;
@@ -23,7 +24,7 @@ export const HistorySection: React.FC<HistorySectionProps> = ({ userId }) => {
   const [activeTab, setActiveTab] = useState<'sessions' | 'emails'>('sessions');
   const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const app = useRestockApplicationService();
+  const { findByUserId, findCompletedByUserId } = useSessionRepository();
 
   const loadHistory = async () => {
     if (!userId) return;
@@ -31,24 +32,21 @@ export const HistorySection: React.FC<HistorySectionProps> = ({ userId }) => {
     setLoading(true);
     try {
       const items: HistoryItem[] = [];
-      const result = await app.getSessions({ userId, includeCompleted: true });
-      if (result.success && result.sessions) {
-        const all = result.sessions.all;
-        all.forEach((session) => {
-          const created = session.createdAt;
-          const readableDate = created.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-          const sessionName = session.name || `Session • ${readableDate}`;
-          items.push({
-            id: session.id,
+      const sessions = await findCompletedByUserId(userId);
+      sessions.forEach((session: RestockSession) => {
+        const created = session.createdAt;
+        const readableDate = created.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const sessionName = session.name || `Session • ${readableDate}`;
+        items.push({
+          id: session.id,
             type: 'session',
             title: sessionName,
             date: created,
             status: session.status,
             details: `${session.items.length} items, ${session.getUniqueSupplierCount()} suppliers`,
             metadata: session
-          });
         });
-      }
+      });
 
       // Sort by date (newest first)
       items.sort((a, b) => b.date.getTime() - a.date.getTime());

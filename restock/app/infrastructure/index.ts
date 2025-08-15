@@ -1,67 +1,43 @@
 /**
- * INFRASTRUCTURE LAYER - Main Index
+ * INFRASTRUCTURE LAYER EXPORTS
  * 
- * Exports all infrastructure components for use by the application layer
- * This is the only file the application layer should import from infrastructure
+ * This is the public API of the infrastructure layer
+ * Only these exports should be used by other layers
  */
 
-// Configuration
-export { 
-  supabaseClient, 
-  SupabaseClientFactory, 
-  TABLES, 
-  SESSION_STATUS 
-} from './config/SupabaseConfig';
-
-// Dependency Injection
-export { DIContainer } from './di/Container';
-export { 
-  registerServices, 
-  initializeServices, 
-  getRestockApplicationService 
-} from './di/ServiceRegistry';
-
-// Services
-export { UserContextService } from './services/UserContextService';
-export { ClerkAuthService } from './services/ClerkAuthService';
+// Infrastructure Services
 export { IdGeneratorService } from './services/IdGeneratorService';
 
-// Repository Implementations
-export { 
-  SupabaseSessionRepository,
-  SessionNotFoundError,
-  SessionSaveError,
-  SessionAccessError 
-} from './repositories/SupabaseSessionRepository';
+// Convex Repository Implementations
+export { ConvexUserRepository } from './convex/repositories/ConvexUserRepository';
+export { ConvexSessionRepository } from './convex/repositories/ConvexSessionRepository';
+export { ConvexProductRepository } from './convex/repositories/ConvexProductRepository';
+export { ConvexSupplierRepository } from './convex/repositories/ConvexSupplierRepository';
+export { ConvexEmailRepository } from './convex/repositories/ConvexEmailRepository';
 
-export { 
-  SupabaseProductRepository,
-  ProductNotFoundError,
-  ProductSaveError,
-  ProductAccessError 
-} from './repositories/SupabaseProductRepository';
+// Convex Infrastructure Components
+export { ConvexHooksProvider, useRepositories, useSessionRepository, useProductRepository, useSupplierRepository, useUserRepository, useEmailRepository } from './convex/ConvexHooksProvider';
+export { useConvexAuthAdapter } from './convex/ConvexAuthAdapter';
 
-export { 
-  SupabaseSupplierRepository,
-  SupplierNotFoundError,
-  SupplierSaveError,
-  SupplierAccessError 
-} from './repositories/SupabaseSupplierRepository';
+// Test Components
+export { ConvexTestComponent } from './convex/ConvexTestComponent';
 
 // Data Mappers (exposed for testing/advanced use)
 export { SessionMapper } from './repositories/mappers/SessionMapper';
 export { ProductMapper } from './repositories/mappers/ProductMapper';
 export { SupplierMapper } from './repositories/mappers/SupplierMapper';
 
-// Email Adapter
-export { 
-  GroqEmailAdapter,
-  createGroqEmailAdapter,
-  EmailGenerationError
-} from './adapters/GroqEmailAdapter';
+// External Service Adapters
+export { GroqEmailAdapter } from './adapters/GroqEmailAdapter';
 
-// Monitoring and DevTools
+// Dependency Injection
+export { DIContainer, type ServiceDefinition, type ServiceFactory } from './di/Container';
+export { registerServices } from './di/ServiceRegistry';
+
+// Monitoring & Health
 export { ServiceHealthMonitor } from './monitoring/ServiceHealthMonitor';
+
+// Development Tools
 export { DependencyGraphVisualizer } from './devtools/DependencyGraphVisualizer';
 export { RuntimePerformanceDashboard } from './devtools/RuntimePerformanceDashboard';
 

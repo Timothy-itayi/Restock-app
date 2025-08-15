@@ -289,3 +289,74 @@ export const bulkUpdateStatus = mutation({
     return results;
   },
 });
+
+// Get a single email by ID
+export const get = query({
+  args: { id: v.id("emailsSent") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+
+    const userId = identity.subject;
+    const email = await ctx.db.get(args.id);
+
+    if (!email || email.userId !== userId) {
+      throw new Error("Access denied");
+    }
+
+    return email;
+  },
+});
+
+// Get all emails for a user (across all sessions)
+export const listByUser = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+
+    const userId = identity.subject;
+
+    return await ctx.db
+      .query("emailsSent")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .order("desc")
+      .collect();
+  },
+});
+
+// Delete email record
+export const remove = mutation({
+  args: { id: v.id("emailsSent") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+
+    const userId = identity.subject;
+    const email = await ctx.db.get(args.id);
+
+    if (!email || email.userId !== userId) {
+      throw new Error("Access denied");
+    }
+
+    await ctx.db.delete(args.id);
+
+    // Create audit log
+    await ctx.db.insert("auditLogs", {
+      userId,
+      action: "delete_email",
+      resourceType: "email",
+      resourceId: args.id,
+      details: `Deleted email to ${email.supplierName} (${email.supplierEmail})`,
+      timestamp: Date.now(),
+    });
+
+    return args.id;
+  },
+});

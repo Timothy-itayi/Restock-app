@@ -1,9 +1,9 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, Alert } from 'react-native';
 import { useSessionStateManager } from '../hooks/useSessionStateManager';
-import { Button } from '../../../components/Button';
-import { Card } from '../../../components/Card';
-import { CustomToast } from '../../../components/CustomToast';
+import Button from '../../../components/Button';
+import Card from '../../../components/Card';
+import CustomToast from '../../../components/CustomToast';
 import { Logger } from '../utils/logger';
 
 enum WorkflowStep {
@@ -287,12 +287,12 @@ export function SessionWorkflow({ onNavigateToEmails }: SessionWorkflowProps) {
         </Card>
       )}
 
-      <CustomToast
-        visible={showToast}
-        message={toastMessage}
-        type={toastType}
-        onHide={() => setShowToast(false)}
-      />
+              <CustomToast
+          visible={showToast}
+          message={toastMessage}
+          type={toastType}
+          onDismiss={() => setShowToast(false)}
+        />
     </View>
   );
 }

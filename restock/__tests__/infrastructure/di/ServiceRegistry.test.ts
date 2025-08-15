@@ -6,7 +6,7 @@
  */
 
 import { DIContainer } from '../../../app/infrastructure/di/Container';
-import { registerServices, initializeServices, healthCheck } from '../../../app/infrastructure/di/ServiceRegistry';
+import { registerServices } from '../../../app/infrastructure/di/ServiceRegistry';
 
 // Mock all the dependencies
 jest.mock('../../../app/infrastructure/config/SupabaseConfig', () => ({
@@ -64,16 +64,18 @@ describe('ServiceRegistry', () => {
 
   describe('Service Registration', () => {
     test('should register all required services', () => {
-      registerServices();
+      // Mock Convex client for testing
+      const mockConvexClient = {} as any;
+      registerServices(mockConvexClient);
       
       const expectedServices = [
-        'UserContextService',
         'IdGeneratorService',
         'GroqEmailAdapter',
-        'SupabaseSessionRepository',
-        'SupabaseProductRepository',
-        'SupabaseSupplierRepository',
-        'RestockApplicationService'
+        'SessionRepository',
+        'ProductRepository',
+        'SupplierRepository',
+        'UserRepository',
+        'EmailRepository'
       ];
 
       expectedServices.forEach(serviceName => {
@@ -82,17 +84,21 @@ describe('ServiceRegistry', () => {
     });
 
     test('should register services in correct dependency order', () => {
-      registerServices();
+      const mockConvexClient = {} as any;
+      registerServices(mockConvexClient);
       
       // Infrastructure services should be registered first
-      expect(container.has('UserContextService')).toBe(true);
       expect(container.has('IdGeneratorService')).toBe(true);
+      expect(container.has('GroqEmailAdapter')).toBe(true);
       
       // Repository implementations depend on infrastructure
-      expect(container.has('SupabaseSessionRepository')).toBe(true);
+      expect(container.has('SessionRepository')).toBe(true);
       
-      // Application service depends on repositories
-      expect(container.has('RestockApplicationService')).toBe(true);
+      // All repositories should be available
+      expect(container.has('ProductRepository')).toBe(true);
+      expect(container.has('SupplierRepository')).toBe(true);
+      expect(container.has('UserRepository')).toBe(true);
+      expect(container.has('EmailRepository')).toBe(true);
     });
 
     test('should handle registration errors gracefully', () => {

@@ -1,4 +1,4 @@
-import { supabase } from '../config/supabase';
+// Supabase imports removed - using Clerk + Convex instead
 
 /**
  * Generate a unique ID (UUID v4)
@@ -99,56 +99,38 @@ export function formatPhoneNumber(phone: string): string {
  * Get current user ID from session
  */
 export async function getCurrentUserId(): Promise<string | null> {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    return user?.id || null;
-  } catch (error) {
-    console.error('Error getting current user:', error);
-    return null;
-  }
+  // This function is deprecated - use Clerk's useUser() hook instead
+  console.warn('getCurrentUserId is deprecated. Use Clerk\'s useUser() hook in React components.');
+  return null;
 }
 
 /**
  * Check if user is authenticated
  */
 export async function isAuthenticated(): Promise<boolean> {
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    return !!session;
-  } catch (error) {
-    console.error('Error checking authentication:', error);
-    return false;
-  }
+  // This function is deprecated - use Clerk's useAuth() hook instead
+  console.warn('isAuthenticated is deprecated. Use Clerk\'s useAuth() hook in React components.');
+  return false;
 }
 
 /**
- * Handle Supabase errors
+ * Handle general errors (Supabase-specific error handling removed)
  */
-export function handleSupabaseError(error: any): string {
+export function handleError(error: any): string {
   if (error?.message) {
-    // Handle specific Supabase auth errors
-    if (error.message.includes('Email address') && error.message.includes('is invalid')) {
-      return 'Please use a real email address. Test domains like @email.com, @test.com, or @example.com are not allowed.';
-    }
-    if (error.message.includes('Invalid login credentials')) {
-      return 'Invalid email or password. Please check your credentials and try again.';
-    }
-    if (error.message.includes('User already registered')) {
-      return 'An account with this email already exists. Please sign in instead.';
-    }
-
-    if (error.message.includes('Email not confirmed') || error.message.includes('not confirmed')) {
-      return 'Email confirmation is currently disabled. Please try signing in directly.';
-    }
-    if (error.message.includes('Email not confirmed')) {
-      return 'Email confirmation is currently disabled. Please try signing in directly.';
-    }
     return error.message;
   }
   if (typeof error === 'string') {
     return error;
   }
   return 'An unexpected error occurred';
+}
+
+/**
+ * Handle Supabase errors (kept for backward compatibility)
+ */
+export function handleSupabaseError(error: any): string {
+  return handleError(error);
 }
 
 /**
