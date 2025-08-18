@@ -28,6 +28,19 @@ export const ssoProfileSetupStyles = StyleSheet.create({
     color: colors.brand.secondary,
     marginBottom: 40,
     textAlign: 'center',
+  },
+  warningContainer: {
+    backgroundColor: colors.status.error + '20',
+    borderColor: colors.status.error,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  warningText: {
+    ...typography.bodyMedium,
+    color: colors.status.error,
+    textAlign: 'center',
     lineHeight: 24,
   },
   formSection: {

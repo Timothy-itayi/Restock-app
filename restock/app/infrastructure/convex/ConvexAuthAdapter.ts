@@ -39,8 +39,14 @@ export const useConvexAuthAdapter = (convexClient: ConvexReactClient) => {
         }
 
         if (isMounted.current) {
-          // Set the auth token on the Convex client
-          await convexClient.setAuth(token);
+          // Set the auth token on the Convex client as an async function
+          await convexClient.setAuth(async () => {
+            const freshToken = await getToken({ template: "convex" });
+            if (!freshToken) {
+              throw new Error('No JWT token available from Clerk');
+            }
+            return freshToken;
+          });
           console.log('✅ ConvexAuthAdapter: Auth token set successfully');
         }
       } catch (error) {

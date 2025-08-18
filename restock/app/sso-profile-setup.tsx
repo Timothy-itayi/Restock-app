@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, TextInput, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { useUser } from '@clerk/clerk-expo';
+import { useConvexAuth } from 'convex/react';
 import { useUserRepository } from './infrastructure/convex/ConvexHooksProvider';
 import { ClerkClientService } from '../backend/services/clerk-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -12,10 +13,12 @@ import { UserProfileService } from '../backend/services/user-profile';
 
 export default function SSOProfileSetupScreen() {
   const { user } = useUser();
+  const { isAuthenticated: isConvexAuthenticated, isLoading: isConvexLoading } = useConvexAuth();
   const { isAuthenticated, userId, authType, triggerAuthCheck, markNewSSOUserReady } = useUnifiedAuth();
   
-  // Repository hook for creating user profile
-  const { createProfile } = useUserRepository();
+  // Repository hook for creating user profile - use direct approach
+  const userRepositoryWithReady = useUserRepository();
+  const isRepositoryReady = userRepositoryWithReady?.isReady || false;
   
   // Quiet verbose render log
   
@@ -166,11 +169,12 @@ export default function SSOProfileSetupScreen() {
     setLoading(true);
 
     try {
-      // CRITICAL: Ensure user context is properly set before profile creation
+      console.log('✅ SSOProfileSetup: Proceeding with profile creation');
+      
       console.log('🔧 SSOProfileSetup: Setting user context before profile creation');
       
       // Wait a moment for the context to propagate
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 200));
 
       // Log the profile creation attempt
       ErrorLogger.info('SSOProfileSetup: Creating profile for Google user', {
@@ -199,7 +203,7 @@ export default function SSOProfileSetupScreen() {
           attempts++;
           console.log(`🔄 SSOProfileSetup: Profile creation attempt ${attempts}/${maxAttempts}`);
           
-          result = await createProfile({
+          result = await userRepositoryWithReady.createProfile({
             email: email.toLowerCase().trim(),
             name: name?.trim(),
             storeName: storeName.trim()
@@ -358,16 +362,29 @@ export default function SSOProfileSetupScreen() {
               autoCapitalize="words"
             />
             
+            {!isConvexAuthenticated && (
+              <View style={ssoProfileSetupStyles.warningContainer}>
+                <Text style={ssoProfileSetupStyles.warningText}>
+                  ⚠️ Authenticating... Please wait.
+                </Text>
+              </View>
+            )}
+            
             <TouchableOpacity 
-              style={[ssoProfileSetupStyles.button, loading && ssoProfileSetupStyles.buttonDisabled]}
+              style={[
+                ssoProfileSetupStyles.button, 
+                (loading || !isConvexAuthenticated) && ssoProfileSetupStyles.buttonDisabled
+              ]}
               onPress={() => {
                 console.log('🎯 SSOProfileSetup: Button pressed!');
                 handleCreateProfile();
               }}
-              disabled={loading}
+              disabled={loading || !isConvexAuthenticated}
             >
               <Text style={ssoProfileSetupStyles.buttonText}>
-                {loading ? 'Setting up your account...' : 'Complete Google Account Setup'}
+                {loading ? 'Setting up your account...' : 
+                 !isConvexAuthenticated ? 'Authenticating...' :
+                 'Complete Google Account Setup'}
               </Text>
             </TouchableOpacity>
           </View>

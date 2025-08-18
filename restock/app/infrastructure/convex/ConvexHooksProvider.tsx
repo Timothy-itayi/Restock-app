@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useMemo } from "react";
+import React, { createContext, useContext, useMemo, useEffect } from "react";
 import { ConvexReactClient } from "convex/react";
-import { useConvexAuthAdapter } from "../../infrastructure/convex/ConvexAuthAdapter";
+import { registerServices } from "../di/ServiceRegistry";
 
 // Repository imports
 import { ConvexUserRepository } from "../../infrastructure/convex/repositories/ConvexUserRepository";
@@ -33,6 +33,7 @@ interface RepositoryContextValue {
   productRepository: ProductRepository;
   supplierRepository: SupplierRepository;
   emailRepository: EmailRepository;
+  isConvexReady: boolean;
 }
 
 const RepositoryContext = createContext<RepositoryContextValue | null>(null);
@@ -47,19 +48,45 @@ const RepositoryContext = createContext<RepositoryContextValue | null>(null);
 export const ConvexHooksProvider: React.FC<{ 
   children: React.ReactNode;
   convexClient: ConvexReactClient;
-}> = ({ children, convexClient }) => {
-  // Handle Clerk → Convex token sync
-  useConvexAuthAdapter(convexClient);
+  isConvexReady: boolean;
+}> = ({ children, convexClient, isConvexReady }) => {
+  // Register services with the authenticated ConvexClient
+  useEffect(() => {
+    try {
+      console.log('[ConvexHooksProvider] Registering services with authenticated ConvexClient');
+      registerServices(convexClient);
+      console.log('[ConvexHooksProvider] ✅ Services registered successfully');
+    } catch (error) {
+      console.error('[ConvexHooksProvider] ❌ Failed to register services:', error);
+    }
+  }, [convexClient]);
 
   const repositories = useMemo(
-    (): RepositoryContextValue => ({
-      userRepository: new ConvexUserRepository(convexClient),
-      sessionRepository: new ConvexSessionRepository(convexClient),
-      productRepository: new ConvexProductRepository(convexClient),
-      supplierRepository: new ConvexSupplierRepository(convexClient),
-      emailRepository: new ConvexEmailRepository(convexClient),
-    }),
-    [convexClient]
+    (): RepositoryContextValue => {
+      console.log('🔍 ConvexHooksProvider: Creating repositories', {
+        hasConvexClient: !!convexClient,
+        isConvexReady,
+        convexClientType: typeof convexClient
+      });
+      
+      const userRepo = new ConvexUserRepository(convexClient);
+      console.log('🔍 ConvexHooksProvider: UserRepository created', {
+        hasUserRepo: !!userRepo,
+        userRepoKeys: userRepo ? Object.keys(userRepo) : 'null',
+        hasCreateProfile: !!userRepo?.createProfile,
+        createProfileType: typeof userRepo?.createProfile
+      });
+      
+      return {
+        userRepository: userRepo,
+        sessionRepository: new ConvexSessionRepository(convexClient),
+        productRepository: new ConvexProductRepository(convexClient),
+        supplierRepository: new ConvexSupplierRepository(convexClient),
+        emailRepository: new ConvexEmailRepository(convexClient),
+        isConvexReady,
+      };
+    },
+    [convexClient, isConvexReady]
   );
 
   return (
@@ -104,9 +131,18 @@ export const useSupplierRepository = (): SupplierRepository => {
   return supplierRepository;
 };
 
-export const useUserRepository = (): UserRepository => {
-  const { userRepository } = useRepositories();
-  return userRepository;
+export const useUserRepository = (): UserRepository & { isReady: boolean } => {
+  const context = useRepositories();
+  
+  if (!context?.userRepository) {
+    throw new Error('UserRepository not available in context');
+  }
+  
+  // Return repository with ready state
+  return {
+    ...context.userRepository,
+    isReady: context.isConvexReady
+  };
 };
 
 export const useEmailRepository = (): EmailRepository => {
