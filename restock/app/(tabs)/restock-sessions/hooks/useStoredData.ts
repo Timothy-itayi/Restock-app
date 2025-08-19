@@ -3,6 +3,8 @@ import { useAuth } from "@clerk/clerk-expo";
 // Clean layer: remove direct backend imports
 import { StoredProduct, StoredSupplier, ErrorState, LoadingState } from '../utils/types';
 import { Logger } from '../utils/logger';
+import { ProductService } from '../../../../backend/services/products';
+import { SupplierService } from '../../../../backend/services/suppliers';
 
 export const useStoredData = () => {
   const { userId } = useAuth();
@@ -58,36 +60,11 @@ export const useStoredData = () => {
     try {
       Logger.info('Loading stored data via SecureDataService', { userId });
       
-      // Try to load via SecureDataService first
-      const secureDataResult = await SecureDataService.getUserData(userId, 'all', false);
-      
-      let productsResult: any;
-      let suppliersResult: any;
-      
-      if (secureDataResult.error) {
-        Logger.warning('SecureDataService failed, falling back to individual services', { error: secureDataResult.error });
-        
-        // Fallback to original services
-        const [fallbackProductsResult, fallbackSuppliersResult] = await Promise.all([
-          ProductService.getUserProducts(userId),
-          SupplierService.getUserSuppliers(userId),
-        ]);
-        
-        productsResult = fallbackProductsResult;
-        suppliersResult = fallbackSuppliersResult;
-      } else {
-        Logger.success('SecureDataService success, using secure data');
-        
-        // Use secure data results
-        productsResult = { 
-          data: secureDataResult.data?.products || [], 
-          error: null 
-        };
-        suppliersResult = { 
-          data: secureDataResult.data?.suppliers || [], 
-          error: null 
-        };
-      }
+      // Load data via individual services
+      const [productsResult, suppliersResult] = await Promise.all([
+        ProductService.getUserProducts(userId),
+        SupplierService.getUserSuppliers(userId),
+      ]);
       
       // Handle products result
       if (productsResult.error) {

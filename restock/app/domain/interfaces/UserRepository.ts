@@ -7,7 +7,7 @@
 
 export interface UserProfile {
   id: string;
-  clerkUserId: string;
+  clerk_id: string;
   email: string;
   name?: string;
   storeName?: string;
@@ -18,6 +18,7 @@ export interface UserProfile {
 }
 
 export interface CreateUserProfileRequest {
+  clerk_id: string;
   email: string;
   name?: string;
   storeName?: string;

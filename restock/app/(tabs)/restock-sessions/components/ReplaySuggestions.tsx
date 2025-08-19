@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { getSessionColorTheme } from '../utils/colorUtils';
 import { RestockSession } from '../utils/types';
-import { useSessionRepository } from '../../../infrastructure/convex/ConvexHooksProvider';
+import { useSessionRepository } from '../../../infrastructure/repositories/SupabaseHooksProvider';
 
 interface ReplaySession {
   id: string;

@@ -6,8 +6,8 @@ import { UserProfileService } from '../../backend/services/user-profile';
 import { ClerkClientService } from '../../backend/services/clerk-client';
 import { EmailAuthService } from '../../backend/services/email-auth';
 import useProfileStore from '../stores/useProfileStore';
-import { DIContainer } from '../infrastructure/di/Container';
-import { UserContextService } from '../infrastructure/services/UserContextService';
+
+
 
 interface AuthType {
   type: 'google' | 'email' | null;
@@ -179,13 +179,13 @@ export const UnifiedAuthProvider: React.FC<UnifiedAuthProviderProps> = ({ childr
   // Verify user profile setup
   const verifyUserProfile = async (userId: string, user: any, isGoogle: boolean) => {
     try {
-      const profileSetupResult = await UserProfileService.hasCompletedProfileSetup(userId);
+      const profileSetupResult = await UserProfileService.hasCompletedProfileSetup();
       
       if (profileSetupResult.hasCompletedSetup) {
         console.log('✅ UnifiedAuth: User has completed profile setup');
         
         // Get the full user profile to update local session
-        const profileResult = await UserProfileService.getUserProfile(userId);
+        const profileResult = await UserProfileService.getUserProfile();
         const userEmail = user.emailAddresses?.[0]?.emailAddress || user.primaryEmailAddress?.emailAddress;
         
         await SessionManager.saveUserSession({
@@ -261,20 +261,8 @@ export const UnifiedAuthProvider: React.FC<UnifiedAuthProviderProps> = ({ childr
     }
     
     // Set user context in database for RLS policies
-    try {
-      const container = DIContainer.getInstance();
-      if (container.has('UserContextService')) {
-        const userContextService = container.get<UserContextService>('UserContextService');
-        console.log('🔧 UnifiedAuth: Setting user context in database for RLS policies');
-        await userContextService.setUserContext(userId);
-        console.log('✅ UnifiedAuth: User context set successfully for RLS policies');
-      } else {
-        console.warn('⚠️ UnifiedAuth: UserContextService not available in DI container');
-      }
-    } catch (error) {
-      console.error('❌ UnifiedAuth: Failed to set user context for RLS policies:', error);
-      // Don't fail the auth flow - the app can work with degraded functionality
-    }
+    // TODO: Implement user context setting for Supabase RLS policies
+    console.log('🔧 UnifiedAuth: User context setting not yet implemented for Supabase');
     
     // Create base auth type for returning users
     const baseAuthType: AuthType = {
@@ -309,18 +297,8 @@ export const UnifiedAuthProvider: React.FC<UnifiedAuthProviderProps> = ({ childr
     console.log('❌ UnifiedAuth: User is not authenticated');
     
     // Clear user context in database
-    try {
-      const container = DIContainer.getInstance();
-      if (container.has('UserContextService')) {
-        const userContextService = container.get<UserContextService>('UserContextService');
-        console.log('🔧 UnifiedAuth: Clearing user context in database');
-        await userContextService.clearUserContext();
-        console.log('✅ UnifiedAuth: User context cleared successfully');
-      }
-    } catch (error) {
-      console.error('❌ UnifiedAuth: Failed to clear user context:', error);
-      // Don't fail the auth flow
-    }
+    // TODO: Implement user context clearing for Supabase RLS policies
+    console.log('🔧 UnifiedAuth: User context clearing not yet implemented for Supabase');
     
     // Clear profile store
     clearProfile();

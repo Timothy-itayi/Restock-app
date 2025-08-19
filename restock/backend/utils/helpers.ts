@@ -1,4 +1,4 @@
-// Supabase imports removed - using Clerk + Convex instead
+// Supabase imports - using Clerk + Supabase for authentication and data storage
 
 /**
  * Generate a unique ID (UUID v4)

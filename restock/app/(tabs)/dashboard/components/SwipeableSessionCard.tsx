@@ -13,7 +13,7 @@ import Animated, {
 import { getDashboardStyles } from '../../../../styles/components/dashboard';
 import { useThemedStyles } from '../../../../styles/useThemedStyles';
 import { getSessionColorTheme } from '../../restock-sessions/utils/colorUtils';
-import { useSessionRepository } from '../../../infrastructure/convex/ConvexHooksProvider';
+import { useSessionRepository } from '../../../infrastructure/repositories/SupabaseHooksProvider';
 import { Logger } from '../../restock-sessions/utils/logger';
 
 interface UnfinishedSession {

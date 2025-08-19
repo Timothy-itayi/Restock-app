@@ -1,31 +1,56 @@
-import { ConvexHttpClient } from 'convex/browser';
-import { api } from '../../convex/_generated/api';
-
-// Initialize Convex client for backend usage
-const convex = new ConvexHttpClient(process.env.EXPO_PUBLIC_CONVEX_URL!);
+import { supabase } from '../config/supabase';
+import type { User, InsertUser, UpdateUser } from '../types/database';
 
 export class ClerkSyncService {
   /**
-   * Sync Clerk user data to Convex users table
+   * Sync Clerk user data to Supabase users table
    */
-  static async syncUserToConvex(clerkUserId: string, email: string, storeName?: string) {
+  static async syncUserToSupabase(clerk_id: string, email: string, storeName?: string) {
     try {
       // Check if user already exists
-      const existingUser = await convex.query(api.users.get);
+      const { data: existingUser, error: fetchError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('clerk_id', clerk_id)
+        .single();
+      
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        throw fetchError;
+      }
       
       if (existingUser) {
         // Update existing user
-        const userId = await convex.mutation(api.users.update, {
-          storeName: storeName || existingUser.storeName
-        });
-        return { data: { id: userId }, error: null };
+        const { data: updatedUser, error: updateError } = await supabase
+          .from('users')
+          .update({
+            store_name: storeName || existingUser.store_name
+          })
+          .eq('clerk_id', clerk_id)
+          .select('id')
+          .single();
+        
+        if (updateError) {
+          throw updateError;
+        }
+        
+        return { data: { id: updatedUser.id }, error: null };
       } else {
         // Create new user
-        const userId = await convex.mutation(api.users.create, {
-          email: email.toLowerCase().trim(),
-          storeName: storeName?.trim() || ''
-        });
-        return { data: { id: userId }, error: null };
+        const { data: newUser, error: createError } = await supabase
+          .from('users')
+          .insert({
+            clerk_id: clerk_id,
+            email: email.toLowerCase().trim(),
+            store_name: storeName?.trim() || ''
+          })
+          .select('id')
+          .single();
+        
+        if (createError) {
+          throw createError;
+        }
+        
+        return { data: { id: newUser.id }, error: null };
       }
     } catch (error) {
       return { data: null, error };
@@ -33,11 +58,19 @@ export class ClerkSyncService {
   }
 
   /**
-   * Get user from Convex by Clerk user ID
+   * Get user from Supabase by Clerk user ID
    */
-  static async getUserFromConvex(clerkUserId: string) {
+  static async getUserFromSupabase(clerk_id: string) {
     try {
-      const profile = await convex.query(api.users.get);
+      const { data: profile, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('clerk_id', clerk_id)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
       
       if (profile) {
         return { data: profile, error: null };
@@ -50,26 +83,44 @@ export class ClerkSyncService {
   }
 
   /**
-   * Update user store name in Convex
+   * Update user store name in Supabase
    */
-  static async updateStoreName(clerkUserId: string, storeName: string) {
+  static async updateStoreName(clerk_id: string, storeName: string) {
     try {
-      const userId = await convex.mutation(api.users.update, {
-        storeName: storeName.trim()
-      });
+      const { data: updatedUser, error } = await supabase
+        .from('users')
+        .update({
+          store_name: storeName.trim()
+        })
+        .eq('clerk_id', clerk_id)
+        .select('id')
+        .single();
       
-      return { data: { id: userId }, error: null };
+      if (error) {
+        throw error;
+      }
+      
+      return { data: { id: updatedUser.id }, error: null };
     } catch (error) {
       return { data: null, error };
     }
   }
 
   /**
-   * Check if user exists in Convex
+   * Check if user exists in Supabase
    */
-  static async userExists(clerkUserId: string): Promise<boolean> {
+  static async userExists(clerk_id: string): Promise<boolean> {
     try {
-      const profile = await convex.query(api.users.get);
+      const { data: profile, error } = await supabase
+        .from('users')
+        .select('id')
+        .eq('clerk_id', clerk_id)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+      
       return !!profile;
     } catch (error) {
       return false;
@@ -77,30 +128,58 @@ export class ClerkSyncService {
   }
 
   /**
-   * Create or update user in Convex
+   * Create or update user in Supabase
    */
   static async createOrUpdateUser(userData: any) {
     try {
       // Check if user already exists
-      const existingUser = await convex.query(api.users.get);
+      const { data: existingUser, error: fetchError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('clerk_id', userData.clerk_id)
+        .single();
+      
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        throw fetchError;
+      }
       
       if (existingUser) {
         // Update existing user
-        const updateData: any = {};
+        const updateData: UpdateUser = {};
         if (userData.name !== undefined) updateData.name = userData.name;
-        if (userData.storeName !== undefined) updateData.storeName = userData.storeName;
-        if (userData.email !== undefined) updateData.email = userData.email;
+        if (userData.storeName !== undefined) updateData.store_name = userData.storeName;
+        // Note: email updates are not allowed in the current schema
         
-        const userId = await convex.mutation(api.users.update, updateData);
-        return { data: { id: userId }, error: null };
+        const { data: updatedUser, error: updateError } = await supabase
+          .from('users')
+          .update(updateData)
+          .eq('clerk_id', userData.clerk_id)
+          .select('id')
+          .single();
+        
+        if (updateError) {
+          throw updateError;
+        }
+        
+        return { data: { id: updatedUser.id }, error: null };
       } else {
         // Create new user
-        const userId = await convex.mutation(api.users.create, {
-          email: userData.email?.toLowerCase().trim() || '',
-          name: userData.name?.trim(),
-          storeName: userData.storeName?.trim() || ''
-        });
-        return { data: { id: userId }, error: null };
+        const { data: newUser, error: createError } = await supabase
+          .from('users')
+          .insert({
+            clerk_id: userData.clerk_id,
+            email: userData.email?.toLowerCase().trim() || '',
+            name: userData.name?.trim(),
+            store_name: userData.storeName?.trim() || ''
+          })
+          .select('id')
+          .single();
+        
+        if (createError) {
+          throw createError;
+        }
+        
+        return { data: { id: newUser.id }, error: null };
       }
     } catch (error) {
       return { data: null, error };

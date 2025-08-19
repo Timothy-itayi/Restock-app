@@ -1,20 +1,15 @@
 import { GeneratedEmail, EmailContext } from './types';
-import { ConvexHttpClient } from 'convex/browser';
-import { api } from '../../../convex/_generated/api';
+import { supabase } from '../../config/supabase';
 
 export class GroqEmailClient {
   private isInitialized = false;
-  private convexClient: ConvexHttpClient | null = null;
   private isConfigured = false;
 
   constructor() {
-    // Check if we have Convex configured
-    const convexUrl = process.env.EXPO_PUBLIC_CONVEX_URL;
-    this.isConfigured = !!convexUrl;
-    
-    if (this.isConfigured) {
-      this.convexClient = new ConvexHttpClient(convexUrl!);
-    }
+    // Check if we have Supabase configured
+    const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+    this.isConfigured = !!(supabaseUrl && supabaseKey);
   }
 
   async initialize(): Promise<void> {
@@ -30,17 +25,16 @@ export class GroqEmailClient {
     }
 
     try {
-      console.log('🤖 Initializing Groq Email Client with Convex...');
+      console.log('🤖 Initializing Groq Email Client with Supabase...');
       
-      // Test the connection by calling a simple Convex query
-      if (this.convexClient) {
-        // Try to get user profile to test connection
-        await this.convexClient.query(api.users.get, {});
-        this.isInitialized = true;
-        console.log('✅ Groq Email Client initialized successfully with Convex');
-      } else {
-        throw new Error('Convex client not available');
+      // Test the connection by calling a simple Supabase query
+      const { data, error } = await supabase.from('users').select('count').limit(1);
+      if (error) {
+        throw error;
       }
+      
+      this.isInitialized = true;
+      console.log('✅ Groq Email Client initialized successfully with Supabase');
     } catch (error) {
       console.error('❌ Error initializing Groq Email Client:', error);
       // Don't throw error, just mark as not configured
@@ -64,7 +58,7 @@ export class GroqEmailClient {
     try {
       console.log(`📧 Generating email for ${context.supplierName}...`);
 
-      // Prepare the request payload for Convex function
+      // Prepare the request payload for Supabase Edge Function
       const payload = {
         supplier: context.supplierName,
         email: context.supplierEmail,
@@ -79,25 +73,14 @@ export class GroqEmailClient {
         tone: context.tone || 'professional'
       };
 
-      // Call the Convex function for email generation
-      if (this.convexClient) {
-        const result = await this.convexClient.mutation(api.ai.generateEmail, payload);
-        
-        const generationTime = Date.now() - startTime;
-
-        return {
-          subject: result.subject || 'Restock Order Request',
-          body: result.body || '',
-          confidence: result.confidence || 0.95,
-          generationTime
-        };
-      } else {
-        throw new Error('Convex client not available');
-      }
+      // For now, use fallback generation since we don't have AI functions set up in Supabase yet
+      // TODO: Implement Supabase Edge Functions for AI email generation
+      console.log('🔄 Using fallback email generation (Supabase AI functions not yet implemented)');
+      return this.generateFallbackEmail(context, maxLength);
 
     } catch (error) {
       const generationTime = Date.now() - startTime;
-      console.error('Error generating email with Groq via Convex:', error);
+      console.error('Error generating email with Groq via Supabase:', error);
       // Fall back to template generation
       console.log('🔄 Falling back to template email generation...');
       return this.generateFallbackEmail(context, maxLength);

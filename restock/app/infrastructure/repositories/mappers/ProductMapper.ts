@@ -70,7 +70,8 @@ export class ProductMapper {
       name: value.name,
       default_quantity: value.defaultQuantity,
       default_supplier_id: value.defaultSupplierId,
-      created_at: value.createdAt.toISOString()
+      created_at: value.createdAt.toISOString(),
+      updated_at: new Date().toISOString()
     };
   }
 

@@ -1,13 +1,12 @@
 import React, { createContext, useContext, useMemo, useEffect } from "react";
-import { ConvexReactClient } from "convex/react";
 import { registerServices } from "../di/ServiceRegistry";
 
-// Repository imports
-import { ConvexUserRepository } from "../../infrastructure/convex/repositories/ConvexUserRepository";
-import { ConvexSessionRepository } from "../../infrastructure/convex/repositories/ConvexSessionRepository";
-import { ConvexProductRepository } from "../../infrastructure/convex/repositories/ConvexProductRepository";
-import { ConvexSupplierRepository } from "../../infrastructure/convex/repositories/ConvexSupplierRepository";
-import { ConvexEmailRepository } from "../../infrastructure/convex/repositories/ConvexEmailRepository";
+// Supabase repository imports
+import { SupabaseUserRepository } from "../../../infrastructure/repositories/SupabaseUserRepository";
+import { SupabaseSessionRepository } from "../../../infrastructure/repositories/SupabaseSessionRepository";
+import { SupabaseProductRepository } from "../../../infrastructure/repositories/SupabaseProductRepository";
+import { SupabaseSupplierRepository } from "../../../infrastructure/repositories/SupabaseSupplierRepository";
+import { SupabaseEmailRepository } from "../../../infrastructure/repositories/SupabaseEmailRepository";
 
 // Domain interfaces
 import { 
@@ -18,59 +17,53 @@ import {
   UserRepository
 } from "../../domain/interfaces";
 
-// Note: Convex client is now created in ConvexProvider and passed via context
-// This ensures we use the same authenticated client instance
-
 /**
  * Repository Context Interface
  * 
- * This maintains the repository pattern while using Convex under the hood
- * UI components depend on these interfaces, not Convex directly
+ * This maintains the repository pattern while using Supabase under the hood
+ * UI components depend on these interfaces, not Supabase directly
  */
 interface RepositoryContextValue {
-  userRepository: ConvexUserRepository;
+  userRepository: SupabaseUserRepository;
   sessionRepository: SessionRepository;
   productRepository: ProductRepository;
   supplierRepository: SupplierRepository;
   emailRepository: EmailRepository;
-  isConvexReady: boolean;
+  isSupabaseReady: boolean;
 }
 
 const RepositoryContext = createContext<RepositoryContextValue | null>(null);
 
 /**
- * ConvexHooksProvider
+ * SupabaseHooksProvider
  * 
  * Provides repository instances that implement domain interfaces
- * Convex is completely hidden in the infrastructure layer
+ * Supabase is completely hidden in the infrastructure layer
  * UI components only see repository interfaces
  */
-export const ConvexHooksProvider: React.FC<{ 
+export const SupabaseHooksProvider: React.FC<{ 
   children: React.ReactNode;
-  convexClient: ConvexReactClient;
-  isConvexReady: boolean;
-}> = ({ children, convexClient, isConvexReady }) => {
-  // Register services with the authenticated ConvexClient
+  isSupabaseReady?: boolean;
+}> = ({ children, isSupabaseReady = true }) => {
+  // Register services with Supabase
   useEffect(() => {
     try {
-      console.log('[ConvexHooksProvider] Registering services with authenticated ConvexClient');
-      registerServices(convexClient);
-      console.log('[ConvexHooksProvider] ✅ Services registered successfully');
+      console.log('[SupabaseHooksProvider] Registering Supabase services');
+      registerServices();
+      console.log('[SupabaseHooksProvider] ✅ Services registered successfully');
     } catch (error) {
-      console.error('[ConvexHooksProvider] ❌ Failed to register services:', error);
+      console.error('[SupabaseHooksProvider] ❌ Failed to register services:', error);
     }
-  }, [convexClient]);
+  }, []);
 
   const repositories = useMemo(
     (): RepositoryContextValue => {
-      console.log('🔍 ConvexHooksProvider: Creating repositories', {
-        hasConvexClient: !!convexClient,
-        isConvexReady,
-        convexClientType: typeof convexClient
+      console.log('🔍 SupabaseHooksProvider: Creating repositories', {
+        isSupabaseReady
       });
       
-      const userRepo = new ConvexUserRepository(convexClient);
-      console.log('🔍 ConvexHooksProvider: UserRepository created', {
+      const userRepo = new SupabaseUserRepository();
+      console.log('🔍 SupabaseHooksProvider: UserRepository created', {
         hasUserRepo: !!userRepo,
         userRepoKeys: userRepo ? Object.keys(userRepo) : 'null',
         hasCreateProfile: !!userRepo?.createProfile,
@@ -79,14 +72,14 @@ export const ConvexHooksProvider: React.FC<{
       
       return {
         userRepository: userRepo,
-        sessionRepository: new ConvexSessionRepository(convexClient),
-        productRepository: new ConvexProductRepository(convexClient),
-        supplierRepository: new ConvexSupplierRepository(convexClient),
-        emailRepository: new ConvexEmailRepository(convexClient),
-        isConvexReady,
+        sessionRepository: new SupabaseSessionRepository(),
+        productRepository: new SupabaseProductRepository(),
+        supplierRepository: new SupabaseSupplierRepository(),
+        emailRepository: new SupabaseEmailRepository(),
+        isSupabaseReady,
       };
     },
-    [convexClient, isConvexReady]
+    [isSupabaseReady]
   );
 
   return (
@@ -105,7 +98,7 @@ export const ConvexHooksProvider: React.FC<{
 export const useRepositories = (): RepositoryContextValue => {
   const ctx = useContext(RepositoryContext);
   if (!ctx) {
-    throw new Error("useRepositories must be used within ConvexHooksProvider");
+    throw new Error("useRepositories must be used within SupabaseHooksProvider");
   }
   return ctx;
 };
@@ -114,7 +107,7 @@ export const useRepositories = (): RepositoryContextValue => {
  * Individual Repository Hooks
  * 
  * These provide type-safe access to specific repositories
- * They maintain the repository pattern while using Convex under the hood
+ * They maintain the repository pattern while using Supabase under the hood
  */
 export const useSessionRepository = (): SessionRepository => {
   const { sessionRepository } = useRepositories();
@@ -141,8 +134,8 @@ export const useUserRepository = (): UserRepository & { isReady: boolean } => {
   // Return repository with ready state
   return {
     ...context.userRepository,
-    isReady: context.isConvexReady
-  };
+    isReady: context.isSupabaseReady
+  } as UserRepository & { isReady: boolean };
 };
 
 export const useEmailRepository = (): EmailRepository => {

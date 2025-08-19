@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
-import { useSessionRepository } from '../../../infrastructure/convex/ConvexHooksProvider';
+import { useSessionRepository } from '../../../infrastructure/repositories/SupabaseHooksProvider';
 import { RestockSession } from '../../../domain/entities/RestockSession';
 
 interface HistoryItem {

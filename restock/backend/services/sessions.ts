@@ -1,9 +1,5 @@
-import { ConvexHttpClient } from 'convex/browser';
-import { api } from '../../convex/_generated/api';
-import { Id } from '../../convex/_generated/dataModel';
-
-// Initialize Convex client for backend usage
-const convex = new ConvexHttpClient(process.env.EXPO_PUBLIC_CONVEX_URL!);
+import { supabase } from '../config/supabase';
+import type { RestockSession, RestockItem, InsertRestockSession, UpdateRestockSession } from '../types/database';
 
 export class SessionService {
   /**
@@ -11,7 +7,16 @@ export class SessionService {
    */
   static async getUserSessions(userId: string) {
     try {
-      const sessions = await convex.query(api.restockSessions.list, {});
+      const { data: sessions, error } = await supabase
+        .from('restock_sessions')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
       return { data: sessions, error: null };
     } catch (error) {
       console.error('[SessionService] Error getting user sessions', { error, userId });
@@ -24,18 +29,32 @@ export class SessionService {
    */
   static async getSessionWithItems(sessionId: string) {
     try {
-      const session = await convex.query(api.restockSessions.get, { id: sessionId as Id<"restockSessions"> });
+      const { data: session, error: sessionError } = await supabase
+        .from('restock_sessions')
+        .select('*')
+        .eq('id', sessionId)
+        .single();
       
-      if (!session) {
-        return { data: null, error: new Error('Session not found') };
+      if (sessionError) {
+        if (sessionError.code === 'PGRST116') {
+          return { data: null, error: new Error('Session not found') };
+        }
+        throw sessionError;
       }
 
       // Get items for this session
-      const items = await convex.query(api.restockItems.listBySession, { sessionId: sessionId as Id<"restockSessions"> });
+      const { data: items, error: itemsError } = await supabase
+        .from('restock_items')
+        .select('*')
+        .eq('session_id', sessionId);
+      
+      if (itemsError) {
+        throw itemsError;
+      }
       
       const sessionWithItems = {
         ...session,
-        restockItems: items
+        restockItems: items || []
       };
 
       return { data: sessionWithItems, error: null };
@@ -49,11 +68,21 @@ export class SessionService {
    */
   static async createSession(session: any) {
     try {
-      const sessionId = await convex.mutation(api.restockSessions.create, {
-        name: session.name || `Restock Session ${new Date().toLocaleDateString()}`
-      });
+      const { data: newSession, error } = await supabase
+        .from('restock_sessions')
+        .insert({
+          user_id: session.userId,
+          name: session.name || `Restock Session ${new Date().toLocaleDateString()}`,
+          status: 'draft'
+        })
+        .select('id')
+        .single();
 
-      return { data: { id: sessionId }, error: null };
+      if (error) {
+        throw error;
+      }
+
+      return { data: { id: newSession.id }, error: null };
     } catch (error) {
       console.error('[SessionService] Error creating session', { error, session });
       return { data: null, error };
@@ -65,12 +94,18 @@ export class SessionService {
    */
   static async updateSessionName(sessionId: string, name: string) {
     try {
-      const updatedId = await convex.mutation(api.restockSessions.updateName, {
-        id: sessionId as Id<"restockSessions">,
-        name: name.trim()
-      });
+      const { data: updatedSession, error } = await supabase
+        .from('restock_sessions')
+        .update({ name: name.trim() })
+        .eq('id', sessionId)
+        .select('id')
+        .single();
 
-      return { data: { id: updatedId }, error: null };
+      if (error) {
+        throw error;
+      }
+
+      return { data: { id: updatedSession.id }, error: null };
     } catch (error) {
       return { data: null, error };
     }
@@ -81,12 +116,18 @@ export class SessionService {
    */
   static async updateSessionStatus(sessionId: string, status: 'draft' | 'email_generated' | 'sent') {
     try {
-      const updatedId = await convex.mutation(api.restockSessions.updateStatus, {
-        id: sessionId as Id<"restockSessions">,
-        status
-      });
+      const { data: updatedSession, error } = await supabase
+        .from('restock_sessions')
+        .update({ status })
+        .eq('id', sessionId)
+        .select('id')
+        .single();
 
-      return { data: { id: updatedId }, error: null };
+      if (error) {
+        throw error;
+      }
+
+      return { data: { id: updatedSession.id }, error: null };
     } catch (error) {
       return { data: null, error };
     }
@@ -97,7 +138,15 @@ export class SessionService {
    */
   static async deleteSession(sessionId: string) {
     try {
-      await convex.mutation(api.restockSessions.remove, { id: sessionId as Id<"restockSessions"> });
+      const { error } = await supabase
+        .from('restock_sessions')
+        .delete()
+        .eq('id', sessionId);
+
+      if (error) {
+        throw error;
+      }
+
       return { data: { success: true }, error: null };
     } catch (error) {
       return { data: null, error };
@@ -105,47 +154,70 @@ export class SessionService {
   }
 
   /**
-   * Add item to session
+   * Add an item to a session
    */
   static async addItemToSession(sessionId: string, item: any) {
     try {
-      const itemId = await convex.mutation(api.restockItems.add, {
-        sessionId: sessionId as Id<"restockSessions">,
-        productName: item.productName || item.name,
-        quantity: item.quantity || 1,
-        supplierName: item.supplierName || '',
-        supplierEmail: item.supplierEmail || '',
-        notes: item.notes
-      });
+      const { data: newItem, error } = await supabase
+        .from('restock_items')
+        .insert({
+          session_id: sessionId,
+          user_id: item.userId,
+          product_name: item.productName,
+          quantity: item.quantity,
+          supplier_name: item.supplierName,
+          supplier_email: item.supplierEmail,
+          notes: item.notes
+        })
+        .select('id')
+        .single();
 
-      return { data: { id: itemId }, error: null };
+      if (error) {
+        throw error;
+      }
+
+      return { data: { id: newItem.id }, error: null };
     } catch (error) {
       return { data: null, error };
     }
   }
 
   /**
-   * Update item in session
+   * Update an item in a session
    */
   static async updateItem(itemId: string, updates: any) {
     try {
-      const updatedId = await convex.mutation(api.restockItems.update, {
-        id: itemId as Id<"restockItems">,
-        ...updates
-      });
+      const { data: updatedItem, error } = await supabase
+        .from('restock_items')
+        .update(updates)
+        .eq('id', itemId)
+        .select('id')
+        .single();
 
-      return { data: { id: updatedId }, error: null };
+      if (error) {
+        throw error;
+      }
+
+      return { data: { id: updatedItem.id }, error: null };
     } catch (error) {
       return { data: null, error };
     }
   }
 
   /**
-   * Remove item from session
+   * Remove an item from a session
    */
   static async removeItem(itemId: string) {
     try {
-      await convex.mutation(api.restockItems.remove, { id: itemId as Id<"restockItems"> });
+      const { error } = await supabase
+        .from('restock_items')
+        .delete()
+        .eq('id', itemId);
+
+      if (error) {
+        throw error;
+      }
+
       return { data: { success: true }, error: null };
     } catch (error) {
       return { data: null, error };
@@ -153,11 +225,19 @@ export class SessionService {
   }
 
   /**
-   * Get session summary
+   * Get session summary for email generation
    */
   static async getSessionSummary(sessionId: string) {
     try {
-      const summary = await convex.query(api.restockItems.getSessionSummary, { sessionId: sessionId as Id<"restockSessions"> });
+      const { data: summary, error } = await supabase
+        .from('restock_items')
+        .select('*')
+        .eq('session_id', sessionId);
+
+      if (error) {
+        throw error;
+      }
+
       return { data: summary, error: null };
     } catch (error) {
       return { data: null, error };
@@ -169,7 +249,16 @@ export class SessionService {
    */
   static async getSessionsByStatus(status: 'draft' | 'email_generated' | 'sent') {
     try {
-      const sessions = await convex.query(api.restockSessions.list, { status });
+      const { data: sessions, error } = await supabase
+        .from('restock_sessions')
+        .select('*')
+        .eq('status', status)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
       return { data: sessions, error: null };
     } catch (error) {
       return { data: null, error };
@@ -177,13 +266,20 @@ export class SessionService {
   }
 
   /**
-   * Get recent sessions for user
+   * Get all sessions for dashboard
    */
-  static async getRecentSessions(userId: string, limit: number = 5) {
+  static async getAllSessions() {
     try {
-      const sessions = await convex.query(api.restockSessions.list, {});
-      const recentSessions = sessions.slice(0, limit);
-      return { data: recentSessions, error: null };
+      const { data: sessions, error } = await supabase
+        .from('restock_sessions')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
+      return { data: sessions, error: null };
     } catch (error) {
       return { data: null, error };
     }

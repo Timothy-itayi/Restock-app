@@ -23,7 +23,6 @@ import { StartSection } from './components/StartSection';
 import { ProductForm } from './components/ProductForm';
 import { ProductList } from './components/ProductList';
 import { FinishSection } from './components/FinishSection';
-import { ConvexTest } from './components/ConvexTest';
 import NameSessionModal from '../../components/NameSessionModal';
 import CustomToast from '../../components/CustomToast';
 
@@ -355,7 +354,7 @@ const RestockSessionsContent: React.FC = () => {
         />
 
       {/* Temporary Convex Test Component */}
-      <ConvexTest />
+      {/* <ConvexTest /> */}
 
       <ScrollView>
         {/* Show existing sessions first if no active session */}

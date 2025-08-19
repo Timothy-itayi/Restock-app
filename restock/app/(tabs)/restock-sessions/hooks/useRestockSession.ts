@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@clerk/clerk-expo';
-import { useSessionRepository } from '../../../infrastructure/convex/ConvexHooksProvider';
+import { useSessionRepository } from '../../../infrastructure/repositories/SupabaseHooksProvider';
 import { RestockSession, SessionStatus } from '../../../domain/entities/RestockSession';
 
 export interface RestockSessionState {

@@ -1,89 +1,101 @@
-// Database types for Convex integration
+// Database types for Supabase integration
 
 export interface User {
-  _id: string; // Convex document ID
-  clerkUserId: string; // Clerk user ID
+  id: string; // Supabase UUID
+  clerk_id: string; // Clerk user ID
   email: string;
   name?: string; // User's first name for personalized greetings
-  storeName?: string;
-  createdAt: number; // Unix timestamp
-  updatedAt: number; // Unix timestamp
+  store_name?: string;
+  created_at: string; // ISO timestamp string
+  updated_at: string; // ISO timestamp string
 }
 
 export interface Product {
-  _id: string; // Convex document ID
-  userId: string; // References Clerk user ID
+  id: string; // Supabase UUID
+  user_id: string; // References Clerk user ID
   name: string;
-  defaultQuantity: number;
-  defaultSupplierId?: string; // Convex document ID reference
+  default_quantity: number;
+  default_supplier_id?: string; // Supabase UUID reference
   notes?: string;
-  createdAt: number; // Unix timestamp
-  updatedAt: number; // Unix timestamp
+  created_at: string; // ISO timestamp string
+  updated_at: string; // ISO timestamp string
 }
 
 export interface Supplier {
-  _id: string; // Convex document ID
-  userId: string; // References Clerk user ID
+  id: string; // Supabase UUID
+  user_id: string; // References Clerk user ID
   name: string;
   email: string;
   phone?: string;
   notes?: string;
-  createdAt: number; // Unix timestamp
-  updatedAt: number; // Unix timestamp
+  created_at: string; // ISO timestamp string
+  updated_at: string; // ISO timestamp string
 }
 
 export interface RestockSession {
-  _id: string; // Convex document ID
-  userId: string; // References Clerk user ID
+  id: string; // Supabase UUID
+  user_id: string; // References Clerk user ID
   name?: string;
   status: 'draft' | 'email_generated' | 'sent';
-  createdAt: number; // Unix timestamp
-  updatedAt: number; // Unix timestamp
-  completedAt?: number; // Unix timestamp
+  created_at: string; // ISO timestamp string
+  updated_at: string; // ISO timestamp string
+  completed_at?: string; // ISO timestamp string
 }
 
 export interface RestockItem {
-  _id: string; // Convex document ID
-  sessionId: string; // Convex document ID reference
-  userId: string; // References Clerk user ID
-  productName: string;
+  id: string; // Supabase UUID
+  session_id: string; // Supabase UUID reference
+  user_id: string; // References Clerk user ID
+  product_name: string;
   quantity: number;
-  supplierName: string;
-  supplierEmail: string;
+  supplier_name: string;
+  supplier_email: string;
   notes?: string;
-  createdAt: number; // Unix timestamp
+  created_at: string; // ISO timestamp string
 }
 
 export interface EmailSent {
-  _id: string; // Convex document ID
-  sessionId: string; // Convex document ID reference
-  userId: string; // References Clerk user ID
-  supplierEmail: string;
-  supplierName: string;
-  emailContent: string;
-  sentAt: number; // Unix timestamp
+  id: string; // Supabase UUID
+  session_id: string; // Supabase UUID reference
+  user_id: string; // References Clerk user ID
+  supplier_email: string;
+  supplier_name: string;
+  email_content: string;
+  sent_at: string; // ISO timestamp string
   status: 'sent' | 'delivered' | 'failed';
-  errorMessage?: string;
+  error_message?: string;
+}
+
+export interface AuditLog {
+  id: string; // Supabase UUID
+  user_id: string; // References Clerk user ID
+  action: string;
+  resource_type: string;
+  resource_id?: string;
+  details?: string;
+  timestamp: string; // ISO timestamp string
+  ip_address?: string;
+  user_agent?: string;
 }
 
 // Insert types
 export interface InsertUser {
-  clerkUserId: string;
+  clerk_id: string;
   email: string;
   name?: string;
-  storeName?: string;
+  store_name?: string;
 }
 
 export interface InsertProduct {
-  userId: string;
+  user_id: string;
   name: string;
-  defaultQuantity: number;
-  defaultSupplierId?: string;
+  default_quantity: number;
+  default_supplier_id?: string;
   notes?: string;
 }
 
 export interface InsertSupplier {
-  userId: string;
+  user_id: string;
   name: string;
   email: string;
   phone?: string;
@@ -91,39 +103,49 @@ export interface InsertSupplier {
 }
 
 export interface InsertRestockSession {
-  userId: string;
+  user_id: string;
   name?: string;
   status?: 'draft' | 'email_generated' | 'sent';
 }
 
 export interface InsertRestockItem {
-  sessionId: string;
-  userId: string;
-  productName: string;
+  session_id: string;
+  user_id: string;
+  product_name: string;
   quantity: number;
-  supplierName: string;
-  supplierEmail: string;
+  supplier_name: string;
+  supplier_email: string;
   notes?: string;
 }
 
 export interface InsertEmailSent {
-  sessionId: string;
-  userId: string;
-  supplierEmail: string;
-  supplierName: string;
-  emailContent: string;
+  session_id: string;
+  user_id: string;
+  supplier_email: string;
+  supplier_name: string;
+  email_content: string;
+}
+
+export interface InsertAuditLog {
+  user_id: string;
+  action: string;
+  resource_type: string;
+  resource_id?: string;
+  details?: string;
+  ip_address?: string;
+  user_agent?: string;
 }
 
 // Update types
 export interface UpdateUser {
   name?: string;
-  storeName?: string;
+  store_name?: string;
 }
 
 export interface UpdateProduct {
   name?: string;
-  defaultQuantity?: number;
-  defaultSupplierId?: string;
+  default_quantity?: number;
+  default_supplier_id?: string;
   notes?: string;
 }
 
@@ -137,10 +159,64 @@ export interface UpdateSupplier {
 export interface UpdateRestockSession {
   name?: string;
   status?: 'draft' | 'email_generated' | 'sent';
-  completedAt?: number;
+  completed_at?: string;
 }
 
 export interface UpdateEmailSent {
   status?: 'sent' | 'delivered' | 'failed';
-  errorMessage?: string;
+  error_message?: string;
+}
+
+// Database table names
+export const TABLES = {
+  USERS: 'users',
+  SUPPLIERS: 'suppliers',
+  PRODUCTS: 'products',
+  RESTOCK_SESSIONS: 'restock_sessions',
+  RESTOCK_ITEMS: 'restock_items',
+  EMAILS_SENT: 'emails_sent',
+  AUDIT_LOGS: 'audit_logs',
+} as const;
+
+// Supabase Database type definition
+export interface Database {
+  public: {
+    Tables: {
+      users: {
+        Row: User;
+        Insert: InsertUser;
+        Update: UpdateUser;
+      };
+      products: {
+        Row: Product;
+        Insert: InsertProduct;
+        Update: UpdateProduct;
+      };
+      suppliers: {
+        Row: Supplier;
+        Insert: InsertSupplier;
+        Update: UpdateSupplier;
+      };
+      restock_sessions: {
+        Row: RestockSession;
+        Insert: InsertRestockSession;
+        Update: UpdateRestockSession;
+      };
+      restock_items: {
+        Row: RestockItem;
+        Insert: InsertRestockItem;
+        Update: Partial<InsertRestockItem>;
+      };
+      emails_sent: {
+        Row: EmailSent;
+        Insert: InsertEmailSent;
+        Update: UpdateEmailSent;
+      };
+      audit_logs: {
+        Row: AuditLog;
+        Insert: InsertAuditLog;
+        Update: Partial<InsertAuditLog>;
+      };
+    };
+  };
 } 

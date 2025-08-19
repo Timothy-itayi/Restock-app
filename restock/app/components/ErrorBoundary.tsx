@@ -86,13 +86,13 @@ function ErrorFallback({ error, errorInfo, onReset }: ErrorFallbackProps) {
     },
     icon: {
       fontSize: 64,
-      color: theme.error.primary,
+      color: theme.status.error,
       marginBottom: 20,
     },
     title: {
       fontSize: 24,
       fontWeight: 'bold',
-      color: theme.error.primary,
+      color: theme.status.error,
       marginBottom: 10,
       textAlign: 'center',
     },

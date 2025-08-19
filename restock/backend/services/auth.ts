@@ -1,8 +1,5 @@
-import { ConvexHttpClient } from 'convex/browser';
-import { api } from '../../convex/_generated/api';
-
-// Initialize Convex client for backend usage
-const convex = new ConvexHttpClient(process.env.EXPO_PUBLIC_CONVEX_URL!);
+import { supabase } from '../config/supabase';
+import type { User, UpdateUser } from '../types/database';
 
 export class AuthService {
   /**
@@ -11,13 +8,21 @@ export class AuthService {
    */
   static async signUp(email: string, storeName?: string) {
     try {
-      // Create user profile in Convex
-      const userId = await convex.mutation(api.users.create, {
-        email: email.toLowerCase().trim(),
-        storeName: storeName?.trim() || '',
-      });
+      // Create user profile in Supabase
+      const { data: newUser, error } = await supabase
+        .from('users')
+        .insert({
+          email: email.toLowerCase().trim(),
+          store_name: storeName?.trim() || '',
+        })
+        .select('id')
+        .single();
 
-      return { data: { user: { id: userId } }, error: null };
+      if (error) {
+        throw error;
+      }
+
+      return { data: { user: { id: newUser.id } }, error: null };
     } catch (error) {
       return { data: null, error };
     }
@@ -29,8 +34,16 @@ export class AuthService {
    */
   static async signIn(email: string) {
     try {
-      // Check if user profile exists in Convex
-      const profile = await convex.query(api.users.get);
+      // Check if user profile exists in Supabase
+      const { data: profile, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', email.toLowerCase().trim())
+        .single();
+      
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
       
       if (profile) {
         return { data: { user: profile }, error: null };
@@ -57,17 +70,13 @@ export class AuthService {
 
   /**
    * Get current user
-   * Note: Since we're using Clerk for auth, this gets the profile from Convex
+   * Note: Since we're using Clerk for auth, this gets the profile from Supabase
    */
   static async getCurrentUser() {
     try {
-      const profile = await convex.query(api.users.get);
-      
-      if (profile) {
-        return { user: profile, error: null };
-      } else {
-        return { user: null, error: null };
-      }
+      // This would need to be called with a specific user ID
+      // For now, return null as this method needs context
+      return { user: null, error: new Error('getCurrentUser requires user context') };
     } catch (error) {
       return { user: null, error };
     }
@@ -75,17 +84,13 @@ export class AuthService {
 
   /**
    * Get user session
-   * Note: Since we're using Clerk for auth, this gets the profile from Convex
+   * Note: Since we're using Clerk for auth, this gets the profile from Supabase
    */
   static async getSession() {
     try {
-      const profile = await convex.query(api.users.get);
-      
-      if (profile) {
-        return { session: { user: profile }, error: null };
-      } else {
-        return { session: null, error: null };
-      }
+      // This would need to be called with a specific user ID
+      // For now, return null as this method needs context
+      return { session: null, error: new Error('getSession requires user context') };
     } catch (error) {
       return { session: null, error };
     }
@@ -96,15 +101,24 @@ export class AuthService {
    */
   static async updateProfile(userId: string, updates: any) {
     try {
-      const updateData: any = {};
+      const updateData: UpdateUser = {};
       
       if (updates.name !== undefined) updateData.name = updates.name;
-      if (updates.storeName !== undefined) updateData.storeName = updates.storeName;
-      if (updates.email !== undefined) updateData.email = updates.email;
+      if (updates.storeName !== undefined) updateData.store_name = updates.storeName;
+      // Note: email updates are not allowed in the current schema
 
-      const updatedId = await convex.mutation(api.users.update, updateData);
+      const { data: updatedUser, error } = await supabase
+        .from('users')
+        .update(updateData)
+        .eq('id', userId)
+        .select('id')
+        .single();
 
-      return { data: { id: updatedId }, error: null };
+      if (error) {
+        throw error;
+      }
+
+      return { data: { id: updatedUser.id }, error: null };
     } catch (error) {
       return { data: null, error };
     }
@@ -115,7 +129,15 @@ export class AuthService {
    */
   static async getUserProfile(userId: string) {
     try {
-      const profile = await convex.query(api.users.get);
+      const { data: profile, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
       
       if (profile) {
         return { data: profile, error: null };

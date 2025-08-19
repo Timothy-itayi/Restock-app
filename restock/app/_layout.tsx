@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ClerkProvider } from '@clerk/clerk-expo';
-import { ConvexProviderWithClerk } from './_contexts/ConvexProvider';
+import { SupabaseProvider } from './_contexts/SupabaseProvider';
 import { UnifiedAuthProvider } from './_contexts/UnifiedAuthProvider';
+import { SupabaseHooksProvider } from './infrastructure/repositories/SupabaseHooksProvider';
 import { BaseLoadingScreen } from './components/loading/BaseLoadingScreen';
 import { CLERK_PUBLISHABLE_KEY } from '../backend/config/clerk';
 import { SessionManager } from '../backend/services/session-manager';
@@ -62,9 +63,9 @@ export default function RootLayout() {
     }
   }, [loaded]);
 
-  // Initialize dependency injection services (now moved to ConvexHooksProvider)
+  // Initialize dependency injection services (now moved to SupabaseHooksProvider)
   useEffect(() => {
-    console.log('[RootLayout] ✅ Services will be initialized in ConvexHooksProvider');
+    console.log('[RootLayout] ✅ Services will be initialized in SupabaseHooksProvider');
     setServicesReady(true);
   }, []);
 
@@ -125,57 +126,59 @@ export default function RootLayout() {
         publishableKey={CLERK_PUBLISHABLE_KEY}
         tokenCache={createTokenCache()} // This is crucial for session persistence in React Native
       >
-        <ConvexProviderWithClerk>
+        <SupabaseProvider>
           <UnifiedAuthProvider>
-            {showFirstRunSplash ? (
-              <BaseLoadingScreen
-                title="Restock"
-                subtitle="Preparing your experience..."
-                icon="cart"
-                color="#6B7F6B"
-                showProgress={false}
-                progressDuration={1000}
-              />
-            ) : (
-              <Stack
-                screenOptions={{
-                  headerStyle: {
-                    backgroundColor: "#f8f9fa",
-                  },
-                  headerTintColor: "#2c3e50",
-                  headerTitleStyle: {
-                    fontWeight: "600",
-                  },
-                }}
-              >
-                <Stack.Screen
-                  name="(tabs)"
-                  options={{  
-                    headerShown: false,
-                  }}
+            <SupabaseHooksProvider>
+              {showFirstRunSplash ? (
+                <BaseLoadingScreen
+                  title="Restock"
+                  subtitle="Preparing your experience..."
+                  icon="cart"
+                  color="#6B7F6B"
+                  showProgress={false}
+                  progressDuration={1000}
                 />
-                <Stack.Screen
-                  name="auth"
-                  options={{
-                    headerShown: false,
+              ) : (
+                <Stack
+                  screenOptions={{
+                    headerStyle: {
+                      backgroundColor: "#f8f9fa",
+                    },
+                    headerTintColor: "#2c3e50",
+                    headerTitleStyle: {
+                      fontWeight: "600",
+                    },
                   }}
-                />
-                <Stack.Screen
-                  name="welcome"
-                  options={{
-                    headerShown: false,
-                  }}
-                />
-                <Stack.Screen
-                  name="sso-profile-setup"
-                  options={{
-                    headerShown: false,
-                  }}
-                />
-              </Stack>
-            )}
+                >
+                  <Stack.Screen
+                    name="(tabs)"
+                    options={{  
+                      headerShown: false,
+                    }}
+                  />
+                  <Stack.Screen
+                    name="auth"
+                    options={{
+                      headerShown: false,
+                    }}
+                  />
+                  <Stack.Screen
+                    name="welcome"
+                    options={{
+                      headerShown: false,
+                    }}
+                  />
+                  <Stack.Screen
+                    name="sso-profile-setup"
+                    options={{
+                      headerShown: false,
+                    }}
+                  />
+                </Stack>
+              )}
+            </SupabaseHooksProvider>
           </UnifiedAuthProvider>
-        </ConvexProviderWithClerk>
+        </SupabaseProvider>
       </ClerkProvider>
     </GestureHandlerRootView>
   );

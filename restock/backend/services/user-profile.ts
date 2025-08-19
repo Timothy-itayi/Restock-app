@@ -1,8 +1,5 @@
-import { ConvexHttpClient } from 'convex/browser';
-import { api } from '../../convex/_generated/api';
-
-// Initialize Convex client for backend usage
-const convex = new ConvexHttpClient(process.env.EXPO_PUBLIC_CONVEX_URL!);
+import { supabase } from '../config/supabase';
+import type { User, InsertUser, UpdateUser } from '../types/database';
 
 export class UserProfileService {
   /**
@@ -11,15 +8,14 @@ export class UserProfileService {
   static async emailExists(email: string): Promise<{ exists: boolean; ownerId?: string; error?: any }> {
     try {
       const normalized = email.toLowerCase();
-      
-      // Use Convex to check if user exists by email
-      const users = await convex.query(api.users.list);
-      const existingUser = users.find(user => user.email.toLowerCase() === normalized);
-      
-      return { 
-        exists: !!existingUser, 
-        ownerId: existingUser?._id 
-      };
+      const { data: users, error } = await supabase
+        .from('users')
+        .select('id, email')
+        .eq('email', normalized);
+
+      if (error) throw error;
+      const existingUser = users?.[0];
+      return { exists: !!existingUser, ownerId: existingUser?.id };
     } catch (error) {
       console.error('Error checking email existence:', error);
       return { exists: false, error };
@@ -27,76 +23,102 @@ export class UserProfileService {
   }
 
   /**
-   * Test Convex connection and verify users table exists
+   * Test Supabase connection
    */
   static async testConnection() {
     try {
-      console.log('Testing Convex connection...');
-      
-      // Try to query the users table
-      const users = await convex.query(api.users.list);
-      
-      console.log('Convex connection successful, users count:', users.length);
+      console.log('Testing Supabase connection...');
+      const { data: users, error } = await supabase.from('users').select('count').limit(1);
+      if (error) throw error;
+      console.log('Supabase connection successful');
       return { success: true, error: null };
     } catch (error) {
-      console.error('Error testing Convex connection:', error);
+      console.error('Error testing Supabase connection:', error);
       return { success: false, error };
     }
   }
 
   /**
-   * Save user profile data after Clerk authentication
+   * Create user profile via RPC (RLS-safe)
    */
-  static async saveUserProfile(clerkUserId: string, email: string, storeName: string, name?: string) {
+  static async createProfileViaBackend(
+    email: string,
+    storename: string,
+    name?: string,
+    clerk_id?: string
+  ) {
     try {
-      console.log('saveUserProfile called with:', {
-        clerkUserId,
-        email,
-        storeName,
-        name,
-        nameType: typeof name,
-        nameLength: name?.length || 0,
-        nameIsEmpty: !name || name.trim() === ''
+      if (!clerk_id) throw new Error('clerk_id is required to create a user profile');
+
+      const { data: newUser, error } = await supabase.rpc('create_user_profile', {
+        p_email: email.toLowerCase().trim(),
+        p_name: name?.trim(),
+        p_storename: storename.trim(),
+        p_clerk_id: clerk_id
       });
-      
-      // Check if user already exists
-      const existingUser = await convex.query(api.users.get);
-      
-      if (existingUser) {
-        // Update existing user
-        const userId = await convex.mutation(api.users.update, {
-          name: name || existingUser.name,
-          storeName: storeName || existingUser.storeName
-        });
-        console.log('Profile updated successfully:', userId);
-        return { data: { id: userId }, error: null };
-      } else {
-        // Create new user
-        const userId = await convex.mutation(api.users.create, {
-          email: email.toLowerCase().trim(),
-          name: name?.trim(),
-          storeName: storeName.trim()
-        });
-        console.log('Profile saved successfully:', userId);
-        return { data: { id: userId }, error: null };
-      }
+
+      if (error) throw error;
+
+      // Supabase RPC returns an array even for a single inserted row
+      return { data: newUser?.[0] || null, error: null };
     } catch (error) {
-      console.error('Error saving user profile:', error);
+      console.error('Error creating profile via RPC:', error);
       return { data: null, error };
     }
   }
 
   /**
-   * Update user store name
+   * Ensure user profile exists via RPC
    */
-  static async updateStoreName(clerkUserId: string, storeName: string) {
+  static async ensureUserProfile(
+    email: string,
+    storename: string,
+    name?: string,
+    clerk_id?: string
+  ) {
     try {
-      const userId = await convex.mutation(api.users.update, {
-        storeName: storeName.trim()
+      // Try fetching the profile via RPC first
+      const { data: profile, error: fetchError } = await supabase.rpc('get_current_user_profile');
+      if (fetchError) throw fetchError;
+
+      if (profile) return { data: profile, error: null };
+
+      // Profile doesn't exist — create it via RPC
+      return await this.createProfileViaBackend(email, storename, name, clerk_id);
+    } catch (error) {
+      console.error('Error ensuring user profile:', error);
+      return { data: null, error };
+    }
+  }
+
+  /**
+   * Check if the current session user has completed profile setup
+   */
+  static async hasCompletedProfileSetup() {
+    try {
+      const { data: profile, error } = await supabase.rpc('get_current_user_profile');
+      if (error) throw error;
+
+      const isComplete = profile && profile.store_name && profile.store_name.trim() !== '';
+      return { hasCompletedSetup: isComplete, error: null };
+    } catch (error) {
+      console.error('Error checking profile setup via Supabase:', error);
+      return { hasCompletedSetup: false, error };
+    }
+  }
+
+  /**
+   * Update store name for current session user
+   */
+  static async updateStorename(storename: string) {
+    try {
+      const { data: updatedUser, error } = await supabase.rpc('update_current_user_store_name', {
+        p_storename: storename.trim()
       });
-      
-      console.log('Store name updated successfully:', userId);
-      return { data: { id: userId }, error: null };
+      if (error) throw error;
+
+      console.log('Store name updated successfully');
+      return { data: updatedUser, error: null };
     } catch (error) {
       console.error('Error updating store name:', error);
       return { data: null, error };
@@ -104,130 +126,17 @@ export class UserProfileService {
   }
 
   /**
-   * Get user profile by Clerk user ID
+   * Get the profile for current session user
    */
-  static async getUserProfile(clerkUserId: string) {
+  static async getUserProfile() {
     try {
-      const profile = await convex.query(api.users.get);
-      
-      if (profile) {
-        console.log('👤 UserProfileService: Profile fetched successfully', { 
-          id: profile._id, 
-          name: profile.name, 
-          storeName: profile.storeName 
-        });
-        return { data: profile, error: null };
-      } else {
-        console.log('👤 UserProfileService: No profile data found for user');
-        return { data: null, error: null };
-      }
-    } catch (error) {
-      console.error('👤 UserProfileService: Error getting user profile:', error);
-      return { data: null, error };
-    }
-  }
+      const { data: profile, error } = await supabase.rpc('get_current_user_profile');
+      if (error) throw error;
 
-  /**
-   * Check if user profile exists
-   */
-  static async userProfileExists(clerkUserId: string) {
-    try {
-      const profile = await convex.query(api.users.get);
-      return { exists: !!profile, error: null };
-    } catch (error) {
-      console.error('Error checking user profile:', error);
-      return { exists: false, error };
-    }
-  }
-
-  /**
-   * Check if user has completed profile setup (has store_name)
-   */
-  static async hasCompletedProfileSetup(clerkUserId: string) {
-    try {
-      console.log('🔍 Checking profile setup via Convex for:', clerkUserId);
-      
-      const profileCompletion = await convex.query(api.users.checkProfileCompletion);
-      
-      console.log('📊 Convex profile check result:', profileCompletion);
-      
-      return { 
-        hasCompletedSetup: profileCompletion?.isComplete || false, 
-        error: profileCompletion?.message || null 
-      };
-
-    } catch (error) {
-      console.error('Error checking profile setup via Convex:', error);
-      return { hasCompletedSetup: false, error };
-    }
-  }
-
-  /**
-   * Verify user profile was saved successfully
-   */
-  static async verifyUserProfile(clerkUserId: string) {
-    try {
-      const profile = await convex.query(api.users.get);
-
-      if (!profile) {
-        // User doesn't exist yet
-        console.log('User profile does not exist yet');
-        return { data: null, error: null };
-      }
-
-      console.log('User profile verified:', profile);
       return { data: profile, error: null };
     } catch (error) {
-      console.error('Error verifying user profile:', error);
+      console.error('Error getting user profile:', error);
       return { data: null, error };
     }
   }
-
-  /**
-   * Create user profile via Convex
-   */
-  static async createProfileViaBackend(clerkUserId: string, email: string, storeName: string, name?: string, authMethod: 'email' | 'google' | 'sso' = 'email') {
-    try {
-      console.log('Creating user profile via Convex:', { clerkUserId, email, storeName, name, authMethod });
-      
-      const userId = await convex.mutation(api.users.create, {
-        email: email.toLowerCase().trim(),
-        name: name?.trim(),
-        storeName: storeName.trim()
-      });
-
-      console.log('✅ User profile created successfully via Convex:', userId);
-      return { data: { id: userId }, error: null };
-
-    } catch (error) {
-      console.error('Error creating profile via Convex:', error);
-      return { data: null, error };
-    }
-  }
-
-  /**
-   * Ensure user profile exists - creates if doesn't exist
-   */
-  static async ensureUserProfile(clerkUserId: string, email: string, storeName: string, name?: string) {
-    try {
-      console.log('Ensuring user profile exists for:', { clerkUserId, email, storeName, name });
-      
-      // First check if user already exists
-      const existingUser = await convex.query(api.users.get);
-
-      if (existingUser) {
-        console.log('User profile already exists:', existingUser);
-        return { data: existingUser, error: null };
-      }
-
-      // User doesn't exist, create via Convex
-      console.log('User profile does not exist, creating via Convex...');
-      
-      return await this.createProfileViaBackend(clerkUserId, email, storeName, name, 'email');
-
-    } catch (error) {
-      console.error('Error ensuring user profile:', error);
-      return { data: null, error };
-    }
-  }
-} 
+}
