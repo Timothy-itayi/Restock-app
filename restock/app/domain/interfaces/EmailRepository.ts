@@ -19,6 +19,7 @@ export interface EmailRecord {
 
 export interface CreateEmailRequest {
   sessionId: string;
+  userId: string;
   supplierEmail: string;
   supplierName: string;
   emailContent: string;

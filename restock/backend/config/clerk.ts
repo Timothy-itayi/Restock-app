@@ -11,8 +11,13 @@ if (!CLERK_PUBLISHABLE_KEY) {
 export const getClerkDomain = () => {
   if (!CLERK_PUBLISHABLE_KEY) return null;
   
-  // Use the specific domain for your Clerk instance
-  return 'thorough-cow-9.accounts.dev';
+  // Use the environment variable for JWT issuer domain
+  const domain = process.env.EXPO_PUBLIC_CLERK_JWT_ISSUER_DOMAIN;
+  if (!domain) {
+    console.warn('EXPO_PUBLIC_CLERK_JWT_ISSUER_DOMAIN not set');
+    return null;
+  }
+  return domain;
 };
 
 // Generate OAuth URLs with proper redirect handling

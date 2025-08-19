@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useUnifiedAuth } from '../../../_contexts/UnifiedAuthProvider';
-import { useSessionRepository, useProductRepository, useSupplierRepository, useEmailRepository } from '../../../infrastructure/convex/ConvexHooksProvider';
+import { useSessionRepository, useProductRepository, useSupplierRepository, useEmailRepository } from '../../../infrastructure/repositories/SupabaseHooksProvider';
 import useProfileStore from '../../../stores/useProfileStore';
 
 export interface ProfileData {

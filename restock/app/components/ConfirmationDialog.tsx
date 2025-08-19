@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
   },
 
   message: {
-    ...typography.body,
+    ...typography.bodyMedium,
     color: '#6C757D',
     lineHeight: 22,
     textAlign: 'center',
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
   },
 
   statValue: {
-    ...typography.h3,
+    ...typography.subsectionHeader,
     color: '#212529',
     fontWeight: '700',
     marginBottom: 4,
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
   },
 
   cancelButtonText: {
-    ...typography.body,
+    ...typography.bodyMedium,
     color: '#6C757D',
     fontWeight: '600',
   },
@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
   },
 
   confirmButtonText: {
-    ...typography.body,
+    ...typography.bodyMedium,
     color: '#FFFFFF',
     fontWeight: '600',
   },

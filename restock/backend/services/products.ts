@@ -1,9 +1,5 @@
-import { ConvexHttpClient } from 'convex/browser';
-import { api } from '../../convex/_generated/api';
-import { Id } from '../../convex/_generated/dataModel';
-
-// Initialize Convex client for backend usage
-const convex = new ConvexHttpClient(process.env.EXPO_PUBLIC_CONVEX_URL!);
+import { supabase } from '../config/supabase';
+import type { Product, InsertProduct, UpdateProduct } from '../types/database';
 
 export class ProductService {
   /**
@@ -11,7 +7,16 @@ export class ProductService {
    */
   static async getUserProducts(userId: string) {
     try {
-      const products = await convex.query(api.products.list);
+      const { data: products, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
       return { data: products, error: null };
     } catch (error) {
       console.error('[ProductService] Error getting user products', { error, userId });
@@ -24,7 +29,16 @@ export class ProductService {
    */
   static async getProduct(productId: string) {
     try {
-      const product = await convex.query(api.products.get, { id: productId as Id<"products"> });
+      const { data: product, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', productId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+
       return { data: product, error: null };
     } catch (error) {
       return { data: null, error };
@@ -36,14 +50,23 @@ export class ProductService {
    */
   static async createProduct(product: any) {
     try {
-      const productId = await convex.mutation(api.products.create, {
-        name: product.name,
-        defaultQuantity: product.defaultQuantity || 1,
-        defaultSupplierId: product.defaultSupplierId,
-        notes: product.notes
-      });
+      const { data: newProduct, error } = await supabase
+        .from('products')
+        .insert({
+          user_id: product.userId,
+          name: product.name,
+          default_quantity: product.defaultQuantity || 1,
+          default_supplier_id: product.defaultSupplierId,
+          notes: product.notes
+        })
+        .select('id')
+        .single();
 
-      return { data: { id: productId }, error: null };
+      if (error) {
+        throw error;
+      }
+
+      return { data: { id: newProduct.id }, error: null };
     } catch (error) {
       console.error('[ProductService] Error creating product', { error, product });
       return { data: null, error };
@@ -55,19 +78,25 @@ export class ProductService {
    */
   static async updateProduct(productId: string, updates: any) {
     try {
-      const updateData: any = {};
+      const updateData: UpdateProduct = {};
       
       if (updates.name !== undefined) updateData.name = updates.name;
-      if (updates.defaultQuantity !== undefined) updateData.defaultQuantity = updates.defaultQuantity;
-      if (updates.defaultSupplierId !== undefined) updateData.defaultSupplierId = updates.defaultSupplierId;
+      if (updates.defaultQuantity !== undefined) updateData.default_quantity = updates.defaultQuantity;
+      if (updates.defaultSupplierId !== undefined) updateData.default_supplier_id = updates.defaultSupplierId;
       if (updates.notes !== undefined) updateData.notes = updates.notes;
 
-      const updatedId = await convex.mutation(api.products.update, {
-        id: productId as Id<"products">,
-        ...updateData
-      });
+      const { data: updatedProduct, error } = await supabase
+        .from('products')
+        .update(updateData)
+        .eq('id', productId)
+        .select('id')
+        .single();
 
-      return { data: { id: updatedId }, error: null };
+      if (error) {
+        throw error;
+      }
+
+      return { data: { id: updatedProduct.id }, error: null };
     } catch (error) {
       return { data: null, error };
     }
@@ -78,7 +107,15 @@ export class ProductService {
    */
   static async deleteProduct(productId: string) {
     try {
-      await convex.mutation(api.products.remove, { id: productId as Id<"products"> });
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', productId);
+
+      if (error) {
+        throw error;
+      }
+
       return { data: { success: true }, error: null };
     } catch (error) {
       return { data: null, error };
@@ -90,7 +127,16 @@ export class ProductService {
    */
   static async searchProducts(query: string) {
     try {
-      const products = await convex.query(api.products.search, { query });
+      const { data: products, error } = await supabase
+        .from('products')
+        .select('*')
+        .ilike('name', `%${query}%`)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
       return { data: products, error: null };
     } catch (error) {
       return { data: null, error };
@@ -102,7 +148,16 @@ export class ProductService {
    */
   static async getProductsBySupplier(supplierId: string) {
     try {
-      const products = await convex.query(api.products.listBySupplier, { supplierId: supplierId as Id<"suppliers"> });
+      const { data: products, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('default_supplier_id', supplierId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
       return { data: products, error: null };
     } catch (error) {
       return { data: null, error };
@@ -114,9 +169,18 @@ export class ProductService {
    */
   static async isProductUsedInSessions(productId: string) {
     try {
-      // This would need to be implemented in Convex if needed
-      // For now, return false to avoid complexity
-      return { isUsed: false, count: 0, error: null };
+      const { data: sessions, error } = await supabase
+        .from('restock_sessions')
+        .select('id')
+        .eq('user_id', productId)
+        .limit(1);
+
+      if (error) {
+        throw error;
+      }
+
+      const isUsed = sessions && sessions.length > 0;
+      return { isUsed, count: sessions?.length || 0, error: null };
     } catch (error) {
       return { isUsed: false, count: 0, error };
     }
@@ -127,9 +191,18 @@ export class ProductService {
    */
   static async isProductUsedInSessionProducts(productId: string) {
     try {
-      // This would need to be implemented in Convex if needed
-      // For now, return false to avoid complexity
-      return { isUsed: false, count: 0, error: null };
+      const { data: items, error } = await supabase
+        .from('restock_items')
+        .select('id')
+        .eq('product_name', productId)
+        .limit(1);
+
+      if (error) {
+        throw error;
+      }
+
+      const isUsed = items && items.length > 0;
+      return { isUsed, count: items?.length || 0, error: null };
     } catch (error) {
       return { isUsed: false, count: 0, error };
     }

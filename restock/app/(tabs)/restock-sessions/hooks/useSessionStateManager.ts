@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from "@clerk/clerk-expo";
 import { RestockSession } from '../../../domain/entities/RestockSession';
 import { RestockSessionDomainService } from '../../../domain/services/RestockSessionDomainService';
-import { useSessionRepository, useProductRepository, useSupplierRepository, useEmailRepository } from '../../../infrastructure/convex/ConvexHooksProvider';
+import { useSessionRepository, useProductRepository, useSupplierRepository, useEmailRepository } from '../../../infrastructure/repositories/SupabaseHooksProvider';
 import { Logger } from '../utils/logger';
 
 interface SessionState {
@@ -59,15 +59,12 @@ export function useSessionStateManager(): SessionStateManager {
       const restored = await restoreSessionFromLocal();
       
       // Then load from server
-      const serverResult = await findByUserId({ userId, includeCompleted: true });
+      const sessions = await findByUserId(userId);
       
-      if (serverResult.success && serverResult.sessions) {
-        const { draft, emailGenerated, sent } = serverResult.sessions;
-        const allSessions = [...draft, ...emailGenerated, ...sent];
-        
+      if (sessions && sessions.length > 0) {
         setState(prev => ({
           ...prev,
-          allSessions: allSessions.map(s => RestockSession.fromValue(s)),
+          allSessions: [...sessions], // Convert readonly to mutable
           isLoading: false,
         }));
       } else {
@@ -90,7 +87,7 @@ export function useSessionStateManager(): SessionStateManager {
         error: 'Failed to load sessions' 
       }));
     }
-  }, [userId, app]);
+  }, [userId, findByUserId]);
 
   // Start a new session
   const startNewSession = useCallback(async () => {

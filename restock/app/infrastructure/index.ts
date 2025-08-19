@@ -8,19 +8,15 @@
 // Infrastructure Services
 export { IdGeneratorService } from './services/IdGeneratorService';
 
-// Convex Repository Implementations
-export { ConvexUserRepository } from './convex/repositories/ConvexUserRepository';
-export { ConvexSessionRepository } from './convex/repositories/ConvexSessionRepository';
-export { ConvexProductRepository } from './convex/repositories/ConvexProductRepository';
-export { ConvexSupplierRepository } from './convex/repositories/ConvexSupplierRepository';
-export { ConvexEmailRepository } from './convex/repositories/ConvexEmailRepository';
+// Supabase Repository Implementations
+export { SupabaseUserRepository } from '../../infrastructure/repositories/SupabaseUserRepository';
+export { SupabaseSessionRepository } from '../../infrastructure/repositories/SupabaseSessionRepository';
+export { SupabaseProductRepository } from '../../infrastructure/repositories/SupabaseProductRepository';
+export { SupabaseSupplierRepository } from '../../infrastructure/repositories/SupabaseSupplierRepository';
+export { SupabaseEmailRepository } from '../../infrastructure/repositories/SupabaseEmailRepository';
 
-// Convex Infrastructure Components
-export { ConvexHooksProvider, useRepositories, useSessionRepository, useProductRepository, useSupplierRepository, useUserRepository, useEmailRepository } from './convex/ConvexHooksProvider';
-export { useConvexAuthAdapter } from './convex/ConvexAuthAdapter';
-
-// Test Components
-export { ConvexTestComponent } from './convex/ConvexTestComponent';
+// Supabase Infrastructure Components
+export { SupabaseHooksProvider, useRepositories, useSessionRepository, useProductRepository, useSupplierRepository, useUserRepository, useEmailRepository } from './supabase/SupabaseHooksProvider';
 
 // Data Mappers (exposed for testing/advanced use)
 export { SessionMapper } from './repositories/mappers/SessionMapper';

@@ -19,8 +19,7 @@ export const Logger = {
     });
   },
   debug: (message: string, data?: any) => {
-    if (__DEV__) {
-      console.log(`[RESTOCK-SESSIONS] 🔍 ${message}`, data ? JSON.stringify(data, null, 2) : '');
-    }
+    // Debug logging is always enabled for now
+    console.log(`[RESTOCK-SESSIONS] 🔍 ${message}`, data ? JSON.stringify(data, null, 2) : '');
   }
 };

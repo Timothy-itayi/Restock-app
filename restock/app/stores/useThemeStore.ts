@@ -1,11 +1,11 @@
 import { create } from 'zustand';
-import colors, { light, dark } from '@/app/theme/colors';
+import colors, { light, dark } from '../theme/colors';
 
 export type ThemeMode = 'light' | 'dark';
 
 type ThemeState = {
   mode: ThemeMode;
-  theme: typeof light;
+  theme: typeof light | typeof dark;
   toggleMode: () => void;
   setMode: (mode: ThemeMode) => void;
 };

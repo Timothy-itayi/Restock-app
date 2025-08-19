@@ -1,5 +1,5 @@
 import { ConvexHttpClient } from 'convex/browser';
-import { api } from '../../convex/_generated/api';
+import { api } from '../../convex../_generated/api';
 
 export class SecureDataService {
   private static convexClient: ConvexHttpClient | null = null;

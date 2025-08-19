@@ -4,20 +4,17 @@ import {
   GroqEmailAdapter
 } from '../index';
 
-// Convex repository imports
-import { ConvexUserRepository } from '../convex/repositories/ConvexUserRepository';
-import { ConvexSessionRepository } from '../convex/repositories/ConvexSessionRepository';
-import { ConvexProductRepository } from '../convex/repositories/ConvexProductRepository';
-import { ConvexSupplierRepository } from '../convex/repositories/ConvexSupplierRepository';
-import { ConvexEmailRepository } from '../convex/repositories/ConvexEmailRepository';
+// Supabase repository imports
+import { SupabaseUserRepository } from '../../../infrastructure/repositories/SupabaseUserRepository';
+import { SupabaseSessionRepository } from '../../../infrastructure/repositories/SupabaseSessionRepository';
+import { SupabaseProductRepository } from '../../../infrastructure/repositories/SupabaseProductRepository';
+import { SupabaseSupplierRepository } from '../../../infrastructure/repositories/SupabaseSupplierRepository';
+import { SupabaseEmailRepository } from '../../../infrastructure/repositories/SupabaseEmailRepository';
 
-// Convex client (will be injected)
-import { ConvexReactClient } from 'convex/react';
-
-export function registerServices(convexClient: ConvexReactClient): void {
+export function registerServices(): void {
   const container = DIContainer.getInstance();
 
-  console.log('[ServiceRegistry] Starting service registration...');
+  console.log('[ServiceRegistry] Starting Supabase service registration...');
 
   try {
     // 1. Infrastructure Services (Lowest level)
@@ -29,32 +26,32 @@ export function registerServices(convexClient: ConvexReactClient): void {
       return new GroqEmailAdapter();
     });
 
-    // 2. Convex Repository Implementations (Infrastructure layer)
-    // These implement domain interfaces but use Convex under the hood
+    // 2. Supabase Repository Implementations (Infrastructure layer)
+    // These implement domain interfaces but use Supabase under the hood
     container.register('SessionRepository', () => {
-      return new ConvexSessionRepository(convexClient);
+      return new SupabaseSessionRepository();
     });
 
     container.register('ProductRepository', () => {
-      return new ConvexProductRepository(convexClient);
+      return new SupabaseProductRepository();
     });
 
     container.register('SupplierRepository', () => {
-      return new ConvexSupplierRepository(convexClient);
+      return new SupabaseSupplierRepository();
     });
 
     container.register('UserRepository', () => {
-      return new ConvexUserRepository(convexClient);
+      return new SupabaseUserRepository();
     });
 
     container.register('EmailRepository', () => {
-      return new ConvexEmailRepository(convexClient);
+      return new SupabaseEmailRepository();
     });
 
-    // Note: RestockApplicationService removed - using Convex repositories directly
+    // Note: RestockApplicationService removed - using Supabase repositories directly
     // The application layer now gets repositories from the container
 
-    console.log('[ServiceRegistry] ✅ All services registered successfully');
+    console.log('[ServiceRegistry] ✅ All Supabase services registered successfully');
     container.debugServices();
 
   } catch (error) {

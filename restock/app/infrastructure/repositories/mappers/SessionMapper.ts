@@ -9,18 +9,13 @@ import { RestockSession, SessionValue, RestockItemValue, SessionStatus } from '.
 import type { 
   RestockSession as DbSession,
   RestockItem as DbRestockItem,
-  RestockSessionProduct as DbSessionProduct,
-  RestockSessionSupplier as DbSessionSupplier
+  Product as DbProduct,
+  Supplier as DbSupplier
 } from '../../../../backend/types/database';
 
 export interface DbSessionWithRelations {
   session: DbSession;
-  items: Array<DbRestockItem & {
-    products: { id: string; name: string; default_quantity: number; default_supplier_id?: string };
-    suppliers: { id: string; name: string; email: string; phone?: string };
-  }>;
-  sessionProducts?: DbSessionProduct[];
-  sessionSuppliers?: DbSessionSupplier[];
+  items: Array<DbRestockItem>;
 }
 
 export interface DbSessionForSave {
@@ -31,8 +26,9 @@ export interface DbSessionForSave {
   };
   itemRecords: Array<{
     session_id: string;
-    product_id: string;
-    supplier_id: string;
+    product_name: string;
+    supplier_name: string;
+    supplier_email: string;
     quantity: number;
     notes?: string;
   }>;
@@ -64,34 +60,35 @@ export class SessionMapper {
   /**
    * Convert database records to domain RestockSession entity
    */
-  static toDomain(dbData: DbSessionWithRelations): RestockSession {
-    const { session, items } = dbData;
-    
+  static toDomain(dbSession: DbSession): RestockSession {
     // Convert database status to domain enum
-    const domainStatus = this.mapStatusToDomain(session.status);
+    const domainStatus = this.mapStatusToDomain(dbSession.status);
     
-    // Convert database items to domain items
-    const domainItems: RestockItemValue[] = items.map(item => ({
-      productId: item.product_id,
-      productName: item.products.name,
-      quantity: item.quantity,
-      supplierId: item.supplier_id,
-      supplierName: item.suppliers.name,
-      supplierEmail: item.suppliers.email,
-      notes: item.notes
-    }));
-
+    // For now, create session without items - items will be loaded separately
     const sessionValue: SessionValue = {
-      id: session.id,
-      userId: session.user_id,
-      name: session.name,
+      id: dbSession.id,
+      userId: dbSession.user_id,
+      name: dbSession.name,
       status: domainStatus,
-      items: domainItems,
-      createdAt: new Date(session.created_at),
-      updatedAt: undefined // Database doesn't track updates yet
+      items: [], // Items will be loaded separately in the repository
+      createdAt: new Date(dbSession.created_at),
+      updatedAt: new Date(dbSession.updated_at)
     };
 
     return RestockSession.fromValue(sessionValue);
+  }
+
+  /**
+   * Convert domain RestockSession to database insert format
+   */
+  static toDatabaseInsert(session: RestockSession): any {
+    const value = session.toValue();
+    
+    return {
+      user_id: value.userId,
+      status: this.mapStatusToDatabase(value.status),
+      name: value.name
+    };
   }
 
   /**
@@ -108,8 +105,9 @@ export class SessionMapper {
 
     const itemRecords = value.items.map(item => ({
       session_id: value.id, // This will be set after session creation
-      product_id: item.productId,
-      supplier_id: item.supplierId,
+      product_name: item.productName,
+      supplier_name: item.supplierName,
+      supplier_email: item.supplierEmail,
       quantity: item.quantity,
       notes: item.notes
     }));

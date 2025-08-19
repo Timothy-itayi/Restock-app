@@ -32,8 +32,8 @@ const useProfileStore = create<ProfileState>((set, get) => ({
     try {
       console.log('📊 ProfileStore: Fetching profile for userId:', userId);
       
-      // User context is handled automatically by Convex with Clerk authentication
-      console.log('📊 ProfileStore: Using Convex with Clerk auth for profile fetch');
+      // User context is handled automatically by Supabase with Clerk authentication
+      console.log('📊 ProfileStore: Using Supabase with Clerk auth for profile fetch');
       
       const result = await UserProfileService.getUserProfile(userId);
       

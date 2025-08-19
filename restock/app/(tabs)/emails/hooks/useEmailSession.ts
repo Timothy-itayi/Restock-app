@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { UserProfile } from './useUserProfile';
-import { useSessionRepository, useProductRepository, useSupplierRepository, useEmailRepository } from '../../../infrastructure/convex/ConvexHooksProvider';
+import { useSessionRepository, useProductRepository, useSupplierRepository, useEmailRepository } from '../../../infrastructure/repositories/SupabaseHooksProvider';
 
 export interface EmailDraft {
   id: string;

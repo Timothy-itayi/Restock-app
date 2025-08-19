@@ -1,10 +1,11 @@
 /**
- * HOOK: useService (UPDATED FOR CLEAN ARCHITECTURE)
+ * HOOK: useService
  * 
- * This hook now uses the repository pattern through ConvexHooksProvider.
- * It maintains clean architecture by depending on abstractions, not implementations.
+ * This hook now uses the repository pattern through SupabaseHooksProvider.
+ * The repositories handle all Supabase interactions internally.
  * 
- * The repositories handle all Convex interactions internally.
+ * Provides a clean interface for session management operations
+ * while maintaining separation of concerns
  */
 
 import { 
@@ -12,7 +13,7 @@ import {
   useProductRepository,
   useSupplierRepository,
   useEmailRepository
-} from '../../../infrastructure/convex/ConvexHooksProvider';
+} from '../../../infrastructure/repositories/SupabaseHooksProvider';
 
 /**
  * Hook for getting all restock sessions
@@ -64,16 +65,16 @@ export function useSessionSummary(sessionId: string) {
  * Hook for getting products
  */
 export function useProducts() {
-  const { findAll } = useProductRepository();
-  return { findAll };
+  const { findByUserId } = useProductRepository();
+  return { findByUserId };
 }
 
 /**
  * Hook for getting suppliers
  */
 export function useSuppliers() {
-  const { findAll } = useSupplierRepository();
-  return { findAll };
+  const { findByUserId } = useSupplierRepository();
+  return { findByUserId };
 }
 
 /**
@@ -125,7 +126,7 @@ export function useUpdateEmailStatus() {
 /**
  * Hook for checking if repositories are properly connected
  */
-export function useConvexHealth(): { 
+export function useRepositoryHealth(): { 
   isHealthy: boolean; 
   issues: string[];
 } {
@@ -141,7 +142,7 @@ export function useConvexHealth(): {
   }
   
   // Check if repositories have required methods
-  if (!sessionRepo.findAll || !productRepo.findAll || !supplierRepo.findAll) {
+  if (!sessionRepo.findByUserId || !productRepo.findByUserId || !supplierRepo.findByUserId) {
     issues.push('Repository methods not properly implemented');
   }
 
@@ -153,4 +154,4 @@ export function useConvexHealth(): {
 
 // Legacy exports for backward compatibility (will be removed)
 export const useService = useSessions;
-export const useServiceHealth = useConvexHealth;
+export const useServiceHealth = useRepositoryHealth;

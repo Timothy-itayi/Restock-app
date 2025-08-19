@@ -1,9 +1,5 @@
-import { ConvexHttpClient } from 'convex/browser';
-import { api } from '../../convex/_generated/api';
-import { Id } from '../../convex/_generated/dataModel';
-
-// Initialize Convex client for backend usage
-const convex = new ConvexHttpClient(process.env.EXPO_PUBLIC_CONVEX_URL!);
+import { supabase } from '../config/supabase';
+import type { Supplier, InsertSupplier, UpdateSupplier } from '../types/database';
 
 export class SupplierService {
   /**
@@ -11,7 +7,16 @@ export class SupplierService {
    */
   static async getUserSuppliers(userId: string) {
     try {
-      const suppliers = await convex.query(api.suppliers.list);
+      const { data: suppliers, error } = await supabase
+        .from('suppliers')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
       return { data: suppliers, error: null };
     } catch (error) {
       console.error('[SupplierService] Error getting user suppliers', { error, userId });
@@ -24,7 +29,16 @@ export class SupplierService {
    */
   static async getSupplier(supplierId: string) {
     try {
-      const supplier = await convex.query(api.suppliers.get, { id: supplierId as Id<"suppliers"> });
+      const { data: supplier, error } = await supabase
+        .from('suppliers')
+        .select('*')
+        .eq('id', supplierId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+
       return { data: supplier, error: null };
     } catch (error) {
       return { data: null, error };
@@ -36,14 +50,23 @@ export class SupplierService {
    */
   static async createSupplier(supplier: any) {
     try {
-      const supplierId = await convex.mutation(api.suppliers.create, {
-        name: supplier.name,
-        email: supplier.email,
-        phone: supplier.phone,
-        notes: supplier.notes
-      });
+      const { data: newSupplier, error } = await supabase
+        .from('suppliers')
+        .insert({
+          user_id: supplier.userId,
+          name: supplier.name,
+          email: supplier.email,
+          phone: supplier.phone,
+          notes: supplier.notes
+        })
+        .select('id')
+        .single();
 
-      return { data: { id: supplierId }, error: null };
+      if (error) {
+        throw error;
+      }
+
+      return { data: { id: newSupplier.id }, error: null };
     } catch (error) {
       console.error('[SupplierService] Error creating supplier', { error, supplier });
       return { data: null, error };
@@ -55,19 +78,25 @@ export class SupplierService {
    */
   static async updateSupplier(supplierId: string, updates: any) {
     try {
-      const updateData: any = {};
+      const updateData: UpdateSupplier = {};
       
       if (updates.name !== undefined) updateData.name = updates.name;
       if (updates.email !== undefined) updateData.email = updates.email;
       if (updates.phone !== undefined) updateData.phone = updates.phone;
       if (updates.notes !== undefined) updateData.notes = updates.notes;
 
-      const updatedId = await convex.mutation(api.suppliers.update, {
-        id: supplierId as Id<"suppliers">,
-        ...updateData
-      });
+      const { data: updatedSupplier, error } = await supabase
+        .from('suppliers')
+        .update(updateData)
+        .eq('id', supplierId)
+        .select('id')
+        .single();
 
-      return { data: { id: updatedId }, error: null };
+      if (error) {
+        throw error;
+      }
+
+      return { data: { id: updatedSupplier.id }, error: null };
     } catch (error) {
       return { data: null, error };
     }
@@ -78,7 +107,15 @@ export class SupplierService {
    */
   static async deleteSupplier(supplierId: string) {
     try {
-      await convex.mutation(api.suppliers.remove, { id: supplierId as Id<"suppliers"> });
+      const { error } = await supabase
+        .from('suppliers')
+        .delete()
+        .eq('id', supplierId);
+
+      if (error) {
+        throw error;
+      }
+
       return { data: { success: true }, error: null };
     } catch (error) {
       return { data: null, error };
@@ -90,7 +127,16 @@ export class SupplierService {
    */
   static async searchSuppliers(query: string) {
     try {
-      const suppliers = await convex.query(api.suppliers.search, { query });
+      const { data: suppliers, error } = await supabase
+        .from('suppliers')
+        .select('*')
+        .or(`name.ilike.%${query}%,email.ilike.%${query}%`)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
       return { data: suppliers, error: null };
     } catch (error) {
       return { data: null, error };
@@ -102,7 +148,16 @@ export class SupplierService {
    */
   static async getSupplierByEmail(email: string) {
     try {
-      const supplier = await convex.query(api.suppliers.getByEmail, { email });
+      const { data: supplier, error } = await supabase
+        .from('suppliers')
+        .select('*')
+        .eq('email', email.toLowerCase().trim())
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+
       return { data: supplier, error: null };
     } catch (error) {
       return { data: null, error };
@@ -114,9 +169,18 @@ export class SupplierService {
    */
   static async isSupplierUsedInSessions(supplierId: string) {
     try {
-      // This would need to be implemented in Convex if needed
-      // For now, return false to avoid complexity
-      return { isUsed: false, count: 0, error: null };
+      const { data: sessions, error } = await supabase
+        .from('restock_sessions')
+        .select('id')
+        .eq('user_id', supplierId)
+        .limit(1);
+
+      if (error) {
+        throw error;
+      }
+
+      const isUsed = sessions && sessions.length > 0;
+      return { isUsed, count: sessions?.length || 0, error: null };
     } catch (error) {
       return { isUsed: false, count: 0, error };
     }
@@ -127,9 +191,18 @@ export class SupplierService {
    */
   static async isSupplierUsedInSessionSuppliers(supplierId: string) {
     try {
-      // This would need to be implemented in Convex if needed
-      // For now, return false to avoid complexity
-      return { isUsed: false, count: 0, error: null };
+      const { data: items, error } = await supabase
+        .from('restock_items')
+        .select('id')
+        .eq('supplier_name', supplierId)
+        .limit(1);
+
+      if (error) {
+        throw error;
+      }
+
+      const isUsed = items && items.length > 0;
+      return { isUsed, count: items?.length || 0, error: null };
     } catch (error) {
       return { isUsed: false, count: 0, error };
     }
@@ -140,9 +213,18 @@ export class SupplierService {
    */
   static async isSupplierUsedAsDefault(supplierId: string) {
     try {
-      // This would need to be implemented in Convex if needed
-      // For now, return false to avoid complexity
-      return { isUsed: false, count: 0, error: null };
+      const { data: products, error } = await supabase
+        .from('products')
+        .select('id')
+        .eq('default_supplier_id', supplierId)
+        .limit(1);
+
+      if (error) {
+        throw error;
+      }
+
+      const isUsed = products && products.length > 0;
+      return { isUsed, count: products?.length || 0, error: null };
     } catch (error) {
       return { isUsed: false, count: 0, error };
     }

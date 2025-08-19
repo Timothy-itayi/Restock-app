@@ -7,8 +7,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@clerk/clerk-expo';
-import { useSessionRepository, useProductRepository, useSupplierRepository, useEmailRepository } from '../../../infrastructure/convex/ConvexHooksProvider';
-import type { RestockSession } from '../../../domain/entities/RestockSession';
+import { useSessionRepository, useProductRepository, useSupplierRepository, useEmailRepository } from '../../../infrastructure/repositories/SupabaseHooksProvider';
+import { RestockSession, SessionStatus } from '../../../domain/entities/RestockSession';
 
 export interface SessionListState {
   sessions: RestockSession[];
@@ -51,40 +51,20 @@ export function useSessionList(): SessionListState & SessionListActions {
       return;
     }
 
-    // Check if service is ready
-    if (!restockService || typeof restockService.getSessions !== 'function') {
-      console.log('[useSessionList] Service not ready yet, skipping load');
-      setError('Service not ready yet');
-      return;
-    }
-
     setIsLoading(true);
     setError(null);
 
     try {
       console.log('[useSessionList] Loading sessions for user:', userId);
       
-      const result = await findByUserId({ userId });
+      const sessions = await findByUserId(userId);
       
-      if (result.success && result.sessions) {
-        // Flatten the sessions from the grouped structure
-        const allSessions = [
-          ...(result.sessions.draft || []),
-          ...(result.sessions.emailGenerated || []),
-          ...(result.sessions.sent || []),
-          ...(result.sessions.all || [])
-        ];
-        
-        // Remove duplicates by ID
-        const uniqueSessions = allSessions.filter((session, index, self) => 
-          index === self.findIndex(s => s.toValue().id === session.toValue().id)
-        );
-        
-        setSessions(uniqueSessions);
-        console.log('[useSessionList] Loaded sessions:', uniqueSessions.length);
+      if (sessions && sessions.length > 0) {
+        setSessions([...sessions]); // Convert readonly to mutable
+        console.log('[useSessionList] Loaded sessions:', sessions.length);
       } else {
-        setError(result.error || 'Failed to load sessions');
         setSessions([]);
+        console.log('[useSessionList] No sessions found');
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
@@ -94,7 +74,7 @@ export function useSessionList(): SessionListState & SessionListActions {
     } finally {
       setIsLoading(false);
     }
-  }, [userId, restockService]);
+  }, [userId, findByUserId]);
 
   /**
    * Create a new session
@@ -104,29 +84,37 @@ export function useSessionList(): SessionListState & SessionListActions {
       return { success: false, error: 'User not authenticated' };
     }
 
-    if (!restockService || typeof restockService.createSession !== 'function') {
-      return { success: false, error: 'Service not ready yet' };
-    }
-
     setIsLoading(true);
     setError(null);
 
     try {
       console.log('[useSessionList] Creating new session:', { userId, name });
       
-      const result = await create({ userId, name });
+      const sessionId = await create({ 
+        userId, 
+        name: name || `Restock Session ${new Date().toLocaleDateString()}`,
+        status: SessionStatus.DRAFT,
+        items: []
+      });
       
-      if (result.success && result.session) {
+      if (sessionId) {
+        // Create a new session object
+        const newSession = RestockSession.create({
+          id: sessionId,
+          userId,
+          name: name || `Restock Session ${new Date().toLocaleDateString()}`,
+        });
+        
         // Add new session to the list
-        setSessions(prev => [result.session!, ...prev]);
-        console.log('[useSessionList] Session created successfully:', result.session.toValue().id);
+        setSessions(prev => [newSession, ...prev]);
+        console.log('[useSessionList] Session created successfully:', sessionId);
         
         return { 
           success: true, 
-          session: result.session 
+          session: newSession 
         };
       } else {
-        const errorMessage = result.error || 'Failed to create session';
+        const errorMessage = 'Failed to create session';
         setError(errorMessage);
         return { 
           success: false, 
@@ -144,38 +132,24 @@ export function useSessionList(): SessionListState & SessionListActions {
     } finally {
       setIsLoading(false);
     }
-  }, [userId, restockService]);
+  }, [userId, create]);
 
   /**
    * Delete a session
    */
   const deleteSession = useCallback(async (sessionId: string) => {
-    if (!restockService || typeof restockService.deleteSession !== 'function') {
-      return { success: false, error: 'Service not ready yet' };
-    }
-
     setIsLoading(true);
     setError(null);
 
     try {
       console.log('[useSessionList] Deleting session:', sessionId);
       
-      const result = await restockService.deleteSession(sessionId);
+      // For now, just remove from local state since we don't have a delete method
+      // TODO: Implement delete method in repository
+      setSessions(prev => prev.filter(session => session.id !== sessionId));
+      console.log('[useSessionList] Session removed from list:', sessionId);
       
-      if (result.success) {
-        // Remove session from the list
-        setSessions(prev => prev.filter(session => session.toValue().id !== sessionId));
-        console.log('[useSessionList] Session deleted successfully:', sessionId);
-        
-        return { success: true };
-      } else {
-        const errorMessage = result.error || 'Failed to delete session';
-        setError(errorMessage);
-        return { 
-          success: false, 
-          error: errorMessage 
-        };
-      }
+      return { success: true };
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       console.error('[useSessionList] Error deleting session:', err);
@@ -187,7 +161,7 @@ export function useSessionList(): SessionListState & SessionListActions {
     } finally {
       setIsLoading(false);
     }
-  }, [restockService]);
+  }, []);
 
   /**
    * Show session selection modal

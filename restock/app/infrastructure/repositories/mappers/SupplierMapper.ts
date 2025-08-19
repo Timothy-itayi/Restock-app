@@ -74,7 +74,8 @@ export class SupplierMapper {
       email: value.email,
       phone: value.phone,
       notes: value.notes,
-      created_at: value.createdAt.toISOString()
+      created_at: value.createdAt.toISOString(),
+      updated_at: new Date().toISOString()
     };
   }
 

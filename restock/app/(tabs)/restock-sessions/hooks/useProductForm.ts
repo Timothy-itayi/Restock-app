@@ -6,7 +6,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { useSessionRepository, useProductRepository, useSupplierRepository, useEmailRepository } from '../../../infrastructure/convex/ConvexHooksProvider';
+import { useSessionRepository, useProductRepository, useSupplierRepository, useEmailRepository } from '../../../infrastructure/repositories/SupabaseHooksProvider';
 
 export interface ProductFormData {
   productName: string;

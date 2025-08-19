@@ -3,7 +3,7 @@ import { DeviceEventEmitter } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useUnifiedAuth } from '../../../_contexts/UnifiedAuthProvider';
 import { RestockSession, SessionStatus } from '../../../domain/entities/RestockSession';
-import { useSessionRepository, useProductRepository, useSupplierRepository, useEmailRepository } from '../../../infrastructure/convex/ConvexHooksProvider';
+import { useSessionRepository, useProductRepository, useSupplierRepository, useEmailRepository } from '../../../infrastructure/repositories/SupabaseHooksProvider';
 
 interface SessionItemView {
   id: string;

@@ -13,5 +13,5 @@
     "**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
-, "app/(tabs)/restock-sessions/index.old.tsx.", "app/(tabs)/restock-sessions/index.clean.tsx."  ]
+  ]
 }
