@@ -23,7 +23,7 @@ interface UnifiedAuthContextType {
   userId: string | null;
   authType: AuthType;
   triggerAuthCheck: () => void;
-  markNewSSOUserReady: () => Promise<void>; // Add this to the interface
+  markNewSSOUserReady: (profileData?: any) => Promise<void>;
 }
 
 const UnifiedAuthContext = createContext<UnifiedAuthContextType | undefined>(undefined);
@@ -45,7 +45,7 @@ export const UnifiedAuthProvider: React.FC<UnifiedAuthProviderProps> = ({ childr
   const { user } = useUser();
   
   // Zustand store
-  const { fetchProfile, clearProfile } = useProfileStore();
+  const { fetchProfile, setProfileFromData, clearProfile } = useProfileStore();
   
   const [isReady, setIsReady] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -179,19 +179,20 @@ export const UnifiedAuthProvider: React.FC<UnifiedAuthProviderProps> = ({ childr
   // Verify user profile setup
   const verifyUserProfile = async (userId: string, user: any, isGoogle: boolean) => {
     try {
-      const profileSetupResult = await UserProfileService.hasCompletedProfileSetup();
+      // Use Clerk ID-based verification instead of session-dependent verification
+      const profileSetupResult = await UserProfileService.hasCompletedProfileSetupByClerkId(userId);
       
       if (profileSetupResult.hasCompletedSetup) {
         console.log('✅ UnifiedAuth: User has completed profile setup');
         
         // Get the full user profile to update local session
-        const profileResult = await UserProfileService.getUserProfile();
+        const profileResult = await UserProfileService.getUserProfileByClerkId(userId);
         const userEmail = user.emailAddresses?.[0]?.emailAddress || user.primaryEmailAddress?.emailAddress;
         
         await SessionManager.saveUserSession({
           userId,
           email: userEmail || '',
-          storeName: profileResult.data?.storeName || '',
+          storeName: profileResult.data?.store_name || '',
           wasSignedIn: true,
           lastSignIn: Date.now(),
           lastAuthMethod: isGoogle ? 'google' : 'email',
@@ -257,6 +258,25 @@ export const UnifiedAuthProvider: React.FC<UnifiedAuthProviderProps> = ({ childr
           console.error('❌ UnifiedAuth: Fallback navigation also failed:', fallbackError);
         }
       }
+      return;
+    }
+    
+    // Check if user just completed profile setup (to avoid re-verification)
+    const justCompletedSetup = await AsyncStorage.getItem('profileSetupJustCompleted');
+    if (justCompletedSetup === 'true') {
+      console.log('✅ UnifiedAuth: User just completed profile setup, skipping verification');
+      
+      // Clear the flag
+      await AsyncStorage.removeItem('profileSetupJustCompleted');
+      
+      // Set auth type for completed setup
+      const completedAuthType: AuthType = {
+        type: isGoogle ? 'google' : 'email',
+        isNewSignUp: false,
+        needsProfileSetup: false
+      };
+      setAuthType(completedAuthType);
+      setIsReady(true);
       return;
     }
     
@@ -373,7 +393,7 @@ export const UnifiedAuthProvider: React.FC<UnifiedAuthProviderProps> = ({ childr
   };
 
   // Function to mark new SSO user as ready after profile setup completion
-  const markNewSSOUserReady = useCallback(async () => {
+  const markNewSSOUserReady = useCallback(async (profileData?: any) => {
     console.log('🔧 UnifiedAuth: Marking new SSO user as ready after profile setup completion');
     
     // Clear the new SSO sign-up flag
@@ -384,6 +404,14 @@ export const UnifiedAuthProvider: React.FC<UnifiedAuthProviderProps> = ({ childr
       console.error('❌ UnifiedAuth: Failed to clear newSSOSignUp flag:', error);
     }
     
+    // Set flag to indicate profile setup was just completed
+    try {
+      await AsyncStorage.setItem('profileSetupJustCompleted', 'true');
+      console.log('✅ UnifiedAuth: profileSetupJustCompleted flag set');
+    } catch (error) {
+      console.error('❌ UnifiedAuth: Failed to set profileSetupJustCompleted flag:', error);
+    }
+    
     // Update auth type to reflect profile setup completion
     setAuthType(prev => ({
       ...prev,
@@ -391,10 +419,30 @@ export const UnifiedAuthProvider: React.FC<UnifiedAuthProviderProps> = ({ childr
       needsProfileSetup: false
     }));
     
+    // CRITICAL: Use provided profile data or fetch from database
+    try {
+      if (profileData) {
+        console.log('📊 UnifiedAuth: Using provided profile data for new SSO user');
+        setProfileFromData(profileData);
+        console.log('✅ UnifiedAuth: Profile data set from RPC response');
+      } else if (userId) {
+        console.log('📊 UnifiedAuth: No profile data provided, fetching from database');
+        await fetchProfile(userId);
+        console.log('✅ UnifiedAuth: Profile data loaded from database');
+      }
+    } catch (profileError) {
+      console.warn('⚠️ UnifiedAuth: Failed to load profile data:', profileError);
+      // Continue anyway - profile exists in database
+    }
+    
     // Mark as ready
     setIsReady(true);
+    
+    // Small delay to ensure state is properly set
+    await new Promise(resolve => setTimeout(resolve, 50));
+    
     console.log('✅ UnifiedAuth: New SSO user marked as ready');
-  }, []);
+  }, [userId, fetchProfile, setProfileFromData]);
 
   const value: UnifiedAuthContextType = {
     isReady,

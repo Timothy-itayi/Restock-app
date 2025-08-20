@@ -46,7 +46,7 @@ export default function DashboardScreen() {
   const { isReady: authReady, isAuthenticated, authType } = useUnifiedAuth();
 
   // Use profile store for user data
-  const { userName, storeName, isLoading: profileLoading } = useProfileStore();
+  const { userName, storeName, isLoading: profileLoading, fetchProfile } = useProfileStore();
   
   // Use themed styles
   const dashboardStyles = useThemedStyles(getDashboardStyles);
@@ -54,6 +54,15 @@ export default function DashboardScreen() {
   const [displayStartTime] = useState(Date.now());
   const { unfinishedSessions, finishedSessions, sessionsLoading, refreshing, onRefresh } = useDashboardData();
 
+  // Fetch profile data when component mounts only if needed
+  useEffect(() => {
+    if (userId && !profileLoading && (!userName || !storeName)) {
+      console.log('📊 Dashboard: Profile data missing, fetching from database');
+      fetchProfile(userId);
+    } else if (userName && storeName) {
+      console.log('📊 Dashboard: Using existing profile data from store');
+    }
+  }, [userId, profileLoading, userName, storeName, fetchProfile]);
 
   // Component display logging
   useEffect(() => {

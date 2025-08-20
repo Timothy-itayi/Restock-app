@@ -108,6 +108,39 @@ export class UserProfileService {
   }
 
   /**
+   * Check if a user has completed profile setup by Clerk ID
+   * This method doesn't rely on Supabase session context
+   */
+  static async hasCompletedProfileSetupByClerkId(clerkId: string) {
+    try {
+      if (!clerkId) {
+        console.error('clerk_id is required to check profile setup');
+        return { hasCompletedSetup: false, error: 'clerk_id is required' };
+      }
+
+      const { data: profile, error } = await supabase
+        .from('users')
+        .select('store_name')
+        .eq('clerk_id', clerkId)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // No rows returned - user doesn't exist
+          return { hasCompletedSetup: false, error: null };
+        }
+        throw error;
+      }
+
+      const isComplete = profile && profile.store_name && profile.store_name.trim() !== '';
+      return { hasCompletedSetup: isComplete, error: null };
+    } catch (error) {
+      console.error('Error checking profile setup by Clerk ID:', error);
+      return { hasCompletedSetup: false, error };
+    }
+  }
+
+  /**
    * Update store name for current session user
    */
   static async updateStorename(storename: string) {
@@ -136,6 +169,38 @@ export class UserProfileService {
       return { data: profile, error: null };
     } catch (error) {
       console.error('Error getting user profile:', error);
+      return { data: null, error };
+    }
+  }
+
+  /**
+   * Get user profile by Clerk ID
+   * This method doesn't rely on Supabase session context
+   */
+  static async getUserProfileByClerkId(clerkId: string) {
+    try {
+      if (!clerkId) {
+        console.error('clerk_id is required to get user profile');
+        return { data: null, error: 'clerk_id is required' };
+      }
+
+      const { data: profile, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('clerk_id', clerkId)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // No rows returned - user doesn't exist
+          return { data: null, error: null };
+        }
+        throw error;
+      }
+
+      return { data: profile, error: null };
+    } catch (error) {
+      console.error('Error getting user profile by Clerk ID:', error);
       return { data: null, error };
     }
   }
