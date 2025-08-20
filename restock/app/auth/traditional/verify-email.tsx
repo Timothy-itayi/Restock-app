@@ -32,14 +32,17 @@ export default function VerifyEmailScreen() {
         console.log('Email verification successful');
         await setActive({ session: result.createdSessionId });
         
+        // Let UnifiedAuthProvider handle the navigation based on the newTraditionalSignUp flag
+        console.log('✅ VerifyEmail: Session activated, letting UnifiedAuthProvider handle navigation');
         Alert.alert(
           'Email Verified!',
-          'Your email has been verified successfully. You can now complete your profile setup.',
+          'Your email has been verified successfully. You will be redirected to complete your profile setup.',
           [
             {
               text: 'Continue',
               onPress: () => {
-                router.replace('/auth/traditional/profile-setup');
+                // Don't manually navigate - let UnifiedAuthProvider handle it
+                console.log('✅ VerifyEmail: User confirmed, UnifiedAuthProvider will redirect');
               }
             }
           ]

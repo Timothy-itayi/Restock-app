@@ -136,8 +136,8 @@ export default function SignInScreen() {
       // Use Clerk's useSSO hook for native OAuth flow
       const result = await startSSOFlow({
         strategy: 'oauth_google',
-        // Route exists at app root: app/sso-profile-setup.tsx
-        redirectUrl: Linking.createURL('/sso-profile-setup', { scheme: 'restock' }),
+        // Let UnifiedAuthProvider handle the routing - redirect to root
+        redirectUrl: Linking.createURL('/', { scheme: 'restock' }),
       });
       
       console.log('Google OAuth sign in result:', result);

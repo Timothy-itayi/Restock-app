@@ -11,7 +11,7 @@ import { profileSetupStyles } from '../../../styles/components/auth/traditional/
 export default function ProfileSetupScreen() {
   const { isSignedIn, userId } = useAuth();
   const { user } = useUser();
-  const { triggerAuthCheck, markNewSSOUserReady } = useUnifiedAuth();
+  const { triggerAuthCheck, markNewUserReady } = useUnifiedAuth();
   
   const [name, setName] = useState('');
   const [storeName, setStoreName] = useState('');
@@ -98,9 +98,9 @@ export default function ProfileSetupScreen() {
         
         // CRITICAL: Mark the new email user as ready in UnifiedAuthProvider
         // This allows them to access the dashboard and completes the auth flow
-        console.log('🔧 ProfileSetup: Marking new email user as ready in UnifiedAuthProvider');
-        await markNewSSOUserReady(result.data);
-        console.log('✅ ProfileSetup: New email user marked as ready');
+        console.log('🔧 ProfileSetup: Marking new traditional user as ready in UnifiedAuthProvider');
+        await markNewUserReady(result.data);
+        console.log('✅ ProfileSetup: New traditional user marked as ready');
         
         // Trigger auth state refresh to update profile setup status
         console.log('🔄 Triggering auth state refresh...');
@@ -119,7 +119,7 @@ export default function ProfileSetupScreen() {
   };
 
   return (
-    <UnifiedAuthGuard requireAuth={true}>
+    <UnifiedAuthGuard requireAuth={true} requireProfileSetup={false}>
       <ScrollView contentContainerStyle={profileSetupStyles.scrollViewContent}>
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}

@@ -70,20 +70,23 @@ export function useRestockSession(sessionId?: string): RestockSessionState & Res
       console.log('[useRestockSession] Creating session:', { userId, name });
       
       const sessionName = name || `Restock Session ${new Date().toLocaleDateString()}`;
-      const sessionId = await sessionRepository.create({
-        userId,
+      
+      // Create proper domain entity
+      const newSessionEntity = RestockSession.create({
+        id: 'temp', // This will be replaced by the database
+        userId: userId,
         name: sessionName,
-        status: SessionStatus.DRAFT,
-        items: [],
         createdAt: new Date(),
-      } as any);
+      });
+      
+      const sessionId = await sessionRepository.create(newSessionEntity.toValue());
       
       // Load the created session
-      const newSession = await sessionRepository.findById(sessionId);
-      if (newSession) {
-        setSession(newSession);
+      const createdSession = await sessionRepository.findById(sessionId);
+      if (createdSession) {
+        setSession(createdSession);
         console.log('[useRestockSession] Session created:', sessionId);
-        return { success: true, session: newSession };
+        return { success: true, session: createdSession };
       } else {
         throw new Error('Failed to load created session');
       }
@@ -150,6 +153,7 @@ export function useRestockSession(sessionId?: string): RestockSessionState & Res
       });
       
       const item = {
+        userId: userId, // Add userId for repository
         productName: params.productName,
         quantity: params.quantity,
         supplierName: params.supplierName,
@@ -295,7 +299,7 @@ export function useRestockSession(sessionId?: string): RestockSessionState & Res
 export function getSessionProducts(session: RestockSession | null): SessionProduct[] {
   if (!session) return [];
   
-  return session.items.map((item: any) => ({
+  return session.items.map((item) => ({
     id: item.productId,
     name: item.productName,
     quantity: item.quantity,
@@ -326,14 +330,10 @@ export function getSessionSummary(session: RestockSession | null): {
     };
   }
   
-  const products = session.items;
-  const uniqueSuppliers = new Set(products.map((item: any) => item.supplierId));
-  const totalQuantity = products.reduce((sum: number, item: any) => sum + item.quantity, 0);
-  
   return {
-    totalProducts: products.length,
-    totalQuantity,
-    supplierCount: uniqueSuppliers.size,
+    totalProducts: session.items.length,
+    totalQuantity: session.getTotalItems(),
+    supplierCount: session.getUniqueSupplierCount(),
     sessionName: session.name || 'Unnamed Session',
     sessionId: session.id
   };

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, TextInput, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { router, Link } from 'expo-router';
 import { useSignUp } from '@clerk/clerk-expo';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import UnifiedAuthGuard from '../../components/UnifiedAuthGuard';
 import { signUpStyles } from '../../../styles/components/sign-up';
 import useThemeStore from '../../stores/useThemeStore';
@@ -88,6 +89,10 @@ export default function TraditionalSignUpScreen() {
       await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
       
       console.log('Verification email prepared');
+      
+      // Set flag to indicate this is a new traditional auth sign-up
+      await AsyncStorage.setItem('newTraditionalSignUp', 'true');
+      console.log('✅ TraditionalSignUp: newTraditionalSignUp flag set');
       
       Alert.alert(
         'Verification Email Sent!',
