@@ -59,11 +59,10 @@ export default function ProfileSetupScreen() {
       let result;
       try {
         result = await UserProfileService.createProfileViaBackend(
-          userId, 
           userEmail, 
           storeName, 
-          name, 
-          'email' // Specify email/password as auth method
+          name,
+          userId // ✅ Pass clerk_id in correct position
         );
       } catch (error) {
         // Quiet network error; user will see alert
@@ -100,7 +99,7 @@ export default function ProfileSetupScreen() {
         // CRITICAL: Mark the new email user as ready in UnifiedAuthProvider
         // This allows them to access the dashboard and completes the auth flow
         console.log('🔧 ProfileSetup: Marking new email user as ready in UnifiedAuthProvider');
-        await markNewSSOUserReady();
+        await markNewSSOUserReady(result.data);
         console.log('✅ ProfileSetup: New email user marked as ready');
         
         // Trigger auth state refresh to update profile setup status

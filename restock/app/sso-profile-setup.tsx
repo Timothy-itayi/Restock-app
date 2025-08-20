@@ -11,6 +11,7 @@ import { ErrorLogger } from '../backend/utils/error-logger';
 import { UserProfileService } from '../backend/services/user-profile';
 import { setCurrentUserContext } from '../backend/config/supabase';
 
+
 export default function SSOProfileSetupScreen() {
   const { user } = useUser();
   const { isAuthenticated, userId, authType, triggerAuthCheck, markNewSSOUserReady } = useUnifiedAuth();
@@ -105,8 +106,12 @@ export default function SSOProfileSetupScreen() {
   
       if (result.data) {
         await ClerkClientService.clearSSOSignUpFlags();
-        await markNewSSOUserReady();
-        triggerAuthCheck();
+        
+        // Profile creation successful, mark user as ready with profile data
+        await markNewSSOUserReady(result.data);
+        
+        // Don't trigger auth check here - let the navigation handle it
+        // triggerAuthCheck(); // Removed to avoid race condition
         router.replace('/(tabs)/dashboard');
       } else {
         const message = (result.error as any)?.message || 'Failed to create profile. Please try again.';

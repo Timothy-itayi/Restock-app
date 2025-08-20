@@ -25,6 +25,11 @@ export function useProfileData() {
     storeName: storeName || '',
   }), [userName, storeName, user?.firstName, user?.primaryEmailAddress?.emailAddress]);
 
+  // Update local profile state when store data changes
+  useEffect(() => {
+    setProfile(baseProfile);
+  }, [baseProfile]);
+
   useEffect(() => {
     const load = async () => {
       if (!isAuthenticated || !userId) {
@@ -33,11 +38,13 @@ export function useProfileData() {
       }
       
       try {
-        // Fetch profile data first
-        await fetchProfile(userId);
-        
-        // Update local profile state
-        setProfile(baseProfile);
+        // Only fetch profile if we don't already have data in the store
+        if (!userName || !storeName) {
+          console.log('📊 useProfileData: Profile data missing, fetching from database');
+          await fetchProfile(userId);
+        } else {
+          console.log('📊 useProfileData: Using existing profile data from store');
+        }
         
         // Load session data
         const sessions = await findByUserId(userId);
@@ -54,9 +61,7 @@ export function useProfileData() {
       }
     };
     load();
-  }, [baseProfile, isAuthenticated, userId, fetchProfile]);
+  }, [isAuthenticated, userId, fetchProfile, userName, storeName]);
 
   return { profile, sessionCount, emailCount, loading: loading || profileLoading, userId };
 }
-
-
