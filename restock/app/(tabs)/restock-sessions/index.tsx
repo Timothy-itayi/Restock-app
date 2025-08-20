@@ -261,12 +261,7 @@ const RestockSessionsContent: React.FC = () => {
     const sessionId = params.sessionId as string;
     const action = params.action as string;
     
-    console.log('[RestockSessions] URL params changed:', { 
-      sessionId, 
-      action, 
-      hasCurrentSession: !!currentSession.session,
-      currentSessionId: currentSession.session?.toValue().id 
-    });
+ ;
     
     if (sessionId && action === 'continue' && !currentSession.session) {
       console.log('[RestockSessions] Auto-loading session from dashboard:', sessionId);

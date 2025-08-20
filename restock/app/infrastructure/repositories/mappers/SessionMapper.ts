@@ -79,6 +79,37 @@ export class SessionMapper {
   }
 
   /**
+   * Convert database session and items to domain RestockSession entity with items
+   */
+  static toDomainWithItems(dbSession: DbSession, dbItems: DbRestockItem[]): RestockSession {
+    // Convert database status to domain enum
+    const domainStatus = this.mapStatusToDomain(dbSession.status);
+    
+    // Convert database items to domain items
+    const domainItems: RestockItemValue[] = dbItems.map((item: DbRestockItem) => ({
+      productId: item.id,
+      productName: item.product_name,
+      quantity: item.quantity,
+      supplierId: item.supplier_id || item.supplier_name, // Use supplier_name as ID if supplier_id not available
+      supplierName: item.supplier_name,
+      supplierEmail: item.supplier_email,
+      notes: item.notes
+    }));
+
+    const sessionValue: SessionValue = {
+      id: dbSession.id,
+      userId: dbSession.user_id,
+      name: dbSession.name,
+      status: domainStatus,
+      items: domainItems,
+      createdAt: new Date(dbSession.created_at),
+      updatedAt: new Date(dbSession.updated_at)
+    };
+
+    return RestockSession.fromValue(sessionValue);
+  }
+
+  /**
    * Convert domain RestockSession to database insert format
    */
   static toDatabaseInsert(session: RestockSession): any {

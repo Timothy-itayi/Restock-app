@@ -18,34 +18,74 @@ export class SupabaseSessionRepository implements SessionRepository {
   }
 
   async findById(id: string): Promise<RestockSession | null> {
-    const { data, error } = await supabase
+    // Fetch session with related items
+    const { data: sessionData, error: sessionError } = await supabase
       .from('restock_sessions')
       .select()
       .eq('id', id)
       .single();
 
-    if (error) {
-      if (error.code === 'PGRST116') {
+    if (sessionError) {
+      if (sessionError.code === 'PGRST116') {
         return null; // No rows returned
       }
-      throw new Error(`Failed to find session: ${error.message}`);
+      throw new Error(`Failed to find session: ${sessionError.message}`);
     }
 
-    return SessionMapper.toDomain(data);
+    // Fetch session items
+    const { data: itemsData, error: itemsError } = await supabase
+      .from('restock_items')
+      .select()
+      .eq('session_id', id);
+
+    if (itemsError) {
+      throw new Error(`Failed to find session items: ${itemsError.message}`);
+    }
+
+    // Create domain entity with items
+    return SessionMapper.toDomainWithItems(sessionData, itemsData || []);
   }
 
   async findByUserId(userId: string): Promise<ReadonlyArray<RestockSession>> {
-    const { data, error } = await supabase
+    // Fetch sessions for the user
+    const { data: sessionsData, error: sessionsError } = await supabase
       .from('restock_sessions')
       .select()
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
-    if (error) {
-      throw new Error(`Failed to find sessions: ${error.message}`);
+    if (sessionsError) {
+      throw new Error(`Failed to find sessions: ${sessionsError.message}`);
     }
 
-    return data?.map((item: DbRestockSession) => SessionMapper.toDomain(item)) || [];
+    if (!sessionsData || sessionsData.length === 0) {
+      return [];
+    }
+
+    // Fetch all items for these sessions in one query for efficiency
+    const sessionIds = sessionsData.map(s => s.id);
+    const { data: itemsData, error: itemsError } = await supabase
+      .from('restock_items')
+      .select()
+      .in('session_id', sessionIds);
+
+    if (itemsError) {
+      throw new Error(`Failed to find session items: ${itemsError.message}`);
+    }
+
+    // Group items by session_id
+    const itemsBySessionId = (itemsData || []).reduce((acc: any, item: any) => {
+      if (!acc[item.session_id]) {
+        acc[item.session_id] = [];
+      }
+      acc[item.session_id].push(item);
+      return acc;
+    }, {});
+
+    // Create domain entities with their items
+    return sessionsData.map((session: DbRestockSession) => 
+      SessionMapper.toDomainWithItems(session, itemsBySessionId[session.id] || [])
+    );
   }
 
   async delete(id: string): Promise<void> {
@@ -63,10 +103,15 @@ export class SupabaseSessionRepository implements SessionRepository {
     return this.delete(id);
   }
 
-  async create(session: Omit<RestockSession, 'id'>): Promise<string> {
-    // Create a temporary session with a placeholder ID to use the mapper
-    const sessionWithId = { ...session, id: 'temp' } as RestockSession;
-    const dbSessionData = SessionMapper.toDatabaseInsert(sessionWithId);
+  async create(sessionValue: any): Promise<string> {
+    // Handle both domain entity toValue() result and plain objects
+    const sessionData = sessionValue.userId ? sessionValue : sessionValue;
+    
+    const dbSessionData = {
+      user_id: sessionData.userId,
+      name: sessionData.name,
+      status: sessionData.status || 'draft'
+    };
     
     const { data, error } = await supabase
       .from('restock_sessions')

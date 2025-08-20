@@ -24,6 +24,7 @@ interface UnifiedAuthContextType {
   authType: AuthType;
   triggerAuthCheck: () => void;
   markNewSSOUserReady: (profileData?: any) => Promise<void>;
+  markNewUserReady: (profileData?: any) => Promise<void>;
 }
 
 const UnifiedAuthContext = createContext<UnifiedAuthContextType | undefined>(undefined);
@@ -213,53 +214,16 @@ export const UnifiedAuthProvider: React.FC<UnifiedAuthProviderProps> = ({ childr
     }
   };
 
-  // Handle authenticated user
+  // Handle authenticated user - SIMPLIFIED APPROACH
   const handleAuthenticatedUser = useCallback(async (userId: string, user: any) => {
     console.log('🔍 UnifiedAuth: Handling authenticated user:', { 
       userId, 
       userEmail: user?.emailAddresses?.[0]?.emailAddress,
-      hasUser: !!user,
-      userKeys: user ? Object.keys(user) : []
+      hasUser: !!user
     });
     
     const isGoogle = checkIfGoogleUser(user);
     console.log('🔍 UnifiedAuth: User type detected:', { isGoogle, userId });
-    
-    // CRITICAL: Check for new SSO sign-up BEFORE setting any auth state
-    // This prevents the dashboard from ever mounting for new users
-    const newSSOSignUp = await AsyncStorage.getItem('newSSOSignUp');
-    const isNewSignUp = newSSOSignUp === 'true';
-    
-    if (isNewSignUp) {
-      console.log('🚨 UnifiedAuth: CRITICAL - New SSO user detected, IMMEDIATE redirect required');
-      
-      // Set auth type but keep user in loading state
-      const newAuthType: AuthType = {
-        type: isGoogle ? 'google' : 'email',
-        isNewSignUp: true,
-        needsProfileSetup: true
-      };
-      setAuthType(newAuthType);
-      setIsReady(false); // Keep in loading state
-      
-      // IMMEDIATE redirect to profile setup - no delay, no dashboard mounting
-      console.log('🚨 UnifiedAuth: Executing IMMEDIATE redirect to profile setup');
-      try {
-        const { router } = require('expo-router');
-        router.replace('/sso-profile-setup');
-        console.log('✅ UnifiedAuth: IMMEDIATE redirect to profile setup successful');
-      } catch (error) {
-        console.error('❌ UnifiedAuth: IMMEDIATE redirect failed:', error);
-        // Fallback: try to navigate to welcome
-        try {
-          const { router } = require('expo-router');
-          router.replace('/welcome');
-        } catch (fallbackError) {
-          console.error('❌ UnifiedAuth: Fallback navigation also failed:', fallbackError);
-        }
-      }
-      return;
-    }
     
     // Check if user just completed profile setup (to avoid re-verification)
     const justCompletedSetup = await AsyncStorage.getItem('profileSetupJustCompleted');
@@ -280,37 +244,82 @@ export const UnifiedAuthProvider: React.FC<UnifiedAuthProviderProps> = ({ childr
       return;
     }
     
-    // Set user context in database for RLS policies
-    // TODO: Implement user context setting for Supabase RLS policies
-    console.log('🔧 UnifiedAuth: User context setting not yet implemented for Supabase');
-    
-    // Create base auth type for returning users
-    const baseAuthType: AuthType = {
-      type: isGoogle ? 'google' : 'email',
-      isNewSignUp: false,
-      needsProfileSetup: false // Will be updated after verification
-    };
-    
-    // Verify user profile for returning users
-    console.log('🔍 UnifiedAuth: Starting profile verification for returning user...');
-    const verificationResult = await verifyUserProfile(userId, user, isGoogle);
-    console.log('🔍 UnifiedAuth: Profile verification result:', verificationResult);
-    
-    if (verificationResult.success) {
-      const finalAuthType: AuthType = { ...baseAuthType, needsProfileSetup: verificationResult.needsSetup };
-      console.log('🔍 UnifiedAuth: Setting final auth type:', finalAuthType);
-      setAuthType(finalAuthType);
-    } else {
-      // If verification failed, assume setup is needed
-      const finalAuthType: AuthType = { ...baseAuthType, needsProfileSetup: true };
-      console.log('🔍 UnifiedAuth: Verification failed, this is not a new user, setting auth type with setup needed:', finalAuthType);
-      setAuthType(finalAuthType);
+    // SIMPLIFIED: Check if user has a profile - if yes, let them in; if no, send to setup
+    console.log('🔍 UnifiedAuth: Checking if user has existing profile...');
+    try {
+      const profileVerification = await UserProfileService.hasCompletedProfileSetupByClerkId(userId);
+      
+      if (profileVerification.hasCompletedSetup) {
+        console.log('✅ UnifiedAuth: User has existing profile - allowing access to dashboard');
+        
+        // Clear any lingering sign-up flags
+        await AsyncStorage.removeItem('newSSOSignUp');
+        await AsyncStorage.removeItem('newTraditionalSignUp');
+        
+        // Get and set the user profile data
+        const profileResult = await UserProfileService.getUserProfileByClerkId(userId);
+        if (profileResult.data) {
+          setProfileFromData(profileResult.data);
+          console.log('📊 UnifiedAuth: Profile data loaded for returning user');
+        }
+        
+        // Set as authenticated user with no setup needed
+        const authType: AuthType = {
+          type: isGoogle ? 'google' : 'email',
+          isNewSignUp: false,
+          needsProfileSetup: false
+        };
+        setAuthType(authType);
+        setIsReady(true);
+        console.log('✅ UnifiedAuth: Returning user ready for dashboard access');
+        return;
+        
+      } else {
+        console.log('⚠️ UnifiedAuth: User has no profile - redirecting to profile setup');
+        
+        // Check which type of setup flow to use
+        const newSSOSignUp = await AsyncStorage.getItem('newSSOSignUp');
+        const newTraditionalSignUp = await AsyncStorage.getItem('newTraditionalSignUp');
+        const isSSO = newSSOSignUp === 'true';
+        const isTraditional = newTraditionalSignUp === 'true';
+        
+        // Set auth type for new users
+        const authType: AuthType = {
+          type: isGoogle ? 'google' : 'email',
+          isNewSignUp: true,
+          needsProfileSetup: true
+        };
+        setAuthType(authType);
+        
+        // Redirect to appropriate profile setup
+        const profileSetupRoute = isSSO ? '/sso-profile-setup' : '/auth/traditional/profile-setup';
+        console.log(`🚨 UnifiedAuth: Redirecting to ${profileSetupRoute}`);
+        
+        try {
+          const { router } = require('expo-router');
+          router.replace(profileSetupRoute);
+          setIsReady(true);
+          console.log('✅ UnifiedAuth: Redirected to profile setup');
+        } catch (error) {
+          console.error('❌ UnifiedAuth: Redirect failed:', error);
+          setIsReady(true); // Set ready anyway to avoid infinite loading
+        }
+        return;
+      }
+    } catch (error) {
+      console.error('❌ UnifiedAuth: Error checking profile status:', error);
+      
+      // If we can't verify, assume they need setup to be safe
+      const authType: AuthType = {
+        type: isGoogle ? 'google' : 'email',
+        isNewSignUp: false,
+        needsProfileSetup: true
+      };
+      setAuthType(authType);
+      setIsReady(true);
+      return;
     }
-    
-    console.log('✅ UnifiedAuth: Auth flow complete, setting ready state');
-    setIsReady(true);
-    // Loading will be set to false by the minimum loading time effect
-  }, [minimumLoadingMet]);
+  }, [setProfileFromData]);
 
   // Handle unauthenticated user
   const handleUnauthenticatedUser = async () => {
@@ -392,16 +401,17 @@ export const UnifiedAuthProvider: React.FC<UnifiedAuthProviderProps> = ({ childr
     setForceCheck(prev => prev + 1);
   };
 
-  // Function to mark new SSO user as ready after profile setup completion
-  const markNewSSOUserReady = useCallback(async (profileData?: any) => {
-    console.log('🔧 UnifiedAuth: Marking new SSO user as ready after profile setup completion');
+  // Function to mark new user as ready after profile setup completion (works for both SSO and traditional)
+  const markNewUserReady = useCallback(async (profileData?: any) => {
+    console.log('🔧 UnifiedAuth: Marking new user as ready after profile setup completion');
     
-    // Clear the new SSO sign-up flag
+    // Clear both sign-up flags (whichever is set)
     try {
       await AsyncStorage.removeItem('newSSOSignUp');
-      console.log('✅ UnifiedAuth: newSSOSignUp flag cleared');
+      await AsyncStorage.removeItem('newTraditionalSignUp');
+      console.log('✅ UnifiedAuth: All sign-up flags cleared');
     } catch (error) {
-      console.error('❌ UnifiedAuth: Failed to clear newSSOSignUp flag:', error);
+      console.error('❌ UnifiedAuth: Failed to clear sign-up flags:', error);
     }
     
     // Set flag to indicate profile setup was just completed
@@ -441,8 +451,11 @@ export const UnifiedAuthProvider: React.FC<UnifiedAuthProviderProps> = ({ childr
     // Small delay to ensure state is properly set
     await new Promise(resolve => setTimeout(resolve, 50));
     
-    console.log('✅ UnifiedAuth: New SSO user marked as ready');
+    console.log('✅ UnifiedAuth: New user marked as ready');
   }, [userId, fetchProfile, setProfileFromData]);
+
+  // Keep the old function for backward compatibility
+  const markNewSSOUserReady = markNewUserReady;
 
   const value: UnifiedAuthContextType = {
     isReady,
@@ -452,7 +465,8 @@ export const UnifiedAuthProvider: React.FC<UnifiedAuthProviderProps> = ({ childr
     userId: userId || null,
     authType,
     triggerAuthCheck,
-    markNewSSOUserReady, // Expose the new function
+    markNewSSOUserReady, // Backward compatibility
+    markNewUserReady, // New generic function
   };
 
   return (

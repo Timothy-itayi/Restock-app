@@ -75,9 +75,9 @@ export default function AuthIndexScreen() {
         // Transition to authenticating state
         setAuthFlowState('authenticating');
         
-        // Set SSO flow flags using the service
+        // Set SSO flow flags for new sign-up only
         await ClerkClientService.setSSOSignUpFlags();
-        console.log('✅ Set SSO flow flags using service');
+        console.log('✅ Set SSO sign-up flags for new user');
         
         // Activate the session if we have a created session ID
         if (result.createdSessionId && result.setActive) {
