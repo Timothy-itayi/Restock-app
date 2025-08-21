@@ -1,5 +1,5 @@
-import { supabase } from '../../backend/config/supabase';
-import { UserRepository, UserProfile, CreateUserProfileRequest, UpdateUserProfileRequest } from '../../app/domain/interfaces/UserRepository';
+import { supabase } from '../../config/supabase';
+import { UserRepository, UserProfile, CreateUserProfileRequest, UpdateUserProfileRequest } from '../../../app/domain/interfaces/UserRepository';
 
 export class SupabaseUserRepository implements UserRepository {
   async createProfile(request: CreateUserProfileRequest): Promise<string> {

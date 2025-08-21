@@ -102,18 +102,9 @@ export default function AddProductScreen() {
   }, [productForm.formData, router]);
 
   return (
-    <SafeAreaView style={restockSessionsStyles.container}>
+    <SafeAreaView style={[restockSessionsStyles.container, { paddingTop: 20 }]}>
       {/* Header */}
-      <View style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        paddingVertical: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: '#DEE2E6',
-        backgroundColor: '#FEFDF9'
-      }}>
+      <View style={restockSessionsStyles.sessionHeader}>
         <TouchableOpacity 
           style={{
             paddingVertical: 8,
@@ -127,12 +118,7 @@ export default function AddProductScreen() {
             color: '#6C757D'
           }}>← Back</Text>
         </TouchableOpacity>
-        <Text style={{
-          fontFamily: 'Satoshi-Bold',
-          fontSize: 18,
-          fontWeight: '600',
-          color: '#212529'
-        }}>
+        <Text style={restockSessionsStyles.sessionHeaderTitle}>
           {currentSession.session ? 'Add Product' : 'Start New Session'}
         </Text>
         <View style={{ width: 60 }} /> {/* Spacer for centering */}
@@ -140,20 +126,15 @@ export default function AddProductScreen() {
 
       {/* Content */}
       <ScrollView 
-        style={restockSessionsStyles.container}
+        style={{ flex: 1 }}
         contentContainerStyle={{
           padding: 20,
           paddingBottom: 40
         }}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <View style={{
-          backgroundColor: '#FEFDF9',
-          borderRadius: 12,
-          padding: 20,
-          borderWidth: 1,
-          borderColor: '#DEE2E6'
-        }}>
+        <View style={restockSessionsStyles.formContainer}>
           <ProductForm
             isNewSession={!currentSession.session}
             onSubmit={handleSubmit}

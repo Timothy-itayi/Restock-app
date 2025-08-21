@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useMemo } from 'react';
-import { SupabaseSessionRepository } from '../../../infrastructure/repositories/SupabaseSessionRepository';
-import { SupabaseProductRepository } from '../../../infrastructure/repositories/SupabaseProductRepository';
-import { SupabaseSupplierRepository } from '../../../infrastructure/repositories/SupabaseSupplierRepository';
-import { SupabaseEmailRepository } from '../../../infrastructure/repositories/SupabaseEmailRepository';
-import { SupabaseUserRepository } from '../../../infrastructure/repositories/SupabaseUserRepository';
+import { SupabaseSessionRepository } from '../../../backend/infrastructure/repositories/SupabaseSessionRepository';
+import { SupabaseProductRepository } from '../../../backend/infrastructure/repositories/SupabaseProductRepository';
+import { SupabaseSupplierRepository } from '../../../backend/infrastructure/repositories/SupabaseSupplierRepository';
+import { SupabaseEmailRepository } from '../../../backend/infrastructure/repositories/SupabaseEmailRepository';
+import { SupabaseUserRepository } from '../../../backend/infrastructure/repositories/SupabaseUserRepository';
 
 // Create context for repositories
 const RepositoryContext = createContext<{

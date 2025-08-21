@@ -1,12 +1,15 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
+import { View, Text, Alert } from 'react-native';
 import { useProductForm } from '../hooks/useProductForm';
 import { useRestockSession } from '../hooks/useRestockSession';
 import Input from '../../../components/Input';
 import Button from '../../../components/Button';
-import Card from '../../../components/Card';
 import CustomToast from '../../../components/CustomToast';
 import { Logger } from '../utils/logger';
+
+// Styles
+import { useThemedStyles } from '../../../../styles/useThemedStyles';
+import { getRestockSessionsStyles } from '../../../../styles/components/restock-sessions';
 
 interface ProductFormProps {
   onSuccess?: () => void;
@@ -27,6 +30,7 @@ export function ProductForm({ onSuccess, onSubmit, isNewSession = false, isSubmi
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
+  const restockSessionsStyles = useThemedStyles(getRestockSessionsStyles);
 
   // Check if there's an active session
   const hasActiveSession = !!currentSession.session;
@@ -124,56 +128,62 @@ export function ProductForm({ onSuccess, onSubmit, isNewSession = false, isSubmi
   // If this is for a new session, show the form even without an active session
   if (!hasActiveSession && !isNewSession) {
     return (
-      <Card style={styles.noSessionCard}>
-        <Text style={styles.noSessionTitle}>No Active Session</Text>
-        <Text style={styles.noSessionDescription}>
+      <View style={restockSessionsStyles.emptyState}>
+        <Text style={restockSessionsStyles.emptyStateText}>No Active Session</Text>
+        <Text style={restockSessionsStyles.emptyStateSubtext}>
           You need to start a new restocking session before adding products.
         </Text>
-      </Card>
+      </View>
     );
   }
 
   return (
-    <Card style={styles.container}>
-      <Text style={styles.title}>Add Product to Session</Text>
+    <View>
+      <Text style={restockSessionsStyles.formTitle}>Add Product to Session</Text>
       
-      <View style={styles.form}>
+      <View style={restockSessionsStyles.inputGroup}>
         <Input
           label="Product Name"
           value={productForm.formData.productName}
           onChangeText={(value) => handleInputChange('productName', value)}
           placeholder="e.g., Organic Bananas"
           autoCapitalize="words"
-          style={styles.input}
+          fullWidth
         />
         {productForm.validationErrors.productName && (
-          <Text style={styles.errorText}>{productForm.validationErrors.productName}</Text>
+          <Text style={restockSessionsStyles.errorText}>{productForm.validationErrors.productName}</Text>
         )}
+      </View>
 
+      <View style={restockSessionsStyles.inputGroup}>
         <Input
           label="Quantity"
           value={productForm.formData.quantity}
           onChangeText={(value) => handleInputChange('quantity', value)}
           placeholder="e.g., 10"
           keyboardType="numeric"
-          style={styles.input}
+          fullWidth
         />
         {productForm.validationErrors.quantity && (
-          <Text style={styles.errorText}>{productForm.validationErrors.quantity}</Text>
+          <Text style={restockSessionsStyles.errorText}>{productForm.validationErrors.quantity}</Text>
         )}
+      </View>
 
+      <View style={restockSessionsStyles.inputGroup}>
         <Input
           label="Supplier Name"
           value={productForm.formData.supplierName}
           onChangeText={(value) => handleInputChange('supplierName', value)}
           placeholder="e.g., Fresh Farms Co"
           autoCapitalize="words"
-          style={styles.input}
+          fullWidth
         />
         {productForm.validationErrors.supplierName && (
-          <Text style={styles.errorText}>{productForm.validationErrors.supplierName}</Text>
+          <Text style={restockSessionsStyles.errorText}>{productForm.validationErrors.supplierName}</Text>
         )}
+      </View>
 
+      <View style={restockSessionsStyles.inputGroup}>
         <Input
           label="Supplier Email"
           value={productForm.formData.supplierEmail}
@@ -181,12 +191,14 @@ export function ProductForm({ onSuccess, onSubmit, isNewSession = false, isSubmi
           placeholder="e.g., orders@freshfarms.com"
           keyboardType="email-address"
           autoCapitalize="none"
-          style={styles.input}
+          fullWidth
         />
         {productForm.validationErrors.supplierEmail && (
-          <Text style={styles.errorText}>{productForm.validationErrors.supplierEmail}</Text>
+          <Text style={restockSessionsStyles.errorText}>{productForm.validationErrors.supplierEmail}</Text>
         )}
+      </View>
 
+      <View style={restockSessionsStyles.inputGroup}>
         <Input
           label="Notes (Optional)"
           value={productForm.formData.notes || ''}
@@ -194,14 +206,18 @@ export function ProductForm({ onSuccess, onSubmit, isNewSession = false, isSubmi
           placeholder="e.g., Organic preferred, urgent delivery"
           multiline
           numberOfLines={3}
-          style={styles.input}
+          fullWidth
         />
+      </View>
 
+      <View style={restockSessionsStyles.formButtons}>
         <Button
-          title={productForm.isSubmitting ? "Adding Product..." : "Add Product"}
+          title={isSubmitting ? "Adding Product..." : "Add Product"}
           onPress={handleSubmit}
-          disabled={!canSubmit}
-          style={styles.submitButton}
+          disabled={!canSubmit || isSubmitting}
+          variant="primary"
+          size="lg"
+          fullWidth
         />
       </View>
 
@@ -211,52 +227,7 @@ export function ProductForm({ onSuccess, onSubmit, isNewSession = false, isSubmi
         type={toastType}
         onDismiss={() => setShowToast(false)}
       />
-    </Card>
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    margin: 16,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  form: {
-    gap: 16,
-  },
-  input: {
-    marginBottom: 0, // Remove default margin since we're using gap
-  },
-  submitButton: {
-    backgroundColor: '#6B7F6B',
-    marginTop: 8,
-  },
-  noSessionCard: {
-    margin: 16,
-    padding: 24,
-    alignItems: 'center',
-  },
-  noSessionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#6B7280',
-    marginBottom: 8,
-  },
-  noSessionDescription: {
-    fontSize: 16,
-    color: '#9CA3AF',
-    textAlign: 'center',
-    lineHeight: 24,
-  },
-  errorText: {
-    color: '#DC2626',
-    fontSize: 14,
-    marginTop: -8,
-    marginBottom: 8,
-  },
-});

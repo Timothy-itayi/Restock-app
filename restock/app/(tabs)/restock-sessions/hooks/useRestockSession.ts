@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@clerk/clerk-expo';
-import { useSessionRepository } from '../../../infrastructure/repositories/SupabaseHooksProvider';
+import { useSessionRepository } from '../../../infrastructure/supabase/SupabaseHooksProvider';
 import { RestockSession, SessionStatus } from '../../../domain/entities/RestockSession';
 
 export interface RestockSessionState {
@@ -50,34 +50,51 @@ export function useRestockSession(sessionId?: string): RestockSessionState & Res
   const { userId } = useAuth();
   const sessionRepository = useSessionRepository();
 
+  // Debug logging
+  console.log('[useRestockSession] Hook initialized:', {
+    userId,
+    hasSessionRepository: !!sessionRepository,
+    sessionRepositoryKeys: sessionRepository ? Object.keys(sessionRepository) : 'null',
+    hasCreateMethod: !!sessionRepository?.create,
+    createMethodType: typeof sessionRepository?.create,
+    isReady: sessionRepository?.isReady,
+    isUserContextSet: sessionRepository?.isUserContextSet,
+    // More detailed debugging
+    repositoryType: sessionRepository?.constructor?.name,
+    allMethods: sessionRepository ? Object.getOwnPropertyNames(Object.getPrototypeOf(sessionRepository)) : 'null',
+    directProperties: sessionRepository ? Object.getOwnPropertyNames(sessionRepository) : 'null'
+  });
+
   // State
   const [session, setSession] = useState<RestockSession | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isContextSet, setIsContextSet] = useState(false);
 
-  /**
-   * Ensure Supabase user context is set (called once per hook instance)
-   */
-  const ensureUserContext = useCallback(async () => {
-    if (!userId) {
-      throw new Error('User ID is required');
-    }
-    
-    if (!isContextSet) {
-      const { setCurrentUserContext } = await import('../../../../backend/config/supabase');
-      await setCurrentUserContext(userId);
-      setIsContextSet(true);
-      console.log('[useRestockSession] Supabase context set for user:', userId);
-    }
-  }, [userId, isContextSet]);
 
   /**
    * Create a new session
    */
   const createSession = useCallback(async (name?: string) => {
+    console.log('[useRestockSession] createSession called:', {
+      name,
+      userId,
+      hasSessionRepository: !!sessionRepository,
+      sessionRepositoryKeys: sessionRepository ? Object.keys(sessionRepository) : 'null',
+      hasCreateMethod: !!sessionRepository?.create,
+      createMethodType: typeof sessionRepository?.create
+    });
+
     if (!userId) {
       return { success: false, error: 'User not authenticated' };
+    }
+
+    // Check if Supabase is ready and user context is set
+    if (!sessionRepository.isReady) {
+      return { success: false, error: 'Supabase not ready' };
+    }
+
+    if (!sessionRepository.isUserContextSet) {
+      return { success: false, error: 'User context not set. Please wait for authentication to complete.' };
     }
 
     setIsLoading(true);
@@ -85,9 +102,6 @@ export function useRestockSession(sessionId?: string): RestockSessionState & Res
 
     try {
       console.log('[useRestockSession] Creating session:', { userId, name });
-      
-      // Ensure user context is set (only once)
-      await ensureUserContext();
       
       const sessionName = name || `Restock Session ${new Date().toLocaleDateString()}`;
       
@@ -99,7 +113,13 @@ export function useRestockSession(sessionId?: string): RestockSessionState & Res
         createdAt: new Date(),
       });
       
-      // Now call repository AFTER context is set
+      console.log('[useRestockSession] About to call sessionRepository.create with:', {
+        newSessionEntity,
+        hasCreateMethod: !!sessionRepository.create,
+        createMethodType: typeof sessionRepository.create
+      });
+      
+      // Call repository directly - no need for Supabase context
       const sessionId = await sessionRepository.create(newSessionEntity);
       
       // Load the created session
@@ -119,7 +139,7 @@ export function useRestockSession(sessionId?: string): RestockSessionState & Res
     } finally {
       setIsLoading(false);
     }
-  }, [userId, sessionRepository, ensureUserContext]);
+  }, [userId, sessionRepository]);
 
   /**
    * Load an existing session
@@ -173,9 +193,6 @@ export function useRestockSession(sessionId?: string): RestockSessionState & Res
         productName: params.productName,
       });
       
-      // Ensure user context is set (only once)
-      await ensureUserContext();
-      
       const item = {
         userId: userId, // Add userId for repository
         productName: params.productName,
@@ -204,7 +221,7 @@ export function useRestockSession(sessionId?: string): RestockSessionState & Res
     } finally {
       setIsLoading(false);
     }
-  }, [session, sessionRepository, ensureUserContext]);
+  }, [session, sessionRepository, userId]);
 
   /**
    * Remove a product from the current session
@@ -219,9 +236,6 @@ export function useRestockSession(sessionId?: string): RestockSessionState & Res
 
     try {
       console.log('[useRestockSession] Removing product:', {  sessionId: session.id });
-      
-      // Ensure user context is set (only once)
-      await ensureUserContext();
       
       await sessionRepository.removeItem(session.id);
       
@@ -242,7 +256,7 @@ export function useRestockSession(sessionId?: string): RestockSessionState & Res
     } finally {
       setIsLoading(false);
     }
-  }, [session, sessionRepository, ensureUserContext]);
+  }, [session, sessionRepository]);
 
   /**
    * Update session name
@@ -253,9 +267,6 @@ export function useRestockSession(sessionId?: string): RestockSessionState & Res
 
     try {
       console.log('[useRestockSession] Updating session name:', { sessionId, name });
-      
-      // Ensure user context is set (only once)
-      await ensureUserContext();
       
       await sessionRepository.updateName(sessionId, name);
       
@@ -278,7 +289,7 @@ export function useRestockSession(sessionId?: string): RestockSessionState & Res
     } finally {
       setIsLoading(false);
     }
-  }, [session, sessionRepository, ensureUserContext]);
+  }, [session, sessionRepository]);
 
   /**
    * Clear the current session

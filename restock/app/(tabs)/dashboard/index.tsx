@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { ScrollView, RefreshControl, DeviceEventEmitter, View, Text } from "react-native";
+import { ScrollView, RefreshControl, View, Text } from "react-native";
 import { getDashboardStyles } from "../../../styles/components/dashboard";
 import { useThemedStyles } from "../../../styles/useThemedStyles";
 import { useAuth } from "@clerk/clerk-expo";
-import { useFocusEffect } from "expo-router";
+
 import { useUnifiedAuth } from "../../_contexts/UnifiedAuthProvider";
 import { useDashboardData } from "./hooks/useDashboardData";
 import useProfileStore from "../../stores/useProfileStore";

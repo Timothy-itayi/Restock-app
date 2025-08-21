@@ -1,16 +1,40 @@
-import { supabase } from '../../backend/config/supabase';
-import { Supplier } from '../../app/domain/entities/Supplier';
-import { SupplierRepository } from '../../app/domain/interfaces/SupplierRepository';
-import { SupplierMapper } from '../../app/infrastructure/repositories/mappers/SupplierMapper';
-import type { Supplier as DbSupplier } from '../../backend/types/database';
+import { supabase } from '../../config/supabase';
+import { Supplier } from '../../../app/domain/entities/Supplier';
+import { SupplierRepository } from '../../../app/domain/interfaces/SupplierRepository';
+import { SupplierMapper } from '../../../app/infrastructure/repositories/mappers/SupplierMapper';
+import type { Supplier as DbSupplier } from '../../types/database';
 
 export class SupabaseSupplierRepository implements SupplierRepository {
+  private userId: string | null = null;
+
+  constructor(userId?: string) {
+    this.userId = userId || null;
+  }
+
+  /**
+   * Set the user ID for this repository instance
+   */
+  setUserId(userId: string) {
+    this.userId = userId;
+  }
+
+  /**
+   * Get the current user ID, throwing an error if not set
+   */
+  private getCurrentUserId(): string {
+    if (!this.userId) {
+      throw new Error('User ID not set in repository. Call setUserId() first.');
+    }
+    return this.userId;
+  }
+
   async save(supplier: Supplier): Promise<void> {
     const dbSupplier = SupplierMapper.toDatabase(supplier);
     
     if (supplier.id) {
       // Update existing supplier
       const { error } = await supabase.rpc('update_supplier', {
+        p_user_id: this.getCurrentUserId(),
         p_id: supplier.id,
         p_name: dbSupplier.name,
         p_email: dbSupplier.email,
@@ -24,6 +48,7 @@ export class SupabaseSupplierRepository implements SupplierRepository {
     } else {
       // Create new supplier
       const { error } = await supabase.rpc('insert_supplier', {
+        p_user_id: this.getCurrentUserId(),
         p_name: dbSupplier.name,
         p_email: dbSupplier.email,
         p_phone: dbSupplier.phone,
@@ -38,7 +63,9 @@ export class SupabaseSupplierRepository implements SupplierRepository {
 
   async findById(id: string): Promise<Supplier | null> {
     try {
-      const { data: suppliers, error } = await supabase.rpc('get_suppliers');
+      const { data: suppliers, error } = await supabase.rpc('get_suppliers', {
+        p_user_id: this.getCurrentUserId()
+      });
       
       if (error) {
         throw new Error(`Failed to get suppliers: ${error.message}`);
@@ -53,9 +80,10 @@ export class SupabaseSupplierRepository implements SupplierRepository {
   }
 
   async findByUserId(): Promise<ReadonlyArray<Supplier>> {
-    // RPC functions automatically filter by current user, so userId is not needed
     try {
-      const { data: suppliers, error } = await supabase.rpc('get_suppliers');
+      const { data: suppliers, error } = await supabase.rpc('get_suppliers', {
+        p_user_id: this.getCurrentUserId()
+      });
       
       if (error) {
         throw new Error(`Failed to get suppliers: ${error.message}`);
@@ -70,6 +98,7 @@ export class SupabaseSupplierRepository implements SupplierRepository {
 
   async delete(id: string): Promise<void> {
     const { error } = await supabase.rpc('delete_supplier', {
+      p_user_id: this.getCurrentUserId(),
       p_id: id
     });
 
@@ -80,7 +109,9 @@ export class SupabaseSupplierRepository implements SupplierRepository {
 
   async findByEmail(email: string): Promise<Supplier | null> {
     try {
-      const { data: suppliers, error } = await supabase.rpc('get_suppliers');
+      const { data: suppliers, error } = await supabase.rpc('get_suppliers', {
+        p_user_id: this.getCurrentUserId()
+      });
       
       if (error) {
         throw new Error(`Failed to get suppliers: ${error.message}`);
@@ -95,9 +126,10 @@ export class SupabaseSupplierRepository implements SupplierRepository {
   }
 
   async search(searchTerm: string): Promise<ReadonlyArray<Supplier>> {
-    // RPC functions automatically filter by current user, so userId is not needed
     try {
-      const { data: suppliers, error } = await supabase.rpc('get_suppliers');
+      const { data: suppliers, error } = await supabase.rpc('get_suppliers', {
+        p_user_id: this.getCurrentUserId()
+      });
       
       if (error) {
         throw new Error(`Failed to get suppliers: ${error.message}`);
@@ -117,9 +149,10 @@ export class SupabaseSupplierRepository implements SupplierRepository {
   }
 
   async countByUserId(): Promise<number> {
-    // RPC functions automatically filter by current user, so userId is not needed
     try {
-      const { data: suppliers, error } = await supabase.rpc('get_suppliers');
+      const { data: suppliers, error } = await supabase.rpc('get_suppliers', {
+        p_user_id: this.getCurrentUserId()
+      });
       
       if (error) {
         throw new Error(`Failed to get suppliers: ${error.message}`);
