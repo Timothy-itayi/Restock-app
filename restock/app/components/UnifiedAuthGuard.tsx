@@ -18,12 +18,40 @@ export default function UnifiedAuthGuard({
   requireProfileSetup = false,
   redirectTo 
 }: UnifiedAuthGuardProps) {
-  const { shouldShowLoader, hasError, errorMessage, loaderMessage } = useAuthGuardState({
+  const { 
+    shouldShowLoader, 
+    isRedirecting, 
+    hasError, 
+    errorMessage,
+    authType 
+  } = useAuthGuardState({
     requireAuth,
     requireNoAuth,
     requireProfileSetup,
     redirectTo
   });
+
+  // 🔒 CRITICAL SECURITY CHECK: Block unauthorized users
+  if (authType?.isBlocked) {
+    console.error('🚨 UnifiedAuthGuard: User is blocked/unauthorized, showing blocked state');
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, backgroundColor: '#f8f9fa' }}>
+        <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#DC3545', marginBottom: 10 }}>Access Denied</Text>
+        <Text style={{ fontSize: 16, color: '#666', textAlign: 'center', marginBottom: 20 }}>
+          Your account is not authorized to access this application.
+        </Text>
+        <Text style={{ fontSize: 14, color: '#666', textAlign: 'left', marginBottom: 20 }}>
+          This could happen if:{'\n'}
+          • Your account was not properly set up{'\n'}
+          • There was an issue with your profile creation{'\n'}
+          
+        </Text>
+        <Text style={{ fontSize: 14, color: '#666', textAlign: 'center' }}>
+          Please contact support or try signing in again.
+        </Text>
+      </View>
+    );
+  }
 
   // Error boundary for auth context
   if (hasError) {
@@ -48,7 +76,7 @@ export default function UnifiedAuthGuard({
 
   // Smart loading screen - only show during specific transitions
   if (shouldShowLoader) {
-    return <FullScreenLoader message={loaderMessage} />;
+    return <FullScreenLoader message="Loading..." />;
   }
 
   // Render children if all conditions are met

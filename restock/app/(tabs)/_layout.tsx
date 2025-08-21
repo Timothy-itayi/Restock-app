@@ -54,7 +54,7 @@ export default function TabLayout() {
           
           {/* Restock Sessions - Main workflow for creating sessions */}
           <Tabs.Screen
-            name="restock-sessions/index"
+            name="restock-sessions"
             options={{
               title: tabScreenOptions.restockSessions.title,
               tabBarIcon: ({ color, size }) => (
@@ -64,6 +64,16 @@ export default function TabLayout() {
                   color={color} 
                 />
               ),
+              headerShown: false,
+            }}
+          />
+          
+          {/* Hidden route for add-product modal */}
+          <Tabs.Screen
+            name="restock-sessions/add-product"
+            options={{
+              href: null, // Hide from tab bar
+              headerShown: false,
             }}
           />
           

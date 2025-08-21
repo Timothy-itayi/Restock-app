@@ -1,116 +1,103 @@
 import { supabase } from '../config/supabase';
-import type { Supplier, InsertSupplier, UpdateSupplier } from '../types/database';
+
 
 export class SupplierService {
   /**
-   * Get all suppliers for a user
+   * Get all suppliers for current user via RPC
    */
-  static async getUserSuppliers(userId: string) {
+  static async getUserSuppliers() {
     try {
-      const { data: suppliers, error } = await supabase
-        .from('suppliers')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
-
+      const { data: suppliers, error } = await supabase.rpc('get_suppliers');
+      
       if (error) {
         throw error;
       }
 
       return { data: suppliers, error: null };
     } catch (error) {
-      console.error('[SupplierService] Error getting user suppliers', { error, userId });
+      console.error('[SupplierService] Error getting user suppliers via RPC:', error);
       return { data: null, error };
     }
   }
 
   /**
-   * Get a single supplier by ID
+   * Get a single supplier by ID (filter from RPC results)
    */
   static async getSupplier(supplierId: string) {
     try {
-      const { data: supplier, error } = await supabase
-        .from('suppliers')
-        .select('*')
-        .eq('id', supplierId)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
+      const { data: suppliers, error } = await supabase.rpc('get_suppliers');
+      
+      if (error) {
         throw error;
       }
 
-      return { data: supplier, error: null };
+      const supplier = suppliers?.find((s: any) => s.id === supplierId);
+      return { data: supplier || null, error: null };
     } catch (error) {
+      console.error('[SupplierService] Error getting supplier via RPC:', error);
       return { data: null, error };
     }
   }
 
   /**
-   * Create a new supplier
+   * Create a new supplier via RPC
    */
   static async createSupplier(supplier: any) {
     try {
-      const { data: newSupplier, error } = await supabase
-        .from('suppliers')
-        .insert({
-          user_id: supplier.userId,
-          name: supplier.name,
-          email: supplier.email,
-          phone: supplier.phone,
-          notes: supplier.notes
-        })
-        .select('id')
-        .single();
+      const { data: newSupplier, error } = await supabase.rpc('insert_supplier', {
+        p_name: supplier.name,
+        p_email: supplier.email,
+        p_phone: supplier.phone,
+        p_notes: supplier.notes
+      });
 
       if (error) {
         throw error;
       }
 
-      return { data: { id: newSupplier.id }, error: null };
+      // RPC returns array, get first item
+      const createdSupplier = Array.isArray(newSupplier) ? newSupplier[0] : newSupplier;
+      return { data: { id: createdSupplier?.id }, error: null };
     } catch (error) {
-      console.error('[SupplierService] Error creating supplier', { error, supplier });
+      console.error('[SupplierService] Error creating supplier via RPC:', error);
       return { data: null, error };
     }
   }
 
   /**
-   * Update an existing supplier
+   * Update an existing supplier via RPC
    */
   static async updateSupplier(supplierId: string, updates: any) {
     try {
-      const updateData: UpdateSupplier = {};
-      
-      if (updates.name !== undefined) updateData.name = updates.name;
-      if (updates.email !== undefined) updateData.email = updates.email;
-      if (updates.phone !== undefined) updateData.phone = updates.phone;
-      if (updates.notes !== undefined) updateData.notes = updates.notes;
-
-      const { data: updatedSupplier, error } = await supabase
-        .from('suppliers')
-        .update(updateData)
-        .eq('id', supplierId)
-        .select('id')
-        .single();
+      const { data: updatedSupplier, error } = await supabase.rpc('update_supplier', {
+        p_id: supplierId,
+        p_name: updates.name,
+        p_email: updates.email,
+        p_phone: updates.phone,
+        p_notes: updates.notes
+      });
 
       if (error) {
         throw error;
       }
 
-      return { data: { id: updatedSupplier.id }, error: null };
+      // RPC returns array, get first item
+      const supplier = Array.isArray(updatedSupplier) ? updatedSupplier[0] : updatedSupplier;
+      return { data: { id: supplier?.id }, error: null };
     } catch (error) {
+      console.error('[SupplierService] Error updating supplier via RPC:', error);
       return { data: null, error };
     }
   }
 
   /**
-   * Delete a supplier
+   * Delete a supplier via RPC
    */
   static async deleteSupplier(supplierId: string) {
     try {
-      const { error } = await supabase
-        .from('suppliers')
-        .delete()
-        .eq('id', supplierId);
+      const { error } = await supabase.rpc('delete_supplier', {
+        p_id: supplierId
+      });
 
       if (error) {
         throw error;
@@ -118,48 +105,49 @@ export class SupplierService {
 
       return { data: { success: true }, error: null };
     } catch (error) {
+      console.error('[SupplierService] Error deleting supplier via RPC:', error);
       return { data: null, error };
     }
   }
 
   /**
-   * Search suppliers by name or email
+   * Search suppliers by name (filter from RPC results)
    */
-  static async searchSuppliers(query: string) {
+  static async searchSuppliers(searchTerm: string) {
     try {
-      const { data: suppliers, error } = await supabase
-        .from('suppliers')
-        .select('*')
-        .or(`name.ilike.%${query}%,email.ilike.%${query}%`)
-        .order('created_at', { ascending: false });
-
+      const { data: suppliers, error } = await supabase.rpc('get_suppliers');
+      
       if (error) {
         throw error;
       }
 
-      return { data: suppliers, error: null };
+      const filteredSuppliers = suppliers?.filter((supplier: any) => 
+        supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        supplier.email.toLowerCase().includes(searchTerm.toLowerCase())
+      ) || [];
+
+      return { data: filteredSuppliers, error: null };
     } catch (error) {
+      console.error('[SupplierService] Error searching suppliers via RPC:', error);
       return { data: null, error };
     }
   }
 
   /**
-   * Get supplier by email
+   * Get suppliers by email (filter from RPC results)
    */
   static async getSupplierByEmail(email: string) {
     try {
-      const { data: supplier, error } = await supabase
-        .from('suppliers')
-        .select('*')
-        .eq('email', email.toLowerCase().trim())
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
+      const { data: suppliers, error } = await supabase.rpc('get_suppliers');
+      
+      if (error) {
         throw error;
       }
 
-      return { data: supplier, error: null };
+      const supplier = suppliers?.find((s: any) => s.email === email);
+      return { data: supplier || null, error: null };
     } catch (error) {
+      console.error('[SupplierService] Error getting supplier by email via RPC:', error);
       return { data: null, error };
     }
   }

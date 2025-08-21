@@ -1,6 +1,4 @@
-import { ConvexHttpClient } from 'convex/browser';
-import { api } from '../../convex../_generated/api';
-import { Id } from '../../convex../_generated/dataModel';
+import { supabase } from '../config/supabase';
 import type { EmailSent, InsertEmailSent, UpdateEmailSent } from '../types/database';
 
 // Email status constants
@@ -12,374 +10,235 @@ export const EMAIL_STATUS = {
 } as const;
 
 export class EmailService {
-  private static convexClient: ConvexHttpClient | null = null;
-
-  private static getConvexClient(): ConvexHttpClient {
-    if (!this.convexClient) {
-      const convexUrl = process.env.EXPO_PUBLIC_CONVEX_URL;
-      if (!convexUrl) {
-        throw new Error('EXPO_PUBLIC_CONVEX_URL not configured');
-      }
-      this.convexClient = new ConvexHttpClient(convexUrl);
-    }
-    return this.convexClient;
-  }
-
   /**
-   * Get all emails for a session
+   * Get all emails for current user via RPC
    */
-  static async getSessionEmails(sessionId: string) {
+  static async getUserEmails() {
     try {
-      const client = this.getConvexClient();
-      const emails = await client.query(api.emails.listBySession, { sessionId: sessionId as Id<"restockSessions"> });
+      const { data: emails, error } = await supabase.rpc('get_emails_sent');
       
-      // Transform to match expected format
-      const data = emails.map((email: any) => ({
-        id: email._id,
-        sessionId: email.sessionId,
-        supplierId: null, // Not stored in Convex schema
-        emailContent: email.emailContent,
-        status: email.status,
-        sentAt: new Date(email.sentAt).toISOString(),
-        errorMessage: email.errorMessage,
-        suppliers: {
-          id: null,
-          name: email.supplierName,
-          email: email.supplierEmail
-        }
-      }));
+      if (error) {
+        throw error;
+      }
 
-      return { data, error: null };
+      return { data: emails, error: null };
     } catch (error) {
+      console.error('[EmailService] Error getting user emails via RPC:', error);
       return { data: null, error };
     }
   }
 
   /**
-   * Get a single email by ID
+   * Get all emails for a specific session via RPC
+   */
+  static async getSessionEmails(sessionId: string) {
+    try {
+      const { data: emails, error } = await supabase.rpc('get_emails_sent');
+      
+      if (error) {
+        throw error;
+      }
+
+      // Filter emails by session ID
+      const sessionEmails = emails?.filter((email: any) => email.session_id === sessionId) || [];
+      return { data: sessionEmails, error: null };
+    } catch (error) {
+      console.error('[EmailService] Error getting session emails via RPC:', error);
+      return { data: null, error };
+    }
+  }
+
+  /**
+   * Get a single email by ID via RPC
    */
   static async getEmail(emailId: string) {
     try {
-      const client = this.getConvexClient();
-      const email = await client.query(api.emails.get, { id: emailId as Id<"emailsSent"> });
+      const { data: emails, error } = await supabase.rpc('get_emails_sent');
       
+      if (error) {
+        throw error;
+      }
+
+      const email = emails?.find((e: any) => e.id === emailId);
       if (!email) {
         return { data: null, error: 'Email not found' };
       }
 
-      // Transform to match expected format
-      const data = {
-        id: email._id,
-        sessionId: email.sessionId,
-        supplierId: null, // Not stored in Convex schema
-        emailContent: email.emailContent,
-        status: email.status,
-        sentAt: new Date(email.sentAt).toISOString(),
-        errorMessage: email.errorMessage,
-        suppliers: {
-          id: null,
-          name: email.supplierName,
-          email: email.supplierEmail
-        }
-      };
-
-      return { data, error: null };
+      return { data: email, error: null };
     } catch (error) {
+      console.error('[EmailService] Error getting email via RPC:', error);
       return { data: null, error };
     }
   }
 
   /**
-   * Create a new email record
+   * Create a new email record via RPC
    */
   static async createEmail(email: InsertEmailSent) {
     try {
-      const client = this.getConvexClient();
-      const emailId = await client.mutation(api.emails.create, {
-        sessionId: email.sessionId as Id<"restockSessions">,
-        supplierEmail: email.supplierEmail || '', // Use supplierEmail from the email object
-        supplierName: email.supplierName || '', // Use supplierName from the email object
-        emailContent: email.emailContent || ''
+      const { data: newEmail, error } = await supabase.rpc('insert_email_sent', {
+        p_delivery_status: email.delivery_status || 'pending',
+        p_sent_via: email.sent_via || 'resend',
+        p_tracking_id: email.tracking_id || null,
+        p_resend_webhook_data: email.resend_webhook_data || null,
+        p_session_id: email.session_id,
+        p_supplier_id: email.supplier_id,
+        p_email_content: email.email_content,
+        p_sent_at: email.sent_at || new Date().toISOString(),
+        p_status: email.status || 'pending',
+        p_error_message: email.error_message || null
       });
 
-      return { data: { id: emailId }, error: null };
+      if (error) {
+        throw error;
+      }
+
+      // RPC returns array, get first item
+      const createdEmail = Array.isArray(newEmail) ? newEmail[0] : newEmail;
+      return { data: { id: createdEmail?.id }, error: null };
     } catch (error) {
+      console.error('[EmailService] Error creating email via RPC:', error);
       return { data: null, error };
     }
   }
 
   /**
-   * Update email status
+   * Update an existing email via RPC
    */
   static async updateEmail(emailId: string, updates: UpdateEmailSent) {
     try {
-      const client = this.getConvexClient();
-      await client.mutation(api.emails.updateStatus, {
-        id: emailId as Id<"emailsSent">,
-        status: updates.status as any, // Type conversion needed
-        errorMessage: updates.errorMessage
+      const { data: updatedEmail, error } = await supabase.rpc('update_email_sent', {
+        p_id: emailId,
+        p_delivery_status: updates.delivery_status,
+        p_sent_via: updates.sent_via,
+        p_tracking_id: updates.tracking_id,
+        p_resend_webhook_data: updates.resend_webhook_data,
+        p_email_content: updates.email_content,
+        p_sent_at: updates.sent_at,
+        p_status: updates.status,
+        p_error_message: updates.error_message
       });
 
-      return { data: { id: emailId }, error: null };
+      if (error) {
+        throw error;
+      }
+
+      // RPC returns array, get first item
+      const email = Array.isArray(updatedEmail) ? updatedEmail[0] : updatedEmail;
+      return { data: { id: email?.id }, error: null };
     } catch (error) {
+      console.error('[EmailService] Error updating email via RPC:', error);
       return { data: null, error };
     }
   }
 
   /**
-   * Mark email as sent
-   */
-  static async markEmailAsSent(emailId: string) {
-    try {
-      const client = this.getConvexClient();
-      await client.mutation(api.emails.updateStatus, {
-        id: emailId as Id<"emailsSent">,
-        status: 'sent'
-      });
-
-      return { data: { id: emailId }, error: null };
-    } catch (error) {
-      return { data: null, error };
-    }
-  }
-
-  /**
-   * Mark email as failed
-   */
-  static async markEmailAsFailed(emailId: string, errorMessage?: string) {
-    try {
-      const client = this.getConvexClient();
-      await client.mutation(api.emails.updateStatus, {
-        id: emailId as Id<"emailsSent">,
-        status: 'failed',
-        errorMessage
-      });
-
-      return { data: { id: emailId }, error: null };
-    } catch (error) {
-      return { data: null, error };
-    }
-  }
-
-  /**
-   * Get email statistics for a session
-   */
-  static async getSessionEmailStats(sessionId: string) {
-    try {
-      const client = this.getConvexClient();
-      const emails = await client.query(api.emails.listBySession, { sessionId: sessionId as Id<"restockSessions"> });
-      
-      const stats = {
-        total: emails.length,
-        sent: emails.filter((email: any) => email.status === 'sent').length,
-        failed: emails.filter((email: any) => email.status === 'failed').length,
-        pending: emails.filter((email: any) => email.status === 'pending').length,
-      };
-
-      return { data: stats, error: null };
-    } catch (error) {
-      return { data: null, error };
-    }
-  }
-
-  /**
-   * Get all emails for a user (across all sessions)
-   */
-  static async getUserEmails(userId: string) {
-    try {
-      const client = this.getConvexClient();
-      const emails = await client.query(api.emails.listByUser, {});
-      
-      // Transform to match expected format
-      const data = emails.map((email: any) => ({
-        id: email._id,
-        sessionId: email.sessionId,
-        supplierId: null, // Not stored in Convex schema
-        emailContent: email.emailContent,
-        status: email.status,
-        sentAt: new Date(email.sentAt).toISOString(),
-        errorMessage: email.errorMessage,
-        suppliers: {
-          id: null,
-          name: email.supplierName,
-          email: email.supplierEmail
-        },
-        restockSessions: {
-          id: email.sessionId,
-          name: null, // We'd need to join with sessions table
-          createdAt: new Date(email.sentAt).toISOString()
-        }
-      }));
-
-      return { data, error: null };
-    } catch (error) {
-      return { data: null, error };
-    }
-  }
-
-  /**
-   * Delete email record
+   * Delete an email via RPC
    */
   static async deleteEmail(emailId: string) {
     try {
-      const client = this.getConvexClient();
-      await client.mutation(api.emails.remove, { id: emailId as Id<"emailsSent"> });
-      return { error: null };
-    } catch (error) {
-      return { error };
-    }
-  }
-
-  /**
-   * Send a single email via Resend
-   */
-  static async sendEmail(emailData: {
-    to: string;
-    replyTo: string;
-    subject: string;
-    body: string;
-    storeName: string;
-    supplierName: string;
-    sessionId?: string;
-    emailId?: string;
-  }) {
-    try {
-      // Direct Resend API call - no more Supabase Edge Functions
-      const resendApiKey = process.env.EXPO_PUBLIC_RESEND_API_KEY;
-      if (!resendApiKey) {
-        throw new Error('EXPO_PUBLIC_RESEND_API_KEY not configured');
-      }
-
-      const response = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${resendApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: 'Restock App <noreply@yourdomain.com>',
-          to: emailData.to,
-          reply_to: emailData.replyTo,
-          subject: emailData.subject,
-          html: emailData.body,
-        }),
+      const { error } = await supabase.rpc('delete_email_sent', {
+        p_id: emailId
       });
 
-      if (!response.ok) {
-        const errorData = await response.text();
-        throw new Error(`Email sending failed: ${response.status} - ${errorData}`);
+      if (error) {
+        throw error;
       }
 
-      const result = await response.json();
-      
-      // Update email record with sent status
-      if (emailData.emailId) {
-        await this.markEmailAsSent(emailData.emailId);
-      }
-
-      return { data: result, error: null };
+      return { data: { success: true }, error: null };
     } catch (error) {
-      console.error('Error sending email:', error);
-      
-      // Update email record with failed status
-      if (emailData.emailId) {
-        await this.markEmailAsFailed(emailData.emailId, error instanceof Error ? error.message : 'Unknown error');
-      }
-      
+      console.error('[EmailService] Error deleting email via RPC:', error);
       return { data: null, error };
     }
   }
 
   /**
-   * Send multiple emails for a session
+   * Update email delivery status via RPC
    */
-  static async sendBulkEmails(emails: Array<{
-    to: string;
-    replyTo: string;
-    subject: string;
-    body: string;
-    storeName: string;
-    supplierName: string;
-    emailId: string;
-  }>, sessionId: string, userId?: string) {
+  static async updateDeliveryStatus(emailId: string, status: string, webhookData?: any) {
     try {
-      const resendApiKey = process.env.EXPO_PUBLIC_RESEND_API_KEY;
-      if (!resendApiKey) {
-        throw new Error('EXPO_PUBLIC_RESEND_API_KEY not configured');
+      const { data: updatedEmail, error } = await supabase.rpc('update_email_sent', {
+        p_id: emailId,
+        p_delivery_status: status,
+        p_resend_webhook_data: webhookData || null,
+        p_sent_via: null,
+        p_tracking_id: null,
+        p_email_content: null,
+        p_sent_at: null,
+        p_status: null,
+        p_error_message: null
+      });
+
+      if (error) {
+        throw error;
       }
 
-      const results = [];
-      
-      for (const email of emails) {
-        try {
-          const response = await fetch('https://api.resend.com/emails', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${resendApiKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              from: 'Restock App <noreply@yourdomain.com>',
-              to: email.to,
-              reply_to: email.replyTo,
-              subject: email.subject,
-              html: email.body,
-            }),
-          });
-
-          if (response.ok) {
-            const result = await response.json();
-            await this.markEmailAsSent(email.emailId);
-            results.push({ 
-              emailId: email.emailId, 
-              success: true, 
-              messageId: result.id 
-            });
-          } else {
-            const errorData = await response.text();
-            await this.markEmailAsFailed(email.emailId, errorData);
-            results.push({ 
-              emailId: email.emailId, 
-              success: false, 
-              error: errorData 
-            });
-          }
-        } catch (error) {
-          await this.markEmailAsFailed(email.emailId, error instanceof Error ? error.message : 'Unknown error');
-          results.push({ 
-            emailId: email.emailId, 
-            success: false, 
-            error: error instanceof Error ? error.message : 'Unknown error' 
-          });
-        }
-      }
-
-      return { data: { results }, error: null };
+      // RPC returns array, get first item
+      const email = Array.isArray(updatedEmail) ? updatedEmail[0] : updatedEmail;
+      return { data: { id: email?.id }, error: null };
     } catch (error) {
-      console.error('Error sending bulk emails:', error);
+      console.error('[EmailService] Error updating delivery status via RPC:', error);
       return { data: null, error };
     }
   }
 
   /**
-   * Track email delivery status using Resend webhook data
+   * Get emails by status via RPC
    */
-  static async trackDelivery(emailId: string, webhookData: any) {
+  static async getEmailsByStatus(status: string) {
     try {
-      const deliveryStatus = webhookData.type; // delivered, bounced, complained, etc.
+      const { data: emails, error } = await supabase.rpc('get_emails_sent');
       
-      if (deliveryStatus === 'email.delivered') {
-        await this.updateEmail(emailId, { status: 'delivered' as any });
-      } else if (deliveryStatus === 'email.bounced' || deliveryStatus === 'email.complained') {
-        await this.updateEmail(emailId, { 
-          status: 'failed' as any,
-          errorMessage: `Delivery failed: ${deliveryStatus}`
-        });
+      if (error) {
+        throw error;
       }
 
-      return { data: { status: 'updated' }, error: null };
+      const filteredEmails = emails?.filter((email: any) => email.status === status) || [];
+      return { data: filteredEmails, error: null };
     } catch (error) {
-      console.error('Error tracking email delivery:', error);
+      console.error('[EmailService] Error getting emails by status via RPC:', error);
+      return { data: null, error };
+    }
+  }
+
+  /**
+   * Get emails by supplier via RPC
+   */
+  static async getEmailsBySupplier(supplierId: string) {
+    try {
+      const { data: emails, error } = await supabase.rpc('get_emails_sent');
+      
+      if (error) {
+        throw error;
+      }
+
+      const supplierEmails = emails?.filter((email: any) => email.supplier_id === supplierId) || [];
+      return { data: supplierEmails, error: null };
+    } catch (error) {
+      console.error('[EmailService] Error getting emails by supplier via RPC:', error);
+      return { data: null, error };
+    }
+  }
+
+  /**
+   * Search emails by content via RPC
+   */
+  static async searchEmails(searchTerm: string) {
+    try {
+      const { data: emails, error } = await supabase.rpc('get_emails_sent');
+      
+      if (error) {
+        throw error;
+      }
+
+      const filteredEmails = emails?.filter((email: any) => 
+        email.email_content?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        email.error_message?.toLowerCase().includes(searchTerm.toLowerCase())
+      ) || [];
+
+      return { data: filteredEmails, error: null };
+    } catch (error) {
+      console.error('[EmailService] Error searching emails via RPC:', error);
       return { data: null, error };
     }
   }

@@ -40,7 +40,7 @@ function mapDomainToView(session: RestockSession): SessionItemView {
 }
 
 export function useDashboardData() {
-  const { userId, isAuthenticated, isReady: authReady, authType } = useUnifiedAuth();
+  const { userId, isAuthenticated, isReady: authReady, isProfileSetupComplete } = useUnifiedAuth();
   const { create, findById, findByUserId, addItem, removeItem, updateName, updateStatus } = useSessionRepository();
 
   const [sessionsLoading, setSessionsLoading] = useState(true);
@@ -49,16 +49,16 @@ export function useDashboardData() {
   const [finishedSessions, setFinishedSessions] = useState<SessionItemView[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
-  const canLoad = useMemo(() => authReady && isAuthenticated && !!userId && !authType?.needsProfileSetup, [authReady, isAuthenticated, userId, authType?.needsProfileSetup]);
+  const canLoad = useMemo(() => authReady && isAuthenticated && !!userId && isProfileSetupComplete, [authReady, isAuthenticated, userId, isProfileSetupComplete]);
 
   const fetchSessions = useCallback(async () => {
-    if (!canLoad || !userId) {
+    if (!canLoad) {
       setSessionsLoading(false);
       return;
     }
     try {
       setSessionsLoading(true);
-      const sessions = await findByUserId(userId);
+      const sessions = await findByUserId(); // No userId parameter needed with RPC
       const all = sessions.map(mapDomainToView);
       const unfinished = all.filter((s: SessionItemView) => s.status === SessionStatus.DRAFT || s.status === SessionStatus.EMAIL_GENERATED);
       const finished = all.filter((s: SessionItemView) => s.status === SessionStatus.SENT);
@@ -68,7 +68,7 @@ export function useDashboardData() {
     } finally {
       setSessionsLoading(false);
     }
-  }, [canLoad, findByUserId, userId]);
+  }, [canLoad, findByUserId]);
 
   // initial load
   useEffect(() => {

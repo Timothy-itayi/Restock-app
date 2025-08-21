@@ -196,7 +196,6 @@ export class RestockApplicationServiceImpl implements RestockApplicationService 
       // Use the new use case for better logic handling
       const result = await this.updateSessionNameUseCase.execute({
         sessionId,
-        userId: session.userId,
         newName: name,
       });
 
@@ -219,7 +218,7 @@ export class RestockApplicationServiceImpl implements RestockApplicationService 
     }
   }
 
-  async updateSessionName(command: { sessionId?: string; userId: string; newName: string }): Promise<SessionResult> {
+  async updateSessionName(command: { sessionId?: string; newName: string }): Promise<SessionResult> {
     return await this.updateSessionNameUseCase.execute(command);
   }
 

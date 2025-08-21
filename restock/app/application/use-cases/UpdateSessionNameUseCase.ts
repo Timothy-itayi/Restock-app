@@ -13,7 +13,6 @@ import {
 
 export interface UpdateSessionNameCommand {
   readonly sessionId?: string; // Optional - if provided, update existing session
-  readonly userId: string;
   readonly newName: string;
 }
 
@@ -32,14 +31,7 @@ export class UpdateSessionNameUseCase {
 
   async execute(command: UpdateSessionNameCommand): Promise<UpdateSessionNameResult> {
     try {
-      // 1. Validate command
-      if (!command.userId) {
-        return {
-          success: false,
-          error: 'User ID is required',
-          action: 'updated'
-        };
-      }
+      // 1. Validate command - no userId needed with RPC functions
 
       if (!command.newName || command.newName.trim() === '') {
         return {
@@ -61,14 +53,8 @@ export class UpdateSessionNameUseCase {
           };
         }
 
-        // Verify user owns this session
-        if (existingSession.userId !== command.userId) {
-          return {
-            success: false,
-            error: 'You can only rename your own sessions',
-            action: 'updated'
-          };
-        }
+        // RPC functions ensure user can only access their own sessions
+        // No need to manually verify ownership
 
         // Update the session name
         const updatedSession = existingSession.setName(command.newName.trim());
@@ -85,7 +71,7 @@ export class UpdateSessionNameUseCase {
       const sessionId = this.idGenerator();
       const newSession = RestockSessionDomainService.createSession({
         id: sessionId,
-        userId: command.userId,
+        userId: 'current_user', // Placeholder - RPC functions handle actual user
         name: command.newName.trim(),
       });
 

@@ -16,7 +16,8 @@ interface AuthGuardState {
   isRedirecting: boolean;
   hasError: boolean;
   errorMessage?: string;
-  loaderMessage: string;
+  loaderMessage?: string;
+  authType?: any; // 🔒 Add authType to check for blocked users
 }
 
 export function useAuthGuardState({
@@ -25,7 +26,7 @@ export function useAuthGuardState({
   requireProfileSetup = false,
   redirectTo
 }: UseAuthGuardStateOptions = {}): AuthGuardState {
-  const { isReady, isAuthenticated, isLoading, authType } = useUnifiedAuth();
+  const { isReady, isProfileSetupComplete, isAuthenticated, isLoading, authType } = useUnifiedAuth();
   const segments = useSegments();
   
   // Track initial app load vs. later auth transitions
@@ -50,9 +51,10 @@ export function useAuthGuardState({
     isReady,
     isAuthenticated,
     isLoading,
+    isProfileSetupComplete, // 🔒 Use the explicit profile setup completion state
     needsProfileSetup: authType?.needsProfileSetup || false,
     authTypeKey: `${authType?.type || 'none'}-${authType?.isNewSignUp || false}` // Stable identifier instead of full object
-  }), [isReady, isAuthenticated, isLoading, authType?.needsProfileSetup, authType?.type, authType?.isNewSignUp]);
+  }), [isReady, isAuthenticated, isLoading, isProfileSetupComplete, authType?.needsProfileSetup, authType?.type, authType?.isNewSignUp]);
   
   // Memoize current route to avoid array changes
   const currentRoute = useMemo(() => segments[0] || '', [segments]);
@@ -143,14 +145,15 @@ export function useAuthGuardState({
       return;
     }
 
-    // CRITICAL: Immediate profile setup check - if user needs profile setup, redirect immediately
+    // CRITICAL: Immediate profile setup check - if profile setup is not complete, redirect immediately
     // This prevents any race conditions where users might access protected routes
-    if (authState.isAuthenticated && authState.needsProfileSetup) {
-      console.log('🚨 useAuthGuardState: CRITICAL - User needs profile setup, immediate redirect required', {
+    if (authState.isAuthenticated && !authState.isProfileSetupComplete) {
+      console.log('🚨 useAuthGuardState: CRITICAL - Profile setup not complete, immediate redirect required', {
         isNewSignUp: authType?.isNewSignUp,
         userType: authType?.type,
         currentRoute,
-        segments: segments.join('/')
+        segments: segments.join('/'),
+        isProfileSetupComplete: authState.isProfileSetupComplete
       });
       
       // Don't redirect if already on profile setup page
@@ -208,9 +211,9 @@ export function useAuthGuardState({
       return;
     }
 
-    // If user is authenticated and needs profile setup
-    if (authState.isAuthenticated && authState.needsProfileSetup) {
-      console.log('🚫 useAuthGuardState: Profile setup required but not completed', {
+    // If user is authenticated and profile setup is not complete
+    if (authState.isAuthenticated && !authState.isProfileSetupComplete) {
+      console.log('🚫 useAuthGuardState: Profile setup not completed', {
         isNewSignUp: authType?.isNewSignUp,
         userType: authType?.type,
         currentRoute,
@@ -218,7 +221,7 @@ export function useAuthGuardState({
         authState: {
           isReady: authState.isReady,
           isLoading: authState.isLoading,
-          needsProfileSetup: authState.needsProfileSetup
+          isProfileSetupComplete: authState.isProfileSetupComplete
         }
       });
       
@@ -263,7 +266,7 @@ export function useAuthGuardState({
     }
 
     // If user is authenticated and has completed setup, redirect to dashboard if on auth screens
-    if (authState.isAuthenticated && !authState.needsProfileSetup) {
+    if (authState.isAuthenticated && authState.isProfileSetupComplete) {
       const currentRoute = segments[0];
       const isOnAuthScreen = currentRoute === 'auth' || currentRoute === 'welcome' || currentRoute === 'sso-profile-setup';
       
@@ -282,7 +285,7 @@ export function useAuthGuardState({
     }
 
     // If redirectTo is specified and user is authenticated
-    if (requirements.redirectTo && authState.isAuthenticated && !authState.needsProfileSetup) {
+    if (requirements.redirectTo && authState.isAuthenticated && authState.isProfileSetupComplete) {
       console.log(`🚀 useAuthGuardState: Redirecting to specified route: ${requirements.redirectTo}`);
       try {
         router.replace(requirements.redirectTo as any);
@@ -299,6 +302,27 @@ export function useAuthGuardState({
       setLoadingPhase('ready');
     }
   }, [authState, requirements, currentRoute, loadingPhase, isRedirectingToSetup]);
+
+  // 🔒 CRITICAL: Prevent protected routes from mounting when profile setup is not complete
+  // This is the key fix for the race condition
+  const shouldBlockDashboard = authState.isAuthenticated && !authState.isProfileSetupComplete && currentRoute === '(tabs)';
+  
+  if (shouldBlockDashboard) {
+    console.log('🚨 useAuthGuardState: BLOCKING dashboard mount - profile setup not complete', {
+      isAuthenticated: authState.isAuthenticated,
+      isProfileSetupComplete: authState.isProfileSetupComplete,
+      currentRoute,
+      segments: segments.join('/')
+    });
+    return {
+      shouldShowLoader: true,
+      isRedirecting: false,
+      hasError: false,
+      errorMessage: undefined,
+      loaderMessage: 'Setting up your account...',
+      authType: authType
+    };
+  }
 
   // Smart loading screen decision
   const shouldShowLoader = (
@@ -328,7 +352,7 @@ export function useAuthGuardState({
       return 'Setting up your account...';
     }
     
-    if (loadingPhase === 'creating-dashboard' || (isRedirecting && authState.isAuthenticated && !authState.needsProfileSetup)) {
+    if (loadingPhase === 'creating-dashboard' || (isRedirecting && authState.isAuthenticated && authState.isProfileSetupComplete)) {
       return 'Creating your dashboard...';
     }
 
@@ -358,6 +382,7 @@ export function useAuthGuardState({
     isRedirecting,
     hasError,
     errorMessage,
-    loaderMessage: getLoaderMessage()
+    loaderMessage: getLoaderMessage(),
+    authType: authType // 🔒 Add authType to check for blocked users
   };
 } 

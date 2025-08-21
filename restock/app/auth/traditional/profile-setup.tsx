@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { UserProfileService } from '../../../backend/services/user-profile';
 import { SessionManager } from '../../../backend/services/session-manager';
+import { EmailAuthService } from '../../../backend/services/email-auth';
 import { useUnifiedAuth } from '../../_contexts/UnifiedAuthProvider';
 import UnifiedAuthGuard from '../../components/UnifiedAuthGuard';
 import { profileSetupStyles } from '../../../styles/components/auth/traditional/profile-setup';
@@ -11,11 +12,27 @@ import { profileSetupStyles } from '../../../styles/components/auth/traditional/
 export default function ProfileSetupScreen() {
   const { isSignedIn, userId } = useAuth();
   const { user } = useUser();
-  const { triggerAuthCheck, markNewUserReady } = useUnifiedAuth();
+  const { triggerAuthCheck, markNewUserReady, authType } = useUnifiedAuth();
   
   const [name, setName] = useState('');
   const [storeName, setStoreName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [authTypeDetermined, setAuthTypeDetermined] = useState(false);
+
+  // 🔒 CRITICAL: Prevent SSO users from seeing traditional profile setup
+  // This prevents the flash of the wrong setup screen
+  useEffect(() => {
+    if (isSignedIn && userId && authType?.type === 'google') {
+      console.log('🚨 TraditionalProfileSetup: SSO user detected, redirecting to SSO setup');
+      router.replace('/sso-profile-setup');
+      return;
+    }
+    
+    // Mark that we've determined the auth type and this user should see this screen
+    if (isSignedIn && userId && authType?.type === 'email') {
+      setAuthTypeDetermined(true);
+    }
+  }, [isSignedIn, userId, authType?.type]);
 
   // Check if user is already authenticated
   useEffect(() => {
@@ -23,6 +40,12 @@ export default function ProfileSetupScreen() {
       router.replace('/welcome');
     }
   }, [isSignedIn, userId]);
+
+  // 🔒 CRITICAL: Don't render anything until we've determined the auth type
+  // This prevents any flashing of the wrong setup screen
+  if (!authTypeDetermined) {
+    return null; // Return null to prevent any rendering
+  }
 
   const handleCreateProfile = async () => {
     if (!name.trim()) {
@@ -95,6 +118,11 @@ export default function ProfileSetupScreen() {
           lastSignIn: Date.now(),
           lastAuthMethod: 'email',
         });
+        
+        // Clear traditional auth flags since profile setup is complete
+        console.log('🔧 ProfileSetup: Clearing traditional auth flags since setup is complete');
+        await EmailAuthService.clearTraditionalAuthFlags();
+        console.log('✅ ProfileSetup: Traditional auth flags cleared');
         
         // CRITICAL: Mark the new email user as ready in UnifiedAuthProvider
         // This allows them to access the dashboard and completes the auth flow

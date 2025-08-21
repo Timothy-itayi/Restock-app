@@ -10,16 +10,16 @@ export interface SupplierRepository {
   // Basic CRUD operations
   save(supplier: Supplier): Promise<void>;
   findById(id: string): Promise<Supplier | null>;
-  findByUserId(userId: string): Promise<ReadonlyArray<Supplier>>;
+  findByUserId(): Promise<ReadonlyArray<Supplier>>; // RPC functions handle user isolation
   delete(id: string): Promise<void>;
 
   // Query operations
   findByEmail(email: string): Promise<Supplier | null>;
-  search(userId: string, searchTerm: string): Promise<ReadonlyArray<Supplier>>;
+  search(searchTerm: string): Promise<ReadonlyArray<Supplier>>; // RPC functions handle user isolation
   
   // Business queries
-  countByUserId(userId: string): Promise<number>;
-  findMostUsed(userId: string, limit: number): Promise<ReadonlyArray<Supplier>>;
+  countByUserId(): Promise<number>; // RPC functions handle user isolation
+  findMostUsed(limit: number): Promise<ReadonlyArray<Supplier>>; // RPC functions handle user isolation
 }
 
 export interface SupplierRepositoryError extends Error {

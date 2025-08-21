@@ -8,19 +8,17 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import { useAuth } from '@clerk/clerk-expo';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 
 // Clean hooks using dependency injection
 import { useSessionList } from './hooks/useSessionList';
 import { useRestockSession } from './hooks/useRestockSession';
-import { useProductForm } from './hooks/useProductForm';
 import { useServiceHealth } from './hooks/useService';
 
 // UI Components (keeping existing components)
 import { SessionHeader } from './components/SessionHeader';
 import { SessionSelection } from './components/SessionSelection';
 import { StartSection } from './components/StartSection';
-import { ProductForm } from './components/ProductForm';
 import { ProductList } from './components/ProductList';
 import { FinishSection } from './components/FinishSection';
 import NameSessionModal from '../../components/NameSessionModal';
@@ -43,13 +41,13 @@ const RestockSessionsContent: React.FC = () => {
   // Clean hooks - each focused on single responsibility
   const sessionList = useSessionList();
   const currentSession = useRestockSession();
-  const productForm = useProductForm();
   const serviceHealth = useServiceHealth();
 
   // Local UI state
   const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
   const [showNameModal, setShowNameModal] = useState(false);
   const [sessionNameInput, setSessionNameInput] = useState('');
+  const [pendingSessionName, setPendingSessionName] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Check service health on mount
@@ -101,20 +99,13 @@ const RestockSessionsContent: React.FC = () => {
       return;
     }
 
-    try {
-      const result = await currentSession.createSession();
-      
-      if (result.success && result.session) {
-        setToastMessage('New session created successfully!');
-        sessionList.refreshSessions(); // Refresh the session list
-      } else {
-        setToastMessage(result.error || 'Failed to create session');
-      }
-    } catch (error) {
-      setToastMessage('An error occurred while creating the session');
-      console.error('[RestockSessions] Error creating session:', error);
-    }
-  }, [userId, currentSession, sessionList]);
+    // Generate a default session name with timestamp
+    const defaultName = `Restock Session ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    
+    // Set the default name and show the naming modal
+    setSessionNameInput(defaultName);
+    setShowNameModal(true);
+  }, [userId]);
 
   /**
    * Handle selecting an existing session
@@ -153,43 +144,7 @@ const RestockSessionsContent: React.FC = () => {
     }
   }, [sessionList, currentSession]);
 
-  /**
-   * Handle adding a product to the current session
-   */
-  const handleAddProduct = useCallback(async () => {
-    if (!currentSession.session) {
-      setToastMessage('No active session');
-      return;
-    }
 
-    const formResult = await productForm.submitForm();
-    
-    if (!formResult.success) {
-      setToastMessage(formResult.error || 'Please fix form errors');
-      return;
-    }
-
-    try {
-      const result = await currentSession.addProduct({
-        productName: productForm.formData.productName,
-        quantity: parseInt(productForm.formData.quantity),
-        supplierName: productForm.formData.supplierName,
-        supplierEmail: productForm.formData.supplierEmail,
-        notes: productForm.formData.notes
-      });
-
-      if (result.success) {
-        setToastMessage('Product added successfully!');
-          productForm.resetForm();
-          productForm.closeForm();
-      } else {
-        setToastMessage(result.error || 'Failed to add product');
-      }
-    } catch (error) {
-      setToastMessage('An error occurred while adding the product');
-      console.error('[RestockSessions] Error adding product:', error);
-    }
-  }, [currentSession, productForm]);
 
   /**
    * Handle naming a session
@@ -201,28 +156,30 @@ const RestockSessionsContent: React.FC = () => {
     }
 
     try {
-      let result;
-      
       if (currentSession.session) {
         // Update existing session name
         console.log('[RestockSessions] Updating existing session name');
-        result = await currentSession.updateSessionName(
+        const result = await currentSession.updateSessionName(
           currentSession.session.toValue().id,
           sessionNameInput.trim()
         );
+        
+        if (result.success) {
+          setToastMessage('Session name updated successfully!');
+          setShowNameModal(false);
+          setSessionNameInput('');
+        } else {
+          setToastMessage(result.error || 'Failed to update session name');
+        }
       } else {
-        // Create new session with the specified name
-        console.log('[RestockSessions] Creating new session with name');
-        result = await currentSession.createSession(sessionNameInput.trim());
-      }
-
-      if (result.success) {
-        const action = currentSession.session ? 'updated' : 'created';
-        setToastMessage(`Session ${action} successfully!`);
+        // Starting new session - navigate to add-product screen
+        console.log('[RestockSessions] Session named, navigating to add-product');
         setShowNameModal(false);
         setSessionNameInput('');
-      } else {
-        setToastMessage(result.error || 'Failed to process session');
+        
+        // Navigate to add-product screen with the session name
+        const { router } = await import('expo-router');
+        router.push(`/restock-sessions/add-product?pendingName=${encodeURIComponent(sessionNameInput.trim())}`);
       }
     } catch (error) {
       setToastMessage('An error occurred while processing the session');
@@ -280,14 +237,7 @@ const RestockSessionsContent: React.FC = () => {
           setToastMessage('Session loaded successfully! Continue adding products...');
           
           // Small delay to ensure session is fully loaded before opening form
-          setTimeout(() => {
-            if (currentSession.session) {
-              console.log('[RestockSessions] Opening product form...');
-              productForm.openForm();
-            } else {
-              console.log('[RestockSessions] No session available when trying to open form');
-            }
-          }, 100);
+
         } catch (error) {
           console.error('[RestockSessions] Error in loadSessionAndOpenForm:', error);
           setToastMessage('Failed to load session');
@@ -297,7 +247,7 @@ const RestockSessionsContent: React.FC = () => {
       // Add delay to ensure services are ready
       setTimeout(loadSessionAndOpenForm, 200);
     }
-  }, [params.sessionId, params.action, currentSession.session, currentSession.loadSession, productForm]);
+  }, [params.sessionId, params.action, currentSession.session, currentSession.loadSession]);
 
   // Clear URL parameters after session is loaded to prevent re-triggering
   useEffect(() => {
@@ -348,8 +298,7 @@ const RestockSessionsContent: React.FC = () => {
           allSessionsCount={sessionList.sessions.length}
         />
 
-      {/* Temporary Convex Test Component */}
-      {/* <ConvexTest /> */}
+
 
       <ScrollView>
         {/* Show existing sessions first if no active session */}
@@ -380,31 +329,26 @@ const RestockSessionsContent: React.FC = () => {
           />
         )}
 
+
+
         {/* Active Session - Show Product Management */}
         {hasActiveSession && (
           <>
-            {/* Product Form */}
-            {productForm.isFormVisible && (
-              <ProductForm
-                onSuccess={() => {
-                  productForm.closeForm();
-                  // Refresh the session list to show the new product
-                  sessionList.refreshSessions();
-                }}
-              />
-            )}
-
             {/* Add Product Button */}
-            {!productForm.isFormVisible && (
-              <View style={restockSessionsStyles.addProductSection}>
-                <Text 
-                  style={restockSessionsStyles.addProductButtonText}
-                  onPress={() => productForm.openForm()}
-                >
+            <View style={restockSessionsStyles.addProductSection}>
+              <TouchableOpacity 
+                style={restockSessionsStyles.addProductButton}
+                onPress={async () => {
+                  // Navigate to add-product screen
+                  const { router } = await import('expo-router');
+                  router.push('/restock-sessions/add-product');
+                }}
+              >
+                <Text style={restockSessionsStyles.addProductButtonText}>
                   + Add Product
                 </Text>
-              </View>
-            )}
+              </TouchableOpacity>
+            </View>
 
             {/* Product List */}
             <ProductList

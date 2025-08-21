@@ -3,114 +3,99 @@ import type { Product, InsertProduct, UpdateProduct } from '../types/database';
 
 export class ProductService {
   /**
-   * Get all products for a user
+   * Get all products for current user via RPC
    */
-  static async getUserProducts(userId: string) {
+  static async getUserProducts() {
     try {
-      const { data: products, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
-
+      const { data: products, error } = await supabase.rpc('get_products');
+      
       if (error) {
         throw error;
       }
 
       return { data: products, error: null };
     } catch (error) {
-      console.error('[ProductService] Error getting user products', { error, userId });
+      console.error('[ProductService] Error getting user products via RPC:', error);
       return { data: null, error };
     }
   }
 
   /**
-   * Get a single product by ID
+   * Get a single product by ID (filter from RPC results)
    */
   static async getProduct(productId: string) {
     try {
-      const { data: product, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('id', productId)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
+      const { data: products, error } = await supabase.rpc('get_products');
+      
+      if (error) {
         throw error;
       }
 
-      return { data: product, error: null };
+      const product = products?.find((p: any) => p.id === productId);
+      return { data: product || null, error: null };
     } catch (error) {
+      console.error('[ProductService] Error getting product via RPC:', error);
       return { data: null, error };
     }
   }
 
   /**
-   * Create a new product
+   * Create a new product via RPC
    */
   static async createProduct(product: any) {
     try {
-      const { data: newProduct, error } = await supabase
-        .from('products')
-        .insert({
-          user_id: product.userId,
-          name: product.name,
-          default_quantity: product.defaultQuantity || 1,
-          default_supplier_id: product.defaultSupplierId,
-          notes: product.notes
-        })
-        .select('id')
-        .single();
+      const { data: newProduct, error } = await supabase.rpc('insert_product', {
+        p_name: product.name,
+        p_default_quantity: product.defaultQuantity || 1,
+        p_default_supplier_id: product.defaultSupplierId
+      });
 
       if (error) {
         throw error;
       }
 
-      return { data: { id: newProduct.id }, error: null };
+      // RPC returns array, get first item
+      const createdProduct = Array.isArray(newProduct) ? newProduct[0] : newProduct;
+      return { data: { id: createdProduct?.id }, error: null };
     } catch (error) {
-      console.error('[ProductService] Error creating product', { error, product });
+      console.error('[ProductService] Error creating product via RPC:', error);
       return { data: null, error };
     }
   }
 
   /**
-   * Update an existing product
+   * Update an existing product via RPC
    */
   static async updateProduct(productId: string, updates: any) {
     try {
-      const updateData: UpdateProduct = {};
-      
-      if (updates.name !== undefined) updateData.name = updates.name;
-      if (updates.defaultQuantity !== undefined) updateData.default_quantity = updates.defaultQuantity;
-      if (updates.defaultSupplierId !== undefined) updateData.default_supplier_id = updates.defaultSupplierId;
-      if (updates.notes !== undefined) updateData.notes = updates.notes;
-
-      const { data: updatedProduct, error } = await supabase
-        .from('products')
-        .update(updateData)
-        .eq('id', productId)
-        .select('id')
-        .single();
+      const { data: updatedProduct, error } = await supabase.rpc('update_product', {
+        p_id: productId,
+        p_name: updates.name,
+        p_default_quantity: updates.defaultQuantity,
+        p_default_supplier_id: updates.defaultSupplierId
+      });
 
       if (error) {
         throw error;
       }
 
-      return { data: { id: updatedProduct.id }, error: null };
+      // RPC returns array, get first item
+      const product = Array.isArray(updatedProduct) ? updatedProduct[0] : updatedProduct;
+      return { data: { id: product?.id }, error: null };
     } catch (error) {
+      console.error('[ProductService] Error updating product via RPC:', error);
       return { data: null, error };
     }
   }
 
   /**
-   * Delete a product
+   * Delete a product via RPC
    */
   static async deleteProduct(productId: string) {
     try {
-      const { error } = await supabase
-        .from('products')
-        .delete()
-        .eq('id', productId);
+      const { error } = await supabase.rpc('delete_product', {
+        p_id: productId
+      });
 
       if (error) {
         throw error;
@@ -118,27 +103,29 @@ export class ProductService {
 
       return { data: { success: true }, error: null };
     } catch (error) {
+      console.error('[ProductService] Error deleting product via RPC:', error);
       return { data: null, error };
     }
   }
 
   /**
-   * Search products by name
+   * Search products by name (filter from RPC results)
    */
-  static async searchProducts(query: string) {
+  static async searchProducts(searchTerm: string) {
     try {
-      const { data: products, error } = await supabase
-        .from('products')
-        .select('*')
-        .ilike('name', `%${query}%`)
-        .order('created_at', { ascending: false });
-
+      const { data: products, error } = await supabase.rpc('get_products');
+      
       if (error) {
         throw error;
       }
 
-      return { data: products, error: null };
+      const filteredProducts = products?.filter((product: any) => 
+        product.name.toLowerCase().includes(searchTerm.toLowerCase())
+      ) || [];
+
+      return { data: filteredProducts, error: null };
     } catch (error) {
+      console.error('[ProductService] Error searching products via RPC:', error);
       return { data: null, error };
     }
   }

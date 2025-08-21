@@ -12,7 +12,6 @@ import {
 } from '../../domain';
 
 export interface CreateRestockSessionCommand {
-  readonly userId: string;
   readonly name?: string;
 }
 
@@ -30,21 +29,16 @@ export class CreateRestockSessionUseCase {
 
   async execute(command: CreateRestockSessionCommand): Promise<CreateRestockSessionResult> {
     try {
-      // 1. Validate command
-      if (!command.userId) {
-        return {
-          success: false,
-          error: 'User ID is required',
-        };
-      }
+      // 1. Validate command - no userId needed with RPC functions
 
       // 2. Generate unique session ID
       const sessionId = this.idGenerator();
 
       // 3. Use domain service to create session with business logic
+      // RPC functions handle user isolation automatically
       const session = RestockSessionDomainService.createSession({
         id: sessionId,
-        userId: command.userId,
+        userId: 'current_user', // Placeholder - RPC functions handle actual user
         name: command.name,
       });
 

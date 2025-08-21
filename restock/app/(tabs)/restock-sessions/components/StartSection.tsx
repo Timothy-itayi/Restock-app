@@ -44,7 +44,7 @@ export const StartSection: React.FC<StartSectionProps> = ({
         accessibilityLabel="Create a new restock session"
         accessibilityHint="Opens a dialog to name your session before starting"
       >
-        <Text style={restockSessionsStyles.startButtonText}>{isLoading ? 'Starting...' : 'Start New Restock'}</Text>
+        <Text style={restockSessionsStyles.startButtonText}>{isLoading ? 'Starting...' : 'Start New Session'}</Text>
       </TouchableOpacity>
     </View>
   );

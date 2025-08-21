@@ -95,9 +95,10 @@ export class AddItemToSessionUseCase {
       }
 
       // 3. Load existing products and suppliers for potential ID resolution
+      // RPC functions automatically filter by current user
       const [existingProducts, existingSuppliers] = await Promise.all([
-        this.productRepository.findByUserId(session.userId),
-        this.supplierRepository.findByUserId(session.userId),
+        this.productRepository.findByUserId(),
+        this.supplierRepository.findByUserId(),
       ]);
 
       // 4. Create the add item request

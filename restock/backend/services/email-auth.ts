@@ -76,6 +76,9 @@ export class EmailAuthService {
         // Set a flag to indicate recent sign-in
         await AsyncStorage.setItem('recentSignIn', 'true');
         
+        // Clear any lingering traditional auth flags for returning users
+        await this.clearTraditionalAuthFlags();
+        
         // Clear returning user data since sign-in was successful
         await SessionManager.clearReturningUserData();
         
@@ -102,7 +105,7 @@ export class EmailAuthService {
     try {
       console.log('📧 EmailAuthService: Checking user profile setup for:', userId);
       
-      const profileSetupResult = await UserProfileService.hasCompletedProfileSetup(userId);
+      const profileSetupResult = await UserProfileService.hasCompletedProfileSetupByClerkId(userId);
       
       console.log('📧 EmailAuthService: Profile setup check result:', profileSetupResult);
       
@@ -132,10 +135,70 @@ export class EmailAuthService {
   static async initializeEmailAuthFlags(): Promise<void> {
     try {
       console.log('📧 EmailAuthService: Initializing email auth flags on app startup');
-      await this.clearEmailAuthFlags();
-      console.log('📧 EmailAuthService: Email auth flags initialized successfully');
+      // ❌ REMOVED: Don't clear flags on every app startup
+      // This was causing returning users to be treated as new users
+      // await this.clearEmailAuthFlags();
+      // await this.clearTraditionalAuthFlags();
+      console.log('✅ EmailAuthService: Email auth flags initialized without clearing');
     } catch (error) {
       console.error('❌ EmailAuthService: Error initializing email auth flags:', error);
     }
+  }
+
+  /**
+   * Check if this is a new traditional sign-up flow
+   * This helps prevent UnifiedAuthProvider interference with traditional auth flows
+   */
+  static async isNewTraditionalSignUp(): Promise<boolean> {
+    try {
+      const newTraditionalSignUp = await AsyncStorage.getItem('newTraditionalSignUp');
+      return newTraditionalSignUp === 'true';
+    } catch (error) {
+      console.error('📧 EmailAuthService: Error checking new traditional sign-up flag:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Set traditional auth flags for new sign-up
+   */
+  static async setTraditionalSignUpFlags(): Promise<void> {
+    try {
+      console.log('📧 EmailAuthService: Setting traditional sign-up flags');
+      await AsyncStorage.setItem('newTraditionalSignUp', 'true');
+      console.log('📧 EmailAuthService: Traditional sign-up flags set successfully');
+    } catch (error) {
+      console.error('📧 EmailAuthService: Error setting traditional sign-up flags:', error);
+    }
+  }
+
+  /**
+   * Clear traditional auth flags
+   * This should be called when the traditional auth flow is complete
+   */
+  static async clearTraditionalAuthFlags(): Promise<void> {
+    try {
+      console.log('📧 EmailAuthService: Clearing traditional auth flags');
+      await AsyncStorage.removeItem('newTraditionalSignUp');
+      console.log('📧 EmailAuthService: Traditional auth flags cleared successfully');
+    } catch (error) {
+      console.error('📧 EmailAuthService: Error clearing traditional auth flags:', error);
+    }
+  }
+
+  /**
+   * Clear traditional auth flags when user signs out
+   */
+  static async onSignOut(): Promise<void> {
+    console.log('📧 EmailAuthService: User signing out, clearing traditional auth flags');
+    await this.clearTraditionalAuthFlags();
+  }
+
+  /**
+   * Clear email auth flags when user signs out
+   */
+  static async clearEmailAuthFlagsOnSignOut(): Promise<void> {
+    console.log('📧 EmailAuthService: Clearing email auth flags on sign out');
+    await this.clearEmailAuthFlags();
   }
 } 

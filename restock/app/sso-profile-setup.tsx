@@ -21,6 +21,22 @@ export default function SSOProfileSetupScreen() {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [hasUserEditedName, setHasUserEditedName] = useState(false);
+  const [authTypeDetermined, setAuthTypeDetermined] = useState(false);
+
+  // 🔒 CRITICAL: Prevent traditional auth users from seeing SSO profile setup
+  // This prevents the flash of the wrong setup screen
+  useEffect(() => {
+    if (isAuthenticated && userId && authType?.type === 'email') {
+      console.log('🚨 SSOProfileSetup: Traditional auth user detected, redirecting to traditional setup');
+      router.replace('/auth/traditional/profile-setup');
+      return;
+    }
+    
+    // Mark that we've determined the auth type and this user should see this screen
+    if (isAuthenticated && userId && authType?.type === 'google') {
+      setAuthTypeDetermined(true);
+    }
+  }, [isAuthenticated, userId, authType?.type]);
 
   const extractUserName = (user: any): string => {
     if (user?.firstName && user?.lastName) return `${user.firstName} ${user.lastName}`;
@@ -38,8 +54,6 @@ export default function SSOProfileSetupScreen() {
 
       const userName = extractUserName(user);
       if (!hasUserEditedName) setName(userName || '');
-    } else if (isAuthenticated && user && authType.type !== 'google') {
-      setTimeout(() => router.replace('/auth/traditional/profile-setup'), 0);
     } else if (!isAuthenticated) {
       setTimeout(() => router.replace('/welcome'), 0);
     }
@@ -71,6 +85,12 @@ export default function SSOProfileSetupScreen() {
     };
     handleDeepLinkArrival();
   }, [isAuthenticated, userId, user, email, name]);
+
+  // 🔒 CRITICAL: Don't render anything until we've determined the auth type
+  // This prevents any flashing of the wrong setup screen
+  if (!authTypeDetermined) {
+    return null; // Return null to prevent any rendering
+  }
 
   const handleCreateProfile = async () => {
     if (!name.trim() || !store_name.trim() || !email.trim()) {
