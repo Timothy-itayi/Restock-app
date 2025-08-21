@@ -1,16 +1,40 @@
-import { supabase } from '../../backend/config/supabase';
-import { Product } from '../../app/domain/entities/Product';
-import { ProductRepository } from '../../app/domain/interfaces/ProductRepository';
-import { ProductMapper } from '../../app/infrastructure/repositories/mappers/ProductMapper';
+import { supabase } from '../../config/supabase';
+import { Product } from '../../../app/domain/entities/Product';
+import { ProductRepository } from '../../../app/domain/interfaces/ProductRepository';
+import { ProductMapper } from '../../../app/infrastructure/repositories/mappers/ProductMapper';
 
 
 export class SupabaseProductRepository implements ProductRepository {
+  private userId: string | null = null;
+
+  constructor(userId?: string) {
+    this.userId = userId || null;
+  }
+
+  /**
+   * Set the user ID for this repository instance
+   */
+  setUserId(userId: string) {
+    this.userId = userId;
+  }
+
+  /**
+   * Get the current user ID, throwing an error if not set
+   */
+  private getCurrentUserId(): string {
+    if (!this.userId) {
+      throw new Error('User ID not set in repository. Call setUserId() first.');
+    }
+    return this.userId;
+  }
+
   async save(product: Product): Promise<void> {
     const dbProduct = ProductMapper.toDatabase(product);
     
     if (product.id) {
       // Update existing product
       const { error } = await supabase.rpc('update_product', {
+        p_user_id: this.getCurrentUserId(),
         p_id: product.id,
         p_name: dbProduct.name,
         p_default_quantity: dbProduct.default_quantity,
@@ -23,6 +47,7 @@ export class SupabaseProductRepository implements ProductRepository {
     } else {
       // Create new product
       const { error } = await supabase.rpc('insert_product', {
+        p_user_id: this.getCurrentUserId(),
         p_name: dbProduct.name,
         p_default_quantity: dbProduct.default_quantity,
         p_default_supplier_id: dbProduct.default_supplier_id
@@ -36,7 +61,9 @@ export class SupabaseProductRepository implements ProductRepository {
 
   async findById(id: string): Promise<Product | null> {
     try {
-      const { data: products, error } = await supabase.rpc('get_products');
+      const { data: products, error } = await supabase.rpc('get_products', {
+        p_user_id: this.getCurrentUserId()
+      });
       
       if (error) {
         throw new Error(`Failed to get products: ${error.message}`);
@@ -51,9 +78,10 @@ export class SupabaseProductRepository implements ProductRepository {
   }
 
   async findByUserId(): Promise<ReadonlyArray<Product>> {
-    // RPC functions automatically filter by current user, so userId is not needed
     try {
-      const { data: products, error } = await supabase.rpc('get_products');
+      const { data: products, error } = await supabase.rpc('get_products', {
+        p_user_id: this.getCurrentUserId()
+      });
       
       if (error) {
         throw new Error(`Failed to get products: ${error.message}`);
@@ -68,6 +96,7 @@ export class SupabaseProductRepository implements ProductRepository {
 
   async delete(id: string): Promise<void> {
     const { error } = await supabase.rpc('delete_product', {
+      p_user_id: this.getCurrentUserId(),
       p_id: id
     });
 
@@ -77,9 +106,10 @@ export class SupabaseProductRepository implements ProductRepository {
   }
 
   async findByName(name: string): Promise<ReadonlyArray<Product>> {
-    // RPC functions automatically filter by current user, so userId is not needed
     try {
-      const { data: products, error } = await supabase.rpc('get_products');
+      const { data: products, error } = await supabase.rpc('get_products', {
+        p_user_id: this.getCurrentUserId()
+      });
       
       if (error) {
         throw new Error(`Failed to get products: ${error.message}`);
@@ -97,9 +127,10 @@ export class SupabaseProductRepository implements ProductRepository {
   }
 
   async search(searchTerm: string): Promise<ReadonlyArray<Product>> {
-    // RPC functions automatically filter by current user, so userId is not needed
     try {
-      const { data: products, error } = await supabase.rpc('get_products');
+      const { data: products, error } = await supabase.rpc('get_products', {
+        p_user_id: this.getCurrentUserId()
+      });
       
       if (error) {
         throw new Error(`Failed to get products: ${error.message}`);
@@ -118,9 +149,10 @@ export class SupabaseProductRepository implements ProductRepository {
   }
 
   async findBySupplierId(supplierId: string): Promise<ReadonlyArray<Product>> {
-    // RPC functions automatically filter by current user, so userId is not needed
     try {
-      const { data: products, error } = await supabase.rpc('get_products');
+      const { data: products, error } = await supabase.rpc('get_products', {
+        p_user_id: this.getCurrentUserId()
+      });
       
       if (error) {
         throw new Error(`Failed to get products: ${error.message}`);
@@ -139,7 +171,9 @@ export class SupabaseProductRepository implements ProductRepository {
 
   async findAll(): Promise<ReadonlyArray<Product>> {
     try {
-      const { data: products, error } = await supabase.rpc('get_products');
+      const { data: products, error } = await supabase.rpc('get_products', {
+        p_user_id: this.getCurrentUserId()
+      });
       
       if (error) {
         throw new Error(`Failed to get products: ${error.message}`);
@@ -153,9 +187,10 @@ export class SupabaseProductRepository implements ProductRepository {
   }
 
   async countByUserId(): Promise<number> {
-    // RPC functions automatically filter by current user, so userId is not needed
     try {
-      const { data: products, error } = await supabase.rpc('get_products');
+      const { data: products, error } = await supabase.rpc('get_products', {
+        p_user_id: this.getCurrentUserId()
+      });
       
       if (error) {
         throw new Error(`Failed to get products: ${error.message}`);
@@ -169,9 +204,10 @@ export class SupabaseProductRepository implements ProductRepository {
   }
 
   async findMostUsed(limit: number): Promise<ReadonlyArray<Product>> {
-    // RPC functions automatically filter by current user, so userId is not needed
     try {
-      const { data: products, error } = await supabase.rpc('get_products');
+      const { data: products, error } = await supabase.rpc('get_products', {
+        p_user_id: this.getCurrentUserId()
+      });
       
       if (error) {
         throw new Error(`Failed to get products: ${error.message}`);

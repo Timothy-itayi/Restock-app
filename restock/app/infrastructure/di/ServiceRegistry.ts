@@ -5,11 +5,11 @@ import {
 } from '../index';
 
 // Supabase repository imports
-import { SupabaseUserRepository } from '../../../infrastructure/repositories/SupabaseUserRepository';
-import { SupabaseSessionRepository } from '../../../infrastructure/repositories/SupabaseSessionRepository';
-import { SupabaseProductRepository } from '../../../infrastructure/repositories/SupabaseProductRepository';
-import { SupabaseSupplierRepository } from '../../../infrastructure/repositories/SupabaseSupplierRepository';
-import { SupabaseEmailRepository } from '../../../infrastructure/repositories/SupabaseEmailRepository';
+import { SupabaseUserRepository } from '../../../backend/infrastructure/repositories/SupabaseUserRepository';
+import { SupabaseSessionRepository } from '../../../backend/infrastructure/repositories/SupabaseSessionRepository';
+import { SupabaseProductRepository } from '../../../backend/infrastructure/repositories/SupabaseProductRepository';
+import { SupabaseSupplierRepository } from '../../../backend/infrastructure/repositories/SupabaseSupplierRepository';
+import { SupabaseEmailRepository } from '../../../backend/infrastructure/repositories/SupabaseEmailRepository';
 
 export function registerServices(): void {
   const container = DIContainer.getInstance();

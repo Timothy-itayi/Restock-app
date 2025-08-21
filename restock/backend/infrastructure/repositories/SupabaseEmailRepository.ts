@@ -1,7 +1,30 @@
-import { supabase } from '../../backend/config/supabase';
-import { EmailRepository, EmailRecord, CreateEmailRequest, UpdateEmailStatusRequest, EmailAnalytics } from '../../app/domain/interfaces/EmailRepository';
+import { supabase } from '../../config/supabase';
+import { EmailRepository, EmailRecord, CreateEmailRequest, UpdateEmailStatusRequest, EmailAnalytics } from '../../../app/domain/interfaces/EmailRepository';
 
 export class SupabaseEmailRepository implements EmailRepository {
+  private userId: string | null = null;
+
+  constructor(userId?: string) {
+    this.userId = userId || null;
+  }
+
+  /**
+   * Set the user ID for this repository instance
+   */
+  setUserId(userId: string) {
+    this.userId = userId;
+  }
+
+  /**
+   * Get the current user ID, throwing an error if not set
+   */
+  private getCurrentUserId(): string {
+    if (!this.userId) {
+      throw new Error('User ID not set in repository. Call setUserId() first.');
+    }
+    return this.userId;
+  }
+
   async create(request: CreateEmailRequest): Promise<string> {
     const { data, error } = await supabase.rpc('insert_email_sent', {
       p_delivery_status: 'pending',
@@ -27,6 +50,7 @@ export class SupabaseEmailRepository implements EmailRepository {
 
   async updateStatus(request: UpdateEmailStatusRequest): Promise<string> {
     const { data, error } = await supabase.rpc('update_email_sent', {
+      p_user_id: this.getCurrentUserId(),
       p_id: request.id,
       p_delivery_status: request.status,
       p_sent_via: null,
@@ -49,7 +73,9 @@ export class SupabaseEmailRepository implements EmailRepository {
 
   async getById(id: string): Promise<EmailRecord | null> {
     try {
-      const { data: emails, error } = await supabase.rpc('get_emails_sent');
+      const { data: emails, error } = await supabase.rpc('get_emails_sent', {
+        p_user_id: this.getCurrentUserId()
+      });
       
       if (error) {
         throw new Error(`Failed to get emails: ${error.message}`);
@@ -65,14 +91,16 @@ export class SupabaseEmailRepository implements EmailRepository {
 
   async findBySessionId(sessionId: string): Promise<EmailRecord[]> {
     try {
-      const { data: emails, error } = await supabase.rpc('get_emails_sent');
+      const { data: emails, error } = await supabase.rpc('get_emails_sent', {
+        p_user_id: this.getCurrentUserId()
+      });
       
       if (error) {
         throw new Error(`Failed to get emails: ${error.message}`);
       }
 
       const sessionEmails = emails?.filter((e: any) => e.session_id === sessionId) || [];
-      return sessionEmails.map(item => this.mapToEmailRecord(item));
+      return sessionEmails.map((item: any) => this.mapToEmailRecord(item));
     } catch (error) {
       console.error('[SupabaseEmailRepository] Error finding emails by session ID:', error);
       return [];
@@ -80,15 +108,16 @@ export class SupabaseEmailRepository implements EmailRepository {
   }
 
   async findByUserId(): Promise<EmailRecord[]> {
-    // RPC functions automatically filter by current user, so userId is not needed
     try {
-      const { data: emails, error } = await supabase.rpc('get_emails_sent');
+      const { data: emails, error } = await supabase.rpc('get_emails_sent', {
+        p_user_id: this.getCurrentUserId()
+      });
       
       if (error) {
         throw new Error(`Failed to get emails: ${error.message}`);
       }
 
-      return emails?.map(item => this.mapToEmailRecord(item)) || [];
+      return emails?.map((item: any) => this.mapToEmailRecord(item)) || [];
     } catch (error) {
       console.error('[SupabaseEmailRepository] Error finding emails by user ID:', error);
       return [];
@@ -97,6 +126,7 @@ export class SupabaseEmailRepository implements EmailRepository {
 
   async remove(id: string): Promise<void> {
     const { error } = await supabase.rpc('delete_email_sent', {
+      p_user_id: this.getCurrentUserId(),
       p_id: id
     });
 
@@ -106,9 +136,10 @@ export class SupabaseEmailRepository implements EmailRepository {
   }
 
   async getAnalytics(): Promise<EmailAnalytics> {
-    // RPC functions automatically filter by current user, so userId is not needed
     try {
-      const { data: emails, error } = await supabase.rpc('get_emails_sent');
+      const { data: emails, error } = await supabase.rpc('get_emails_sent', {
+        p_user_id: this.getCurrentUserId()
+      });
       
       if (error) {
         throw new Error(`Failed to get emails: ${error.message}`);
@@ -139,16 +170,17 @@ export class SupabaseEmailRepository implements EmailRepository {
   }
 
   async findByStatus(status: string): Promise<EmailRecord[]> {
-    // RPC functions automatically filter by current user, so userId is not needed
     try {
-      const { data: emails, error } = await supabase.rpc('get_emails_sent');
+      const { data: emails, error } = await supabase.rpc('get_emails_sent', {
+        p_user_id: this.getCurrentUserId()
+      });
       
       if (error) {
         throw new Error(`Failed to get emails: ${error.message}`);
       }
 
       const filteredEmails = emails?.filter((e: any) => e.status === status) || [];
-      return filteredEmails.map(item => this.mapToEmailRecord(item));
+      return filteredEmails.map((item: any) => this.mapToEmailRecord(item));
     } catch (error) {
       console.error('[SupabaseEmailRepository] Error finding emails by status:', error);
       return [];
@@ -156,9 +188,10 @@ export class SupabaseEmailRepository implements EmailRepository {
   }
 
   async findBySupplier(supplierEmail: string): Promise<EmailRecord[]> {
-    // RPC functions automatically filter by current user, so userId is not needed
     try {
-      const { data: emails, error } = await supabase.rpc('get_emails_sent');
+      const { data: emails, error } = await supabase.rpc('get_emails_sent', {
+        p_user_id: this.getCurrentUserId()
+      });
       
       if (error) {
         throw new Error(`Failed to get emails: ${error.message}`);
@@ -170,7 +203,7 @@ export class SupabaseEmailRepository implements EmailRepository {
         e.supplier_email === supplierEmail || e.supplier_id === supplierEmail
       ) || [];
 
-      return supplierEmails.map(item => this.mapToEmailRecord(item));
+      return supplierEmails.map((item: any) => this.mapToEmailRecord(item));
     } catch (error) {
       console.error('[SupabaseEmailRepository] Error finding emails by supplier:', error);
       return [];
@@ -184,7 +217,7 @@ export class SupabaseEmailRepository implements EmailRepository {
       supplierEmail: data.supplier_email || '',
       supplierName: data.supplier_name || '',
       emailContent: data.email_content || '',
-      sentAt: data.sent_at ? new Date(data.sent_at) : new Date(),
+      sentAt: data.sent_at ? new Date(data.sent_at).getTime() : new Date().getTime(),
       status: data.status || 'pending',
       errorMessage: data.error_message || null,
       deliveryStatus: data.delivery_status || 'pending',

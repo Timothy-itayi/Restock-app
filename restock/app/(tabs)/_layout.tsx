@@ -68,15 +68,6 @@ export default function TabLayout() {
             }}
           />
           
-          {/* Hidden route for add-product modal */}
-          <Tabs.Screen
-            name="restock-sessions/add-product"
-            options={{
-              href: null, // Hide from tab bar
-              headerShown: false,
-            }}
-          />
-          
           {/* Emails - Review and send generated emails */}
           <Tabs.Screen
             name="emails/index"

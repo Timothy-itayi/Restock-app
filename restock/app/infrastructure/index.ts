@@ -9,11 +9,11 @@
 export { IdGeneratorService } from './services/IdGeneratorService';
 
 // Supabase Repository Implementations
-export { SupabaseUserRepository } from '../../infrastructure/repositories/SupabaseUserRepository';
-export { SupabaseSessionRepository } from '../../infrastructure/repositories/SupabaseSessionRepository';
-export { SupabaseProductRepository } from '../../infrastructure/repositories/SupabaseProductRepository';
-export { SupabaseSupplierRepository } from '../../infrastructure/repositories/SupabaseSupplierRepository';
-export { SupabaseEmailRepository } from '../../infrastructure/repositories/SupabaseEmailRepository';
+export { SupabaseUserRepository } from '../../backend/infrastructure/repositories/SupabaseUserRepository';
+export { SupabaseSessionRepository } from '../../backend/infrastructure/repositories/SupabaseSessionRepository';
+export { SupabaseProductRepository } from '../../backend/infrastructure/repositories/SupabaseProductRepository';
+export { SupabaseSupplierRepository } from '../../backend/infrastructure/repositories/SupabaseSupplierRepository';
+export { SupabaseEmailRepository } from '../../backend/infrastructure/repositories/SupabaseEmailRepository';
 
 // Supabase Infrastructure Components
 export { SupabaseHooksProvider, useRepositories, useSessionRepository, useProductRepository, useSupplierRepository, useUserRepository, useEmailRepository } from './supabase/SupabaseHooksProvider';
