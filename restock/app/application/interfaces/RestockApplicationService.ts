@@ -9,7 +9,6 @@ import { RestockSession, type EmailDraft } from '../../domain';
 
 // Command/Query types
 export interface CreateSessionCommand {
-  readonly userId: string;
   readonly name?: string;
 }
 
@@ -38,7 +37,6 @@ export interface GenerateEmailsCommand {
 }
 
 export interface GetSessionsQuery {
-  readonly userId: string;
   readonly includeCompleted?: boolean;
   readonly limit?: number;
 }
@@ -87,7 +85,7 @@ export interface RestockApplicationService {
   removeProduct(sessionId: string, productId: string): Promise<SessionResult>;
   updateProduct(sessionId: string, productId: string, quantity: number, notes?: string): Promise<SessionResult>;
   setSessionName(sessionId: string, name: string): Promise<SessionResult>;
-  updateSessionName(command: { sessionId?: string; userId: string; newName: string }): Promise<SessionResult>;
+  updateSessionName(command: { sessionId?: string; newName: string }): Promise<SessionResult>;
   
   // Email operations
   generateEmails(command: GenerateEmailsCommand): Promise<EmailsResult>;

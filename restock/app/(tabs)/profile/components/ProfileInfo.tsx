@@ -18,6 +18,12 @@ export const ProfileInfo: React.FC<ProfileInfoProps> = ({
 }) => {
   const { theme } = useThemeStore();
   const profileStyles = useThemedStyles(getProfileStyles);
+  
+  // Use the profile data from the hook, with fallbacks
+  const displayName = userProfile?.name || userFirstName || 'Welcome!';
+  const displayEmail = userProfile?.email || userEmail || 'Email not available';
+  const displayStoreName = userProfile?.storeName || '';
+  
   return (
     <View style={profileStyles.profileSection}>
       <View style={profileStyles.profileAvatar}>
@@ -30,14 +36,14 @@ export const ProfileInfo: React.FC<ProfileInfoProps> = ({
       
       <View style={profileStyles.profileInfo}>
         <Text style={profileStyles.userName}>
-          {userProfile?.name || userFirstName || 'Welcome!'}
+          {displayName}
         </Text>
         <Text style={profileStyles.userEmail}>
-          {userEmail || 'Email not available'}
+          {displayEmail}
         </Text>
-        {userProfile?.store_name && (
+        {displayStoreName && (
           <Text style={profileStyles.storeTag}>
-            {userProfile.store_name}
+            {displayStoreName}
           </Text>
         )}
       </View>

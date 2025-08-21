@@ -54,6 +54,23 @@ export function useRestockSession(sessionId?: string): RestockSessionState & Res
   const [session, setSession] = useState<RestockSession | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isContextSet, setIsContextSet] = useState(false);
+
+  /**
+   * Ensure Supabase user context is set (called once per hook instance)
+   */
+  const ensureUserContext = useCallback(async () => {
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
+    
+    if (!isContextSet) {
+      const { setCurrentUserContext } = await import('../../../../backend/config/supabase');
+      await setCurrentUserContext(userId);
+      setIsContextSet(true);
+      console.log('[useRestockSession] Supabase context set for user:', userId);
+    }
+  }, [userId, isContextSet]);
 
   /**
    * Create a new session
@@ -69,6 +86,9 @@ export function useRestockSession(sessionId?: string): RestockSessionState & Res
     try {
       console.log('[useRestockSession] Creating session:', { userId, name });
       
+      // Ensure user context is set (only once)
+      await ensureUserContext();
+      
       const sessionName = name || `Restock Session ${new Date().toLocaleDateString()}`;
       
       // Create proper domain entity
@@ -79,7 +99,8 @@ export function useRestockSession(sessionId?: string): RestockSessionState & Res
         createdAt: new Date(),
       });
       
-      const sessionId = await sessionRepository.create(newSessionEntity.toValue());
+      // Now call repository AFTER context is set
+      const sessionId = await sessionRepository.create(newSessionEntity);
       
       // Load the created session
       const createdSession = await sessionRepository.findById(sessionId);
@@ -98,7 +119,7 @@ export function useRestockSession(sessionId?: string): RestockSessionState & Res
     } finally {
       setIsLoading(false);
     }
-  }, [userId, sessionRepository]);
+  }, [userId, sessionRepository, ensureUserContext]);
 
   /**
    * Load an existing session
@@ -152,6 +173,9 @@ export function useRestockSession(sessionId?: string): RestockSessionState & Res
         productName: params.productName,
       });
       
+      // Ensure user context is set (only once)
+      await ensureUserContext();
+      
       const item = {
         userId: userId, // Add userId for repository
         productName: params.productName,
@@ -180,7 +204,7 @@ export function useRestockSession(sessionId?: string): RestockSessionState & Res
     } finally {
       setIsLoading(false);
     }
-  }, [session, sessionRepository]);
+  }, [session, sessionRepository, ensureUserContext]);
 
   /**
    * Remove a product from the current session
@@ -194,9 +218,12 @@ export function useRestockSession(sessionId?: string): RestockSessionState & Res
     setError(null);
 
     try {
-      console.log('[useRestockSession] Removing product:', { productId, sessionId: session.id });
+      console.log('[useRestockSession] Removing product:', {  sessionId: session.id });
       
-      await sessionRepository.removeItem(session.id, productId);
+      // Ensure user context is set (only once)
+      await ensureUserContext();
+      
+      await sessionRepository.removeItem(session.id);
       
       // Reload session to get updated data
       const updatedSession = await sessionRepository.findById(session.id);
@@ -215,7 +242,7 @@ export function useRestockSession(sessionId?: string): RestockSessionState & Res
     } finally {
       setIsLoading(false);
     }
-  }, [session, sessionRepository]);
+  }, [session, sessionRepository, ensureUserContext]);
 
   /**
    * Update session name
@@ -226,6 +253,9 @@ export function useRestockSession(sessionId?: string): RestockSessionState & Res
 
     try {
       console.log('[useRestockSession] Updating session name:', { sessionId, name });
+      
+      // Ensure user context is set (only once)
+      await ensureUserContext();
       
       await sessionRepository.updateName(sessionId, name);
       
@@ -248,7 +278,7 @@ export function useRestockSession(sessionId?: string): RestockSessionState & Res
     } finally {
       setIsLoading(false);
     }
-  }, [session, sessionRepository]);
+  }, [session, sessionRepository, ensureUserContext]);
 
   /**
    * Clear the current session

@@ -172,7 +172,7 @@ export default function SignInScreen() {
           // Save session data for returning user detection
           // Extract email from user object after OAuth completion
           const userEmail = result.createdSessionId ? 
-            (await UserProfileService.getUserProfile(result.createdSessionId))?.data?.email || '' : '';
+            (await UserProfileService.getUserProfile())?.data?.email || '' : '';
           
           await SessionManager.saveUserSession({
             userId: result.createdSessionId || '',

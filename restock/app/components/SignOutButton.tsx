@@ -4,11 +4,13 @@ import { useAuth } from '@clerk/clerk-expo';
 import { router } from 'expo-router';
 import { SessionManager } from '../../backend/services/session-manager';
 import { ClerkClientService } from '../../backend/services/clerk-client';
+import { useUnifiedAuth } from '../_contexts/UnifiedAuthProvider';
 import { signOutButtonStyles } from '../../styles/components/sign-out-button';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function SignOutButton() {
   const { signOut } = useAuth();
+  const { clearAuthFlags } = useUnifiedAuth();
 
   const handleSignOut = async () => {
     Alert.alert(
@@ -29,6 +31,9 @@ export default function SignOutButton() {
               
               // Clear OAuth flags to ensure clean state
               await ClerkClientService.onSignOut();
+              
+              // Clear all auth flags using UnifiedAuthProvider
+              await clearAuthFlags();
               
               // Clear verification cache by reloading the app
               // This ensures fresh verification on next sign-in

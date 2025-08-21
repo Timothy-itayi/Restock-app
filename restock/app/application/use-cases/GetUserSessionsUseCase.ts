@@ -11,7 +11,6 @@ import {
 } from '../../domain';
 
 export interface GetUserSessionsQuery {
-  readonly userId: string;
   readonly includeCompleted?: boolean;
   readonly limit?: number;
 }
@@ -34,21 +33,15 @@ export class GetUserSessionsUseCase {
 
   async execute(query: GetUserSessionsQuery): Promise<GetUserSessionsResult> {
     try {
-      // 1. Validate query
-      if (!query.userId) {
-        return {
-          success: false,
-          error: 'User ID is required',
-        };
-      }
+      // 1. Validate query - no userId needed with RPC functions
 
-      // 2. Load sessions from repository
+      // 2. Load sessions from repository (RPC functions handle user isolation)
       let sessions: ReadonlyArray<RestockSession>;
       
       if (query.includeCompleted) {
-        sessions = await this.sessionRepository.findByUserId(query.userId);
+        sessions = await this.sessionRepository.findByUserId();
       } else {
-        sessions = await this.sessionRepository.findUnfinishedByUserId(query.userId);
+        sessions = await this.sessionRepository.findUnfinishedByUserId();
       }
 
       // 3. Apply limit if specified

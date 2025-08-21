@@ -180,14 +180,24 @@ export class ClerkClientService {
   }
 
   /**
+   * Clear OAuth flags when user signs out
+   */
+  static async clearOAuthFlagsOnSignOut(): Promise<void> {
+    console.log('ClerkClientService: Clearing OAuth flags on sign out');
+    await this.clearOAuthFlags();
+  }
+
+  /**
    * Initialize OAuth flags on app startup
    * This should be called when the app starts to clear any lingering flags
    */
   static async initializeOAuthFlags(): Promise<void> {
     try {
       console.log('ClerkClientService: Initializing OAuth flags on app startup');
-      await this.clearOAuthFlags();
-      console.log('ClerkClientService: OAuth flags initialized successfully');
+      // ❌ REMOVED: Don't clear flags on every app startup
+      // This was causing returning users to be treated as new users
+      // await this.clearOAuthFlags();
+      console.log('ClerkClientService: OAuth flags initialized without clearing');
     } catch (error) {
       console.error('ClerkClientService: Error initializing OAuth flags:', error);
     }

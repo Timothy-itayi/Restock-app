@@ -32,7 +32,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
         style={dashboardStyles.startNewButton}
         onPress={() => router.push('/(tabs)/restock-sessions?action=create')}
       >
-        <Text style={dashboardStyles.startNewButtonText}>Start New Session</Text>
+        <Text style={dashboardStyles.startNewButtonText}>Create New Session</Text>
       </TouchableOpacity>
     </View>
   );

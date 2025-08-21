@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ScrollView, RefreshControl, DeviceEventEmitter } from "react-native";
+import { ScrollView, RefreshControl, DeviceEventEmitter, View, Text } from "react-native";
 import { getDashboardStyles } from "../../../styles/components/dashboard";
 import { useThemedStyles } from "../../../styles/useThemedStyles";
 import { useAuth } from "@clerk/clerk-expo";
@@ -64,6 +64,9 @@ export default function DashboardScreen() {
     }
   }, [userId, profileLoading, userName, storeName, fetchProfile]);
 
+  // Show loading state while profile is being fetched
+  const isLoadingProfile = profileLoading && (!userName || !storeName);
+
   // Component display logging
   useEffect(() => {
     console.log('📺 Dashboard: Component mounted', {
@@ -85,6 +88,15 @@ export default function DashboardScreen() {
   }, [displayStartTime, userId, isSignedIn, authReady, isAuthenticated, authType]);
 
   // data fetching and refresh now handled by useDashboardData
+
+  // Show loading state while profile is being fetched
+  if (isLoadingProfile) {
+    return (
+      <View style={[dashboardStyles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={{ fontSize: 18, color: '#666' }}>Loading your profile...</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView 

@@ -10,17 +10,17 @@ export interface ProductRepository {
   // Basic CRUD operations
   save(product: Product): Promise<void>;
   findById(id: string): Promise<Product | null>;
-  findByUserId(userId: string): Promise<ReadonlyArray<Product>>;
+  findByUserId(): Promise<ReadonlyArray<Product>>; // RPC functions handle user isolation
   delete(id: string): Promise<void>;
 
   // Query operations
-  findByName(userId: string, name: string): Promise<ReadonlyArray<Product>>;
-  search(userId: string, searchTerm: string): Promise<ReadonlyArray<Product>>;
-  findBySupplierId(userId: string, supplierId: string): Promise<ReadonlyArray<Product>>;
+  findByName(name: string): Promise<ReadonlyArray<Product>>; // RPC functions handle user isolation
+  search(searchTerm: string): Promise<ReadonlyArray<Product>>; // RPC functions handle user isolation
+  findBySupplierId(supplierId: string): Promise<ReadonlyArray<Product>>; // RPC functions handle user isolation
   
   // Business queries
-  countByUserId(userId: string): Promise<number>;
-  findMostUsed(userId: string, limit: number): Promise<ReadonlyArray<Product>>;
+  countByUserId(): Promise<number>; // RPC functions handle user isolation
+  findMostUsed(limit: number): Promise<ReadonlyArray<Product>>; // RPC functions handle user isolation
 }
 
 export interface ProductRepositoryError extends Error {

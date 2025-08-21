@@ -8,18 +8,18 @@
 export interface EmailRecord {
   id: string;
   sessionId: string;
-  userId: string;
   supplierEmail: string;
   supplierName: string;
   emailContent: string;
   sentAt: number;
   status: "sent" | "delivered" | "failed";
   errorMessage?: string;
+  deliveryStatus?: string;
+  trackingId?: string;
 }
 
 export interface CreateEmailRequest {
   sessionId: string;
-  userId: string;
   supplierEmail: string;
   supplierName: string;
   emailContent: string;
@@ -32,11 +32,11 @@ export interface UpdateEmailStatusRequest {
 }
 
 export interface EmailAnalytics {
-  totalSent: number;
-  totalDelivered: number;
-  totalFailed: number;
-  deliveryRate: number;
-  averageDeliveryTime: number;
+  totalEmails: number;
+  sentEmails: number;
+  failedEmails: number;
+  pendingEmails: number;
+  successRate: number;
 }
 
 export interface EmailRepository {
@@ -61,9 +61,9 @@ export interface EmailRepository {
   findBySessionId(sessionId: string): Promise<EmailRecord[]>;
 
   /**
-   * List emails by user
+   * List emails by user (RPC functions handle user isolation)
    */
-  findByUserId(userId: string): Promise<EmailRecord[]>;
+  findByUserId(): Promise<EmailRecord[]>;
 
   /**
    * Remove email record
@@ -71,7 +71,17 @@ export interface EmailRepository {
   remove(id: string): Promise<void>;
 
   /**
-   * Get email analytics for the current user
+   * Get email analytics for the current user (RPC functions handle user isolation)
    */
   getAnalytics(): Promise<EmailAnalytics>;
+
+  /**
+   * Find emails by status (RPC functions handle user isolation)
+   */
+  findByStatus(status: string): Promise<EmailRecord[]>;
+
+  /**
+   * Find emails by supplier (RPC functions handle user isolation)
+   */
+  findBySupplier(supplierEmail: string): Promise<EmailRecord[]>;
 }

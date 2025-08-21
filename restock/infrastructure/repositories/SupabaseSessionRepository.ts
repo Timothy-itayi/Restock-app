@@ -8,148 +8,174 @@ export class SupabaseSessionRepository implements SessionRepository {
   async save(session: RestockSession): Promise<void> {
     const dbSession = SessionMapper.toDatabase(session);
     
-    const { error } = await supabase
-      .from('restock_sessions')
-      .upsert(dbSession, { onConflict: 'id' });
+    if (session.id) {
+      // Update existing session
+      const { error } = await supabase.rpc('update_restock_session', {
+        p_id: session.id,
+        p_name: dbSession.sessionRecord.name,
+        p_status: dbSession.sessionRecord.status
+      });
 
-    if (error) {
-      throw new Error(`Failed to save session: ${error.message}`);
+      if (error) {
+        throw new Error(`Failed to update session: ${error.message}`);
+      }
+    } else {
+      // Create new session
+      const { error } = await supabase.rpc('insert_restock_session', {
+        p_name: dbSession.sessionRecord.name,
+        p_status: dbSession.sessionRecord.status
+      });
+
+      if (error) {
+        throw new Error(`Failed to create session: ${error.message}`);
+      }
     }
   }
 
   async findById(id: string): Promise<RestockSession | null> {
-    // Fetch session with related items
-    const { data: sessionData, error: sessionError } = await supabase
-      .from('restock_sessions')
-      .select()
-      .eq('id', id)
-      .single();
-
-    if (sessionError) {
-      if (sessionError.code === 'PGRST116') {
-        return null; // No rows returned
+    try {
+      // Get session via RPC
+      const { data: sessions, error: sessionError } = await supabase.rpc('get_restock_sessions');
+      
+      if (sessionError) {
+        throw new Error(`Failed to get sessions: ${sessionError.message}`);
       }
-      throw new Error(`Failed to find session: ${sessionError.message}`);
+
+      const session = sessions?.find((s: any) => s.id === id);
+      if (!session) {
+        return null;
+      }
+
+      // Get session items via RPC
+      const { data: items, error: itemsError } = await supabase.rpc('get_restock_items');
+      
+      if (itemsError) {
+        throw new Error(`Failed to get restock items: ${itemsError.message}`);
+      }
+
+      const sessionItems = items?.filter((item: any) => item.session_id === id) || [];
+
+      // Create domain entity with items
+      return SessionMapper.toDomainWithItems(session, sessionItems);
+    } catch (error) {
+      console.error('[SupabaseSessionRepository] Error finding session by ID:', error);
+      return null;
     }
-
-    // Fetch session items
-    const { data: itemsData, error: itemsError } = await supabase
-      .from('restock_items')
-      .select()
-      .eq('session_id', id);
-
-    if (itemsError) {
-      throw new Error(`Failed to find session items: ${itemsError.message}`);
-    }
-
-    // Create domain entity with items
-    return SessionMapper.toDomainWithItems(sessionData, itemsData || []);
   }
 
-  async findByUserId(userId: string): Promise<ReadonlyArray<RestockSession>> {
-    // Fetch sessions for the user
-    const { data: sessionsData, error: sessionsError } = await supabase
-      .from('restock_sessions')
-      .select()
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+  async findByUserId(): Promise<ReadonlyArray<RestockSession>> {
+    // RPC functions automatically filter by current user, so userId is not needed
+    try {
+      // Get sessions via RPC
+      const { data: sessions, error: sessionsError } = await supabase.rpc('get_restock_sessions');
+      
+      if (sessionsError) {
+        throw new Error(`Failed to get sessions: ${sessionsError.message}`);
+      }
 
-    if (sessionsError) {
-      throw new Error(`Failed to find sessions: ${sessionsError.message}`);
-    }
+      if (!sessions || sessions.length === 0) {
+        return [];
+      }
 
-    if (!sessionsData || sessionsData.length === 0) {
+      // Get all items via RPC
+      const { data: items, error: itemsError } = await supabase.rpc('get_restock_items');
+      
+      if (itemsError) {
+        throw new Error(`Failed to get restock items: ${itemsError.message}`);
+      }
+
+      // Group items by session_id
+      const itemsBySessionId = (items || []).reduce((acc: any, item: any) => {
+        if (!acc[item.session_id]) {
+          acc[item.session_id] = [];
+        }
+        acc[item.session_id].push(item);
+        return acc;
+      }, {});
+
+      // Create domain entities with their items
+      return sessions.map((session: DbRestockSession) => 
+        SessionMapper.toDomainWithItems(session, itemsBySessionId[session.id] || [])
+      );
+    } catch (error) {
+      console.error('[SupabaseSessionRepository] Error finding sessions by user ID:', error);
       return [];
     }
-
-    // Fetch all items for these sessions in one query for efficiency
-    const sessionIds = sessionsData.map(s => s.id);
-    const { data: itemsData, error: itemsError } = await supabase
-      .from('restock_items')
-      .select()
-      .in('session_id', sessionIds);
-
-    if (itemsError) {
-      throw new Error(`Failed to find session items: ${itemsError.message}`);
-    }
-
-    // Group items by session_id
-    const itemsBySessionId = (itemsData || []).reduce((acc: any, item: any) => {
-      if (!acc[item.session_id]) {
-        acc[item.session_id] = [];
-      }
-      acc[item.session_id].push(item);
-      return acc;
-    }, {});
-
-    // Create domain entities with their items
-    return sessionsData.map((session: DbRestockSession) => 
-      SessionMapper.toDomainWithItems(session, itemsBySessionId[session.id] || [])
-    );
   }
 
   async delete(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('restock_sessions')
-      .delete()
-      .eq('id', id);
+    const { error } = await supabase.rpc('delete_restock_session', {
+      p_id: id
+    });
 
     if (error) {
       throw new Error(`Failed to delete session: ${error.message}`);
     }
   }
 
-  async remove(id: string): Promise<void> {
-    return this.delete(id);
-  }
+  async findUnfinishedByUserId(): Promise<ReadonlyArray<RestockSession>> {
+    // RPC functions automatically filter by current user, so userId is not needed
+    try {
+      const { data: sessions, error: sessionsError } = await supabase.rpc('get_restock_sessions');
+      
+      if (sessionsError) {
+        throw new Error(`Failed to get sessions: ${sessionsError.message}`);
+      }
 
-  async create(sessionValue: any): Promise<string> {
-    // Handle both domain entity toValue() result and plain objects
-    const sessionData = sessionValue.userId ? sessionValue : sessionValue;
-    
-    const dbSessionData = {
-      user_id: sessionData.userId,
-      name: sessionData.name,
-      status: sessionData.status || 'draft'
-    };
-    
-    const { data, error } = await supabase
-      .from('restock_sessions')
-      .insert(dbSessionData)
-      .select('id')
-      .single();
+      // Filter for unfinished sessions (draft or email_generated)
+      const unfinishedSessions = sessions?.filter((s: any) => 
+        s.status === 'draft' || s.status === 'email_generated'
+      ) || [];
 
-    if (error) {
-      throw new Error(`Failed to create session: ${error.message}`);
+      if (unfinishedSessions.length === 0) {
+        return [];
+      }
+
+      // Get items for unfinished sessions
+      const { data: items, error: itemsError } = await supabase.rpc('get_restock_items');
+      
+      if (itemsError) {
+        throw new Error(`Failed to get restock items: ${itemsError.message}`);
+      }
+
+      // Group items by session_id
+      const itemsBySessionId = (items || []).reduce((acc: any, item: any) => {
+        if (!acc[item.session_id]) {
+          acc[item.session_id] = [];
+        }
+        acc[item.session_id].push(item);
+        return acc;
+      }, {});
+
+      // Create domain entities with their items
+      return unfinishedSessions.map((session: DbRestockSession) => 
+        SessionMapper.toDomainWithItems(session, itemsBySessionId[session.id] || [])
+      );
+    } catch (error) {
+      console.error('[SupabaseSessionRepository] Error finding unfinished sessions:', error);
+      return [];
     }
-
-    return data.id;
   }
 
   async addItem(sessionId: string, item: any): Promise<void> {
-    const { error } = await supabase
-      .from('restock_items')
-      .insert({
-        session_id: sessionId,
-        user_id: item.userId,
-        product_name: item.productName,
-        quantity: item.quantity,
-        supplier_name: item.supplierName,
-        supplier_email: item.supplierEmail,
-        notes: item.notes
-      });
+    const { error } = await supabase.rpc('insert_restock_item', {
+      p_session_id: sessionId,
+      p_product_name: item.productName,
+      p_supplier_name: item.supplierName,
+      p_supplier_email: item.supplierEmail,
+      p_quantity: item.quantity,
+      p_notes: item.notes
+    });
 
     if (error) {
       throw new Error(`Failed to add item to session: ${error.message}`);
     }
   }
 
-  async removeItem(sessionId: string, itemId: string): Promise<void> {
-    const { error } = await supabase
-      .from('restock_items')
-      .delete()
-      .eq('id', itemId)
-      .eq('session_id', sessionId);
+  async removeItem(itemId: string): Promise<void> {
+    const { error } = await supabase.rpc('delete_restock_item', {
+      p_id: itemId
+    });
 
     if (error) {
       throw new Error(`Failed to remove item from session: ${error.message}`);
@@ -157,10 +183,11 @@ export class SupabaseSessionRepository implements SessionRepository {
   }
 
   async updateName(sessionId: string, name: string): Promise<void> {
-    const { error } = await supabase
-      .from('restock_sessions')
-      .update({ name })
-      .eq('id', sessionId);
+    const { error } = await supabase.rpc('update_restock_session', {
+      p_id: sessionId,
+      p_name: name,
+      p_status: null // Keep existing status
+    });
 
     if (error) {
       throw new Error(`Failed to update session name: ${error.message}`);
@@ -168,25 +195,86 @@ export class SupabaseSessionRepository implements SessionRepository {
   }
 
   async updateStatus(sessionId: string, status: string): Promise<void> {
-    const { error } = await supabase
-      .from('restock_sessions')
-      .update({ status })
-      .eq('id', sessionId);
+    const { error } = await supabase.rpc('update_restock_session', {
+      p_id: sessionId,
+      p_name: null, // Keep existing name
+      p_status: status
+    });
 
     if (error) {
       throw new Error(`Failed to update session status: ${error.message}`);
     }
   }
 
+  async findAll(): Promise<ReadonlyArray<RestockSession>> {
+    try {
+      const { data: sessions, error: sessionsError } = await supabase.rpc('get_restock_sessions');
+      
+      if (sessionsError) {
+        throw new Error(`Failed to get sessions: ${sessionsError.message}`);
+      }
+
+      if (!sessions || sessions.length === 0) {
+        return [];
+      }
+
+      // Get all items
+      const { data: items, error: itemsError } = await supabase.rpc('get_restock_items');
+      
+      if (itemsError) {
+        throw new Error(`Failed to get restock items: ${itemsError.message}`);
+      }
+
+      // Group items by session_id
+      const itemsBySessionId = (items || []).reduce((acc: any, item: any) => {
+        if (!acc[item.session_id]) {
+          acc[item.session_id] = [];
+        }
+        acc[item.session_id].push(item);
+        return acc;
+      }, {});
+
+      // Create domain entities with their items
+      return sessions.map((session: DbRestockSession) => 
+        SessionMapper.toDomainWithItems(session, itemsBySessionId[session.id] || [])
+      );
+    } catch (error) {
+      console.error('[SupabaseSessionRepository] Error getting all sessions:', error);
+      return [];
+    }
+  }
+
+  // Additional methods required by the interface
+  async remove(id: string): Promise<void> {
+    return this.delete(id);
+  }
+
+  async create(session: Omit<RestockSession, 'id'>): Promise<string> {
+    try {
+      const { data, error } = await supabase.rpc('insert_restock_session', {
+        p_name: session.name,
+        p_status: session.status
+      });
+
+      if (error) {
+        throw new Error(`Failed to create session: ${error.message}`);
+      }
+
+      // RPC returns array, get first item
+      const createdSession = Array.isArray(data) ? data[0] : data;
+      return createdSession?.id || '';
+    } catch (error) {
+      throw new Error(`Failed to create session: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
   async markAsSent(sessionId: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const { error } = await supabase
-        .from('restock_sessions')
-        .update({ 
-          status: 'sent',
-          completed_at: new Date().toISOString()
-        })
-        .eq('id', sessionId);
+      const { error } = await supabase.rpc('update_restock_session', {
+        p_id: sessionId,
+        p_name: null, // Keep existing name
+        p_status: 'sent'
+      });
 
       if (error) {
         return { success: false, error: error.message };
@@ -198,76 +286,145 @@ export class SupabaseSessionRepository implements SessionRepository {
     }
   }
 
-  async findUnfinishedByUserId(userId: string): Promise<ReadonlyArray<RestockSession>> {
-    const { data, error } = await supabase
-      .from('restock_sessions')
-      .select()
-      .eq('user_id', userId)
-      .neq('status', 'sent')
-      .order('created_at', { ascending: false });
+  async findCompletedByUserId(): Promise<ReadonlyArray<RestockSession>> {
+    // RPC functions automatically filter by current user, so userId is not needed
+    try {
+      const { data: sessions, error: sessionsError } = await supabase.rpc('get_restock_sessions');
+      
+      if (sessionsError) {
+        throw new Error(`Failed to get sessions: ${sessionsError.message}`);
+      }
 
-    if (error) {
-      throw new Error(`Failed to find unfinished sessions: ${error.message}`);
+      // Filter for completed sessions (sent)
+      const completedSessions = sessions?.filter((s: any) => s.status === 'sent') || [];
+
+      if (completedSessions.length === 0) {
+        return [];
+      }
+
+      // Get items for completed sessions
+      const { data: items, error: itemsError } = await supabase.rpc('get_restock_items');
+      
+      if (itemsError) {
+        throw new Error(`Failed to get restock items: ${itemsError.message}`);
+      }
+
+      // Group items by session_id
+      const itemsBySessionId = (items || []).reduce((acc: any, item: any) => {
+        if (!acc[item.session_id]) {
+          acc[item.session_id] = [];
+        }
+        acc[item.session_id].push(item);
+        return acc;
+      }, {});
+
+      // Create domain entities with their items
+      return completedSessions.map((session: DbRestockSession) => 
+        SessionMapper.toDomainWithItems(session, itemsBySessionId[session.id] || [])
+      );
+    } catch (error) {
+      console.error('[SupabaseSessionRepository] Error finding completed sessions:', error);
+      return [];
     }
-
-    return data?.map((item: DbRestockSession) => SessionMapper.toDomain(item)) || [];
   }
 
-  async findCompletedByUserId(userId: string): Promise<ReadonlyArray<RestockSession>> {
-    const { data, error } = await supabase
-      .from('restock_sessions')
-      .select()
-      .eq('user_id', userId)
-      .eq('status', 'sent')
-      .order('completed_at', { ascending: false });
+  async findByStatus(status: string): Promise<ReadonlyArray<RestockSession>> {
+    // RPC functions automatically filter by current user, so userId is not needed
+    try {
+      const { data: sessions, error: sessionsError } = await supabase.rpc('get_restock_sessions');
+      
+      if (sessionsError) {
+        throw new Error(`Failed to get sessions: ${sessionsError.message}`);
+      }
 
-    if (error) {
-      throw new Error(`Failed to find completed sessions: ${error.message}`);
+      // Filter by status
+      const filteredSessions = sessions?.filter((s: any) => s.status === status) || [];
+
+      if (filteredSessions.length === 0) {
+        return [];
+      }
+
+      // Get items for filtered sessions
+      const { data: items, error: itemsError } = await supabase.rpc('get_restock_items');
+      
+      if (itemsError) {
+        throw new Error(`Failed to get restock items: ${itemsError.message}`);
+      }
+
+      // Group items by session_id
+      const itemsBySessionId = (items || []).reduce((acc: any, item: any) => {
+        if (!acc[item.session_id]) {
+          acc[item.session_id] = [];
+        }
+        acc[item.session_id].push(item);
+        return acc;
+      }, {});
+
+      // Create domain entities with their items
+      return filteredSessions.map((session: DbRestockSession) => 
+        SessionMapper.toDomainWithItems(session, itemsBySessionId[session.id] || [])
+      );
+    } catch (error) {
+      console.error('[SupabaseSessionRepository] Error finding sessions by status:', error);
+      return [];
     }
-
-    return data?.map((item: DbRestockSession) => SessionMapper.toDomain(item)) || [];
   }
 
-  async findByStatus(userId: string, status: string): Promise<ReadonlyArray<RestockSession>> {
-    const { data, error } = await supabase
-      .from('restock_sessions')
-      .select()
-      .eq('user_id', userId)
-      .eq('status', status)
-      .order('created_at', { ascending: false });
+  async countByUserId(): Promise<number> {
+    // RPC functions automatically filter by current user, so userId is not needed
+    try {
+      const { data: sessions, error } = await supabase.rpc('get_restock_sessions');
+      
+      if (error) {
+        throw new Error(`Failed to get sessions: ${error.message}`);
+      }
 
-    if (error) {
-      throw new Error(`Failed to find sessions by status: ${error.message}`);
+      return sessions?.length || 0;
+    } catch (error) {
+      console.error('[SupabaseSessionRepository] Error counting sessions:', error);
+      return 0;
     }
-
-    return data?.map((item: DbRestockSession) => SessionMapper.toDomain(item)) || [];
   }
 
-  async countByUserId(userId: string): Promise<number> {
-    const { count, error } = await supabase
-      .from('restock_sessions')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId);
+  async findRecentByUserId(limit: number): Promise<ReadonlyArray<RestockSession>> {
+    // RPC functions automatically filter by current user, so userId is not needed
+    try {
+      const { data: sessions, error: sessionsError } = await supabase.rpc('get_restock_sessions');
+      
+      if (sessionsError) {
+        throw new Error(`Failed to get sessions: ${sessionsError.message}`);
+      }
 
-    if (error) {
-      throw new Error(`Failed to count sessions: ${error.message}`);
+      // Get recent sessions (limit by count)
+      const recentSessions = sessions?.slice(0, limit) || [];
+
+      if (recentSessions.length === 0) {
+        return [];
+      }
+
+      // Get items for recent sessions
+      const { data: items, error: itemsError } = await supabase.rpc('get_restock_items');
+      
+      if (itemsError) {
+        throw new Error(`Failed to get restock items: ${itemsError.message}`);
+      }
+
+      // Group items by session_id
+      const itemsBySessionId = (items || []).reduce((acc: any, item: any) => {
+        if (!acc[item.session_id]) {
+          acc[item.session_id] = [];
+        }
+        acc[item.session_id].push(item);
+        return acc;
+      }, {});
+
+      // Create domain entities with their items
+      return recentSessions.map((session: DbRestockSession) => 
+        SessionMapper.toDomainWithItems(session, itemsBySessionId[session.id] || [])
+      );
+    } catch (error) {
+      console.error('[SupabaseSessionRepository] Error finding recent sessions:', error);
+      return [];
     }
-
-    return count || 0;
-  }
-
-  async findRecentByUserId(userId: string, limit: number): Promise<ReadonlyArray<RestockSession>> {
-    const { data, error } = await supabase
-      .from('restock_sessions')
-      .select()
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(limit);
-
-    if (error) {
-      throw new Error(`Failed to find recent sessions: ${error.message}`);
-    }
-
-    return data?.map((item: DbRestockSession) => SessionMapper.toDomain(item)) || [];
   }
 }
