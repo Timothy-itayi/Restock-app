@@ -53,9 +53,9 @@ export class UserProfileService {
 
       const { data: newUser, error } = await supabase.rpc('create_user_profile', {
         p_email: email.toLowerCase().trim(),
+        p_clerk_id: clerk_id,
         p_name: name?.trim(),
-        p_storename: storename.trim(),
-        p_clerk_id: clerk_id
+        p_storename: storename.trim()
       });
 
       if (error) throw error;

@@ -50,26 +50,14 @@ export const SupabaseHooksProvider: React.FC<{
   const { userId } = useAuth();
   const [isUserContextSet, setIsUserContextSet] = useState(false);
 
-  // Set user context in Supabase when userId changes
+  // User context is automatically set via Clerk JWT template - no manual setup needed
   useEffect(() => {
-    const setUserContext = async () => {
-      if (userId && isSupabaseReady) {
-        try {
-          console.log('[SupabaseHooksProvider] Setting user context for:', userId);
-          const { setCurrentUserContext } = await import('../../../backend/config/supabase');
-          await setCurrentUserContext(userId);
-          setIsUserContextSet(true);
-          console.log('[SupabaseHooksProvider] ✅ User context set successfully');
-        } catch (error) {
-          console.error('[SupabaseHooksProvider] ❌ Failed to set user context:', error);
-          setIsUserContextSet(false);
-        }
-      } else {
-        setIsUserContextSet(false);
-      }
-    };
-
-    setUserContext();
+    if (userId && isSupabaseReady) {
+      console.log('[SupabaseHooksProvider] User context ready via Clerk JWT for:', userId);
+      setIsUserContextSet(true);
+    } else {
+      setIsUserContextSet(false);
+    }
   }, [userId, isSupabaseReady]);
 
   // Register services with Supabase

@@ -147,7 +147,7 @@ export default function AddProductScreen() {
       {toastMessage && (
         <CustomToast
           visible={true}
-          message={toastMessage}
+          message={String(toastMessage)}
           onDismiss={() => setToastMessage(null)}
           type="info"
         />

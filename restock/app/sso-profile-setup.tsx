@@ -9,7 +9,7 @@ import { useUnifiedAuth } from './_contexts/UnifiedAuthProvider';
 import { ssoProfileSetupStyles } from '../styles/components/auth/sso/profile-setup';
 import { ErrorLogger } from '../backend/utils/error-logger';
 import { UserProfileService } from '../backend/services/user-profile';
-import { setCurrentUserContext } from '../backend/config/supabase';
+
 
 
 export default function SSOProfileSetupScreen() {
@@ -105,10 +105,7 @@ export default function SSOProfileSetupScreen() {
   
     setLoading(true);
   
-    try {
-      // Set Supabase RLS context
-      await setCurrentUserContext(userId);
-  
+        try {
       ErrorLogger.info('SSOProfileSetup: Creating profile via RPC', {
         email,
         store_name,

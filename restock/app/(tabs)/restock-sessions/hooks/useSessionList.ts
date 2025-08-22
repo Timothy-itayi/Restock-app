@@ -1,13 +1,6 @@
-/**
- * SESSION LIST HOOK
- * 
- * Clean hook for managing session lists and selection
- * Focused only on session list UI concerns
- */
-
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@clerk/clerk-expo';
-import { useSessionRepository, useProductRepository, useSupplierRepository, useEmailRepository } from '../../../infrastructure/repositories/SupabaseHooksProvider';
+import { useSessionRepository } from '../../../infrastructure/repositories/SupabaseHooksProvider';
 import { RestockSession, SessionStatus } from '../../../domain/entities/RestockSession';
 
 export interface SessionListState {
@@ -26,184 +19,103 @@ export interface SessionListActions {
   refreshSessions: () => Promise<void>;
 }
 
-/**
- * Hook for managing session lists
- * 
- * Handles loading, creating, and deleting sessions
- * Provides clean interface for session list UI components
- */
 export function useSessionList(): SessionListState & SessionListActions {
   const { userId } = useAuth();
-  const { create, findById, findByUserId, addItem, removeItem, updateName, updateStatus } = useSessionRepository();
+  const { create, findByUserId } = useSessionRepository();
 
-  // State
   const [sessions, setSessions] = useState<RestockSession[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showSelectionModal, setShowSelectionModal] = useState(false);
 
-  /**
-   * Load all sessions for the current user
-   */
   const loadSessions = useCallback(async () => {
     if (!userId) {
       setError('User not authenticated');
       return;
     }
-
     setIsLoading(true);
     setError(null);
 
     try {
-      console.log('[useSessionList] Loading sessions for user:', userId);
-      
-      const sessions = await findByUserId(userId);
-      
-      if (sessions && sessions.length > 0) {
-        setSessions([...sessions]); // Convert readonly to mutable
-        console.log('[useSessionList] Loaded sessions:', sessions.length);
-      } else {
-        setSessions([]);
-        console.log('[useSessionList] No sessions found');
-      }
+      const fetchedSessions = await findByUserId();
+      setSessions(fetchedSessions ? [...fetchedSessions] : []);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      console.error('[useSessionList] Error loading sessions:', err);
-      setError(errorMessage);
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      console.error('[useSessionList] loadSessions error:', err);
+      setError(message);
       setSessions([]);
     } finally {
       setIsLoading(false);
     }
   }, [userId, findByUserId]);
 
-  /**
-   * Create a new session
-   */
   const createNewSession = useCallback(async (name?: string) => {
-    if (!userId) {
-      return { success: false, error: 'User not authenticated' };
-    }
-
+    if (!userId) return { success: false, error: 'User not authenticated' };
     setIsLoading(true);
     setError(null);
 
     try {
-      console.log('[useSessionList] Creating new session:', { userId, name });
+      const sessionName = name || `Restock Session ${new Date().toLocaleDateString()}`;
       
-      const sessionId = await create({ 
+      // Create RestockSession instance first
+      const tempSession = RestockSession.create({ 
+        id: 'temp', // Will be replaced by repository
         userId, 
-        name: name || `Restock Session ${new Date().toLocaleDateString()}`,
-        status: SessionStatus.DRAFT,
-        items: []
+        name: sessionName 
       });
       
-      if (sessionId) {
-        // Create a new session object
-        const newSession = RestockSession.create({
-          id: sessionId,
-          userId,
-          name: name || `Restock Session ${new Date().toLocaleDateString()}`,
-        });
-        
-        // Add new session to the list
-        setSessions(prev => [newSession, ...prev]);
-        console.log('[useSessionList] Session created successfully:', sessionId);
-        
-        return { 
-          success: true, 
-          session: newSession 
-        };
-      } else {
-        const errorMessage = 'Failed to create session';
-        setError(errorMessage);
-        return { 
-          success: false, 
-          error: errorMessage 
-        };
-      }
+      const sessionId = await create(tempSession);
+
+      if (!sessionId) throw new Error('Failed to create session');
+
+      const newSession = RestockSession.create({ id: sessionId, userId, name: sessionName });
+      setSessions(prev => [newSession, ...prev]);
+
+      return { success: true, session: newSession };
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      console.error('[useSessionList] Error creating session:', err);
-      setError(errorMessage);
-      return { 
-        success: false, 
-        error: errorMessage 
-      };
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      console.error('[useSessionList] createNewSession error:', err);
+      setError(message);
+      return { success: false, error: message };
     } finally {
       setIsLoading(false);
     }
   }, [userId, create]);
 
-  /**
-   * Delete a session
-   */
   const deleteSession = useCallback(async (sessionId: string) => {
     setIsLoading(true);
     setError(null);
-
     try {
-      console.log('[useSessionList] Deleting session:', sessionId);
-      
-      // For now, just remove from local state since we don't have a delete method
-      // TODO: Implement delete method in repository
-      setSessions(prev => prev.filter(session => session.id !== sessionId));
-      console.log('[useSessionList] Session removed from list:', sessionId);
-      
+      setSessions(prev => prev.filter(s => s.id !== sessionId));
       return { success: true };
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      console.error('[useSessionList] Error deleting session:', err);
-      setError(errorMessage);
-      return { 
-        success: false, 
-        error: errorMessage 
-      };
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      console.error('[useSessionList] deleteSession error:', err);
+      setError(message);
+      return { success: false, error: message };
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  /**
-   * Show session selection modal
-   */
-  const showSelectionModalAction = useCallback(() => {
-    setShowSelectionModal(true);
-  }, []);
+  const showSelectionModalAction = useCallback(() => setShowSelectionModal(true), []);
+  const hideSelectionModal = useCallback(() => setShowSelectionModal(false), []);
+  const refreshSessions = useCallback(async () => loadSessions(), [loadSessions]);
 
-  /**
-   * Hide session selection modal
-   */
-  const hideSelectionModal = useCallback(() => {
-    setShowSelectionModal(false);
-  }, []);
-
-  /**
-   * Refresh sessions (reload from server)
-   */
-  const refreshSessions = useCallback(async () => {
-    await loadSessions();
-  }, [loadSessions]);
-
-  // Load sessions on mount and when userId changes
   useEffect(() => {
-    if (userId) {
-      loadSessions();
-    }
+    if (userId) loadSessions();
   }, [userId, loadSessions]);
 
   return {
-    // State
     sessions,
     isLoading,
     error,
     showSelectionModal,
-    
-    // Actions
     loadSessions,
     createNewSession,
     deleteSession,
     openSelectionModal: showSelectionModalAction,
     hideSelectionModal,
-    refreshSessions
+    refreshSessions,
   };
 }
