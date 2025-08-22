@@ -34,7 +34,6 @@ export class SupabaseProductRepository implements ProductRepository {
     if (product.id) {
       // Update existing product
       const { error } = await supabase.rpc('update_product', {
-        p_user_id: this.getCurrentUserId(),
         p_id: product.id,
         p_name: dbProduct.name,
         p_default_quantity: dbProduct.default_quantity,
@@ -47,7 +46,6 @@ export class SupabaseProductRepository implements ProductRepository {
     } else {
       // Create new product
       const { error } = await supabase.rpc('insert_product', {
-        p_user_id: this.getCurrentUserId(),
         p_name: dbProduct.name,
         p_default_quantity: dbProduct.default_quantity,
         p_default_supplier_id: dbProduct.default_supplier_id
@@ -61,9 +59,7 @@ export class SupabaseProductRepository implements ProductRepository {
 
   async findById(id: string): Promise<Product | null> {
     try {
-      const { data: products, error } = await supabase.rpc('get_products', {
-        p_user_id: this.getCurrentUserId()
-      });
+      const { data: products, error } = await supabase.rpc('get_products');
       
       if (error) {
         throw new Error(`Failed to get products: ${error.message}`);
@@ -79,9 +75,7 @@ export class SupabaseProductRepository implements ProductRepository {
 
   async findByUserId(): Promise<ReadonlyArray<Product>> {
     try {
-      const { data: products, error } = await supabase.rpc('get_products', {
-        p_user_id: this.getCurrentUserId()
-      });
+      const { data: products, error } = await supabase.rpc('get_products');
       
       if (error) {
         throw new Error(`Failed to get products: ${error.message}`);
@@ -96,7 +90,6 @@ export class SupabaseProductRepository implements ProductRepository {
 
   async delete(id: string): Promise<void> {
     const { error } = await supabase.rpc('delete_product', {
-      p_user_id: this.getCurrentUserId(),
       p_id: id
     });
 
@@ -107,9 +100,7 @@ export class SupabaseProductRepository implements ProductRepository {
 
   async findByName(name: string): Promise<ReadonlyArray<Product>> {
     try {
-      const { data: products, error } = await supabase.rpc('get_products', {
-        p_user_id: this.getCurrentUserId()
-      });
+      const { data: products, error } = await supabase.rpc('get_products');
       
       if (error) {
         throw new Error(`Failed to get products: ${error.message}`);
@@ -128,9 +119,7 @@ export class SupabaseProductRepository implements ProductRepository {
 
   async search(searchTerm: string): Promise<ReadonlyArray<Product>> {
     try {
-      const { data: products, error } = await supabase.rpc('get_products', {
-        p_user_id: this.getCurrentUserId()
-      });
+      const { data: products, error } = await supabase.rpc('get_products');
       
       if (error) {
         throw new Error(`Failed to get products: ${error.message}`);
@@ -150,9 +139,7 @@ export class SupabaseProductRepository implements ProductRepository {
 
   async findBySupplierId(supplierId: string): Promise<ReadonlyArray<Product>> {
     try {
-      const { data: products, error } = await supabase.rpc('get_products', {
-        p_user_id: this.getCurrentUserId()
-      });
+      const { data: products, error } = await supabase.rpc('get_products');
       
       if (error) {
         throw new Error(`Failed to get products: ${error.message}`);
@@ -171,9 +158,7 @@ export class SupabaseProductRepository implements ProductRepository {
 
   async findAll(): Promise<ReadonlyArray<Product>> {
     try {
-      const { data: products, error } = await supabase.rpc('get_products', {
-        p_user_id: this.getCurrentUserId()
-      });
+      const { data: products, error } = await supabase.rpc('get_products');
       
       if (error) {
         throw new Error(`Failed to get products: ${error.message}`);
@@ -188,9 +173,7 @@ export class SupabaseProductRepository implements ProductRepository {
 
   async countByUserId(): Promise<number> {
     try {
-      const { data: products, error } = await supabase.rpc('get_products', {
-        p_user_id: this.getCurrentUserId()
-      });
+      const { data: products, error } = await supabase.rpc('get_products');
       
       if (error) {
         throw new Error(`Failed to get products: ${error.message}`);
@@ -205,9 +188,7 @@ export class SupabaseProductRepository implements ProductRepository {
 
   async findMostUsed(limit: number): Promise<ReadonlyArray<Product>> {
     try {
-      const { data: products, error } = await supabase.rpc('get_products', {
-        p_user_id: this.getCurrentUserId()
-      });
+      const { data: products, error } = await supabase.rpc('get_products');
       
       if (error) {
         throw new Error(`Failed to get products: ${error.message}`);

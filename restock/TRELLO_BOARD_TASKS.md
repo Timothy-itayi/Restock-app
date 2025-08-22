@@ -347,3 +347,109 @@
 - [x] OAuth flow improvements
 - [x] UI layout optimization
 
+
+
+
+You're absolutely right! This is a critical insight that changes everything. Let me analyze your assumptions and the database schema:
+
+## �� **Your Analysis is Correct**
+
+Looking at the database schema and the error, you've identified the fundamental issue:
+
+### **The Problem:**
+- **`clerk_id`**: `user_31YCEK3gpaQuMu2Hw5Pa9WZAnYb` (from Clerk authentication)
+- **`id`**: `f1326ffa-1fc0-4af7-b1dc-12e9e2deefe4` (Supabase-generated UUID primary key)
+- **Foreign key constraint**: `restock_sessions.user_id` → `users.id` (not `users.clerk_id`)
+
+### **What's Happening:**
+1. The RPC function `insert_restock_session` is receiving the **Clerk user ID** (`user_31YCEK3gpaQuMu2Hw5Pa9WZAnYb`)
+2. But the foreign key constraint expects the **Supabase users.id** (`f1326ffa-1fc0-4af7-b1dc-12e9e2deefe4`)
+3. The constraint fails because `user_31YCEK3gpaQuMu2Hw5Pa9WZAnYb` doesn't exist in the `users.id` column
+
+## �� **Challenging Your Assumptions**
+
+However, let me push back on one assumption - **this might not be the right architectural approach**. Here's why:
+
+### **Option 1: Use Supabase ID (Current Schema)**
+- ✅ Follows standard database normalization
+- ✅ Clerk ID is just a reference, Supabase ID is the "real" primary key
+- ❌ Requires mapping Clerk ID → Supabase ID every time
+- ❌ More complex, more potential for errors
+
+### **Option 2: Use Clerk ID Directly (Simpler)**
+- ✅ Direct mapping, no ID translation needed
+- ✅ Simpler queries and relationships
+- ✅ Clerk ID is the "source of truth" for authentication
+- ❌ Requires schema changes
+- ❌ Clerk ID format might change
+
+## 💡 **The Real Solution**
+
+I think the issue is in the **RPC function logic**, not the schema. The RPC function should:
+
+1. **Receive the Clerk ID** (which it does)
+2. **Look up the corresponding Supabase user ID** 
+3. **Use the Supabase ID for the foreign key**
+
+Let me check the RPC function to see if it's doing this lookup:
+
+Ran tool
+Read file: restock/CRUD_RPC_FUNCTIONS.sql
+## 🚨 **Found the Problem!**
+
+The RPC function `insert_restock_session` is **directly inserting the `p_user_id` parameter** without doing any lookup or validation. This means:
+
+1. **We're passing Clerk ID**: `user_31YCEK3gpaQuMu2Hw5Pa9WZAnYb`
+2. **RPC function inserts it directly**: `INSERT INTO restock_sessions (..., user_id) VALUES (..., p_user_id)`
+3. **Foreign key constraint fails**: Because `user_31YCEK3gpaQuMu2Hw5Pa9WZAnYb` doesn't exist in `users.id`
+
+## 💡 **Two Solutions:**
+
+### **Solution 1: Fix the RPC Function (Recommended)**
+Modify the RPC function to do a Clerk ID → Supabase ID lookup:
+
+```sql
+CREATE OR REPLACE FUNCTION public.insert_restock_session(
+    p_clerk_id text,  -- Change parameter name to be clear
+    p_name text,
+    p_status text
+) RETURNS TABLE (...) AS $$
+DECLARE
+    new_id text := gen_random_uuid()::text;
+    supabase_user_id text;
+BEGIN
+    -- Look up the Supabase user ID from Clerk ID
+    SELECT id INTO supabase_user_id 
+    FROM public.users 
+    WHERE clerk_id = p_clerk_id;
+    
+    IF supabase_user_id IS NULL THEN
+        RAISE EXCEPTION 'User not found with Clerk ID: %', p_clerk_id;
+    END IF;
+    
+    -- Insert using the Supabase user ID
+    INSERT INTO public.restock_sessions (id, name, status, user_id)
+    VALUES (new_id, p_name, p_status, supabase_user_id);
+    
+    -- ... rest of function
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+```
+
+### **Solution 2: Change the Schema (Not Recommended)**
+Change `restock_sessions.user_id` to reference `users.clerk_id` instead of `users.id`.
+
+## 🎯 **My Recommendation:**
+
+**Go with Solution 1** - fix the RPC function. Here's why:
+
+1. **Maintains proper database normalization**
+2. **Clerk ID is just a reference, not a business key**
+3. **Supabase ID is the proper primary key for relationships**
+4. **More maintainable in the long run**
+
+## 🔧 **Immediate Fix:**
+
+For now, we need to modify the repository to pass the **Supabase user ID** instead of the Clerk ID. But the better long-term solution is to fix the RPC function to handle the Clerk ID → Supabase ID mapping automatically.
+
+**Your analysis is spot-on** - the foreign key constraint is failing because we're mixing up Clerk IDs and Supabase IDs. The RPC function needs to handle this translation, not the application code.

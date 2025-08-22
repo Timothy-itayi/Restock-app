@@ -1,381 +1,180 @@
-/**
- * RESTOCK SESSION HOOK - CLEAN VERSION
- * 
- * Focused hook for managing a single restock session
- * Uses repository pattern for all data operations
- */
-
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@clerk/clerk-expo';
-import { useSessionRepository } from '../../../infrastructure/supabase/SupabaseHooksProvider';
+import { useSupabaseRepository } from '../../../hooks/useSupabaseRepository';
 import { RestockSession, SessionStatus } from '../../../domain/entities/RestockSession';
 
-export interface RestockSessionState {
-  session: RestockSession | null;
-  isLoading: boolean;
-  error: string | null;
-  isActive: boolean;
-}
+export function useRestockSession(sessionId?: string) {
+  const auth = useAuth();
+  const userId = typeof auth.userId === 'string' ? auth.userId : undefined;
 
-export interface RestockSessionActions {
-  createSession: (name?: string) => Promise<{ success: boolean; session?: RestockSession; error?: string }>;
-  loadSession: (sessionId: string) => Promise<void>;
-  addProduct: (params: {
-    productName: string;
-    quantity: number;
-    supplierName: string;
-    supplierEmail: string;
-    notes?: string;
-  }) => Promise<{ success: boolean; error?: string }>;
-  removeProduct: (productId: string) => Promise<{ success: boolean; error?: string }>;
-  updateSessionName: (sessionId: string, name: string) => Promise<{ success: boolean; error?: string }>;
-  clearSession: () => void;
-  setError: (error: string | null) => void;
-}
+  const { sessions, items, isLoading: repoLoading, isAuthenticated } = useSupabaseRepository();
 
-export interface SessionProduct {
-  id: string;
-  name: string;
-  quantity: number;
-  supplierId: string;
-  supplierName: string;
-  supplierEmail: string;
-  notes?: string;
-}
-
-/**
- * Hook for managing a single restock session
- */
-export function useRestockSession(sessionId?: string): RestockSessionState & RestockSessionActions {
-  const { userId } = useAuth();
-  const sessionRepository = useSessionRepository();
-
-  // Debug logging
-  console.log('[useRestockSession] Hook initialized:', {
-    userId,
-    hasSessionRepository: !!sessionRepository,
-    sessionRepositoryKeys: sessionRepository ? Object.keys(sessionRepository) : 'null',
-    hasCreateMethod: !!sessionRepository?.create,
-    createMethodType: typeof sessionRepository?.create,
-    isReady: sessionRepository?.isReady,
-    isUserContextSet: sessionRepository?.isUserContextSet,
-    // More detailed debugging
-    repositoryType: sessionRepository?.constructor?.name,
-    allMethods: sessionRepository ? Object.getOwnPropertyNames(Object.getPrototypeOf(sessionRepository)) : 'null',
-    directProperties: sessionRepository ? Object.getOwnPropertyNames(sessionRepository) : 'null'
-  });
-
-  // State
   const [session, setSession] = useState<RestockSession | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const findSessionById = useCallback(async (id: string) => {
+    if (!userId) return null;
 
-  /**
-   * Create a new session
-   */
+    try {
+      const allSessions = await sessions.getAll();
+      const sessionData = allSessions?.find((s: any) => s.id === id);
+      if (!sessionData) return null;
+
+      const allItems = await items.getAll();
+      const sessionItems = allItems?.filter((i: any) => i.session_id === id) || [];
+
+      return RestockSession.fromValue({
+        id: sessionData.id,
+        userId,
+        name: sessionData.name,
+        status: sessionData.status as SessionStatus,
+        createdAt: new Date(sessionData.created_at),
+        items: sessionItems.map((item: any) => ({
+          id: item.id,
+          productName: item.product_name,
+          supplierName: item.supplier_name,
+          supplierEmail: item.supplier_email,
+          quantity: item.quantity,
+          notes: item.notes || ''
+        }))
+      });
+    } catch (err) {
+      console.error('[useRestockSession] findSessionById error:', err);
+      return null;
+    }
+  }, [sessions, items, userId]);
+
   const createSession = useCallback(async (name?: string) => {
-    console.log('[useRestockSession] createSession called:', {
-      name,
-      userId,
-      hasSessionRepository: !!sessionRepository,
-      sessionRepositoryKeys: sessionRepository ? Object.keys(sessionRepository) : 'null',
-      hasCreateMethod: !!sessionRepository?.create,
-      createMethodType: typeof sessionRepository?.create
-    });
-
-    if (!userId) {
-      return { success: false, error: 'User not authenticated' };
-    }
-
-    // Check if Supabase is ready and user context is set
-    if (!sessionRepository.isReady) {
-      return { success: false, error: 'Supabase not ready' };
-    }
-
-    if (!sessionRepository.isUserContextSet) {
-      return { success: false, error: 'User context not set. Please wait for authentication to complete.' };
-    }
-
+    if (!userId || repoLoading || !isAuthenticated) return { success: false, error: 'User not authenticated or repo loading' };
     setIsLoading(true);
     setError(null);
 
     try {
-      console.log('[useRestockSession] Creating session:', { userId, name });
-      
       const sessionName = name || `Restock Session ${new Date().toLocaleDateString()}`;
-      
-      // Create proper domain entity
-      const newSessionEntity = RestockSession.create({
-        id: 'temp', // This will be replaced by the database
-        userId: userId,
-        name: sessionName,
-        createdAt: new Date(),
+      const created = await sessions.create(sessionName, SessionStatus.DRAFT);
+      if (!created) throw new Error('Failed to create session');
+
+      const newSession = RestockSession.fromValue({
+        id: created.id,
+        userId,
+        name: created.name,
+        status: created.status as SessionStatus,
+        createdAt: new Date(created.created_at),
+        items: []
       });
-      
-      console.log('[useRestockSession] About to call sessionRepository.create with:', {
-        newSessionEntity,
-        hasCreateMethod: !!sessionRepository.create,
-        createMethodType: typeof sessionRepository.create
-      });
-      
-      // Call repository directly - no need for Supabase context
-      const sessionId = await sessionRepository.create(newSessionEntity);
-      
-      // Load the created session
-      const createdSession = await sessionRepository.findById(sessionId);
-      if (createdSession) {
-        setSession(createdSession);
-        console.log('[useRestockSession] Session created:', sessionId);
-        return { success: true, session: createdSession };
-      } else {
-        throw new Error('Failed to load created session');
-      }
+
+      setSession(newSession);
+      return { success: true, session: newSession };
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      console.error('[useRestockSession] Error creating session:', err);
-      setError(errorMessage);
-      return { success: false, error: errorMessage };
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      console.error('[useRestockSession] createSession error:', err);
+      setError(message);
+      return { success: false, error: message };
     } finally {
       setIsLoading(false);
     }
-  }, [userId, sessionRepository]);
+  }, [userId, sessions, repoLoading, isAuthenticated]);
 
-  /**
-   * Load an existing session
-   */
-  const loadSession = useCallback(async (sessionId: string) => {
+  const loadSession = useCallback(async (id: string) => {
     setIsLoading(true);
     setError(null);
-
     try {
-      console.log('[useRestockSession] Loading session:', sessionId);
-      
-      const session = await sessionRepository.findById(sessionId);
-      
-      if (session) {
-        setSession(session);
-        console.log('[useRestockSession] Session loaded:', sessionId);
-      } else {
+      const s = await findSessionById(id);
+      if (!s) {
         setError('Session not found');
         setSession(null);
-      }
+      } else setSession(s);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load session';
-      console.error('[useRestockSession] Error loading session:', err);
-      setError(errorMessage);
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      console.error('[useRestockSession] loadSession error:', err);
+      setError(message);
       setSession(null);
     } finally {
       setIsLoading(false);
     }
-  }, [sessionRepository]);
+  }, [findSessionById]);
 
-  /**
-   * Add a product to the current session
-   */
-  const addProduct = useCallback(async (params: {
-    productName: string;
-    quantity: number;
-    supplierName: string;
-    supplierEmail: string;
-    notes?: string;
-  }) => {
-    if (!session) {
-      return { success: false, error: 'No active session' };
-    }
-
+  const addProduct = useCallback(async (params: { productName: string; quantity: number; supplierName: string; supplierEmail: string; notes?: string }) => {
+    if (!userId || !session) return { success: false, error: 'No active session or user not authenticated' };
     setIsLoading(true);
     setError(null);
 
     try {
-      console.log('[useRestockSession] Adding product to session:', {
-        sessionId: session.id,
-        productName: params.productName,
-      });
-      
-      const item = {
-        userId: userId, // Add userId for repository
-        productName: params.productName,
-        quantity: params.quantity,
-        supplierName: params.supplierName,
-        supplierEmail: params.supplierEmail,
-        notes: params.notes,
-      };
-      
-      await sessionRepository.addItem(session.id, item);
-      
-      // Reload session to get updated data
-      const updatedSession = await sessionRepository.findById(session.id);
-      if (updatedSession) {
-        setSession(updatedSession);
-        console.log('[useRestockSession] Product added successfully');
-        return { success: true };
-      } else {
-        throw new Error('Failed to reload session after adding product');
-      }
+      await items.create(session.id, params.productName, params.supplierName, params.supplierEmail, params.quantity, params.notes);
+      const updated = await findSessionById(session.id);
+      if (updated) setSession(updated);
+      return { success: true };
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      console.error('[useRestockSession] Error adding product:', err);
-      setError(errorMessage);
-      return { success: false, error: errorMessage };
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      console.error('[useRestockSession] addProduct error:', err);
+      setError(message);
+      return { success: false, error: message };
     } finally {
       setIsLoading(false);
     }
-  }, [session, sessionRepository, userId]);
+  }, [session, items, findSessionById, userId]);
 
-  /**
-   * Remove a product from the current session
-   */
   const removeProduct = useCallback(async (productId: string) => {
-    if (!session) {
-      return { success: false, error: 'No active session' };
-    }
-
+    if (!userId || !session) return { success: false, error: 'No active session or user not authenticated' };
     setIsLoading(true);
     setError(null);
 
     try {
-      console.log('[useRestockSession] Removing product:', {  sessionId: session.id });
-      
-      await sessionRepository.removeItem(session.id);
-      
-      // Reload session to get updated data
-      const updatedSession = await sessionRepository.findById(session.id);
-      if (updatedSession) {
-        setSession(updatedSession);
-        console.log('[useRestockSession] Product removed successfully');
-        return { success: true };
-      } else {
-        throw new Error('Failed to reload session after removing product');
-      }
+      await items.delete(productId);
+      const updated = await findSessionById(session.id);
+      if (updated) setSession(updated);
+      return { success: true };
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      console.error('[useRestockSession] Error removing product:', err);
-      setError(errorMessage);
-      return { success: false, error: errorMessage };
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      console.error('[useRestockSession] removeProduct error:', err);
+      setError(message);
+      return { success: false, error: message };
     } finally {
       setIsLoading(false);
     }
-  }, [session, sessionRepository]);
+  }, [session, items, findSessionById, userId]);
 
-  /**
-   * Update session name
-   */
-  const updateSessionName = useCallback(async (sessionId: string, name: string) => {
+  const updateSessionName = useCallback(async (id: string, name: string) => {
+    if (!userId) return { success: false, error: 'User not authenticated' };
     setIsLoading(true);
     setError(null);
 
     try {
-      console.log('[useRestockSession] Updating session name:', { sessionId, name });
-      
-      await sessionRepository.updateName(sessionId, name);
-      
-      // Update local session state
-      if (session && session.id === sessionId) {
-        const updatedSession = await sessionRepository.findById(sessionId);
-        if (updatedSession) {
-          setSession(updatedSession);
-          console.log('[useRestockSession] Session name updated successfully:', name);
-          return { success: true };
-        }
-      }
-      
-      return { success: false, error: 'Session not found' };
+      await sessions.update(id, name, undefined);
+      const updated = await findSessionById(id);
+      if (updated) setSession(updated);
+      return { success: true };
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update session name';
-      console.error('[useRestockSession] Error updating session name:', err);
-      setError(errorMessage);
-      return { success: false, error: errorMessage };
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      console.error('[useRestockSession] updateSessionName error:', err);
+      setError(message);
+      return { success: false, error: message };
     } finally {
       setIsLoading(false);
     }
-  }, [session, sessionRepository]);
+  }, [sessions, findSessionById, userId]);
 
-  /**
-   * Clear the current session
-   */
   const clearSession = useCallback(() => {
     setSession(null);
     setError(null);
   }, []);
 
-  /**
-   * Set error message
-   */
-  const setErrorMessage = useCallback((error: string | null) => {
-    setError(error);
-  }, []);
-
-  // Load session on mount if sessionId provided
   useEffect(() => {
-    if (sessionId) {
-      loadSession(sessionId);
-    }
+    if (sessionId) loadSession(sessionId);
   }, [sessionId, loadSession]);
 
-  // Calculate derived state
-  const isActive = session !== null;
-
   return {
-    // State
     session,
     isLoading,
     error,
-    isActive,
-    
-    // Actions
+    isActive: session !== null,
     createSession,
     loadSession,
     addProduct,
     removeProduct,
     updateSessionName,
     clearSession,
-    setError: setErrorMessage
-  };
-}
-
-/**
- * Helper function to extract session products in a UI-friendly format
- */
-export function getSessionProducts(session: RestockSession | null): SessionProduct[] {
-  if (!session) return [];
-  
-  return session.items.map((item) => ({
-    id: item.productId,
-    name: item.productName,
-    quantity: item.quantity,
-    supplierId: item.supplierId,
-    supplierName: item.supplierName,
-    supplierEmail: item.supplierEmail,
-    notes: item.notes
-  }));
-}
-
-/**
- * Helper function to get session summary information
- */
-export function getSessionSummary(session: RestockSession | null): {
-  totalProducts: number;
-  totalQuantity: number;
-  supplierCount: number;
-  sessionName: string;
-  sessionId: string;
-} {
-  if (!session) {
-    return {
-      totalProducts: 0,
-      totalQuantity: 0,
-      supplierCount: 0,
-      sessionName: '',
-      sessionId: ''
-    };
-  }
-  
-  return {
-    totalProducts: session.items.length,
-    totalQuantity: session.getTotalItems(),
-    supplierCount: session.getUniqueSupplierCount(),
-    sessionName: session.name || 'Unnamed Session',
-    sessionId: session.id
+    setError
   };
 }

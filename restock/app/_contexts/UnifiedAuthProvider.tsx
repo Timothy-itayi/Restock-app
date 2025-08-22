@@ -5,6 +5,7 @@ import { SessionManager } from '../../backend/services/session-manager';
 import { UserProfileService } from '../../backend/services/user-profile';
 import { ClerkClientService } from '../../backend/services/clerk-client';
 import { EmailAuthService } from '../../backend/services/email-auth';
+import { registerClerkUser } from '../../backend/config/supabase';
 import useProfileStore from '../stores/useProfileStore';
 
 
@@ -228,6 +229,27 @@ export const UnifiedAuthProvider: React.FC<UnifiedAuthProviderProps> = ({ childr
       hasUser: !!user
     });
     
+    // 🚀 STEP 1: Register user with Supabase (creates or updates user record)
+    try {
+      const userEmail = user?.emailAddresses?.[0]?.emailAddress || user?.primaryEmailAddress?.emailAddress;
+      const userName = user?.fullName || user?.firstName || null;
+      
+      console.log('🔧 UnifiedAuth: Registering user with Supabase:', { userId, userEmail, userName });
+      
+      const supabaseUserId = await registerClerkUser(
+        userId,
+        userEmail,
+        userName,
+        '' // store_name will be set during profile setup
+      );
+      
+      console.log('✅ UnifiedAuth: User registered with Supabase, UUID:', supabaseUserId);
+    } catch (error) {
+      console.error('❌ UnifiedAuth: Failed to register user with Supabase:', error);
+      // Continue with auth flow even if Supabase registration fails
+      // This ensures users aren't blocked from accessing the app
+    }
+    
     const isGoogle = checkIfGoogleUser(user);
     console.log('🔍 UnifiedAuth: User type detected:', { isGoogle, userId });
     
@@ -258,11 +280,8 @@ export const UnifiedAuthProvider: React.FC<UnifiedAuthProviderProps> = ({ childr
     console.log('🔍 UnifiedAuth: Getting user profile data via database...');
     try {
       // Get the full profile data to avoid screens needing to fetch it again
-      // First set the Clerk user context in Supabase so RLS policies work correctly
-      const { setCurrentUserContext } = await import('../../backend/config/supabase');
-      await setCurrentUserContext(userId);
-      
-      // Use direct query instead of RPC to ensure Clerk context is properly handled
+      // Get user profile using new Supabase integration
+      // The JWT token already provides the user context, so no need to set it manually
       const profileResult = await UserProfileService.getUserProfileByClerkId(userId);
       
       console.log('🔍 UnifiedAuth: Profile result:', {

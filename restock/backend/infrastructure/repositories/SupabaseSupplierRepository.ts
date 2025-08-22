@@ -34,7 +34,6 @@ export class SupabaseSupplierRepository implements SupplierRepository {
     if (supplier.id) {
       // Update existing supplier
       const { error } = await supabase.rpc('update_supplier', {
-        p_user_id: this.getCurrentUserId(),
         p_id: supplier.id,
         p_name: dbSupplier.name,
         p_email: dbSupplier.email,
@@ -48,7 +47,6 @@ export class SupabaseSupplierRepository implements SupplierRepository {
     } else {
       // Create new supplier
       const { error } = await supabase.rpc('insert_supplier', {
-        p_user_id: this.getCurrentUserId(),
         p_name: dbSupplier.name,
         p_email: dbSupplier.email,
         p_phone: dbSupplier.phone,
@@ -63,9 +61,7 @@ export class SupabaseSupplierRepository implements SupplierRepository {
 
   async findById(id: string): Promise<Supplier | null> {
     try {
-      const { data: suppliers, error } = await supabase.rpc('get_suppliers', {
-        p_user_id: this.getCurrentUserId()
-      });
+      const { data: suppliers, error } = await supabase.rpc('get_suppliers');
       
       if (error) {
         throw new Error(`Failed to get suppliers: ${error.message}`);
@@ -81,9 +77,7 @@ export class SupabaseSupplierRepository implements SupplierRepository {
 
   async findByUserId(): Promise<ReadonlyArray<Supplier>> {
     try {
-      const { data: suppliers, error } = await supabase.rpc('get_suppliers', {
-        p_user_id: this.getCurrentUserId()
-      });
+      const { data: suppliers, error } = await supabase.rpc('get_suppliers');
       
       if (error) {
         throw new Error(`Failed to get suppliers: ${error.message}`);
@@ -98,7 +92,6 @@ export class SupabaseSupplierRepository implements SupplierRepository {
 
   async delete(id: string): Promise<void> {
     const { error } = await supabase.rpc('delete_supplier', {
-      p_user_id: this.getCurrentUserId(),
       p_id: id
     });
 
@@ -109,9 +102,7 @@ export class SupabaseSupplierRepository implements SupplierRepository {
 
   async findByEmail(email: string): Promise<Supplier | null> {
     try {
-      const { data: suppliers, error } = await supabase.rpc('get_suppliers', {
-        p_user_id: this.getCurrentUserId()
-      });
+      const { data: suppliers, error } = await supabase.rpc('get_suppliers');
       
       if (error) {
         throw new Error(`Failed to get suppliers: ${error.message}`);
@@ -127,9 +118,7 @@ export class SupabaseSupplierRepository implements SupplierRepository {
 
   async search(searchTerm: string): Promise<ReadonlyArray<Supplier>> {
     try {
-      const { data: suppliers, error } = await supabase.rpc('get_suppliers', {
-        p_user_id: this.getCurrentUserId()
-      });
+      const { data: suppliers, error } = await supabase.rpc('get_suppliers');
       
       if (error) {
         throw new Error(`Failed to get suppliers: ${error.message}`);
@@ -150,9 +139,7 @@ export class SupabaseSupplierRepository implements SupplierRepository {
 
   async countByUserId(): Promise<number> {
     try {
-      const { data: suppliers, error } = await supabase.rpc('get_suppliers', {
-        p_user_id: this.getCurrentUserId()
-      });
+      const { data: suppliers, error } = await supabase.rpc('get_suppliers');
       
       if (error) {
         throw new Error(`Failed to get suppliers: ${error.message}`);

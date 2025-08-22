@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Database } from '../types/database';
 
 // Supabase configuration
@@ -9,7 +9,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-// Create Supabase client
+// Default Supabase client (for unauthenticated requests)
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
@@ -23,21 +23,57 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   },
 });
 
-// Helper function to set current user context for RLS policies
-export const setCurrentUserContext = async (clerkUserId: string) => {
-  try {
-    await supabase.rpc('set_current_user_context', { user_id: clerkUserId });
-  } catch (error) {
-    console.warn('Failed to set current user context:', error);
+// Factory function to create authenticated Supabase client with Clerk session
+export const createAuthenticatedSupabaseClient = async (getToken: () => Promise<string | null>): Promise<SupabaseClient<Database>> => {
+  const token = await getToken();
+  
+  if (!token) {
+    console.warn('No Clerk session token available, using default client');
+    return supabase;
   }
+
+  return createClient<Database>(supabaseUrl, supabaseAnonKey, {
+    global: {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: false,
+    },
+    realtime: {
+      params: {
+        eventsPerSecond: 10,
+      },
+    },
+  });
 };
 
-// Helper function to clear current user context
-export const clearCurrentUserContext = async () => {
+// User registration helper for Clerk integration
+export const registerClerkUser = async (
+  clerkId: string, 
+  email: string, 
+  name?: string, 
+  storeName?: string
+) => {
   try {
-    await supabase.rpc('clear_current_user_context');
+    const { data, error } = await supabase.rpc('handle_clerk_user', {
+      p_clerk_id: clerkId,
+      p_email: email,
+      p_name: name || null,
+      p_store_name: storeName || null
+    });
+
+    if (error) {
+      throw new Error(`Failed to register user: ${error.message}`);
+    }
+
+    return data; // Returns the Supabase UUID
   } catch (error) {
-    console.warn('Failed to clear current user context:', error);
+    console.error('Failed to register Clerk user with Supabase:', error);
+    throw error;
   }
 };
 

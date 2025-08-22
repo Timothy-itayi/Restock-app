@@ -50,7 +50,6 @@ export class SupabaseEmailRepository implements EmailRepository {
 
   async updateStatus(request: UpdateEmailStatusRequest): Promise<string> {
     const { data, error } = await supabase.rpc('update_email_sent', {
-      p_user_id: this.getCurrentUserId(),
       p_id: request.id,
       p_delivery_status: request.status,
       p_sent_via: null,
@@ -73,9 +72,7 @@ export class SupabaseEmailRepository implements EmailRepository {
 
   async getById(id: string): Promise<EmailRecord | null> {
     try {
-      const { data: emails, error } = await supabase.rpc('get_emails_sent', {
-        p_user_id: this.getCurrentUserId()
-      });
+      const { data: emails, error } = await supabase.rpc('get_emails_sent');
       
       if (error) {
         throw new Error(`Failed to get emails: ${error.message}`);
@@ -91,9 +88,7 @@ export class SupabaseEmailRepository implements EmailRepository {
 
   async findBySessionId(sessionId: string): Promise<EmailRecord[]> {
     try {
-      const { data: emails, error } = await supabase.rpc('get_emails_sent', {
-        p_user_id: this.getCurrentUserId()
-      });
+      const { data: emails, error } = await supabase.rpc('get_emails_sent');
       
       if (error) {
         throw new Error(`Failed to get emails: ${error.message}`);
@@ -109,9 +104,7 @@ export class SupabaseEmailRepository implements EmailRepository {
 
   async findByUserId(): Promise<EmailRecord[]> {
     try {
-      const { data: emails, error } = await supabase.rpc('get_emails_sent', {
-        p_user_id: this.getCurrentUserId()
-      });
+      const { data: emails, error } = await supabase.rpc('get_emails_sent');
       
       if (error) {
         throw new Error(`Failed to get emails: ${error.message}`);
@@ -126,7 +119,6 @@ export class SupabaseEmailRepository implements EmailRepository {
 
   async remove(id: string): Promise<void> {
     const { error } = await supabase.rpc('delete_email_sent', {
-      p_user_id: this.getCurrentUserId(),
       p_id: id
     });
 
@@ -137,9 +129,7 @@ export class SupabaseEmailRepository implements EmailRepository {
 
   async getAnalytics(): Promise<EmailAnalytics> {
     try {
-      const { data: emails, error } = await supabase.rpc('get_emails_sent', {
-        p_user_id: this.getCurrentUserId()
-      });
+      const { data: emails, error } = await supabase.rpc('get_emails_sent');
       
       if (error) {
         throw new Error(`Failed to get emails: ${error.message}`);
@@ -171,9 +161,7 @@ export class SupabaseEmailRepository implements EmailRepository {
 
   async findByStatus(status: string): Promise<EmailRecord[]> {
     try {
-      const { data: emails, error } = await supabase.rpc('get_emails_sent', {
-        p_user_id: this.getCurrentUserId()
-      });
+      const { data: emails, error } = await supabase.rpc('get_emails_sent');
       
       if (error) {
         throw new Error(`Failed to get emails: ${error.message}`);
@@ -189,9 +177,7 @@ export class SupabaseEmailRepository implements EmailRepository {
 
   async findBySupplier(supplierEmail: string): Promise<EmailRecord[]> {
     try {
-      const { data: emails, error } = await supabase.rpc('get_emails_sent', {
-        p_user_id: this.getCurrentUserId()
-      });
+      const { data: emails, error } = await supabase.rpc('get_emails_sent');
       
       if (error) {
         throw new Error(`Failed to get emails: ${error.message}`);
