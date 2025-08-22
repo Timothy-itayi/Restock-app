@@ -4,7 +4,7 @@ import { getDashboardStyles } from '../../../../styles/components/dashboard';
 import { useThemedStyles } from '../../../../styles/useThemedStyles';
 import SkeletonBox from '../../../components/skeleton/SkeletonBox';
 import useProfileStore from '../../../stores/useProfileStore';
-import { useAuth } from '@clerk/clerk-expo';
+import { useClientSideAuth } from '../../../hooks/useClientSideAuth';
 
 interface WelcomeSectionProps {
   profileLoading: boolean;
@@ -19,7 +19,7 @@ export const WelcomeSection: React.FC<WelcomeSectionProps> = ({
 }) => {
   const dashboardStyles = useThemedStyles(getDashboardStyles);
   const { error: profileError, isProfileLoaded, retryProfileLoad } = useProfileStore();
-  const { userId } = useAuth();
+  const { userId } = useClientSideAuth();
   
   const handleRetry = () => {
     if (userId) {

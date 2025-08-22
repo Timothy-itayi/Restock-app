@@ -6,8 +6,9 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, ScrollView, Alert, TouchableOpacity } from 'react-native';
-import { useAuth } from '@clerk/clerk-expo';
 import { useLocalSearchParams } from 'expo-router';
+import { useStableAuth } from '../../hooks/useStableAuth';
+import { AuthErrorBoundary } from '../../components/AuthErrorBoundary';
 
 // Hooks
 import { useSessionList } from './hooks/useSessionList';
@@ -28,19 +29,24 @@ import { useThemedStyles } from '../../../styles/useThemedStyles';
 import { getRestockSessionsStyles } from '../../../styles/components/restock-sessions';
 
 const RestockSessionsContent: React.FC = () => {
-  // --- CLIENT-SIDE RENDERING GUARD ---
-  const [isMounted, setIsMounted] = useState(false);
-  
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  // --- SAFE PARAMS ---
+  // Always call hooks in the same order - never conditionally
+  const auth = useStableAuth();
   const rawParams = useLocalSearchParams();
-  const [safeParams, setSafeParams] = useState<{ sessionId?: string; action?: string } | null>(null);
+  const restockSessionsStyles = useThemedStyles(getRestockSessionsStyles);
+  const sessionList = useSessionList();
+  const currentSession = useRestockSession();
+  const serviceHealth = useServiceHealth();
+  
+  // Local state - always initialized
+  const [safeParams, setSafeParams] = useState<{ sessionId?: string; action?: string }>({});
+  const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
+  const [showNameModal, setShowNameModal] = useState(false);
+  const [sessionNameInput, setSessionNameInput] = useState('');
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  // Process params when auth is ready
   useEffect(() => {
-    if (!isMounted) return; // Don't process params until mounted
+    if (!auth.isReady) return;
     
     if (rawParams && typeof rawParams === 'object' && !Array.isArray(rawParams)) {
       setSafeParams({
@@ -50,30 +56,14 @@ const RestockSessionsContent: React.FC = () => {
     } else {
       setSafeParams({});
     }
-  }, [rawParams, isMounted]);
+  }, [rawParams, auth.isReady]);
 
-  const sessionId = safeParams?.sessionId;
-  const action = safeParams?.action;
-
-  // --- AUTH ---
-  const auth = useAuth();
-  const userId = isMounted && typeof auth.userId === 'string' ? auth.userId : undefined;
-
-  const restockSessionsStyles = useThemedStyles(getRestockSessionsStyles);
-  
-  // Only initialize hooks after component mounts to prevent hydration issues
-  const sessionList = useSessionList();
-  const currentSession = useRestockSession();
-  const serviceHealth = useServiceHealth();
-
-  const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
-  const [showNameModal, setShowNameModal] = useState(false);
-  const [sessionNameInput, setSessionNameInput] = useState('');
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const sessionId = safeParams.sessionId;
+  const action = safeParams.action;
 
   // --- SERVICE HEALTH ---
   useEffect(() => {
-    if (!serviceHealth.isHealthy) {
+    if (!serviceHealth.isHealthy && Array.isArray(serviceHealth.issues)) {
       const hasDatabaseSetupIssue = serviceHealth.issues.some(issue =>
         issue.includes('Database security setup incomplete') ||
         issue.includes('RPC function') ||
@@ -95,7 +85,7 @@ const RestockSessionsContent: React.FC = () => {
 
   // --- SERVICE INITIALIZING TOAST ---
   useEffect(() => {
-    if (userId && !isServiceReady()) {
+    if (auth.userId && !isServiceReady()) {
       const timer = setTimeout(() => {
         if (!isServiceReady()) {
           setToastMessage('Initializing services... Please wait a moment.');
@@ -103,11 +93,11 @@ const RestockSessionsContent: React.FC = () => {
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [userId, isServiceReady]);
+  }, [auth.userId, isServiceReady]);
 
   // --- START NEW SESSION ---
   const handleStartNewSession = useCallback(async () => {
-    if (!userId) {
+    if (!auth.userId) {
       setToastMessage('Please log in to create a session');
       return;
     }
@@ -115,7 +105,7 @@ const RestockSessionsContent: React.FC = () => {
     const defaultName = `Restock Session ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
     setSessionNameInput(defaultName);
     setShowNameModal(true);
-  }, [userId]);
+  }, [auth.userId]);
 
   // --- SESSION SELECTION ---
   const handleSelectSession = useCallback(async (sessionId: string) => {
@@ -175,11 +165,11 @@ const RestockSessionsContent: React.FC = () => {
 
   // --- AUTO LOAD SESSIONS ---
   useEffect(() => {
-    if (userId) {
+    if (auth.userId) {
       const timer = setTimeout(() => sessionList.loadSessions(), 100);
       return () => clearTimeout(timer);
     }
-  }, [userId, sessionList.loadSessions]);
+  }, [auth.userId, sessionList.loadSessions]);
 
   // --- LOAD SESSION FROM DASHBOARD ---
   useEffect(() => {
@@ -203,13 +193,21 @@ const RestockSessionsContent: React.FC = () => {
   const isLoading = sessionList.isLoading || currentSession.isLoading;
   const isServiceInitializing = !serviceHealth.isHealthy || !isServiceReady();
 
-  if ((isLoading && !hasActiveSessions) || isServiceInitializing) {
+  // Show loading while auth is initializing or has errors
+  if (!auth.isReady || auth.error || (isLoading && !hasActiveSessions) || isServiceInitializing) {
     return (
       <View style={restockSessionsStyles.container}>
         <Text style={restockSessionsStyles.loadingText}>
-          {isServiceInitializing ? 'Initializing services...' : 'Loading sessions...'}
+          {auth.error ? 'Authentication error - retrying...' : 
+           !auth.isReady ? 'Loading authentication...' :
+           isServiceInitializing ? 'Initializing services...' : 'Loading sessions...'}
         </Text>
-        {serviceHealth.issues.length > 0 && (
+        {auth.error && (
+          <Text style={restockSessionsStyles.errorText}>
+            Auth Error: {auth.error}
+          </Text>
+        )}
+        {auth.isReady && Array.isArray(serviceHealth.issues) && serviceHealth.issues.length > 0 && (
           <Text style={restockSessionsStyles.errorText}>
             Issues: {serviceHealth.issues.join(', ')}
           </Text>
@@ -228,7 +226,7 @@ const RestockSessionsContent: React.FC = () => {
           setShowNameModal(true);
         }}
         onShowSessionSelection={() => sessionList.openSelectionModal()}
-        allSessionsCount={sessionList.sessions.length}
+        allSessionsCount={Array.isArray(sessionList.sessions) ? sessionList.sessions.length : 0}
       />
 
       <ScrollView>
@@ -237,7 +235,7 @@ const RestockSessionsContent: React.FC = () => {
           <View style={restockSessionsStyles.existingSessionsSection}>
             <Text style={restockSessionsStyles.sectionTitle}>Your Sessions</Text>
             <Text style={restockSessionsStyles.sectionSubtitle}>
-              You have {sessionList.sessions.length} active session{sessionList.sessions.length !== 1 ? 's' : ''}
+              You have {Array.isArray(sessionList.sessions) ? sessionList.sessions.length : 0} active session{Array.isArray(sessionList.sessions) && sessionList.sessions.length !== 1 ? 's' : ''}
             </Text>
             <TouchableOpacity style={restockSessionsStyles.existingSessionsButton} onPress={sessionList.openSelectionModal}>
               <Text style={restockSessionsStyles.existingSessionsButtonText}>Continue Existing Session</Text>
@@ -331,9 +329,11 @@ const RestockSessionsContent: React.FC = () => {
 };
 
 const RestockSessionsScreen: React.FC = () => (
-  <React.Suspense fallback={<Text>Loading...</Text>}>
-    <RestockSessionsContent />
-  </React.Suspense>
+  <AuthErrorBoundary>
+    <React.Suspense fallback={<Text>Loading...</Text>}>
+      <RestockSessionsContent />
+    </React.Suspense>
+  </AuthErrorBoundary>
 );
 
 export default RestockSessionsScreen;

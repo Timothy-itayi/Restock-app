@@ -130,26 +130,36 @@ export function useRepositoryHealth(): {
   isHealthy: boolean; 
   issues: string[];
 } {
+  // ALWAYS call hooks before any conditional logic or try/catch
   const sessionRepo = useSessionRepository();
   const productRepo = useProductRepository();
   const supplierRepo = useSupplierRepository();
   
-  const issues: string[] = [];
-  
-  // Check if repositories are properly initialized
-  if (!sessionRepo || !productRepo || !supplierRepo) {
-    issues.push('Repository instances not properly initialized');
-  }
-  
-  // Check if repositories have required methods
-  if (!sessionRepo.findByUserId || !productRepo.findByUserId || !supplierRepo.findByUserId) {
-    issues.push('Repository methods not properly implemented');
-  }
+  // Process repository health after hooks are called
+  try {
+    const issues: string[] = [];
+    
+    // Check if repositories are properly initialized
+    if (!sessionRepo || !productRepo || !supplierRepo) {
+      issues.push('Repository instances not properly initialized');
+    }
+    
+    // Check if repositories have required methods
+    if (!sessionRepo?.findByUserId || !productRepo?.findByUserId || !supplierRepo?.findByUserId) {
+      issues.push('Repository methods not properly implemented');
+    }
 
-  return {
-    isHealthy: issues.length === 0,
-    issues
-  };
+    return {
+      isHealthy: Array.isArray(issues) ? issues.length === 0 : false,
+      issues: Array.isArray(issues) ? issues : []
+    };
+  } catch (error) {
+    console.warn('Repository health check error:', error);
+    return {
+      isHealthy: false,
+      issues: ['Repository health check failed']
+    };
+  }
 }
 
 // Legacy exports for backward compatibility (will be removed)

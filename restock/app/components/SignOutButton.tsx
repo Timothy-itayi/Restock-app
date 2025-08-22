@@ -1,6 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, Text, Alert } from 'react-native';
-import { useAuth } from '@clerk/clerk-expo';
+import { useClientSideAuth } from '../hooks/useClientSideAuth';
 import { router } from 'expo-router';
 import { SessionManager } from '../../backend/services/session-manager';
 import { ClerkClientService } from '../../backend/services/clerk-client';
@@ -9,7 +9,7 @@ import { signOutButtonStyles } from '../../styles/components/sign-out-button';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function SignOutButton() {
-  const { signOut } = useAuth();
+  const { signOut } = useClientSideAuth();
   const { clearAuthFlags } = useUnifiedAuth();
 
   const handleSignOut = async () => {

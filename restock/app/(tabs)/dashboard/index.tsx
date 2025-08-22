@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { ScrollView, RefreshControl, View, Text } from "react-native";
 import { getDashboardStyles } from "../../../styles/components/dashboard";
 import { useThemedStyles } from "../../../styles/useThemedStyles";
-import { useAuth } from "@clerk/clerk-expo";
+import { useClientSideAuth } from "../../hooks/useClientSideAuth";
 
 import { useUnifiedAuth } from "../../_contexts/UnifiedAuthProvider";
 import { useDashboardData } from "./hooks/useDashboardData";
@@ -42,7 +42,7 @@ interface UnfinishedSession {
 }
 
 export default function DashboardScreen() {
-  const { userId, isSignedIn } = useAuth();
+  const { userId, isSignedIn } = useClientSideAuth();
   const { isReady: authReady, isAuthenticated, authType } = useUnifiedAuth();
 
   // Use profile store for user data

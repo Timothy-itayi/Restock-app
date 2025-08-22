@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from "@clerk/clerk-expo";
+import { useClientSideAuth } from "../../../hooks/useClientSideAuth";
 
 export interface UserProfile {
   name: string;
@@ -9,7 +9,7 @@ export interface UserProfile {
 }
 
 export function useUserProfile() {
-  const { userId } = useAuth();
+  const { userId } = useClientSideAuth();
   const [userProfile, setUserProfile] = useState<UserProfile>({
     name: "",
     email: "",

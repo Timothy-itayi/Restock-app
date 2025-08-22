@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@clerk/clerk-expo';
+import { useStableAuth } from '../../../hooks/useStableAuth';
 import { useSessionRepository } from '../../../infrastructure/repositories/SupabaseHooksProvider';
 import { RestockSession, SessionStatus } from '../../../domain/entities/RestockSession';
 
@@ -20,7 +20,7 @@ export interface SessionListActions {
 }
 
 export function useSessionList(): SessionListState & SessionListActions {
-  const { userId } = useAuth();
+  const auth = useStableAuth();
   const { create, findByUserId } = useSessionRepository();
 
   const [sessions, setSessions] = useState<RestockSession[]>([]);
@@ -29,8 +29,9 @@ export function useSessionList(): SessionListState & SessionListActions {
   const [showSelectionModal, setShowSelectionModal] = useState(false);
 
   const loadSessions = useCallback(async () => {
-    if (!userId) {
+    if (!auth.userId) {
       setError('User not authenticated');
+      setSessions([]); // Ensure sessions is always an array
       return;
     }
     setIsLoading(true);
@@ -38,19 +39,20 @@ export function useSessionList(): SessionListState & SessionListActions {
 
     try {
       const fetchedSessions = await findByUserId();
-      setSessions(fetchedSessions ? [...fetchedSessions] : []);
+      // Defensive: ensure we always set an array
+      setSessions(Array.isArray(fetchedSessions) ? [...fetchedSessions] : []);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
       console.error('[useSessionList] loadSessions error:', err);
       setError(message);
-      setSessions([]);
+      setSessions([]); // Always set empty array on error
     } finally {
       setIsLoading(false);
     }
-  }, [userId, findByUserId]);
+  }, [auth.userId, findByUserId]);
 
   const createNewSession = useCallback(async (name?: string) => {
-    if (!userId) return { success: false, error: 'User not authenticated' };
+    if (!auth.userId) return { success: false, error: 'User not authenticated' };
     setIsLoading(true);
     setError(null);
 
@@ -60,7 +62,7 @@ export function useSessionList(): SessionListState & SessionListActions {
       // Create RestockSession instance first
       const tempSession = RestockSession.create({ 
         id: 'temp', // Will be replaced by repository
-        userId, 
+        userId: auth.userId, 
         name: sessionName 
       });
       
@@ -68,8 +70,8 @@ export function useSessionList(): SessionListState & SessionListActions {
 
       if (!sessionId) throw new Error('Failed to create session');
 
-      const newSession = RestockSession.create({ id: sessionId, userId, name: sessionName });
-      setSessions(prev => [newSession, ...prev]);
+      const newSession = RestockSession.create({ id: sessionId, userId: auth.userId, name: sessionName });
+      setSessions(prev => [newSession, ...(Array.isArray(prev) ? prev : [])]);
 
       return { success: true, session: newSession };
     } catch (err) {
@@ -80,13 +82,13 @@ export function useSessionList(): SessionListState & SessionListActions {
     } finally {
       setIsLoading(false);
     }
-  }, [userId, create]);
+  }, [auth.userId, create]);
 
   const deleteSession = useCallback(async (sessionId: string) => {
     setIsLoading(true);
     setError(null);
     try {
-      setSessions(prev => prev.filter(s => s.id !== sessionId));
+      setSessions(prev => Array.isArray(prev) ? prev.filter(s => s.id !== sessionId) : []);
       return { success: true };
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
@@ -103,8 +105,8 @@ export function useSessionList(): SessionListState & SessionListActions {
   const refreshSessions = useCallback(async () => loadSessions(), [loadSessions]);
 
   useEffect(() => {
-    if (userId) loadSessions();
-  }, [userId, loadSessions]);
+    if (auth.userId && auth.isReady) loadSessions();
+  }, [auth.userId, auth.isReady, loadSessions]);
 
   return {
     sessions,
