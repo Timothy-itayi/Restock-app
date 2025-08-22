@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { useAuth } from '@clerk/clerk-expo';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { createAuthenticatedSupabaseClient, supabase } from '../../backend/config/supabase';
 import { Database } from '../../backend/types/database';
+import { useClientSideAuth } from './useClientSideAuth';
 
 /**
  * Hook that provides a Supabase client authenticated with Clerk session token
@@ -10,7 +10,7 @@ import { Database } from '../../backend/types/database';
  * @returns Object containing the authenticated Supabase client and loading state
  */
 export function useAuthenticatedSupabase() {
-  const { getToken, isSignedIn } = useAuth();
+  const { getToken, isSignedIn, isMounted } = useClientSideAuth();
   const [client, setClient] = useState<SupabaseClient<Database>>(supabase);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -19,7 +19,7 @@ export function useAuthenticatedSupabase() {
       setIsLoading(true);
       
       try {
-        if (isSignedIn && getToken) {
+        if (isMounted && isSignedIn && getToken) {
           // Create authenticated client with Clerk token
           const authenticatedClient = await createAuthenticatedSupabaseClient(
             () => getToken({ template: 'supabase' }) // Use the Supabase JWT template
@@ -39,7 +39,7 @@ export function useAuthenticatedSupabase() {
     };
 
     createClient();
-  }, [isSignedIn, getToken]);
+  }, [isSignedIn, getToken, isMounted]);
 
   return {
     supabase: client,

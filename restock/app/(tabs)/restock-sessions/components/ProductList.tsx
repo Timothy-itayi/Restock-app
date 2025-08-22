@@ -41,7 +41,7 @@ export const ProductList: React.FC<ProductListProps> = ({
     setExpandedProduct(expandedProduct === productId ? null : productId);
   };
 
-  if (!items || items.length === 0) {
+  if (!Array.isArray(items) || items.length === 0) {
     return (
       <View style={restockSessionsStyles.emptyState}>
         <View style={restockSessionsStyles.emptyStateIcon}>
@@ -61,7 +61,7 @@ export const ProductList: React.FC<ProductListProps> = ({
     <View style={restockSessionsStyles.productListContainer}>
       <View style={restockSessionsStyles.productListHeader}>
         <Text style={restockSessionsStyles.productListTitle}>
-          Products ({items.length})
+          Products ({Array.isArray(items) ? items.length : 0})
         </Text>
         <Text style={restockSessionsStyles.productListSubtitle}>
           Tap a product to expand details

@@ -31,8 +31,8 @@ export const SessionHeader: React.FC<SessionHeaderProps> = ({
     ? currentSession.toValue().createdAt
     : currentSession?.createdAt;
   const productsCount = currentSession && typeof currentSession.toValue === 'function'
-    ? (currentSession.toValue().items?.length || 0)
-    : (currentSession?.products?.length || 0);
+    ? (Array.isArray(currentSession.toValue().items) ? currentSession.toValue().items.length : 0)
+    : (Array.isArray(currentSession?.products) ? currentSession.products.length : 0);
   const [tempName, setTempName] = useState(currentName || '');
 
   // Update temp name when session changes

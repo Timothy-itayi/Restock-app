@@ -37,7 +37,7 @@ export const SessionSelection: React.FC<SessionSelectionProps> = ({
       <View style={restockSessionsStyles.sessionSelectionHeader}>
         <Text style={restockSessionsStyles.sessionSelectionTitle}>Choose a Session</Text>
         <Text style={restockSessionsStyles.sessionSelectionSubtitle}>
-          {isLoading ? 'Loading sessions...' : `You have ${sessions.length} unfinished session${sessions.length !== 1 ? 's' : ''}`}
+          {isLoading ? 'Loading sessions...' : `You have ${Array.isArray(sessions) ? sessions.length : 0} unfinished session${Array.isArray(sessions) && sessions.length !== 1 ? 's' : ''}`}
         </Text>
       </View>
       
@@ -67,10 +67,10 @@ export const SessionSelection: React.FC<SessionSelectionProps> = ({
             
             <View style={restockSessionsStyles.sessionCardContent}>
               <Text style={restockSessionsStyles.sessionCardSubtitle}>
-                {formatProductCount(products.length)} • {getTotalQuantity(session)} total quantity
+                {formatProductCount(Array.isArray(products) ? products.length : 0)} • {getTotalQuantity(session)} total quantity
               </Text>
               
-              {products.length > 0 && (
+              {Array.isArray(products) && products.length > 0 && (
                 <View style={restockSessionsStyles.sessionCardSuppliers}>
                   <Text style={restockSessionsStyles.sessionCardSuppliersText}>
                     {formatSupplierCount(getSupplierCount(session))}

@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@clerk/clerk-expo';
+import { useStableAuth } from '../../../hooks/useStableAuth';
 import { useSupabaseRepository } from '../../../hooks/useSupabaseRepository';
 import { RestockSession, SessionStatus } from '../../../domain/entities/RestockSession';
 
 export function useRestockSession(sessionId?: string) {
-  const auth = useAuth();
-  const userId = typeof auth.userId === 'string' ? auth.userId : undefined;
+  const auth = useStableAuth();
 
   const { sessions, items, isLoading: repoLoading, isAuthenticated } = useSupabaseRepository();
 
@@ -14,19 +13,19 @@ export function useRestockSession(sessionId?: string) {
   const [error, setError] = useState<string | null>(null);
 
   const findSessionById = useCallback(async (id: string) => {
-    if (!userId) return null;
+    if (!auth.userId) return null;
 
     try {
       const allSessions = await sessions.getAll();
-      const sessionData = allSessions?.find((s: any) => s.id === id);
+      const sessionData = Array.isArray(allSessions) ? allSessions.find((s: any) => s.id === id) : null;
       if (!sessionData) return null;
 
       const allItems = await items.getAll();
-      const sessionItems = allItems?.filter((i: any) => i.session_id === id) || [];
+      const sessionItems = Array.isArray(allItems) ? allItems.filter((i: any) => i.session_id === id) : [];
 
       return RestockSession.fromValue({
         id: sessionData.id,
-        userId,
+        userId: auth.userId,
         name: sessionData.name,
         status: sessionData.status as SessionStatus,
         createdAt: new Date(sessionData.created_at),
@@ -43,10 +42,10 @@ export function useRestockSession(sessionId?: string) {
       console.error('[useRestockSession] findSessionById error:', err);
       return null;
     }
-  }, [sessions, items, userId]);
+  }, [sessions, items, auth.userId]);
 
   const createSession = useCallback(async (name?: string) => {
-    if (!userId || repoLoading || !isAuthenticated) return { success: false, error: 'User not authenticated or repo loading' };
+    if (!auth.userId || repoLoading || !isAuthenticated) return { success: false, error: 'User not authenticated or repo loading' };
     setIsLoading(true);
     setError(null);
 
@@ -57,7 +56,7 @@ export function useRestockSession(sessionId?: string) {
 
       const newSession = RestockSession.fromValue({
         id: created.id,
-        userId,
+        userId: auth.userId,
         name: created.name,
         status: created.status as SessionStatus,
         createdAt: new Date(created.created_at),
@@ -74,7 +73,7 @@ export function useRestockSession(sessionId?: string) {
     } finally {
       setIsLoading(false);
     }
-  }, [userId, sessions, repoLoading, isAuthenticated]);
+  }, [auth.userId, sessions, repoLoading, isAuthenticated]);
 
   const loadSession = useCallback(async (id: string) => {
     setIsLoading(true);
@@ -96,7 +95,7 @@ export function useRestockSession(sessionId?: string) {
   }, [findSessionById]);
 
   const addProduct = useCallback(async (params: { productName: string; quantity: number; supplierName: string; supplierEmail: string; notes?: string }) => {
-    if (!userId || !session) return { success: false, error: 'No active session or user not authenticated' };
+    if (!auth.userId || !session) return { success: false, error: 'No active session or user not authenticated' };
     setIsLoading(true);
     setError(null);
 
@@ -113,10 +112,10 @@ export function useRestockSession(sessionId?: string) {
     } finally {
       setIsLoading(false);
     }
-  }, [session, items, findSessionById, userId]);
+  }, [session, items, findSessionById, auth.userId]);
 
   const removeProduct = useCallback(async (productId: string) => {
-    if (!userId || !session) return { success: false, error: 'No active session or user not authenticated' };
+    if (!auth.userId || !session) return { success: false, error: 'No active session or user not authenticated' };
     setIsLoading(true);
     setError(null);
 
@@ -133,10 +132,10 @@ export function useRestockSession(sessionId?: string) {
     } finally {
       setIsLoading(false);
     }
-  }, [session, items, findSessionById, userId]);
+  }, [session, items, findSessionById, auth.userId]);
 
   const updateSessionName = useCallback(async (id: string, name: string) => {
-    if (!userId) return { success: false, error: 'User not authenticated' };
+    if (!auth.userId) return { success: false, error: 'User not authenticated' };
     setIsLoading(true);
     setError(null);
 
@@ -153,7 +152,7 @@ export function useRestockSession(sessionId?: string) {
     } finally {
       setIsLoading(false);
     }
-  }, [sessions, findSessionById, userId]);
+  }, [sessions, findSessionById, auth.userId]);
 
   const clearSession = useCallback(() => {
     setSession(null);
