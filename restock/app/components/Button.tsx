@@ -1,6 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, Text, ActivityIndicator, ViewStyle, TextStyle } from 'react-native';
-import useThemeStore from '../stores/useThemeStore';
+import { useSafeTheme } from '../stores/useThemeStore';
 
 interface ButtonProps {
   title: string;
@@ -29,7 +29,8 @@ const Button: React.FC<ButtonProps> = ({
   style,
   textStyle,
 }) => {
-  const { theme } = useThemeStore();
+  const { theme } = useSafeTheme();
+  
   const getVariantClasses = () => {
     const baseClasses = 'rounded-lg items-center justify-center';
     

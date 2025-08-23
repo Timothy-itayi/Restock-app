@@ -2,11 +2,9 @@ import React, { useState, useEffect } from "react";
 import { ScrollView, RefreshControl, View, Text } from "react-native";
 import { getDashboardStyles } from "../../../styles/components/dashboard";
 import { useThemedStyles } from "../../../styles/useThemedStyles";
-import { useClientSideAuth } from "../../hooks/useClientSideAuth";
+import { useUnifiedAuth } from "../../auth";
 
-import { useUnifiedAuth } from "../../_contexts/UnifiedAuthProvider";
 import { useDashboardData } from "./hooks/useDashboardData";
-import useProfileStore from "../../stores/useProfileStore";
 import { 
   WelcomeSection, 
   UnfinishedSessions, 
@@ -42,11 +40,19 @@ interface UnfinishedSession {
 }
 
 export default function DashboardScreen() {
-  const { userId, isSignedIn } = useClientSideAuth();
-  const { isReady: authReady, isAuthenticated, authType } = useUnifiedAuth();
-
-  // Use profile store for user data
-  const { userName, storeName, isLoading: profileLoading, fetchProfile } = useProfileStore();
+  // Use the new unified auth system with profile data
+  const { 
+    userId, 
+    isAuthenticated, 
+    isReady: authReady, 
+    authType,
+    userName,
+    storeName,
+    isProfileLoading,
+    profileError,
+    retryProfileLoad
+  } = useUnifiedAuth();
+  const isSignedIn = isAuthenticated;
   
   // Use themed styles
   const dashboardStyles = useThemedStyles(getDashboardStyles);
@@ -54,18 +60,11 @@ export default function DashboardScreen() {
   const [displayStartTime] = useState(Date.now());
   const { unfinishedSessions, finishedSessions, sessionsLoading, refreshing, onRefresh } = useDashboardData();
 
-  // Fetch profile data when component mounts only if needed
-  useEffect(() => {
-    if (userId && !profileLoading && (!userName || !storeName)) {
-      console.log('📊 Dashboard: Profile data missing, fetching from database');
-      fetchProfile(userId);
-    } else if (userName && storeName) {
-      console.log('📊 Dashboard: Using existing profile data from store');
-    }
-  }, [userId, profileLoading, userName, storeName, fetchProfile]);
-
+  // Profile data is now handled automatically by UnifiedAuthProvider
+  // No need for manual fetching in components
+  
   // Show loading state while profile is being fetched
-  const isLoadingProfile = profileLoading && (!userName || !storeName);
+  const isLoadingProfile = isProfileLoading && (!userName || !storeName);
 
   // Component display logging
   useEffect(() => {
@@ -107,10 +106,15 @@ export default function DashboardScreen() {
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[useThemeStore.getState().theme.neutral.medium]} />
       }
     >
+      {/* Auth system is now working properly - no need for debugger */}
+      
       <WelcomeSection 
-        profileLoading={profileLoading} 
+        profileLoading={isProfileLoading} 
         userName={userName} 
-        storeName={storeName} 
+        storeName={storeName}
+        profileError={profileError}
+        retryProfileLoad={retryProfileLoad}
+        userId={userId}
       />
       
   

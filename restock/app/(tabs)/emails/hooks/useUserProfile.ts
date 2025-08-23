@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
-import { useClientSideAuth } from "../../../hooks/useClientSideAuth";
+import { useUnifiedAuth } from '../../../auth';
+
+import { useCallback, useEffect, useState } from 'react';
 
 export interface UserProfile {
   name: string;
@@ -8,8 +9,9 @@ export interface UserProfile {
   userName?: string; // Backward compatibility alias for name
 }
 
-export function useUserProfile() {
-  const { userId } = useClientSideAuth();
+export const useUserProfile = () => {
+  const { userId } = useUnifiedAuth();
+  
   const [userProfile, setUserProfile] = useState<UserProfile>({
     name: "",
     email: "",

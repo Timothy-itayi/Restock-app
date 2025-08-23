@@ -1,5 +1,5 @@
 import { supabase } from '../config/supabase';
-import type { User, InsertUser, UpdateUser } from '../types/database';
+
 
 export class UserProfileService {
   /**

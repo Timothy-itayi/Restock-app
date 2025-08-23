@@ -8,11 +8,19 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Linking from 'expo-linking';
 import UnifiedAuthGuard from '../components/UnifiedAuthGuard';
 import { welcomeBackStyles } from '../../styles/components/welcome-back';
-import { useUnifiedAuth } from '../_contexts/UnifiedAuthProvider';
+import { useUnifiedAuth } from "./UnifiedAuthProvider";
 
 export default function WelcomeBackScreen() {
   const { signIn, setActive, isLoaded } = useSignIn();
-  const { isSignedIn } = useAuth();
+  
+  // CRITICAL: Always call useAuth unconditionally first
+  const rawAuth = useAuth();
+  
+  // Then safely extract values
+  const isSignedIn = (rawAuth && typeof rawAuth === 'object' && typeof rawAuth.isSignedIn === 'boolean') 
+    ? rawAuth.isSignedIn 
+    : false;
+  
   const { startSSOFlow } = useSSO();
   const { triggerAuthCheck } = useUnifiedAuth();
   
@@ -45,7 +53,7 @@ export default function WelcomeBackScreen() {
   const checkReturningUserData = async () => {
     try {
       // Get the returning user data (email and auth method)
-      const returningUserData = await SessionManager.getReturningUserData();
+      const returningUserData = await SessionManager.getUserSession();
       
       if (returningUserData) {
         setLastAuthMethod(returningUserData.lastAuthMethod);

@@ -14,147 +14,55 @@ export class SessionManager {
   private static readonly RETURNING_USER_KEY = 'returning_user_flag';
   private static readonly RETURNING_USER_DATA_KEY = 'returning_user_data';
 
-  /**
-   * Save user session data
-   */
   static async saveUserSession(session: UserSession): Promise<void> {
     try {
       await AsyncStorage.setItem(this.SESSION_KEY, JSON.stringify(session));
       await AsyncStorage.setItem(this.RETURNING_USER_KEY, 'true');
-    } catch (error) {
-      console.error('Error saving user session:', error);
+    } catch (e) {
+      console.error('Error saving user session:', e);
     }
   }
 
-  /**
-   * Get current user session
-   */
   static async getUserSession(): Promise<UserSession | null> {
     try {
-      const sessionData = await AsyncStorage.getItem(this.SESSION_KEY);
-      return sessionData ? JSON.parse(sessionData) : null;
-    } catch (error) {
-      console.error('Error getting user session:', error);
+      const data = await AsyncStorage.getItem(this.SESSION_KEY);
+      return data ? JSON.parse(data) : null;
+    } catch (e) {
+      console.error('Error reading user session:', e);
       return null;
     }
   }
 
-  /**
-   * Check if user is a returning user
-   */
   static async isReturningUser(): Promise<boolean> {
     try {
-      const returningUserFlag = await AsyncStorage.getItem(this.RETURNING_USER_KEY);
-      return returningUserFlag === 'true';
-    } catch (error) {
-      console.error('Error checking returning user status:', error);
+      const flag = await AsyncStorage.getItem(this.RETURNING_USER_KEY);
+      return flag === 'true';
+    } catch (e) {
+      console.error('Error checking returning user:', e);
       return false;
     }
   }
 
-  /**
-   * Clear user session data but preserve returning user info
-   */
   static async clearUserSession(): Promise<void> {
     try {
+      console.log('🧹 SessionManager: Clearing user session and returning user flags');
       await AsyncStorage.removeItem(this.SESSION_KEY);
-      // Don't remove returning user flag on logout - keep it for future sessions
-    } catch (error) {
-      console.error('Error clearing user session:', error);
+      await AsyncStorage.removeItem(this.RETURNING_USER_KEY);
+      await AsyncStorage.removeItem(this.RETURNING_USER_DATA_KEY);
+      console.log('✅ SessionManager: Session data cleared successfully');
+    } catch (e) {
+      console.error('❌ SessionManager: Error clearing user session:', e);
     }
   }
 
-  /**
-   * Sign out while preserving returning user data
-   */
-  static async signOutPreservingUserData(): Promise<void> {
-    try {
-      // Get current session data before clearing
-      const currentSession = await this.getUserSession();
-      
-      if (currentSession) {
-        // Save essential data for returning user (email and auth method only)
-        const returningUserData = {
-          email: currentSession.email,
-          lastAuthMethod: currentSession.lastAuthMethod,
-        };
-        
-        // Save the returning user data using the class constant
-        await AsyncStorage.setItem(this.RETURNING_USER_DATA_KEY, JSON.stringify(returningUserData));
-        console.log('Saved returning user data:', returningUserData);
-      }
-      
-      // Clear the main session but keep returning user flag
-      await AsyncStorage.removeItem(this.SESSION_KEY);
-      await AsyncStorage.setItem(this.RETURNING_USER_KEY, 'true');
-    } catch (error) {
-      console.error('Error preserving user data on sign out:', error);
-    }
-  }
-
-  /**
-   * Get returning user data (for welcome-back screen)
-   */
-  static async getReturningUserData(): Promise<{ email: string; lastAuthMethod: 'google' | 'email' } | null> {
-    try {
-      const returningUserData = await AsyncStorage.getItem(this.RETURNING_USER_DATA_KEY);
-      return returningUserData ? JSON.parse(returningUserData) : null;
-    } catch (error) {
-      console.error('Error getting returning user data:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Clear returning user data (called after successful sign-in)
-   */
   static async clearReturningUserData(): Promise<void> {
     try {
+      console.log('🧹 SessionManager: Clearing returning user data only');
+      await AsyncStorage.removeItem(this.RETURNING_USER_KEY);
       await AsyncStorage.removeItem(this.RETURNING_USER_DATA_KEY);
-      console.log('Cleared returning user data after successful sign-in');
-    } catch (error) {
-      console.error('Error clearing returning user data:', error);
+      console.log('✅ SessionManager: Returning user data cleared');
+    } catch (e) {
+      console.error('❌ SessionManager: Error clearing returning user data:', e);
     }
   }
-
-  /**
-   * Update session with new data
-   */
-  static async updateUserSession(updates: Partial<UserSession>): Promise<void> {
-    try {
-      const currentSession = await this.getUserSession();
-      if (currentSession) {
-        const updatedSession = { ...currentSession, ...updates };
-        await this.saveUserSession(updatedSession);
-      }
-    } catch (error) {
-      console.error('Error updating user session:', error);
-    }
-  }
-
-  /**
-   * Check if user has completed store setup
-   */
-  static async hasCompletedSetup(): Promise<boolean> {
-    try {
-      const session = await this.getUserSession();
-      return session?.storeName ? true : false;
-    } catch (error) {
-      console.error('Error checking setup completion:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Get user's store name
-   */
-  static async getStoreName(): Promise<string | null> {
-    try {
-      const session = await this.getUserSession();
-      return session?.storeName || null;
-    } catch (error) {
-      console.error('Error getting store name:', error);
-      return null;
-    }
-  }
-} 
+}

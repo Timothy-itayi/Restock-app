@@ -1,7 +1,8 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useAuth } from "@clerk/clerk-expo";
-import { RestockSession } from '../../../domain/entities/RestockSession';
+import { useUnifiedAuthState } from "../../../auth";
+
+import { RestockSession, SessionStatus } from "../../../domain/entities/RestockSession";
 import { RestockSessionDomainService } from '../../../domain/services/RestockSessionDomainService';
 import { useSessionRepository, useProductRepository, useSupplierRepository, useEmailRepository } from '../../../infrastructure/repositories/SupabaseHooksProvider';
 import { Logger } from '../utils/logger';
@@ -36,7 +37,7 @@ const SESSION_STORAGE_KEY = 'current_restock_session';
 const SESSIONS_HISTORY_KEY = 'restock_sessions_history';
 
 export function useSessionStateManager(): SessionStateManager {
-  const { userId } = useAuth();
+  const { userId } = useUnifiedAuthState();
   const { create, findById, findByUserId, addItem, removeItem, updateName, updateStatus } = useSessionRepository();
   const [state, setState] = useState<SessionState>({
     currentSession: null,
@@ -59,7 +60,7 @@ export function useSessionStateManager(): SessionStateManager {
       const restored = await restoreSessionFromLocal();
       
       // Then load from server
-      const sessions = await findByUserId(userId);
+      const sessions = await findByUserId();
       
       if (sessions && sessions.length > 0) {
         setState(prev => ({

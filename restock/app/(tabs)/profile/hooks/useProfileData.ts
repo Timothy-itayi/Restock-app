@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useUnifiedAuth } from '../../../_contexts/UnifiedAuthProvider';
+import { useUnifiedAuth } from "../../../auth/UnifiedAuthProvider";
 import { useSessionRepository, useProductRepository, useSupplierRepository, useEmailRepository } from '../../../infrastructure/repositories/SupabaseHooksProvider';
-import useProfileStore from '../../../stores/useProfileStore';
 
 export interface ProfileData {
   name: string;
@@ -10,9 +9,16 @@ export interface ProfileData {
 }
 
 export function useProfileData() {
-  const { user, userId, isAuthenticated } = useUnifiedAuth();
+  // Get all data from unified auth
+  const { 
+    userName, 
+    storeName, 
+    userId, 
+    isAuthenticated, 
+    isProfileLoading 
+  } = useUnifiedAuth();
+  
   const { create, findById, findByUserId, addItem, removeItem, updateName, updateStatus } = useSessionRepository();
-  const { userName, storeName, fetchProfile, isLoading: profileLoading } = useProfileStore();
 
   const [profile, setProfile] = useState<ProfileData>({ name: '', email: '', storeName: '' });
   const [sessionCount, setSessionCount] = useState(0);
@@ -20,12 +26,12 @@ export function useProfileData() {
   const [loading, setLoading] = useState(true);
 
   const baseProfile = useMemo(() => ({
-    name: userName || user?.firstName || '',
-    email: user?.primaryEmailAddress?.emailAddress || '',
+    name: userName || '',
+    email: '', // We can get this from Clerk user if needed
     storeName: storeName || '',
-  }), [userName, storeName, user?.firstName, user?.primaryEmailAddress?.emailAddress]);
+  }), [userName, storeName]);
 
-  // Update local profile state when store data changes
+  // Update local profile state when unified auth data changes
   useEffect(() => {
     setProfile(baseProfile);
   }, [baseProfile]);
@@ -38,15 +44,8 @@ export function useProfileData() {
       }
       
       try {
-        // Only fetch profile if we don't already have data in the store
-        if (!userName || !storeName) {
-          console.log('📊 useProfileData: Profile data missing, fetching from database');
-          await fetchProfile(userId);
-        } else {
-          console.log('📊 useProfileData: Using existing profile data from store');
-        }
-        
-        // Load session data
+        // Profile data is now handled by UnifiedAuthProvider automatically
+        // Just load session data
         const sessions = await findByUserId(userId);
         if (sessions) {
           const total = sessions.length;
@@ -61,7 +60,7 @@ export function useProfileData() {
       }
     };
     load();
-  }, [isAuthenticated, userId, fetchProfile, userName, storeName]);
+  }, [isAuthenticated, userId, userName, storeName]);
 
-  return { profile, sessionCount, emailCount, loading: loading || profileLoading, userId };
+  return { profile, sessionCount, emailCount, loading: loading || isProfileLoading, userId };
 }

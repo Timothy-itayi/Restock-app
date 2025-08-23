@@ -5,13 +5,22 @@ import { useAuth, useUser } from '@clerk/clerk-expo';
 import { UserProfileService } from '../../../backend/services/user-profile';
 import { SessionManager } from '../../../backend/services/session-manager';
 import { EmailAuthService } from '../../../backend/services/email-auth';
-import { useUnifiedAuth } from '../../_contexts/UnifiedAuthProvider';
+import { useUnifiedAuth } from "../UnifiedAuthProvider";
 import UnifiedAuthGuard from '../../components/UnifiedAuthGuard';
 import { profileSetupStyles } from '../../../styles/components/auth/traditional/profile-setup';
 
 export default function ProfileSetupScreen() {
-  const { isSignedIn, userId } = useAuth();
+  // CRITICAL: Always call useAuth unconditionally first
+  const rawAuth = useAuth();
   const { user } = useUser();
+  
+  // Then safely extract values
+  const isSignedIn = (rawAuth && typeof rawAuth === 'object' && typeof rawAuth.isLoaded === 'boolean') 
+    ? Boolean(rawAuth.isSignedIn)
+    : false;
+  const userId = (rawAuth && typeof rawAuth === 'object') 
+    ? rawAuth.userId 
+    : null;
   const { triggerAuthCheck, markNewUserReady, authType } = useUnifiedAuth();
   
   const [name, setName] = useState('');

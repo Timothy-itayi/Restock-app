@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DeviceEventEmitter } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import { useUnifiedAuth } from '../../../_contexts/UnifiedAuthProvider';
+import { useUnifiedAuth } from '../../../auth/UnifiedAuthProvider';
 import { RestockSession, SessionStatus } from '../../../domain/entities/RestockSession';
 import { useSessionRepository, useProductRepository, useSupplierRepository, useEmailRepository } from '../../../infrastructure/repositories/SupabaseHooksProvider';
 

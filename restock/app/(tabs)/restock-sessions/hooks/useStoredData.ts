@@ -1,13 +1,14 @@
 import { useState, useCallback, useEffect } from 'react';
-import { useAuth } from "@clerk/clerk-expo";
-// Clean layer: remove direct backend imports
+import { useUnifiedAuthState } from "../../../auth";
+import { useSupabaseRepository } from "../../../hooks/useSupabaseRepository";
+import { RestockSession, SessionStatus } from "../../../domain/entities/RestockSession";
 import { StoredProduct, StoredSupplier, ErrorState, LoadingState } from '../utils/types';
 import { Logger } from '../utils/logger';
 import { ProductService } from '../../../../backend/services/products';
 import { SupplierService } from '../../../../backend/services/suppliers';
 
 export const useStoredData = () => {
-  const { userId } = useAuth();
+  const { userId } = useUnifiedAuthState();
   
   // Data state
   const [storedProducts, setStoredProducts] = useState<StoredProduct[]>([]);
@@ -62,8 +63,8 @@ export const useStoredData = () => {
       
       // Load data via individual services
       const [productsResult, suppliersResult] = await Promise.all([
-        ProductService.getUserProducts(userId),
-        SupplierService.getUserSuppliers(userId),
+        ProductService.getUserProducts(),
+        SupplierService.getUserSuppliers(),
       ]);
       
       // Handle products result
@@ -79,7 +80,7 @@ export const useStoredData = () => {
       } else {
         Logger.success('Products loaded successfully', { 
           count: productsResult.data?.length || 0,
-          products: productsResult.data?.map(p => ({ id: p.id, name: p.name }))
+          products: productsResult.data?.map((p: any) => ({ id: p.id, name: p.name }))
         });
         setStoredProducts(productsResult.data || []);
       }
@@ -97,7 +98,7 @@ export const useStoredData = () => {
       } else {
         Logger.success('Suppliers loaded successfully', { 
           count: suppliersResult.data?.length || 0,
-          suppliers: suppliersResult.data?.map(s => ({ 
+          suppliers: suppliersResult.data?.map((s: any) => ({ 
             id: s.id, 
             name: s.name,
             email: s.email // Add email to logging
@@ -105,11 +106,11 @@ export const useStoredData = () => {
         });
         
         // Validate that suppliers have emails
-        const suppliersWithoutEmails = suppliersResult.data?.filter(s => !s.email || s.email.trim() === '') || [];
+        const suppliersWithoutEmails = suppliersResult.data?.filter((s: any) => !s.email || s.email.trim() === '') || [];
         if (suppliersWithoutEmails.length > 0) {
           Logger.warning('Found suppliers without emails', { 
             count: suppliersWithoutEmails.length,
-            suppliers: suppliersWithoutEmails.map(s => ({ id: s.id, name: s.name }))
+            suppliers: suppliersWithoutEmails.map((s: any) => ({ id: s.id, name: s.name }))
           });
         }
         

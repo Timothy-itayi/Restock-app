@@ -1,34 +1,33 @@
+import { useUnifiedAuthState } from '../auth';
 import { useState, useEffect, useMemo } from 'react';
-import { useAuth } from '@clerk/clerk-expo';
 
 /**
  * Client-side safe auth hook that prevents hydration mismatches
  * Returns safe defaults until mounted and handles auth errors gracefully
  */
 export function useClientSideAuth() {
-  const [isMounted, setIsMounted] = useState(false);
+  // Use the new unified auth state instead of direct useAuth
+  const { user, isAuthenticated, isReady } = useUnifiedAuthState();
   const [authError, setAuthError] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
   
-  // ALWAYS call useAuth - never in try/catch to avoid hooks order violations
-  const rawAuth = useAuth();
-  
-  // Validate auth in useEffect after hooks are called
-  useEffect(() => {
-    if (typeof rawAuth !== 'object' || rawAuth === null) {
-      const error = `useAuth returned unexpected type: ${typeof rawAuth}`;
-      console.warn(error);
-      setAuthError(error);
-    } else if (typeof rawAuth === 'number') {
-      const error = 'useAuth returned a number instead of object - Clerk configuration issue';
-      console.error(error);
-      setAuthError(error);
-    } else {
-      setAuthError(null);
+  // Process auth data safely
+  const { getToken, isSignedIn, isLoaded } = useMemo(() => {
+    if (!user || !isAuthenticated || !isReady) {
+      return { getToken: null, isSignedIn: false, isLoaded: false };
     }
-  }, [rawAuth]);
+    
+    // For now, return null since we don't have direct access to Clerk token
+    return { 
+      getToken: null, 
+      isSignedIn: isAuthenticated, 
+      isLoaded: isReady 
+    };
+  }, [user, isAuthenticated, isReady]);
   
   useEffect(() => {
     setIsMounted(true);
+    return () => setIsMounted(false);
   }, []);
   
   // Process auth data safely
@@ -45,7 +44,7 @@ export function useClientSideAuth() {
     }
     
     // If rawAuth is not a valid object, return safe defaults
-    if (!rawAuth || typeof rawAuth !== 'object') {
+    if (!user || !isAuthenticated || !isReady) {
       return {
         userId: undefined,
         isSignedIn: false,
@@ -57,13 +56,13 @@ export function useClientSideAuth() {
     
     // Process valid auth object
     return {
-      userId: typeof rawAuth.userId === 'string' ? rawAuth.userId : undefined,
-      isSignedIn: typeof rawAuth.isSignedIn === 'boolean' ? rawAuth.isSignedIn : false,
-      isLoaded: typeof rawAuth.isLoaded === 'boolean' ? rawAuth.isLoaded : false,
-      getToken: typeof rawAuth.getToken === 'function' ? rawAuth.getToken : undefined,
-      signOut: typeof rawAuth.signOut === 'function' ? rawAuth.signOut : () => Promise.resolve()
+      userId: typeof user.id === 'string' ? user.id : undefined,
+      isSignedIn: isAuthenticated,
+      isLoaded: isReady,
+      getToken: getToken,
+      signOut: () => Promise.resolve()
     };
-  }, [isMounted, rawAuth, authError]);
+  }, [isMounted, authError, user, isAuthenticated, isReady, getToken]);
   
   return {
     ...safeAuth,

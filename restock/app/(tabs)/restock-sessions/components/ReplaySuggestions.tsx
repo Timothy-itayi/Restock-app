@@ -26,7 +26,7 @@ export const ReplaySuggestions: React.FC<ReplaySuggestionsProps> = ({
   onReplaySession,
   currentSession
 }) => {
-  const { findByUserId, findCompletedByUserId } = useSessionRepository();
+  const {  findCompletedByUserId } = useSessionRepository();
   const [suggestions, setSuggestions] = useState<ReplaySession[]>([]);
   const [loading, setLoading] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
@@ -50,7 +50,7 @@ export const ReplaySuggestions: React.FC<ReplaySuggestionsProps> = ({
     setLoading(true);
     try {
       // Get all sessions via repository
-      const sessions = await findCompletedByUserId(userId);
+      const sessions = await findCompletedByUserId();
       if (!controller?.signal.aborted && isMounted && sessions) {
         const data = sessions.map((s: any) => ({
           id: s.id,

@@ -4,7 +4,7 @@ import { useSessionStateManager } from '../hooks/useSessionStateManager';
 import Button from '../../../components/Button';
 import Card from '../../../components/Card';
 import CustomToast from '../../../components/CustomToast';
-import { Logger } from '../utils/logger';
+
 
 enum WorkflowStep {
   NO_SESSION = 'no_session',

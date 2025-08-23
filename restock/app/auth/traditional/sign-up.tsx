@@ -50,7 +50,7 @@ export default function TraditionalSignUpScreen() {
   };
 
   const onSignUpPress = async () => {
-    console.log('🔴 Traditional sign-up form submitted');
+    console.log('👤 USER ACTION: Email Sign Up button clicked', { email: email.slice(0, 3) + '***' });
     
     if (!email.trim()) {
       Alert.alert('Error', 'Please enter your email address');
@@ -75,21 +75,23 @@ export default function TraditionalSignUpScreen() {
 
     if (!isLoaded) return;
 
+    console.log('🚀 EMAIL FLOW: Starting traditional email/password sign up');
     setLoading(true);
     try {
-      console.log('Creating traditional email account for:', email);
+      console.log('📧 EMAIL FLOW: Creating Clerk sign up session');
       
       await signUp.create({
         emailAddress: email,
         password: password,
       });
 
-      console.log('SignUp state after create:', JSON.stringify(signUp, null, 2));
+      console.log('📋 EMAIL FLOW: Clerk sign up result created successfully');
 
       // Send verification email
+      console.log('📧 EMAIL FLOW: Preparing email verification');
       await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
       
-      console.log('Verification email prepared');
+      console.log('✅ EMAIL FLOW: Verification email prepared and sent');
       
       // Set flag to indicate this is a new traditional auth sign-up using EmailAuthService
       await EmailAuthService.setTraditionalSignUpFlags();
@@ -108,7 +110,11 @@ export default function TraditionalSignUpScreen() {
         ]
       );
     } catch (err: any) {
-      console.error(JSON.stringify(err, null, 2));
+      console.error('❌ EMAIL FLOW: Sign up error:', {
+        message: err.message,
+        errors: err.errors?.map((e: any) => ({ code: e.code, message: e.message })) || [],
+        fullError: err
+      });
       const clerkMsg = err?.errors?.[0]?.message as string | undefined;
       // Normalize duplicate email message for better UX
       const message = clerkMsg && /already.*exist|taken|in use/i.test(clerkMsg)
@@ -117,6 +123,7 @@ export default function TraditionalSignUpScreen() {
       Alert.alert('Error', message);
     } finally {
       setLoading(false);
+      console.log('🔄 EMAIL FLOW: Email sign up process completed');
     }
   };
 

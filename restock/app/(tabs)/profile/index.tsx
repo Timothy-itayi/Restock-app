@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ScrollView, View } from 'react-native';
 import useThemeStore from '../../stores/useThemeStore';
 import { useUser } from '@clerk/clerk-expo';
-import { useUnifiedAuth } from '../../_contexts/UnifiedAuthProvider';
+import { useUnifiedAuth } from "../../../auth/UnifiedAuthProvider";
 import SignOutButton from '../../components/SignOutButton';
 import { getProfileStyles } from '../../../styles/components/profile';
 import { useThemedStyles } from '../../../styles/useThemedStyles';

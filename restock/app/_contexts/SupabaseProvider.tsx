@@ -7,12 +7,12 @@ import { SupabaseHooksProvider } from "../infrastructure/supabase/SupabaseHooksP
  * Provides Supabase repositories and services to the app
  * This maintains the repository pattern while using Supabase under the hood
  */
-export function SupabaseProvider({ children }: { children: React.ReactNode }) {
-  console.log('✅ SupabaseProvider: Using Supabase repositories with clean architecture');
-  
+export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
-    <SupabaseHooksProvider isSupabaseReady={true}>
-      {children}
-    </SupabaseHooksProvider>
+   
+      <SupabaseHooksProvider>
+        {children}
+      </SupabaseHooksProvider>
+
   );
-}
+};

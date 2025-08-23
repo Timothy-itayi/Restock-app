@@ -1,7 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import useThemeStore from '../stores/useThemeStore';
+import { useSafeTheme } from '../stores/useThemeStore';
 
 interface Props {
   children: ReactNode;
@@ -71,7 +71,7 @@ interface ErrorFallbackProps {
 }
 
 function ErrorFallback({ error, errorInfo, onReset }: ErrorFallbackProps) {
-  const { theme } = useThemeStore();
+  const { theme } = useSafeTheme();
 
   const styles = StyleSheet.create({
     container: {
@@ -126,7 +126,7 @@ function ErrorFallback({ error, errorInfo, onReset }: ErrorFallbackProps) {
       gap: 15,
     },
     button: {
-      backgroundColor: theme.primary.main,
+      backgroundColor: theme.brand.primary,
       paddingHorizontal: 20,
       paddingVertical: 12,
       borderRadius: 8,
