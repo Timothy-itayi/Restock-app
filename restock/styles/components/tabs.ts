@@ -125,37 +125,29 @@ export const tabBarOptions = getTabBarOptions(colors);
 export const tabScreenOptions = {
   dashboard: {
     title: "Dashboard",
-    tabBarIcon: ({ color, size }: { color: string; size: number }) => ({
+    tabBarIcon: {
       name: "home",
-      color,
-      size,
-    }),
+    },
   },
   
   restockSessions: {
     title: "Restock Sessions",
-    tabBarIcon: ({ color, size }: { color: string; size: number }) => ({
+    tabBarIcon: {
       name: "cube-outline",
-      color,
-      size,
-    }),
+    },
   },
   
   emails: {
     title: "Emails",
-    tabBarIcon: ({ color, size }: { color: string; size: number }) => ({
+    tabBarIcon: {
       name: "mail",
-      color,
-      size,
-    }),
+    },
   },
   
   profile: {
     title: "Profile",
-    tabBarIcon: ({ color, size }: { color: string; size: number }) => ({
+    tabBarIcon: {
       name: "person",
-      color,
-      size,
-    }),
+    },
   },
 }; 

@@ -24,7 +24,7 @@ export const HistorySection: React.FC<HistorySectionProps> = ({ userId }) => {
   const [activeTab, setActiveTab] = useState<'sessions' | 'emails'>('sessions');
   const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const { findByUserId, findCompletedByUserId } = useSessionRepository();
+  const { findCompletedByUserId } = useSessionRepository();
 
   const loadHistory = async () => {
     if (!userId) return;
@@ -32,7 +32,7 @@ export const HistorySection: React.FC<HistorySectionProps> = ({ userId }) => {
     setLoading(true);
     try {
       const items: HistoryItem[] = [];
-      const sessions = await findCompletedByUserId(userId);
+      const sessions = await findCompletedByUserId();
       sessions.forEach((session: RestockSession) => {
         const created = session.createdAt;
         const readableDate = created.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });

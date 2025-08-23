@@ -1,103 +1,82 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import { tabBarOptions, tabScreenOptions } from "../../styles/components/tabs";
-import useThemeStore from "../stores/useThemeStore";
-import UnifiedAuthGuard from "../components/UnifiedAuthGuard";
+import { useSafeTheme } from "../stores/useThemeStore";
+import { UnifiedAuthGuard } from "../components/UnifiedAuthGuard";
+import { useMemo } from "react";
 
 export default function TabLayout() {
-  const { theme } = useThemeStore();
+  const { theme } = useSafeTheme();
+
+  // ✅ Memoize theme to avoid unnecessary re-renders
+  const stableTheme = useMemo(() => theme, [theme]);
+
+  // ✅ Memoize screen options for Tabs
+  const screenOptions = useMemo(
+    () => ({
+      ...tabBarOptions,
+      tabBarStyle: {
+        ...tabBarOptions.tabBarStyle,
+        backgroundColor: stableTheme.neutral.lightest,
+        borderTopColor: stableTheme.neutral.light,
+      },
+      headerStyle: {
+        ...tabBarOptions.headerStyle,
+        backgroundColor: stableTheme.neutral.lightest,
+        borderBottomColor: stableTheme.neutral.light,
+      },
+      headerTintColor: stableTheme.neutral.darkest,
+      tabBarActiveTintColor: stableTheme.neutral.darkest,
+      tabBarInactiveTintColor: stableTheme.neutral.medium,
+    }),
+    [stableTheme]
+  );
+
+  // ✅ Helper to safely render Ionicons
+  const renderIcon = (iconName: string) => ({ color, size }: { color: string; size: number }) => (
+    <Ionicons name={iconName} size={size} color={color} />
+  );
+
   return (
-    <UnifiedAuthGuard requireAuth={true} requireProfileSetup={true}>
-        <Tabs 
-          screenOptions={{
-            ...tabBarOptions,
-            tabBarStyle: {
-              ...tabBarOptions.tabBarStyle,
-              backgroundColor: theme.neutral.lightest,
-              borderTopColor: theme.neutral.light,
-            },
-            headerStyle: {
-              ...tabBarOptions.headerStyle,
-              backgroundColor: theme.neutral.lightest,
-              borderBottomColor: theme.neutral.light,
-            },
-            headerTintColor: theme.neutral.darkest,
-            tabBarActiveTintColor: theme.neutral.darkest,
-            tabBarInactiveTintColor: theme.neutral.medium,
+    <UnifiedAuthGuard requireAuth requireProfileSetup>
+      <Tabs screenOptions={screenOptions}>
+        {/* Dashboard */}
+        <Tabs.Screen
+          name="dashboard/index"
+          options={{
+            title: tabScreenOptions.dashboard.title,
+            tabBarIcon: renderIcon(tabScreenOptions.dashboard.tabBarIcon.name),
           }}
-          screenListeners={{
-            tabPress: (e) => {
-              console.log('🔄 Tab Pressed:', e.target);
-            },
-            focus: (e) => {
-              console.log('🎯 Tab Focused:', e.target);
-            },
-            blur: (e) => {
-              console.log('👁️ Tab Blurred:', e.target);
-            },
+        />
+
+        {/* Restock Sessions */}
+        <Tabs.Screen
+          name="restock-sessions"
+          options={{
+            title: tabScreenOptions.restockSessions.title,
+            tabBarIcon: renderIcon(tabScreenOptions.restockSessions.tabBarIcon.name),
+            headerShown: false,
           }}
-        >
-          {/* Dashboard - Overview and quick actions */}
-          <Tabs.Screen
-            name="dashboard/index"
-            options={{
-              title: tabScreenOptions.dashboard.title,
-              tabBarIcon: ({ color, size }) => (
-                <Ionicons 
-                  name={tabScreenOptions.dashboard.tabBarIcon({ color, size }).name as any} 
-                  size={size} 
-                  color={color} 
-                />
-              ),
-            }}
-          />
-          
-          {/* Restock Sessions - Main workflow for creating sessions */}
-          <Tabs.Screen
-            name="restock-sessions"
-            options={{
-              title: tabScreenOptions.restockSessions.title,
-              tabBarIcon: ({ color, size }) => (
-                <Ionicons 
-                  name={tabScreenOptions.restockSessions.tabBarIcon({ color, size }).name as any} 
-                  size={size} 
-                  color={color} 
-                />
-              ),
-              headerShown: false,
-            }}
-          />
-          
-          {/* Emails - Review and send generated emails */}
-          <Tabs.Screen
-            name="emails/index"
-            options={{
-              title: tabScreenOptions.emails.title,
-              tabBarIcon: ({ color, size }) => (
-                <Ionicons 
-                  name={tabScreenOptions.emails.tabBarIcon({ color, size }).name as any} 
-                  size={size} 
-                  color={color} 
-                />
-              ),
-            }}
-          />
-          
-          {/* Profile - User settings and account management */}
-          <Tabs.Screen
-            name="profile/index"
-            options={{
-              title: tabScreenOptions.profile.title,
-              tabBarIcon: ({ color, size }) => (
-                <Ionicons 
-                  name={tabScreenOptions.profile.tabBarIcon({ color, size }).name as any} 
-                  size={size} 
-                  color={color} 
-                />
-              ),
-            }}
-          />
-        </Tabs>
+        />
+
+        {/* Emails */}
+        <Tabs.Screen
+          name="emails/index"
+          options={{
+            title: tabScreenOptions.emails.title,
+            tabBarIcon: renderIcon(tabScreenOptions.emails.tabBarIcon.name),
+          }}
+        />
+
+        {/* Profile */}
+        <Tabs.Screen
+          name="profile/index"
+          options={{
+            title: tabScreenOptions.profile.title,
+            tabBarIcon: renderIcon(tabScreenOptions.profile.tabBarIcon.name),
+          }}
+        />
+      </Tabs>
     </UnifiedAuthGuard>
   );
-} 
+}

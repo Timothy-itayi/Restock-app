@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DeviceEventEmitter } from 'react-native';
-import { useUnifiedAuth } from '../../../_contexts/UnifiedAuthProvider';
+import { useUnifiedAuth } from '../../../auth/UnifiedAuthProvider';
 import { useSessionRepository, useProductRepository, useSupplierRepository, useEmailRepository } from '../../../infrastructure/repositories/SupabaseHooksProvider';
 import type { EmailDraft } from './useEmailSession';
 

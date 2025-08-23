@@ -1,7 +1,5 @@
 import { useSupabaseWithAuth } from './useAuthenticatedSupabase';
-import { RestockSession } from '../domain/entities/RestockSession';
-import { Product } from '../domain/entities/Product';
-import { Supplier } from '../domain/entities/Supplier';
+import { useMemo } from 'react';
 
 /**
  * Hook that provides easy access to Supabase RPC functions with Clerk authentication
@@ -181,7 +179,8 @@ export function useSupabaseRepository() {
     }
   };
 
-  return {
+  // Memoize the returned object to prevent recreation on every render
+  return useMemo(() => ({
     isLoading,
     isAuthenticated,
     sessions,
@@ -191,5 +190,5 @@ export function useSupabaseRepository() {
     user,
     // Direct access to client for custom queries
     client
-  };
+  }), [isLoading, isAuthenticated, client]);
 }

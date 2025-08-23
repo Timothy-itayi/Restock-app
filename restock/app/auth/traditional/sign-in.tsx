@@ -1,24 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, TextInput, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Link } from 'expo-router';
-import { useSignIn, useAuth, useSSO } from '@clerk/clerk-expo';
+import { useSignIn, useAuth, useSSO, useClerk } from '@clerk/clerk-expo';
 import { SessionManager } from '../../../backend/services/session-manager';
 import { UserProfileService } from '../../../backend/services/user-profile';
 import { EmailAuthService } from '../../../backend/services/email-auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Linking from 'expo-linking';
-import UnifiedAuthGuard from '../../components/UnifiedAuthGuard';
+import { UnifiedAuthGuard } from '../../components/UnifiedAuthGuard';
 
 import { signInStyles } from '../../../styles/components/sign-in';
 import useThemeStore from '../../stores/useThemeStore';
-import { useUnifiedAuth } from '../../_contexts/UnifiedAuthProvider';
+import { useUnifiedAuth } from '../UnifiedAuthProvider';
 
 export default function SignInScreen() {
   const { signIn, setActive, isLoaded } = useSignIn();
-  const { isSignedIn } = useAuth();
+  const { user } = useClerk();
+  
+  // CRITICAL: Always call useAuth unconditionally first
+  const rawAuth = useAuth();
+  
+  // Then safely extract values
+  const isSignedIn = (rawAuth && typeof rawAuth === 'object' && typeof rawAuth.isSignedIn === 'boolean') 
+    ? rawAuth.isSignedIn 
+    : false;
+  
   const { theme } = useThemeStore();
   const { startSSOFlow } = useSSO();
-  const { triggerAuthCheck } = useUnifiedAuth();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -89,46 +97,80 @@ export default function SignInScreen() {
   };
 
   const onSignInPress = async () => {
+    console.log('👤 USER ACTION: Email Sign In button clicked', { email: email.slice(0, 3) + '***' });
+
     if (!email.trim()) {
+      console.log('❌ VALIDATION: Email validation failed - empty email');
       Alert.alert('Error', 'Please enter your email address');
       return;
     }
 
     if (!password.trim()) {
+      console.log('❌ VALIDATION: Password validation failed - empty password');
       Alert.alert('Error', 'Please enter your password');
       return;
     }
 
-    if (!isLoaded) return;
+    if (!isLoaded) {
+      console.log('⚠️  EMAIL FLOW: Clerk not loaded, aborting sign in');
+      return;
+    }
 
+    console.log('🚀 EMAIL FLOW: Starting traditional email/password sign in');
     setEmailLoading(true);
     try {
-      console.log('📧 Attempting to sign in with email:', email);
+      console.log('📧 EMAIL FLOW: Creating Clerk sign in session');
       
       const result = await signIn.create({
         identifier: email,
         password: password,
       });
 
-      console.log('📧 SignIn result:', result);
+      console.log('📋 EMAIL FLOW: Clerk sign in result:', {
+        status: result.status,
+        hasSession: !!result.createdSessionId,
+        factors: result.supportedFirstFactors?.map(f => f.strategy) || []
+      });
 
       // Use the dedicated EmailAuthService to handle the authentication flow
-      await EmailAuthService.handleEmailSignIn(result as any, email, triggerAuthCheck, setActive);
+      console.log('🔧 EMAIL FLOW: Delegating to EmailAuthService for completion');
+      await EmailAuthService.handleEmailSignIn(result as any, email, () => {
+        console.log('📧 EMAIL FLOW: Auth check triggered by EmailAuthService');
+      }, setActive);
+      
+      console.log('✅ EMAIL FLOW: Email sign in completed successfully');
       
     } catch (err: any) {
-      console.error('❌ Sign in error:', JSON.stringify(err, null, 2));
+      console.error('❌ EMAIL FLOW: Sign in error:', {
+        message: err.message,
+        errors: err.errors?.map((e: any) => ({ code: e.code, message: e.message })) || [],
+        fullError: err
+      });
       Alert.alert('Error', err.errors?.[0]?.message || 'Failed to sign in');
     } finally {
       setEmailLoading(false);
+      console.log('🔄 EMAIL FLOW: Email sign in process completed');
     }
   };
 
   const handleGoogleSignIn = async (isReturningUserFlow = false) => {
-    if (!isLoaded) return;
+    console.log('👤 USER ACTION: Google Sign In button clicked (traditional auth screen)', { 
+      isReturningUserFlow 
+    });
+    
+    if (!isLoaded) {
+      console.log('⚠️  GOOGLE FLOW: Clerk not loaded, aborting');
+      return;
+    }
 
+    console.log('🚀 GOOGLE FLOW: Starting Google OAuth for sign in');
     setGoogleLoading(true);
     try {
-      console.log('Starting Google OAuth flow for sign in...');
+      console.log('📡 GOOGLE FLOW: Initiating Google SSO flow from sign-in screen');
+      
+      // Clear any stale session cache before starting OAuth to prevent false profile completion detection
+      console.log('🧹 GOOGLE FLOW: Clearing stale session cache before OAuth');
+      await SessionManager.clearUserSession();
       
       // Set OAuth processing flag before starting the flow
       await AsyncStorage.setItem('oauthProcessing', 'true');
@@ -165,22 +207,13 @@ export default function SignInScreen() {
           
           // Set recent sign-in flag and trigger auth check
           await AsyncStorage.setItem('recentSignIn', 'true');
-          triggerAuthCheck();
+          // triggerAuthCheck(); // This line was removed as per the edit hint
           
           // Let UnifiedAuthProvider handle the navigation - the loading screen will auto-complete
           
-          // Save session data for returning user detection
-          // Extract email from user object after OAuth completion
-          const userEmail = result.createdSessionId ? 
-            (await UserProfileService.getUserProfile())?.data?.email || '' : '';
-          
-          await SessionManager.saveUserSession({
-            userId: result.createdSessionId || '',
-            email: userEmail,
-            wasSignedIn: true,
-            lastSignIn: Date.now(),
-            lastAuthMethod: 'google',
-          });
+          // NOTE: Session data will be saved only AFTER successful profile setup completion
+          // This prevents stale cache with incomplete profile data
+          console.log('📝 OAUTH FLOW: Session data will be saved after profile setup completes');
           
           // Let the auth layout handle navigation automatically
           console.log('🔄 Waiting for auth layout to handle automatic redirect...');
@@ -221,17 +254,6 @@ export default function SignInScreen() {
             </Text>
           </View>
 
-          {showReturningUserButton && lastAuthMethod === 'google' && (
-            <TouchableOpacity 
-              style={signInStyles.returningUserButton}
-              onPress={handleReturningUserSignIn}
-              disabled={googleLoading || emailLoading}
-            >
-              <Text style={signInStyles.returningUserButtonText}>
-                {googleLoading ? 'Signing in...' : 'Continue with Google'}
-              </Text>
-            </TouchableOpacity>
-          )}
 
           <TouchableOpacity 
             style={signInStyles.googleButton}

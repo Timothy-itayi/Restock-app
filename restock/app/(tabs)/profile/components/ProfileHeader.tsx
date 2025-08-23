@@ -3,8 +3,7 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getProfileStyles } from '../../../../styles/components/profile';
 import { useThemedStyles } from '../../../../styles/useThemedStyles';
-import colors from '@/app/theme/colors';
-import useThemeStore from '@/app/stores/useThemeStore';
+import useThemeStore from '../../../stores/useThemeStore';
 
 export const ProfileHeader: React.FC = () => {
   const { mode, theme, toggleMode } = useThemeStore();

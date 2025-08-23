@@ -1,28 +1,30 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { getDashboardStyles } from '../../../../styles/components/dashboard';
 import { useThemedStyles } from '../../../../styles/useThemedStyles';
 import SkeletonBox from '../../../components/skeleton/SkeletonBox';
-import useProfileStore from '../../../stores/useProfileStore';
-import { useClientSideAuth } from '../../../hooks/useClientSideAuth';
 
 interface WelcomeSectionProps {
   profileLoading: boolean;
   userName?: string;
   storeName?: string;
+  profileError?: string | null;
+  retryProfileLoad?: (userId: string) => Promise<void>;
+  userId?: string | null;
 }
 
 export const WelcomeSection: React.FC<WelcomeSectionProps> = ({
   profileLoading,
   userName,
-  storeName
+  storeName,
+  profileError,
+  retryProfileLoad,
+  userId
 }) => {
   const dashboardStyles = useThemedStyles(getDashboardStyles);
-  const { error: profileError, isProfileLoaded, retryProfileLoad } = useProfileStore();
-  const { userId } = useClientSideAuth();
   
   const handleRetry = () => {
-    if (userId) {
+    if (userId && retryProfileLoad) {
       retryProfileLoad(userId);
     }
   };
@@ -54,7 +56,7 @@ export const WelcomeSection: React.FC<WelcomeSectionProps> = ({
   }
   
   // Show loading state
-  if (profileLoading || !isProfileLoaded) {
+  if (profileLoading) {
     return (
       <View style={dashboardStyles.welcomeSection}>
         <SkeletonBox width="60%" height={36} />

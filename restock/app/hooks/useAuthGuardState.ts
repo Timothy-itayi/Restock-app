@@ -1,7 +1,8 @@
-import { useEffect, useState, useMemo, useRef } from 'react';
-import { router, useSegments } from 'expo-router';
-import { useUnifiedAuth } from '../_contexts/UnifiedAuthProvider';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+// app/hooks/useAuthGuardState.ts
+import { useEffect, useState, useMemo } from 'react';
+import { useSegments } from 'expo-router';
+import { useAuthState, useAuthType } from '../auth/store';
+
 import { SessionManager } from '../../backend/services/session-manager';
 
 interface UseAuthGuardStateOptions {
@@ -11,13 +12,13 @@ interface UseAuthGuardStateOptions {
   redirectTo?: string;
 }
 
-interface AuthGuardState {
+export interface AuthGuardState {
   shouldShowLoader: boolean;
   isRedirecting: boolean;
   hasError: boolean;
   errorMessage?: string;
   loaderMessage?: string;
-  authType?: any; // 🔒 Add authType to check for blocked users
+  authType?: any;
 }
 
 export function useAuthGuardState({
@@ -26,363 +27,85 @@ export function useAuthGuardState({
   requireProfileSetup = false,
   redirectTo
 }: UseAuthGuardStateOptions = {}): AuthGuardState {
-  const { isReady, isProfileSetupComplete, isAuthenticated, isLoading, authType } = useUnifiedAuth();
+  const authState = useAuthState();
+  const authType = useAuthType();
   const segments = useSegments();
-  
-  // Track initial app load vs. later auth transitions
-  const [hasMounted, setHasMounted] = useState(false);
-  const [initializing, setInitializing] = useState(true);
-  const [isRedirectingToSetup, setIsRedirectingToSetup] = useState(false);
-  const [isRedirecting, setIsRedirecting] = useState(false);
-  const [setupRedirectType, setSetupRedirectType] = useState<'google' | 'email' | null>(null);
-  const [loadingPhase, setLoadingPhase] = useState<
-    'initializing' | 'auth-checking' | 'setup-redirect' | 'creating-dashboard' | 'ready'
-  >('initializing');
 
-  // UX context flags
-  const [isFirstLaunch, setIsFirstLaunch] = useState<boolean | null>(null);
-  
-  // Throttling to prevent excessive effect calls
-  const lastEffectCall = useRef<number>(0);
-  const EFFECT_THROTTLE_MS = 100; // 100ms throttle
-  
-  // Memoize stable auth state to reduce effect triggers
-  const authState = useMemo(() => ({
-    isReady,
-    isAuthenticated,
-    isLoading,
-    isProfileSetupComplete, // 🔒 Use the explicit profile setup completion state
-    needsProfileSetup: authType?.needsProfileSetup || false,
-    authTypeKey: `${authType?.type || 'none'}-${authType?.isNewSignUp || false}` // Stable identifier instead of full object
-  }), [isReady, isAuthenticated, isLoading, isProfileSetupComplete, authType?.needsProfileSetup, authType?.type, authType?.isNewSignUp]);
-  
-  // Memoize current route to avoid array changes
-  const currentRoute = useMemo(() => segments[0] || '', [segments]);
-  
-  // Memoize requirements to avoid recreating object
-  const requirements = useMemo(() => ({
-    requireAuth,
-    requireNoAuth,
-    requireProfileSetup,
-    redirectTo
-  }), [requireAuth, requireNoAuth, requireProfileSetup, redirectTo]);
+  // Async returning user flag
+  const [isReturningUser, setIsReturningUser] = useState<boolean | null>(null);
 
-  // Initialize app state
   useEffect(() => {
-    setHasMounted(true);
-
-    const timer = setTimeout(() => {
-      console.log('🔄 useAuthGuardState: Initializing phase complete, moving to auth-checking');
-      setInitializing(false);
-      // Only move to auth-checking if we're still in initializing phase
-      if (loadingPhase === 'initializing') {
-        setLoadingPhase('auth-checking');
-      }
-    }, 500); // Limit "initial load" time to 500ms for smooth entry
-
-    return () => clearTimeout(timer);
-  }, [loadingPhase]);
-
-  // Determine first launch vs returning user
-  useEffect(() => {
-    const setupUxFlags = async () => {
-      try {
-        const returning = await SessionManager.isReturningUser();
-        setIsFirstLaunch(!returning);
-      } catch (e) {
-        console.warn('useAuthGuardState: Failed to init UX flags', e);
-        setIsFirstLaunch(false);
-      }
-    };
-    setupUxFlags();
+    let mounted = true;
+    SessionManager.isReturningUser()
+      .then(r => mounted && setIsReturningUser(r))
+      .catch(() => mounted && setIsReturningUser(false));
+    return () => { mounted = false; };
   }, []);
 
-  // Clear redirecting to setup flag when segments change
-  useEffect(() => {
-    if (isRedirectingToSetup) {
-      const timer = setTimeout(() => {
-        setIsRedirectingToSetup(false);
-        setSetupRedirectType(null);
-        setLoadingPhase('ready');
-      }, 600);
-      return () => clearTimeout(timer);
-    }
-  }, [segments, isRedirectingToSetup]);
+  // Internal flags
+  const [initializing, setInitializing] = useState(true);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
-  // Reset redirecting state when segments change (navigation completes)
+  // Watch store readiness
+  useEffect(() => {
+    if (authState.isReady && initializing) {
+      setInitializing(false);
+    }
+  }, [authState.isReady, initializing]);
+
+  // Redirect cleanup timer
   useEffect(() => {
     if (isRedirecting) {
-      const timer = setTimeout(() => {
-        setIsRedirecting(false);
-      }, 500);
+      const timer = setTimeout(() => setIsRedirecting(false), 500);
       return () => clearTimeout(timer);
     }
-  }, [segments, isRedirecting]);
+  }, [isRedirecting]);
 
-  // Main auth guard logic
-  useEffect(() => {
-    const now = Date.now();
-    
-    // Throttle effect calls to prevent excessive triggering
-    if (now - lastEffectCall.current < EFFECT_THROTTLE_MS) {
-      return;
-    }
-    lastEffectCall.current = now;
-    
-    console.log('🚨 useAuthGuardState: Effect triggered', {
-      ...authState,
-      ...requirements,
-      currentRoute,
-      guardId: Math.random().toString(36).substr(2, 9)
-    });
+  const currentRoute = segments[0] || '';
+  const shouldBlockDashboard =
+    authState.isAuthenticated &&
+    !authState.isProfileSetupComplete &&
+    currentRoute === '(tabs)';
 
-    if (!authState.isReady) {
-      console.log('⏳ useAuthGuardState: Auth not ready yet, waiting...');
-      // Set phase to auth-checking when auth context is loading
-      if (loadingPhase === 'initializing') {
-        setLoadingPhase('auth-checking');
-      }
-      return;
+  // Memoized stable guard state (depends only on primitives)
+  return useMemo<AuthGuardState>(() => {
+    if (isReturningUser === null || initializing) {
+      return {
+        shouldShowLoader: true,
+        isRedirecting: false,
+        hasError: false,
+        loaderMessage: isReturningUser === null ? 'Loading...' : 'Starting up Restock...',
+        authType
+      };
     }
 
-    // CRITICAL: Immediate profile setup check - if profile setup is not complete, redirect immediately
-    // This prevents any race conditions where users might access protected routes
-    if (authState.isAuthenticated && !authState.isProfileSetupComplete) {
-      console.log('🚨 useAuthGuardState: CRITICAL - Profile setup not complete, immediate redirect required', {
-        isNewSignUp: authType?.isNewSignUp,
-        userType: authType?.type,
-        currentRoute,
-        segments: segments.join('/'),
-        isProfileSetupComplete: authState.isProfileSetupComplete
-      });
-      
-      // Don't redirect if already on profile setup page
-      const alreadyOnSetupPage = currentRoute === 'sso-profile-setup' || 
-        (segments[0] === 'auth' && segments[1] === 'traditional' && segments[2] === 'profile-setup');
-
-      if (!alreadyOnSetupPage) {
-        console.log('🚨 useAuthGuardState: EMERGENCY REDIRECT to profile setup');
-        setIsRedirectingToSetup(true);
-        setSetupRedirectType(authType.type === 'google' ? 'google' : 'email');
-        setLoadingPhase('setup-redirect');
-        
-        const route = authType.type === 'google'
-          ? '/sso-profile-setup'
-          : '/auth/traditional/profile-setup';
-
-        console.log(`🚨 useAuthGuardState: EMERGENCY REDIRECT to: ${route}`);
-        
-        try {
-          router.replace(route);
-          console.log('✅ useAuthGuardState: Emergency redirect initiated');
-        } catch (err) {
-          console.error('❌ useAuthGuardState: Emergency redirect failed:', err);
-          router.replace('/welcome');
-        }
-        return;
-      }
+    if (shouldBlockDashboard) {
+      return {
+        shouldShowLoader: true,
+        isRedirecting: false,
+        hasError: false,
+        loaderMessage: 'Setting up your account...',
+        authType
+      };
     }
 
-    console.log('🔍 useAuthGuardState: Auth is ready, analyzing conditions:', {
-      ...authState,
-      ...requirements,
-      currentRoute
-    });
+    const shouldShowLoader = initializing || authState.isLoading || isRedirecting;
 
-    // If no auth is required but user is authenticated, redirect to dashboard
-    if (requirements.requireNoAuth && authState.isAuthenticated) {
-      console.log('🚫 useAuthGuardState: No auth required but user is authenticated, redirecting to dashboard');
-      try {
-        router.replace('/(tabs)/dashboard');
-      } catch (err) {
-        console.error('❌ useAuthGuardState: Redirect to dashboard failed:', err);
-      }
-      return;
-    }
-
-    // If auth is required but user is not authenticated
-    if (requirements.requireAuth && !authState.isAuthenticated) {
-      console.log('🚫 useAuthGuardState: Auth required but user not authenticated, redirecting to welcome');
-      try {
-        router.replace('/welcome');
-      } catch (err) {
-        console.error('❌ useAuthGuardState: Redirect to welcome failed:', err);
-      }
-      return;
-    }
-
-    // If user is authenticated and profile setup is not complete
-    if (authState.isAuthenticated && !authState.isProfileSetupComplete) {
-      console.log('🚫 useAuthGuardState: Profile setup not completed', {
-        isNewSignUp: authType?.isNewSignUp,
-        userType: authType?.type,
-        currentRoute,
-        segments: segments.join('/'),
-        authState: {
-          isReady: authState.isReady,
-          isLoading: authState.isLoading,
-          isProfileSetupComplete: authState.isProfileSetupComplete
-        }
-      });
-      
-      // Don't redirect if already on profile setup page
-      const alreadyOnSetupPage = currentRoute === 'sso-profile-setup' || 
-        (segments[0] === 'auth' && segments[1] === 'traditional' && segments[2] === 'profile-setup');
-
-      console.log('🔍 useAuthGuardState: Setup page check:', {
-        alreadyOnSetupPage,
-        currentRoute,
-        segments: segments.join('/'),
-        isSSOSetupPage: currentRoute === 'sso-profile-setup',
-        isTraditionalSetupPage: segments[0] === 'auth' && segments[1] === 'traditional' && segments[2] === 'profile-setup'
-      });
-
-      if (!alreadyOnSetupPage) {
-        console.log('🚀 useAuthGuardState: Starting profile setup redirect...');
-        setIsRedirectingToSetup(true);
-        setSetupRedirectType(authType.type === 'google' ? 'google' : 'email');
-        setLoadingPhase('setup-redirect');
-        
-        const route = authType.type === 'google'
-          ? '/sso-profile-setup'
-          : '/auth/traditional/profile-setup';
-
-        console.log(`🚀 useAuthGuardState: Redirecting to setup: ${route}`, {
-          authType: authType.type,
-          isNewSignUp: authType?.isNewSignUp
-        });
-        
-        try {
-          router.replace(route);
-          console.log('✅ useAuthGuardState: Redirect to setup initiated successfully');
-        } catch (err) {
-          console.error('❌ useAuthGuardState: Redirect failed:', err);
-          router.replace('/welcome');
-        }
-        return;
-      } else {
-        console.log('✅ useAuthGuardState: User already on setup page, no redirect needed');
-      }
-    }
-
-    // If user is authenticated and has completed setup, redirect to dashboard if on auth screens
-    if (authState.isAuthenticated && authState.isProfileSetupComplete) {
-      const currentRoute = segments[0];
-      const isOnAuthScreen = currentRoute === 'auth' || currentRoute === 'welcome' || currentRoute === 'sso-profile-setup';
-      
-      if (isOnAuthScreen && !redirectTo) {
-        console.log('🚀 useAuthGuardState: User authenticated and setup complete, redirecting to dashboard');
-        try {
-          // Show a transitional loader while we build the main app
-          setIsRedirecting(true);
-          setLoadingPhase('creating-dashboard');
-          router.replace('/(tabs)/dashboard');
-        } catch (err) {
-          console.error('❌ useAuthGuardState: Redirect to dashboard failed:', err);
-        }
-        return;
-      }
-    }
-
-    // If redirectTo is specified and user is authenticated
-    if (requirements.redirectTo && authState.isAuthenticated && authState.isProfileSetupComplete) {
-      console.log(`🚀 useAuthGuardState: Redirecting to specified route: ${requirements.redirectTo}`);
-      try {
-        router.replace(requirements.redirectTo as any);
-      } catch (err) {
-        console.error('❌ useAuthGuardState: Redirect to specified route failed:', err);
-      }
-      return;
-    }
-
-    console.log('✅ useAuthGuardState: All conditions met');
-    
-    // Mark as ready when all conditions are met
-    if (loadingPhase !== 'ready' && !isRedirectingToSetup) {
-      setLoadingPhase('ready');
-    }
-  }, [authState, requirements, currentRoute, loadingPhase, isRedirectingToSetup]);
-
-  // 🔒 CRITICAL: Prevent protected routes from mounting when profile setup is not complete
-  // This is the key fix for the race condition
-  const shouldBlockDashboard = authState.isAuthenticated && !authState.isProfileSetupComplete && currentRoute === '(tabs)';
-  
-  if (shouldBlockDashboard) {
-    console.log('🚨 useAuthGuardState: BLOCKING dashboard mount - profile setup not complete', {
-      isAuthenticated: authState.isAuthenticated,
-      isProfileSetupComplete: authState.isProfileSetupComplete,
-      currentRoute,
-      segments: segments.join('/')
-    });
     return {
-      shouldShowLoader: true,
-      isRedirecting: false,
-      hasError: false,
-      errorMessage: undefined,
-      loaderMessage: 'Setting up your account...',
-      authType: authType
+      shouldShowLoader,
+      isRedirecting,
+      hasError: !authType,
+      loaderMessage: shouldShowLoader ? 'Loading...' : undefined,
+      authType
     };
-  }
-
-  // Smart loading screen decision
-  const shouldShowLoader = (
-    initializing ||                  // Initial app mount
-    (!authState.isReady || authState.isLoading) ||       // Auth context not ready
-    isRedirectingToSetup ||          // We're mid-SSO profile redirect
-    isRedirecting                    // Navigating to a destination (e.g., dashboard)
-  );
-
-  // Context-aware loading messages
-  const getLoaderMessage = (): string => {
-    console.log('🎯 useAuthGuardState: Loading phase:', loadingPhase, {
-      initializing,
-      isReady,
-      isLoading,
-      isRedirectingToSetup,
-      setupRedirectType
-    });
-    
-    // Prioritize explicit transition states
-    if (loadingPhase === 'setup-redirect' || isRedirectingToSetup) {
-      if (setupRedirectType === 'google') {
-        return 'Setting up your Google account...';
-      } else if (setupRedirectType === 'email') {
-        return 'Setting up your email account...';
-      }
-      return 'Setting up your account...';
-    }
-    
-    if (loadingPhase === 'creating-dashboard' || (isRedirecting && authState.isAuthenticated && authState.isProfileSetupComplete)) {
-      return 'Creating your dashboard...';
-    }
-
-    if (loadingPhase === 'initializing') {
-      if (isFirstLaunch === true) {
-        return 'Welcome to Restock';
-      }
-      return 'Starting up Restock...';
-    }
-
-    // Only show during explicit auth-checking; do not tie to isLoading
-    if (loadingPhase === 'auth-checking') {
-      return 'Checking your account...';
-    }
-
-    return 'Loading...';
-  };
-
-  // Error handling
-  const hasError = !authType;
-  const errorMessage = hasError 
-    ? 'There was an issue with the authentication system. Please restart the app and try again.'
-    : undefined;
-
-  return {
-    shouldShowLoader,
+  }, [
+    isReturningUser,
+    initializing,
     isRedirecting,
-    hasError,
-    errorMessage,
-    loaderMessage: getLoaderMessage(),
-    authType: authType // 🔒 Add authType to check for blocked users
-  };
-} 
+    authState.isLoading,
+    authState.isAuthenticated,
+    authState.isProfileSetupComplete,
+    authType,
+    shouldBlockDashboard
+  ]);
+}

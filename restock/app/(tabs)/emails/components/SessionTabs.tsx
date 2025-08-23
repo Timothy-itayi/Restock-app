@@ -36,7 +36,7 @@ export const SessionTabs: React.FC<SessionTabsProps> = ({
 
   const getSessionColor = (sessionId: string, index: number) => {
     const theme = getSessionColorTheme(sessionId, index);
-    return theme.primary;
+    return theme?.primary || '#6d9f72'; // Fallback to default color if theme is undefined
   };
 
   const getSessionStatus = (session: EmailSession) => {

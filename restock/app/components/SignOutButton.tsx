@@ -4,7 +4,7 @@ import { useClientSideAuth } from '../hooks/useClientSideAuth';
 import { router } from 'expo-router';
 import { SessionManager } from '../../backend/services/session-manager';
 import { ClerkClientService } from '../../backend/services/clerk-client';
-import { useUnifiedAuth } from '../_contexts/UnifiedAuthProvider';
+import { useUnifiedAuth } from "../auth/UnifiedAuthProvider";
 import { signOutButtonStyles } from '../../styles/components/sign-out-button';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -26,8 +26,8 @@ export default function SignOutButton() {
           style: 'destructive',
           onPress: async () => {
             try {
-              // Sign out while preserving returning user data (email and auth method)
-              await SessionManager.signOutPreservingUserData();
+              // Clear all session cache data on signout to prevent stale data issues
+              await SessionManager.clearUserSession();
               
               // Clear OAuth flags to ensure clean state
               await ClerkClientService.onSignOut();
@@ -46,9 +46,9 @@ export default function SignOutButton() {
               
               // Wait a moment for Clerk to process the sign out
               setTimeout(() => {
-                // Always redirect to welcome-back screen for consistent flow
-                console.log('User signing out, redirecting to welcome back screen');
-                router.replace('/auth/welcome-back');
+                // Always redirect to welcome screen for consistent flow
+                console.log('User signing out, redirecting to welcome screen');
+                router.replace('/welcome');
               }, 500);
             } catch (error) {
               console.error('Error signing out:', error);

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Dimensions, Image, Animated } from 'react-native';
 import { router } from 'expo-router';
-import { useUnifiedAuth } from './_contexts/UnifiedAuthProvider';
+import { useUnifiedAuth } from "./auth/UnifiedAuthProvider";
 import { welcomeStyles } from '../styles/components/welcome';
 
 
@@ -50,9 +50,15 @@ export default function WelcomeScreen() {
 
   // Check if user is already authenticated
   useEffect(() => {
-      if (isAuthenticated && userId) {
-      console.log('User is already authenticated, redirecting to dashboard');
-      router.replace('/(tabs)/dashboard');
+    if (isAuthenticated && userId) {
+      console.log('🌟 Welcome: User is already authenticated, redirecting to dashboard');
+      // Add small delay to avoid conflicts with other redirects
+      const timer = setTimeout(() => {
+        router.replace('/(tabs)/dashboard');
+      }, 100);
+      return () => clearTimeout(timer);
+    } else {
+      console.log('🌟 Welcome: User not authenticated, staying on welcome screen');
     }
   }, [isAuthenticated, userId]);
 

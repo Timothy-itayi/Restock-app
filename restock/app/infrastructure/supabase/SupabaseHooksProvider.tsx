@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useMemo, useEffect, useState } from "react";
+import React, { createContext, useContext, useMemo, useEffect, useState, useRef } from "react";
+import { useUnifiedAuthState } from '../../auth';
 import { registerServices } from "../di/ServiceRegistry";
-import { useAuth } from '@clerk/clerk-expo';
+
 
 // Supabase repository imports - FIXED: using correct backend path
 import { SupabaseUserRepository } from "../../../backend/infrastructure/repositories/SupabaseUserRepository";
@@ -47,20 +48,35 @@ export const SupabaseHooksProvider: React.FC<{
   children: React.ReactNode;
   isSupabaseReady?: boolean;
 }> = ({ children, isSupabaseReady = true }) => {
-  const { userId } = useAuth();
+  // 🔒 CRITICAL: Add guard to prevent auth hook usage before provider is ready
+  let authState;
+  try {
+    authState = useUnifiedAuthState();
+  } catch (error) {
+    // Auth provider not ready yet, use fallback values
+    console.log('[SupabaseHooksProvider] Auth not ready yet, using fallback values');
+    authState = {
+      userId: null,
+      isAuthenticated: false,
+      isReady: false
+    };
+  }
+  
+  const { userId, isAuthenticated, isReady } = authState;
+  
   const [isUserContextSet, setIsUserContextSet] = useState(false);
 
-  // User context is automatically set via Clerk JWT template - no manual setup needed
+  // ✅ CRITICAL: Simplify user context setup
   useEffect(() => {
     if (userId && isSupabaseReady) {
-      console.log('[SupabaseHooksProvider] User context ready via Clerk JWT for:', userId);
+      console.log('[SupabaseHooksProvider] User context ready for:', userId);
       setIsUserContextSet(true);
     } else {
       setIsUserContextSet(false);
     }
   }, [userId, isSupabaseReady]);
 
-  // Register services with Supabase
+  // ✅ CRITICAL: Register services only once
   useEffect(() => {
     try {
       console.log('[SupabaseHooksProvider] Registering Supabase services');
@@ -69,28 +85,18 @@ export const SupabaseHooksProvider: React.FC<{
     } catch (error) {
       console.error('[SupabaseHooksProvider] ❌ Failed to register services:', error);
     }
-  }, []);
+  }, []); // Empty dependency array - only run once
 
+  // ✅ CRITICAL: Create repositories only once and stabilize them
   const repositories = useMemo(
     (): RepositoryContextValue => {
-      console.log('🔍 SupabaseHooksProvider: Creating repositories', {
-        isSupabaseReady,
-        isUserContextSet,
-        userId
-      });
+      console.log('🔍 SupabaseHooksProvider: Creating repositories for userId:', userId);
       
       const userRepo = new SupabaseUserRepository();
       const sessionRepo = new SupabaseSessionRepository(userId || undefined);
       const productRepo = new SupabaseProductRepository(userId || undefined);
       const supplierRepo = new SupabaseSupplierRepository(userId || undefined);
       const emailRepo = new SupabaseEmailRepository(userId || undefined);
-      
-      console.log('🔍 SupabaseHooksProvider: UserRepository created', {
-        hasUserRepo: !!userRepo,
-        userRepoKeys: userRepo ? Object.keys(userRepo) : 'null',
-        hasCreateProfile: !!userRepo?.createProfile,
-        createProfileType: typeof userRepo?.createProfile
-      });
       
       return {
         userRepository: userRepo,
@@ -102,24 +108,11 @@ export const SupabaseHooksProvider: React.FC<{
         isUserContextSet,
       };
     },
-    [isSupabaseReady, isUserContextSet, userId]
+    [userId, isSupabaseReady, isUserContextSet] // Only recreate when these actually change
   );
 
-  // Update repository userId when it changes
-  useEffect(() => {
-    if (repositories.sessionRepository && userId) {
-      (repositories.sessionRepository as any).setUserId?.(userId);
-    }
-    if (repositories.productRepository && userId) {
-      (repositories.productRepository as any).setUserId?.(userId);
-    }
-    if (repositories.supplierRepository && userId) {
-      (repositories.supplierRepository as any).setUserId?.(userId);
-    }
-    if (repositories.emailRepository && userId) {
-      (repositories.emailRepository as any).setUserId?.(userId);
-    }
-  }, [repositories.sessionRepository, repositories.productRepository, repositories.supplierRepository, repositories.emailRepository, userId]);
+  // ✅ CRITICAL: Remove the complex repository userId update effect
+  // This was causing repositories to be recreated on every render
 
   return (
     <RepositoryContext.Provider value={repositories}>
@@ -155,12 +148,17 @@ export const useSessionRepository = (): SessionRepository & { isReady: boolean; 
     throw new Error('SessionRepository not available in context');
   }
   
-  // Return repository with ready state and user context status
-  // Don't spread the object to preserve method bindings
-  return Object.assign(context.sessionRepository, {
-    isReady: context.isSupabaseReady,
-    isUserContextSet: context.isUserContextSet
-  }) as SessionRepository & { isReady: boolean; isUserContextSet: boolean };
+  // CRITICAL: Use useMemo to create stable object without mutating original
+  return useMemo(() => {
+    // Create new object without mutating the original repository
+    const stableRepo = {
+      ...context.sessionRepository,
+      isReady: context.isSupabaseReady,
+      isUserContextSet: context.isUserContextSet
+    } as SessionRepository & { isReady: boolean; isUserContextSet: boolean };
+    
+    return stableRepo;
+  }, [context.sessionRepository, context.isSupabaseReady, context.isUserContextSet]);
 };
 
 export const useProductRepository = (): ProductRepository & { isReady: boolean; isUserContextSet: boolean } => {
@@ -170,12 +168,16 @@ export const useProductRepository = (): ProductRepository & { isReady: boolean; 
     throw new Error('ProductRepository not available in context');
   }
   
-  // Return repository with ready state and user context status
-  // Don't spread the object to preserve method bindings
-  return Object.assign(context.productRepository, {
-    isReady: context.isSupabaseReady,
-    isUserContextSet: context.isUserContextSet
-  }) as ProductRepository & { isReady: boolean; isUserContextSet: boolean };
+  // CRITICAL: Use useMemo to create stable object without mutating original
+  return useMemo(() => {
+    const stableRepo = {
+      ...context.productRepository,
+      isReady: context.isSupabaseReady,
+      isUserContextSet: context.isUserContextSet
+    } as ProductRepository & { isReady: boolean; isUserContextSet: boolean };
+    
+    return stableRepo;
+  }, [context.productRepository, context.isSupabaseReady, context.isUserContextSet]);
 };
 
 export const useSupplierRepository = (): SupplierRepository & { isReady: boolean; isUserContextSet: boolean } => {
@@ -185,12 +187,16 @@ export const useSupplierRepository = (): SupplierRepository & { isReady: boolean
     throw new Error('SupplierRepository not available in context');
   }
   
-  // Return repository with ready state and user context status
-  // Don't spread the object to preserve method bindings
-  return Object.assign(context.supplierRepository, {
-    isReady: context.isSupabaseReady,
-    isUserContextSet: context.isUserContextSet
-  }) as SupplierRepository & { isReady: boolean; isUserContextSet: boolean };
+  // CRITICAL: Use useMemo to create stable object without mutating original
+  return useMemo(() => {
+    const stableRepo = {
+      ...context.supplierRepository,
+      isReady: context.isSupabaseReady,
+      isUserContextSet: context.isUserContextSet
+    } as SupplierRepository & { isReady: boolean; isUserContextSet: boolean };
+    
+    return stableRepo;
+  }, [context.supplierRepository, context.isSupabaseReady, context.isUserContextSet]);
 };
 
 export const useUserRepository = (): UserRepository & { isReady: boolean; isUserContextSet: boolean } => {
@@ -200,12 +206,16 @@ export const useUserRepository = (): UserRepository & { isReady: boolean; isUser
     throw new Error('UserRepository not available in context');
   }
   
-  // Return repository with ready state and user context status
-  // Don't spread the object to preserve method bindings
-  return Object.assign(context.userRepository, {
-    isReady: context.isSupabaseReady,
-    isUserContextSet: context.isUserContextSet
-  }) as UserRepository & { isReady: boolean; isUserContextSet: boolean };
+  // CRITICAL: Use useMemo to create stable object without mutating original
+  return useMemo(() => {
+    const stableRepo = {
+      ...context.userRepository,
+      isReady: context.isSupabaseReady,
+      isUserContextSet: context.isUserContextSet
+    } as UserRepository & { isReady: boolean; isUserContextSet: boolean };
+    
+    return stableRepo;
+  }, [context.userRepository, context.isSupabaseReady, context.isUserContextSet]);
 };
 
 export const useEmailRepository = (): EmailRepository & { isReady: boolean; isUserContextSet: boolean } => {
@@ -215,10 +225,14 @@ export const useEmailRepository = (): EmailRepository & { isReady: boolean; isUs
     throw new Error('EmailRepository not available in context');
   }
   
-  // Return repository with ready state and user context status
-  // Don't spread the object to preserve method bindings
-  return Object.assign(context.emailRepository, {
-    isReady: context.isSupabaseReady,
-    isUserContextSet: context.isUserContextSet
-  }) as EmailRepository & { isReady: boolean; isUserContextSet: boolean };
+  // CRITICAL: Use useMemo to create stable object without mutating original
+  return useMemo(() => {
+    const stableRepo = {
+      ...context.emailRepository,
+      isReady: context.isSupabaseReady,
+      isUserContextSet: context.isUserContextSet
+    } as EmailRepository & { isReady: boolean; isUserContextSet: boolean };
+    
+    return stableRepo;
+  }, [context.emailRepository, context.isSupabaseReady, context.isUserContextSet]);
 };

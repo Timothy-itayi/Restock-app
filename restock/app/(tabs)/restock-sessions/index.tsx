@@ -4,11 +4,10 @@
  * Handles dynamic route/query params safely and guards hooks
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { View, Text, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import { useStableAuth } from '../../hooks/useStableAuth';
-import { AuthErrorBoundary } from '../../components/AuthErrorBoundary';
+import { useUnifiedAuth } from '../../auth';
 
 // Hooks
 import { useSessionList } from './hooks/useSessionList';
@@ -27,40 +26,84 @@ import CustomToast from '../../components/CustomToast';
 // Styles
 import { useThemedStyles } from '../../../styles/useThemedStyles';
 import { getRestockSessionsStyles } from '../../../styles/components/restock-sessions';
+// import { ClerkDebugger } from '../../components/ClerkDebugger';
 
 const RestockSessionsContent: React.FC = () => {
-  // Always call hooks in the same order - never conditionally
-  const auth = useStableAuth();
+  // ✅ CORRECT: ALL hooks must be called first, unconditionally
+  // 🔒 CRITICAL: Add defensive wrapper around useUnifiedAuthContext to prevent runtime errors
+  let authContext;
+  try {
+    authContext = useUnifiedAuth();
+    
+    // 🔒 CRITICAL: Validate context structure immediately
+    if (typeof authContext !== 'object' || authContext === null) {
+      console.error('❌ RestockSessions: useUnifiedAuthContext returned invalid type:', typeof authContext, authContext);
+      throw new Error('Auth context is invalid');
+    }
+    
+    if (typeof authContext.userId !== 'string' && authContext.userId !== null) {
+      console.error('❌ RestockSessions: Context userId is invalid type:', typeof authContext.userId, authContext.userId);
+      throw new Error('Auth context userId is invalid');
+    }
+    
+    if (typeof authContext.isAuthenticated !== 'boolean') {
+      console.error('❌ RestockSessions: Context isAuthenticated is invalid type:', typeof authContext.isAuthenticated, authContext.isAuthenticated);
+      throw new Error('Auth context isAuthenticated is invalid');
+    }
+  } catch (error) {
+    console.error('❌ RestockSessions: Failed to get auth context:', error);
+    // 🔒 CRITICAL: Provide safe fallback values
+    authContext = {
+      userId: null,
+      isAuthenticated: false,
+      isReady: false,
+      isLoading: true
+    };
+  }
+  
+  const { userId, isAuthenticated } = authContext;
   const rawParams = useLocalSearchParams();
   const restockSessionsStyles = useThemedStyles(getRestockSessionsStyles);
   const sessionList = useSessionList();
   const currentSession = useRestockSession();
   const serviceHealth = useServiceHealth();
   
+  // ✅ CORRECT: Handle auth errors in useEffect, not during hook calls
+  const [authError, setAuthError] = useState(false);
+  
+  // ✅ CORRECT: Add logging ONLY for debugging auth data
+  useEffect(() => {
+    if (userId) {
+      console.log('🔍 RestockSessions: Auth data:', {
+        userId,
+        isAuthenticated
+      });
+    }
+  }, [userId, isAuthenticated]);
+  
+  // ✅ CORRECT: Memoize safeParams to prevent unnecessary re-renders
+  const safeParams = useMemo(() => {
+    if (rawParams && typeof rawParams === 'object' && !Array.isArray(rawParams)) {
+      return {
+        sessionId: typeof rawParams.sessionId === 'string' ? rawParams.sessionId : undefined,
+        action: typeof rawParams.action === 'string' ? rawParams.action : undefined,
+      };
+    }
+    return {};
+  }, [rawParams]);
+  
+  // ✅ CORRECT: Memoize sessionId and action
+  const sessionId = useMemo(() => safeParams.sessionId, [safeParams.sessionId]);
+  const action = useMemo(() => safeParams.action, [safeParams.action]);
+  
   // Local state - always initialized
-  const [safeParams, setSafeParams] = useState<{ sessionId?: string; action?: string }>({});
   const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
   const [showNameModal, setShowNameModal] = useState(false);
   const [sessionNameInput, setSessionNameInput] = useState('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Process params when auth is ready
-  useEffect(() => {
-    if (!auth.isReady) return;
-    
-    if (rawParams && typeof rawParams === 'object' && !Array.isArray(rawParams)) {
-      setSafeParams({
-        sessionId: typeof rawParams.sessionId === 'string' ? rawParams.sessionId : undefined,
-        action: typeof rawParams.action === 'string' ? rawParams.action : undefined,
-      });
-    } else {
-      setSafeParams({});
-    }
-  }, [rawParams, auth.isReady]);
-
-  const sessionId = safeParams.sessionId;
-  const action = safeParams.action;
-
+  // ✅ CORRECT: Remove the old useEffect for safeParams since we're using useMemo now
+  
   // --- SERVICE HEALTH ---
   useEffect(() => {
     if (!serviceHealth.isHealthy && Array.isArray(serviceHealth.issues)) {
@@ -77,27 +120,40 @@ const RestockSessionsContent: React.FC = () => {
     }
   }, [serviceHealth.isHealthy, serviceHealth.issues]);
 
-  const isServiceReady = useCallback(() => {
-    return serviceHealth.isHealthy &&
-           Array.isArray(sessionList.sessions) &&
-           currentSession.session !== undefined;
-  }, [serviceHealth.isHealthy, sessionList.sessions, currentSession.session]);
-
+  // ✅ CORRECT: Simplified refs with useMemo for stability
+  const serviceHealthRef = useMemo(() => ({
+    isHealthy: serviceHealth.isHealthy,
+    issues: serviceHealth.issues
+  }), [serviceHealth.isHealthy, serviceHealth.issues]);
+  
+  const sessionsRef = useMemo(() => sessionList.sessions, [sessionList.sessions]);
+  const currentSessionStateRef = useMemo(() => currentSession.session, [currentSession.session]);
+  
+  // ✅ CORRECT: Simplified service readiness check
+  const isServiceReady = useMemo(() => {
+    return serviceHealthRef.isHealthy &&
+           Array.isArray(sessionsRef) &&
+           currentSessionStateRef !== undefined;
+  }, [serviceHealthRef.isHealthy, sessionsRef, currentSessionStateRef]);
+  
+  // ✅ CORRECT: Simplified auth userId reference
+  const authUserId = useMemo(() => userId || null, [userId]);
+  
   // --- SERVICE INITIALIZING TOAST ---
   useEffect(() => {
-    if (auth.userId && !isServiceReady()) {
+    if (authUserId && !isServiceReady) {
       const timer = setTimeout(() => {
-        if (!isServiceReady()) {
+        if (!isServiceReady) {
           setToastMessage('Initializing services... Please wait a moment.');
         }
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [auth.userId, isServiceReady]);
+  }, [isServiceReady, authUserId]);
 
   // --- START NEW SESSION ---
   const handleStartNewSession = useCallback(async () => {
-    if (!auth.userId) {
+    if (!authUserId) {
       setToastMessage('Please log in to create a session');
       return;
     }
@@ -105,26 +161,35 @@ const RestockSessionsContent: React.FC = () => {
     const defaultName = `Restock Session ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
     setSessionNameInput(defaultName);
     setShowNameModal(true);
-  }, [auth.userId]);
+  }, [authUserId]); // Empty dependency array using ref
+
+  // Stable references for session operations
+  const currentSessionRef = useRef(currentSession);
+  const sessionListRef = useRef(sessionList);
+  
+  useEffect(() => {
+    currentSessionRef.current = currentSession;
+    sessionListRef.current = sessionList;
+  }, [currentSession, sessionList]);
 
   // --- SESSION SELECTION ---
   const handleSelectSession = useCallback(async (sessionId: string) => {
     try {
-      await currentSession.loadSession(sessionId);
-      sessionList.hideSelectionModal();
+      await currentSessionRef.current.loadSession(sessionId);
+      sessionListRef.current.hideSelectionModal();
       setToastMessage('Session loaded successfully!');
     } catch (error) {
       setToastMessage('Failed to load session');
       console.error('[RestockSessions] Error loading session:', error);
     }
-  }, [currentSession, sessionList]);
+  }, []); // Empty dependency array using refs
 
   const handleDeleteSession = useCallback(async (sessionId: string) => {
     try {
-      const result = await sessionList.deleteSession(sessionId);
+      const result = await sessionListRef.current.deleteSession(sessionId);
       if (result.success) {
         setToastMessage('Session deleted successfully');
-        if (currentSession.session?.toValue().id === sessionId) currentSession.clearSession();
+        if (currentSessionRef.current.session?.toValue().id === sessionId) currentSessionRef.current.clearSession();
       } else {
         setToastMessage(result.error || 'Failed to delete session');
       }
@@ -132,18 +197,24 @@ const RestockSessionsContent: React.FC = () => {
       setToastMessage('An error occurred while deleting the session');
       console.error('[RestockSessions] Error deleting session:', error);
     }
-  }, [sessionList, currentSession]);
+  }, []); // Empty dependency array using refs
+
+  // Stable reference for session name input
+  const sessionNameInputRef = useRef(sessionNameInput);
+  useEffect(() => {
+    sessionNameInputRef.current = sessionNameInput;
+  }, [sessionNameInput]);
 
   // --- NAME SESSION ---
   const handleNameSession = useCallback(async () => {
-    if (!sessionNameInput.trim()) {
+    if (!sessionNameInputRef.current.trim()) {
       setToastMessage('Please enter a session name');
       return;
     }
 
     try {
-      if (currentSession.session) {
-        const result = await currentSession.updateSessionName(currentSession.session.toValue().id, sessionNameInput.trim());
+      if (currentSessionRef.current.session) {
+        const result = await currentSessionRef.current.updateSessionName(currentSessionRef.current.session.toValue().id, sessionNameInputRef.current.trim());
         if (result.success) {
           setToastMessage('Session name updated successfully!');
           setShowNameModal(false);
@@ -155,21 +226,30 @@ const RestockSessionsContent: React.FC = () => {
         setShowNameModal(false);
         setSessionNameInput('');
         const { router } = await import('expo-router');
-        router.push(`/restock-sessions/add-product?pendingName=${encodeURIComponent(sessionNameInput.trim())}`);
+        router.push({
+          pathname: 'add-product' as any,
+          params: { pendingName: sessionNameInputRef.current.trim() }
+        });
       }
     } catch (error) {
       setToastMessage('An error occurred while processing the session');
       console.error('[RestockSessions] Error in handleNameSession:', error);
     }
-  }, [currentSession, sessionNameInput]);
+  }, []); // Empty dependency array using refs
 
+  // Stable reference to loadSessions
+  const loadSessionsRef = useRef(sessionList.loadSessions);
+  useEffect(() => {
+    loadSessionsRef.current = sessionList.loadSessions;
+  }, [sessionList.loadSessions]);
+  
   // --- AUTO LOAD SESSIONS ---
   useEffect(() => {
-    if (auth.userId) {
-      const timer = setTimeout(() => sessionList.loadSessions(), 100);
+    if (authUserId && loadSessionsRef.current) {
+      const timer = setTimeout(() => loadSessionsRef.current?.(), 100);
       return () => clearTimeout(timer);
     }
-  }, [auth.userId, sessionList.loadSessions]);
+  }, [authUserId, loadSessionsRef.current]); // Empty dependency array using refs
 
   // --- LOAD SESSION FROM DASHBOARD ---
   useEffect(() => {
@@ -187,27 +267,35 @@ const RestockSessionsContent: React.FC = () => {
     }
   }, [sessionId, action, currentSession]);
 
+  // --- AUTH ERROR HANDLING (after all hooks are called) ---
+  if (authError) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+        <Text style={{ fontSize: 16, textAlign: 'center', color: '#dc3545' }}>
+          Authentication Error
+        </Text>
+        <Text style={{ fontSize: 12, textAlign: 'center', color: '#666', marginTop: 8 }}>
+          Please refresh the app or try again
+        </Text>
+      </View>
+    );
+  }
+
   // --- RENDER LOGIC ---
   const hasActiveSessions = Array.isArray(sessionList.sessions) && sessionList.sessions.length > 0;
   const hasActiveSession = currentSession.session !== null;
   const isLoading = sessionList.isLoading || currentSession.isLoading;
-  const isServiceInitializing = !serviceHealth.isHealthy || !isServiceReady();
+  const isServiceInitializing = !serviceHealth.isHealthy || !isServiceReady;
 
   // Show loading while auth is initializing or has errors
-  if (!auth.isReady || auth.error || (isLoading && !hasActiveSessions) || isServiceInitializing) {
+  if (!isAuthenticated || (isLoading && !hasActiveSessions) || isServiceInitializing) {
     return (
       <View style={restockSessionsStyles.container}>
         <Text style={restockSessionsStyles.loadingText}>
-          {auth.error ? 'Authentication error - retrying...' : 
-           !auth.isReady ? 'Loading authentication...' :
+            {!isAuthenticated ? 'Loading authentication...' :
            isServiceInitializing ? 'Initializing services...' : 'Loading sessions...'}
         </Text>
-        {auth.error && (
-          <Text style={restockSessionsStyles.errorText}>
-            Auth Error: {auth.error}
-          </Text>
-        )}
-        {auth.isReady && Array.isArray(serviceHealth.issues) && serviceHealth.issues.length > 0 && (
+        {isAuthenticated && Array.isArray(serviceHealth.issues) && serviceHealth.issues.length > 0 && (
           <Text style={restockSessionsStyles.errorText}>
             Issues: {serviceHealth.issues.join(', ')}
           </Text>
@@ -259,7 +347,7 @@ const RestockSessionsContent: React.FC = () => {
             <View style={restockSessionsStyles.addProductSection}>
               <TouchableOpacity style={restockSessionsStyles.addProductButton} onPress={async () => {
                 const { router } = await import('expo-router');
-                router.push('/restock-sessions/add-product');
+                router.push('add-product' as any);
               }}>
                 <Text style={restockSessionsStyles.addProductButtonText}>+ Add Product</Text>
               </TouchableOpacity>
@@ -280,7 +368,10 @@ const RestockSessionsContent: React.FC = () => {
               onFinishSession={async () => {
                 if (!currentSession.session) return setToastMessage('No active session');
                 const { router } = await import('expo-router');
-                router.push(`/(tabs)/emails?sessionId=${currentSession.session.toValue().id}`);
+                router.push({
+                  pathname: '/(tabs)/emails' as any,
+                  params: { sessionId: currentSession.session.toValue().id }
+                });
                 setToastMessage('Redirecting to email generation...');
               }}
             />
@@ -329,11 +420,9 @@ const RestockSessionsContent: React.FC = () => {
 };
 
 const RestockSessionsScreen: React.FC = () => (
-  <AuthErrorBoundary>
-    <React.Suspense fallback={<Text>Loading...</Text>}>
-      <RestockSessionsContent />
-    </React.Suspense>
-  </AuthErrorBoundary>
+  <React.Suspense fallback={<Text>Loading...</Text>}>
+    <RestockSessionsContent />
+  </React.Suspense>
 );
 
 export default RestockSessionsScreen;

@@ -5,38 +5,38 @@ import { useUser } from '@clerk/clerk-expo';
 
 import { ClerkClientService } from '../backend/services/clerk-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useUnifiedAuth } from './_contexts/UnifiedAuthProvider';
+import { useUnifiedAuth } from './auth/UnifiedAuthProvider';
 import { ssoProfileSetupStyles } from '../styles/components/auth/sso/profile-setup';
 import { ErrorLogger } from '../backend/utils/error-logger';
 import { UserProfileService } from '../backend/services/user-profile';
 
-
-
 export default function SSOProfileSetupScreen() {
   const { user } = useUser();
-  const { isAuthenticated, userId, authType, triggerAuthCheck, markNewSSOUserReady } = useUnifiedAuth();
+  const { isAuthenticated, userId, isProfileSetupComplete } = useUnifiedAuth();
 
   const [name, setName] = useState('');
   const [store_name, setStore_name] = useState('');
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [hasUserEditedName, setHasUserEditedName] = useState(false);
-  const [authTypeDetermined, setAuthTypeDetermined] = useState(false);
 
-  // 🔒 CRITICAL: Prevent traditional auth users from seeing SSO profile setup
-  // This prevents the flash of the wrong setup screen
+  // 🔒 CRITICAL: Prevent users who already have complete profiles from seeing setup
   useEffect(() => {
-    if (isAuthenticated && userId && authType?.type === 'email') {
-      console.log('🚨 SSOProfileSetup: Traditional auth user detected, redirecting to traditional setup');
-      router.replace('/auth/traditional/profile-setup');
+    if (isAuthenticated && isProfileSetupComplete) {
+      console.log('🚨 SSOProfileSetup: Profile already complete, redirecting to dashboard');
+      router.push('/(tabs)/dashboard');
       return;
     }
-    
-    // Mark that we've determined the auth type and this user should see this screen
-    if (isAuthenticated && userId && authType?.type === 'google') {
-      setAuthTypeDetermined(true);
+  }, [isAuthenticated, isProfileSetupComplete]);
+
+  // 🔒 CRITICAL: Redirect unauthenticated users
+  useEffect(() => {
+    if (!isAuthenticated) {
+      console.log('🚨 SSOProfileSetup: User not authenticated, redirecting to welcome');
+      router.push('/welcome');
+      return;
     }
-  }, [isAuthenticated, userId, authType?.type]);
+  }, [isAuthenticated]);
 
   const extractUserName = (user: any): string => {
     if (user?.firstName && user?.lastName) return `${user.firstName} ${user.lastName}`;
@@ -47,18 +47,18 @@ export default function SSOProfileSetupScreen() {
     return '';
   };
 
+  // Initialize user data from Clerk
   useEffect(() => {
-    if (isAuthenticated && user && authType.type === 'google') {
+    if (isAuthenticated && user) {
       const userEmail = user.emailAddresses?.[0]?.emailAddress || user.primaryEmailAddress?.emailAddress;
       if (userEmail) setEmail(userEmail);
 
       const userName = extractUserName(user);
       if (!hasUserEditedName) setName(userName || '');
-    } else if (!isAuthenticated) {
-      setTimeout(() => router.replace('/welcome'), 0);
     }
-  }, [isAuthenticated, user, authType]);
+  }, [isAuthenticated, user, hasUserEditedName]);
 
+  // Clear OAuth completion flags
   useEffect(() => {
     const checkOAuthCompletion = async () => {
       try {
@@ -71,6 +71,7 @@ export default function SSOProfileSetupScreen() {
     checkOAuthCompletion();
   }, []);
 
+  // Handle deep link data
   useEffect(() => {
     const handleDeepLinkArrival = async () => {
       if (isAuthenticated && userId && user) {
@@ -84,12 +85,11 @@ export default function SSOProfileSetupScreen() {
       }
     };
     handleDeepLinkArrival();
-  }, [isAuthenticated, userId, user, email, name]);
+  }, [isAuthenticated, userId, user, email, name, hasUserEditedName]);
 
-  // 🔒 CRITICAL: Don't render anything until we've determined the auth type
-  // This prevents any flashing of the wrong setup screen
-  if (!authTypeDetermined) {
-    return null; // Return null to prevent any rendering
+  // Don't render until we have the necessary data
+  if (!isAuthenticated || !userId || !user) {
+    return null;
   }
 
   const handleCreateProfile = async () => {
@@ -105,12 +105,11 @@ export default function SSOProfileSetupScreen() {
   
     setLoading(true);
   
-        try {
+    try {
       ErrorLogger.info('SSOProfileSetup: Creating profile via RPC', {
         email,
         store_name,
         name,
-        authType: authType?.type,
         clerk_id: userId
       });
   
@@ -118,17 +117,27 @@ export default function SSOProfileSetupScreen() {
         email.toLowerCase().trim(),
         store_name.trim(),
         name.trim(),
-        userId // ✅ Pass clerk_id here
+        userId
       );
   
       if (result.data) {
+        console.log('✅ SSO Profile Setup: Profile creation successful');
+        
+        // Save session data for returning user detection - ONLY after successful profile completion
+        const { SessionManager } = await import('../backend/services/session-manager');
+        await SessionManager.saveUserSession({
+          userId: userId || '',
+          email: email.toLowerCase().trim(),
+          storeName: store_name.trim(),
+          wasSignedIn: true,
+          lastSignIn: Date.now(),
+          lastAuthMethod: 'google',
+        });
+        console.log('📝 SSO Profile Setup: Session data saved after successful profile completion');
+        
         await ClerkClientService.clearSSOSignUpFlags();
         
-        // Profile creation successful, mark user as ready with profile data
-        await markNewSSOUserReady(result.data);
-        
-        // Don't trigger auth check here - let the navigation handle it
-        // triggerAuthCheck(); // Removed to avoid race condition
+        // Profile creation successful - navigate to dashboard
         router.replace('/(tabs)/dashboard');
       } else {
         const message = (result.error as any)?.message || 'Failed to create profile. Please try again.';
@@ -151,7 +160,6 @@ export default function SSOProfileSetupScreen() {
       setLoading(false);
     }
   };
-  
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={ssoProfileSetupStyles.container}>
