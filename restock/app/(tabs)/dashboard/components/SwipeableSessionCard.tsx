@@ -262,7 +262,7 @@ export const SwipeableSessionCard: React.FC<SwipeableSessionCardProps> = ({
                   dashboardStyles.continueButton,
                   { backgroundColor: sessionColor.primary }
                 ]}
-                onPress={() => router.push(`/(tabs)/restock-sessions?sessionId=${session.id}&action=continue`)}
+                onPress={() => router.push(`/(tabs)/restock-sessions?sessionId=${session.id}&action=continue` as any)}
               >
                 <Text style={[dashboardStyles.continueButtonText, { color: '#FFFFFF' }]}>Continue</Text>
               </TouchableOpacity>

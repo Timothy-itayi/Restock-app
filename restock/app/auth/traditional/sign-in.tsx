@@ -14,6 +14,28 @@ import { useUnifiedAuth } from '../UnifiedAuthProvider';
 
 export default function SignInScreen() {
   const { signIn, setActive, isLoaded } = useSignIn();
+    // CRITICAL: Always call useAuth unconditionally first
+    const rawAuth = useAuth();
+  
+    // Then safely extract values
+    const isSignedIn = (rawAuth && typeof rawAuth === 'object' && typeof rawAuth.isSignedIn === 'boolean') 
+      ? rawAuth.isSignedIn 
+      : false;
+    
+    const { theme } = useThemeStore();
+    const { startSSOFlow } = useSSO();
+    const { isAuthenticated: unifiedIsAuthenticated, userId: unifiedUserId, isProfileSetupComplete, hasValidProfile, isProfileLoading } = useUnifiedAuth();
+    
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [googleLoading, setGoogleLoading] = useState(false);
+    const [emailLoading, setEmailLoading] = useState(false);
+    const [showReturningUserButton, setShowReturningUserButton] = useState(false);
+    const [lastAuthMethod, setLastAuthMethod] = useState<'google' | 'email' | null>(null);
+    
+    // OAuth loading state
+    const [isAuthenticating, setIsAuthenticating] = useState(false);
+  
   const { user } = useClerk();
 
   // Debug navigation arrival and check for existing authentication
@@ -49,27 +71,6 @@ export default function SignInScreen() {
     };
   }, [unifiedIsAuthenticated, unifiedUserId, isProfileSetupComplete, hasValidProfile, isProfileLoading]);
   
-  // CRITICAL: Always call useAuth unconditionally first
-  const rawAuth = useAuth();
-  
-  // Then safely extract values
-  const isSignedIn = (rawAuth && typeof rawAuth === 'object' && typeof rawAuth.isSignedIn === 'boolean') 
-    ? rawAuth.isSignedIn 
-    : false;
-  
-  const { theme } = useThemeStore();
-  const { startSSOFlow } = useSSO();
-  const { isAuthenticated: unifiedIsAuthenticated, userId: unifiedUserId, isProfileSetupComplete, hasValidProfile, isProfileLoading } = useUnifiedAuth();
-  
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [googleLoading, setGoogleLoading] = useState(false);
-  const [emailLoading, setEmailLoading] = useState(false);
-  const [showReturningUserButton, setShowReturningUserButton] = useState(false);
-  const [lastAuthMethod, setLastAuthMethod] = useState<'google' | 'email' | null>(null);
-  
-  // OAuth loading state
-  const [isAuthenticating, setIsAuthenticating] = useState(false);
 
   // Check if user is a returning user on component mount
   useEffect(() => {

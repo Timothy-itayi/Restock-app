@@ -20,6 +20,8 @@ export interface SupplierRepository {
   // Business queries
   countByUserId(): Promise<number>; // RPC functions handle user isolation
  // RPC functions handle user isolation
+
+
 }
 
 export interface SupplierRepositoryError extends Error {

@@ -7,7 +7,7 @@
 
 import { SessionRepository } from '../../domain/interfaces/SessionRepository';
 import { RestockSession } from '../../domain/entities/RestockSession';
-import { UserContextService } from '../services/UserContextService';
+import { UserContextService } from '../../domain/services/';
 
 export class ClerkSessionRepository implements SessionRepository {
   private userContextService: UserContextService;
