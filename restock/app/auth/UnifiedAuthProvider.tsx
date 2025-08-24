@@ -4,6 +4,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SessionManager, UserSession } from '../../backend/services/session-manager';
 import { useAuth } from '@clerk/clerk-expo';
 import { authStore } from './store';
+import { RepositoryContext, RepositoryContextValue } from '../infrastructure/di/RepositoryContext';
+import { SupabaseUserRepository } from '../../backend/infrastructure/repositories/SupabaseUserRepository';
+import { SupabaseSessionRepository } from '../../backend/infrastructure/repositories/SupabaseSessionRepository';
+import { SupabaseProductRepository } from '../../backend/infrastructure/repositories/SupabaseProductRepository';
+import { SupabaseSupplierRepository } from '../../backend/infrastructure/repositories/SupabaseSupplierRepository';
+import { SupabaseEmailRepository } from '../../backend/infrastructure/repositories/SupabaseEmailRepository';
+import { registerServices, clearUserScope } from '../infrastructure/di/ServiceRegistry';
 
 interface UnifiedAuthState {
   isReady: boolean;
@@ -58,6 +65,9 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     profileError: null,
     hasValidProfile: false,
   });
+
+  // Add this state after your existing contextState
+  const [repositories, setRepositories] = useState<RepositoryContextValue | null>(null);
 
   // Function to update both local state and store imperatively
   const updateAuthState = useCallback(async () => {
@@ -154,7 +164,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       // Update store imperatively (no hooks, no re-renders)
       store.getState().setReady(true);
       store.getState().setAuthenticated(isAuthenticated);
-      store.getState().setProfileSetupComplete(isProfileSetupComplete);
+      store.getState().setProfileSetupComplete(isProfileSetupComplete as boolean);
       store.getState().setLoading(false);
       store.getState().setUserId(userId);
       store.getState().setAuthType({
@@ -342,6 +352,50 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   }, [isLoaded, isSignedIn, clerkUserId, updateAuthState]);
 
+  // Add this useEffect after your existing useEffect hooks
+  useEffect(() => {
+    if (contextState.isAuthenticated && contextState.userId && contextState.hasValidProfile) {
+      console.log("[UnifiedAuth] 🔑 Setting up repositories for user", contextState.userId);
+      
+      try {
+        // Register services first
+        registerServices(contextState.userId);
+        
+        // Then create repository instances
+        const repos: RepositoryContextValue = {
+          userRepository: new SupabaseUserRepository(),
+          sessionRepository: new SupabaseSessionRepository(),
+          productRepository: new SupabaseProductRepository(),
+          supplierRepository: new SupabaseSupplierRepository(),
+          emailRepository: new SupabaseEmailRepository(),
+          isSupabaseReady: true,
+          isUserContextSet: true,
+        };
+
+        // Inject userId
+        repos.sessionRepository!.setUserId(contextState.userId);
+        repos.productRepository!.setUserId(contextState.userId);
+        repos.supplierRepository!.setUserId(contextState.userId);
+        repos.emailRepository!.setUserId(contextState.userId);
+
+        setRepositories(repos);
+        console.log("[UnifiedAuth] ✅ Repositories ready for user", contextState.userId);
+      } catch (e) {
+        console.error("[UnifiedAuth] ❌ Failed to setup repositories", e);
+      }
+    } else {
+      // Clear repositories when auth ends
+      if (repositories && contextState.userId) {
+        try {
+          clearUserScope(contextState.userId);
+        } catch (e) {
+          console.warn("[UnifiedAuth] ⚠️ Failed to clear services", e);
+        }
+      }
+      setRepositories(null);
+    }
+  }, [contextState.isAuthenticated, contextState.userId, contextState.hasValidProfile]);
+
   // Actions for context
   const triggerAuthCheck = useCallback(async () => {
     console.log('🔧 triggerAuthCheck: Refreshing auth state');
@@ -416,7 +470,17 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   return (
     <UnifiedAuthContext.Provider value={contextValue}>
-      {children}
+      <RepositoryContext.Provider value={repositories ?? {
+        userRepository: null,
+        sessionRepository: null,
+        productRepository: null,
+        supplierRepository: null,
+        emailRepository: null,
+        isSupabaseReady: false,
+        isUserContextSet: false,
+      }}>
+        {children}
+      </RepositoryContext.Provider>
     </UnifiedAuthContext.Provider>
   );
 };

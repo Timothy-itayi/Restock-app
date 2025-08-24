@@ -155,12 +155,12 @@ export class SupabaseUserRepository implements UserRepository {
   private mapToUserProfile(data: any): UserProfile {
     return {
       id: data.id,
-      clerkId: data.clerk_id,
+      clerk_id: data.clerk_id,
       email: data.email,
       name: data.name || '',
       storeName: data.store_name || '',
-      createdAt: data.created_at ? new Date(data.created_at) : new Date(),
-      updatedAt: data.updated_at ? new Date(data.updated_at) : new Date()
+      createdAt: data.created_at ? new Date(data.created_at).getTime() : new Date().getTime(),
+      updatedAt: data.updated_at ? new Date(data.updated_at).getTime() : new Date().getTime()
     };
   }
 }
