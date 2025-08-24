@@ -1,23 +1,13 @@
-// app/components/AuthRouter.tsx
 import React, { useEffect, useState } from 'react';
 import { View, ActivityIndicator, Text } from 'react-native';
 import { router, usePathname } from 'expo-router';
 import { useUnifiedAuth } from '../auth/UnifiedAuthProvider';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-interface AuthRouterProps {
-  children: React.ReactNode;
-}
+const PERSIST_KEY = 'lastAuthRoute';
+const OAUTH_FLAG = 'oauthProcessing';
 
-/**
- * AuthRouter - Central routing logic based on authentication state
- *
- * Responsibilities:
- * - Authenticated + Valid Profile → Dashboard
- * - Authenticated + Invalid Profile → Profile Setup
- * - Unauthenticated → Welcome (except allow /auth/* routes)
- * - Loading → Loading screen
- */
-export const AuthRouter: React.FC<AuthRouterProps> = ({ children }) => {
+export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const pathname = usePathname();
   const {
     isReady,
@@ -31,116 +21,61 @@ export const AuthRouter: React.FC<AuthRouterProps> = ({ children }) => {
   } = useUnifiedAuth();
 
   const [hasInitialized, setHasInitialized] = useState(false);
-  const [currentRoute, setCurrentRoute] = useState<string | null>(null);
 
-  // Decide which route the user should end up on
+  // Persist SSO/landing route
+  useEffect(() => {
+    AsyncStorage.getItem(PERSIST_KEY).then((route) => {
+      if (route) AsyncStorage.setItem(PERSIST_KEY, route);
+    });
+  }, []);
+
   const determineTargetRoute = (): string | null => {
-    // Still waiting for auth to be ready
-    if (!isReady || isLoading) {
-      return null;
-    }
+    if (!isReady || isLoading) return null;
 
-    // Authenticated branch
     if (isAuthenticated && userId) {
-      if (isProfileLoading) {
-        return null;
+      if (isProfileLoading) return null;
+
+      if (hasValidProfile && userName && storeName) {
+        const allowedTabs = [
+          '/(tabs)/dashboard',
+          '/(tabs)/emails',
+          '/(tabs)/restock-session',
+          '/(tabs)/profile'
+        ];
+        return allowedTabs.includes(pathname) ? pathname : '/(tabs)/dashboard';
       }
 
-      if (hasValidProfile && userName && storeName && userName !== 'there') {
-        return '/(tabs)/dashboard';
-      } else {
-        return '/sso-profile-setup';
-      }
+      return '/sso-profile-setup';
     }
 
-    // Unauthenticated branch
-    if (!isAuthenticated) {
-      if (pathname.startsWith('/auth/')) {
-        return pathname; // Allow /auth/* pages like sign-in and sign-up
-      }
-      if (pathname === '/welcome') {
-        return pathname; // Already on welcome
-      }
-      return '/welcome'; // Default fallback
-    }
-
-    return null;
+    // Not authenticated
+    if (pathname.startsWith('/welcome') || pathname.includes('/auth')) return pathname;
+    return '/welcome';
   };
 
   useEffect(() => {
     const targetRoute = determineTargetRoute();
+    if (!targetRoute) return;
 
-    console.log('🔀 AuthRouter: Determining route', {
-      currentPathname: pathname,
-      targetRoute,
-      authState: {
-        isReady,
-        isLoading,
-        isAuthenticated,
-        userId: !!userId,
-        hasValidProfile,
-        userName,
-        storeName,
-        isProfileLoading
-      }
-    });
-
-    if (targetRoute) {
-      setCurrentRoute(targetRoute);
-
-      if (pathname !== targetRoute && hasInitialized) {
-        console.log('🚀 AuthRouter: Redirecting from', pathname, 'to', targetRoute);
-        router.replace(targetRoute as any);
-      } else if (!hasInitialized) {
-        console.log('🚀 AuthRouter: Initial navigation to', targetRoute);
-        setHasInitialized(true);
-        if (pathname !== targetRoute) {
-          router.replace(targetRoute as any);
-        }
-      } else {
-        console.log('✅ AuthRouter: Already on correct route:', pathname);
-      }
+    if (!hasInitialized) {
+      setHasInitialized(true);
+      if (pathname !== targetRoute) router.replace(targetRoute as any);
+    } else if (pathname !== targetRoute) {
+      router.replace(targetRoute as any);
     }
-  }, [
-    pathname,
-    isReady,
-    isLoading,
-    isAuthenticated,
-    userId,
-    hasValidProfile,
-    userName,
-    storeName,
-    isProfileLoading,
-    hasInitialized
-  ]);
+  }, [pathname, isReady, isLoading, isAuthenticated, hasValidProfile, userName, storeName, isProfileLoading]);
 
-  // Loading screen
   const targetRoute = determineTargetRoute();
   if (!targetRoute) {
     return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
-          backgroundColor: '#ffffff'
-        }}
-      >
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
         <ActivityIndicator size="large" color="#6B7F6B" />
-        <Text
-          style={{
-            marginTop: 16,
-            fontSize: 16,
-            color: '#666666',
-            textAlign: 'center'
-          }}
-        >
+        <Text style={{ marginTop: 16, fontSize: 16, color: '#666', textAlign: 'center' }}>
           Loading your account...
         </Text>
       </View>
     );
   }
 
-  // Render actual screen
   return <>{children}</>;
 };
