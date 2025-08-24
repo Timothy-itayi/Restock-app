@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useUnifiedAuthState } from "../../../auth";
+import { useUnifiedAuth } from "../../../auth/UnifiedAuthProvider";
 
 import { RestockSession, SessionStatus } from "../../../domain/entities/RestockSession";
 import { RestockSessionDomainService } from '../../../domain/services/RestockSessionDomainService';
@@ -37,7 +37,7 @@ const SESSION_STORAGE_KEY = 'current_restock_session';
 const SESSIONS_HISTORY_KEY = 'restock_sessions_history';
 
 export function useSessionStateManager(): SessionStateManager {
-  const { userId } = useUnifiedAuthState();
+  const { userId } = useUnifiedAuth();
   const { create, findById, findByUserId, addItem, removeItem, updateName, updateStatus } = useSessionRepository();
   const [state, setState] = useState<SessionState>({
     currentSession: null,

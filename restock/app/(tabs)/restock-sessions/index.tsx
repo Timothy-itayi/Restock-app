@@ -7,7 +7,7 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { View, Text, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import { useUnifiedAuth } from '../../auth';
+import { useUnifiedAuth } from '../../auth/UnifiedAuthProvider';
 
 // Hooks
 import { useSessionList } from './hooks/useSessionList';

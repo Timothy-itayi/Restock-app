@@ -1,4 +1,4 @@
-import { useUnifiedAuthState } from '../auth';
+import { useUnifiedAuth } from '../auth/UnifiedAuthProvider';
 import { useState, useEffect, useMemo } from 'react';
 
 /**
@@ -7,13 +7,13 @@ import { useState, useEffect, useMemo } from 'react';
  */
 export function useClientSideAuth() {
   // Use the new unified auth state instead of direct useAuth
-  const { user, isAuthenticated, isReady } = useUnifiedAuthState();
+  const { userId, isAuthenticated, isReady } = useUnifiedAuth();
   const [authError, setAuthError] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   
   // Process auth data safely
   const { getToken, isSignedIn, isLoaded } = useMemo(() => {
-    if (!user || !isAuthenticated || !isReady) {
+    if (!userId || !isAuthenticated || !isReady) {
       return { getToken: null, isSignedIn: false, isLoaded: false };
     }
     
@@ -23,7 +23,7 @@ export function useClientSideAuth() {
       isSignedIn: isAuthenticated, 
       isLoaded: isReady 
     };
-  }, [user, isAuthenticated, isReady]);
+  }, [userId, isAuthenticated, isReady]);
   
   useEffect(() => {
     setIsMounted(true);
@@ -44,7 +44,7 @@ export function useClientSideAuth() {
     }
     
     // If rawAuth is not a valid object, return safe defaults
-    if (!user || !isAuthenticated || !isReady) {
+    if (!userId || !isAuthenticated || !isReady) {
       return {
         userId: undefined,
         isSignedIn: false,
@@ -56,13 +56,13 @@ export function useClientSideAuth() {
     
     // Process valid auth object
     return {
-      userId: typeof user.id === 'string' ? user.id : undefined,
+      userId: typeof userId === 'string' ? userId : undefined,
       isSignedIn: isAuthenticated,
       isLoaded: isReady,
       getToken: getToken,
       signOut: () => Promise.resolve()
     };
-  }, [isMounted, authError, user, isAuthenticated, isReady, getToken]);
+  }, [isMounted, authError, userId, isAuthenticated, isReady, getToken]);
   
   return {
     ...safeAuth,

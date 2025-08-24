@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useUnifiedAuthState } from '../../../auth';
+import { useUnifiedAuth } from '../../../auth/UnifiedAuthProvider';
 import { useSupabaseRepository } from '../../../hooks/useSupabaseRepository';
 import { RestockSession, SessionStatus } from '../../../domain/entities/RestockSession';
 
 export const useRestockSession = () => {
-  const { userId } = useUnifiedAuthState();
+  const { userId } = useUnifiedAuth();
   
   // Safe auth handling to prevent hydration errors
 

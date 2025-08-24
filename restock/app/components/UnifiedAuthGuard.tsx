@@ -1,7 +1,7 @@
 // app/components/UnifiedAuthGuard.tsx
 import React, { useEffect, useState } from 'react';
 import { View, ActivityIndicator, Text } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, usePathname } from 'expo-router';
 import { useUnifiedAuth } from '../auth/UnifiedAuthProvider';
 
 interface UnifiedAuthGuardProps {
@@ -21,7 +21,15 @@ export const UnifiedAuthGuard: React.FC<UnifiedAuthGuardProps> = ({
 }) => {
   const auth = useUnifiedAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [isRedirecting, setIsRedirecting] = useState(false);
+  
+  // 🔒 CRITICAL: Never interfere with auth-related routes
+  const isAuthRoute = pathname?.includes('/auth') || pathname?.includes('/welcome') || pathname?.includes('/sso-profile-setup');
+  if (isAuthRoute && !requireAuth) {
+    console.log('🛡️ UnifiedAuthGuard: Skipping guard for auth route:', pathname);
+    return <>{children}</>;
+  }
 
   // Show loader if auth is not ready, loading, or OAuth is in progress
   if (!auth.isReady || auth.isLoading || auth.isOAuthInProgress) {
@@ -36,7 +44,7 @@ export const UnifiedAuthGuard: React.FC<UnifiedAuthGuardProps> = ({
   // Determine redirect conditions
   const shouldRedirect = (requireAuth && !auth.isAuthenticated) ||
                          (requireNoAuth && auth.isAuthenticated) ||
-                         (requireProfileSetup && !auth.isProfileSetupComplete);
+                         (requireProfileSetup && auth.isAuthenticated && !auth.isProfileSetupComplete);
 
   // Handle redirects in useEffect to avoid setState during render
   useEffect(() => {
