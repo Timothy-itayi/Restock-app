@@ -1,7 +1,7 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { createAuthenticatedSupabaseClient, supabase } from '../../backend/config/supabase';
 import { Database } from '../../backend/types/database';
-import { useUnifiedAuthState } from '../auth';
+import { useUnifiedAuth } from '../auth/UnifiedAuthProvider';
 import { useState, useEffect, useMemo } from 'react';
 
 /**
@@ -10,13 +10,13 @@ import { useState, useEffect, useMemo } from 'react';
  * @returns Object containing the authenticated Supabase client and loading state
  */
 export function useAuthenticatedSupabase() {
-  // Use the new unified auth state instead of direct useAuth
-  const { user, isAuthenticated, isReady } = useUnifiedAuthState();
+  // Use the new unified auth state instead of direct useAuth  
+  const { userId, isAuthenticated, isReady } = useUnifiedAuth();
   const [authError, setAuthError] = useState<string | null>(null);
   
   // Process auth data safely
   const { getToken, isSignedIn, isLoaded } = useMemo(() => {
-    if (!user || !isAuthenticated || !isReady) {
+    if (!userId || !isAuthenticated || !isReady) {
       return { getToken: null, isSignedIn: false, isLoaded: false };
     }
     
@@ -37,7 +37,7 @@ export function useAuthenticatedSupabase() {
       isSignedIn: isAuthenticated, 
       isLoaded: isReady 
     };
-  }, [user, isAuthenticated, isReady]);
+  }, [userId, isAuthenticated, isReady]);
   const [client, setClient] = useState<SupabaseClient<Database>>(supabase);
   const [isLoading, setIsLoading] = useState(true);
 

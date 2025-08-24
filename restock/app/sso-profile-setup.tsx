@@ -12,7 +12,7 @@ import { UserProfileService } from '../backend/services/user-profile';
 
 export default function SSOProfileSetupScreen() {
   const { user } = useUser();
-  const { isAuthenticated, userId, isProfileSetupComplete } = useUnifiedAuth();
+  const { isAuthenticated, userId, isProfileSetupComplete, userName, storeName, isProfileLoading, markNewUserReady, triggerAuthCheck } = useUnifiedAuth();
 
   const [name, setName] = useState('');
   const [store_name, setStore_name] = useState('');
@@ -22,18 +22,47 @@ export default function SSOProfileSetupScreen() {
 
   // 🔒 CRITICAL: Prevent users who already have complete profiles from seeing setup
   useEffect(() => {
-    if (isAuthenticated && isProfileSetupComplete) {
-      console.log('🚨 SSOProfileSetup: Profile already complete, redirecting to dashboard');
-      router.push('/(tabs)/dashboard');
+    // Only redirect if we have definitive profile data (not loading) and it's actually complete
+    const hasValidProfileData = userName && userName !== '' && userName !== 'there' && storeName && storeName !== '';
+    
+    if (isAuthenticated && !isProfileLoading && isProfileSetupComplete && hasValidProfileData) {
+      console.log('🚨 SSOProfileSetup: Profile already complete, redirecting to dashboard', {
+        userName,
+        storeName,
+        isProfileSetupComplete,
+        hasValidProfileData
+      });
+      router.push('/(tabs)/dashboard' as any);
       return;
+    } else if (isAuthenticated && !isProfileLoading && !hasValidProfileData) {
+      console.log('📝 SSOProfileSetup: User authenticated but no valid profile, staying on setup screen', {
+        userName,
+        storeName,
+        isProfileSetupComplete,
+        hasValidProfileData
+      });
     }
-  }, [isAuthenticated, isProfileSetupComplete]);
+  }, [isAuthenticated, isProfileSetupComplete, isProfileLoading, userName, storeName]);
+
+  // 🔒 CRITICAL: Profile update synchronization - watch for profile completion changes
+  useEffect(() => {
+    if (isAuthenticated && !isProfileLoading && isProfileSetupComplete && !loading) {
+      const hasValidProfileData = userName && userName !== '' && userName !== 'there' && storeName && storeName !== '';
+      if (hasValidProfileData) {
+        console.log('🔄 SSOProfileSetup: Profile completion detected during session, navigating to dashboard');
+        // Small delay to ensure all state updates have propagated
+        setTimeout(() => {
+          router.replace('/(tabs)/dashboard' as any);
+        }, 100);
+      }
+    }
+  }, [isProfileSetupComplete, userName, storeName, isAuthenticated, isProfileLoading, loading]);
 
   // 🔒 CRITICAL: Redirect unauthenticated users
   useEffect(() => {
     if (!isAuthenticated) {
       console.log('🚨 SSOProfileSetup: User not authenticated, redirecting to welcome');
-      router.push('/welcome');
+      router.push('/welcome' as any);
       return;
     }
   }, [isAuthenticated]);
@@ -135,10 +164,24 @@ export default function SSOProfileSetupScreen() {
         });
         console.log('📝 SSO Profile Setup: Session data saved after successful profile completion');
         
+        // 🔒 CRITICAL: Refresh auth state with new profile data before navigation
+        console.log('🔄 SSO Profile Setup: Refreshing auth state with new profile data');
+        
+        // Update auth context with new profile data immediately
+        await markNewUserReady({
+          name: name.trim(),
+          store_name: store_name.trim()
+        });
+        
+        // Trigger auth state refresh to sync with database
+        await triggerAuthCheck();
+        console.log('✅ SSO Profile Setup: Auth state refreshed with new profile data');
+        
         await ClerkClientService.clearSSOSignUpFlags();
         
         // Profile creation successful - navigate to dashboard
-        router.replace('/(tabs)/dashboard');
+        console.log('🚀 SSO Profile Setup: Navigating to dashboard with complete profile');
+        router.replace('/(tabs)/dashboard' as any);
       } else {
         const message = (result.error as any)?.message || 'Failed to create profile. Please try again.';
         Alert.alert('Setup Failed', message);

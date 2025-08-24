@@ -3,7 +3,6 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SessionManager, UserSession } from '../../backend/services/session-manager';
 import { useAuth } from '@clerk/clerk-expo';
-import { router } from 'expo-router';
 import { authStore } from './store';
 
 interface UnifiedAuthState {
@@ -168,11 +167,15 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       // Get current store state for profile data
       const currentState = store.getState();
 
+      // 🔒 CRITICAL: Get the most current profile setup completion status from store
+      // This ensures we have the latest value after any store updates
+      const currentProfileSetupComplete = currentState.isProfileSetupComplete;
+
       // Update local context state
       setContextState({
         isReady: true,
         isAuthenticated,
-        isProfileSetupComplete,
+        isProfileSetupComplete: currentProfileSetupComplete,
         isLoading: false,
         userId,
         authType,
@@ -243,25 +246,14 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
           console.log('✅ CACHE CLEANUP: Stale session cache cleared');
         }
         
-        // After profile fetch completes, check if we need to redirect (handles deferred redirects)
+        // Profile fetch complete - AuthRouter will handle routing based on updated state
         if (shouldClearOAuthFlags && isAuthenticated && userId) {
           const hasValidProfile = updatedState.hasValidProfile();
-          console.log('🔄 REDIRECT RETRY: Profile fetch complete, checking for deferred redirect', {
+          console.log('✅ PROFILE FETCH COMPLETE: Auth state updated, AuthRouter will handle routing', {
             hasValidProfile,
-            shouldRedirect: true
+            userName: updatedState.userName,
+            storeName: updatedState.storeName
           });
-          
-          if (!hasValidProfile) {
-            console.log('🚀 REDIRECT RETRY: Redirecting to profile setup after profile fetch completion');
-            setTimeout(() => {
-              router.replace('/sso-profile-setup');
-            }, 200);
-          } else {
-            console.log('🚀 REDIRECT RETRY: Redirecting to dashboard after profile fetch completion');
-            setTimeout(() => {
-              router.replace('/(tabs)/dashboard');
-            }, 200);
-          }
         }
         
         setContextState(prev => ({
@@ -300,21 +292,15 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
           redirectDecision: isProfileLoading ? 'deferred' : (hasValidProfile ? 'dashboard' : 'profile-setup')
         });
         
-        // Only make redirect decision if profile loading is complete - NO EARLY REDIRECTS
+        // Log OAuth completion - AuthRouter will handle the actual routing
         if (!isProfileLoading) {
           if (!hasValidProfile) {
-            console.log('🚀 REDIRECT: Database confirms no profile, redirecting to SSO profile setup');
-            setTimeout(() => {
-              router.replace('/sso-profile-setup');
-            }, 100);
+            console.log('✅ OAUTH COMPLETE: Database confirms no profile, AuthRouter will handle redirect to setup');
           } else {
-            console.log('🚀 REDIRECT: Database confirms valid profile, redirecting to dashboard');
-            setTimeout(() => {
-              router.replace('/(tabs)/dashboard');
-            }, 100);
+            console.log('✅ OAUTH COMPLETE: Database confirms valid profile, AuthRouter will handle redirect to dashboard');
           }
         } else {
-          console.log('⏳ REDIRECT: Profile still loading, no redirect decision made - will retry after fetch');
+          console.log('⏳ OAUTH COMPLETE: Profile still loading, AuthRouter will handle routing after fetch completes');
         }
       } else if (shouldClearOAuthFlags) {
         console.log('🔍 REDIRECT LOGIC: OAuth completed but user not authenticated', {
@@ -323,6 +309,15 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
           reason: 'Will retry on next auth state update'
         });
       }
+
+      // Auth context state is ready - AuthRouter will handle all routing decisions
+      console.log('✅ AUTH CONTEXT: Auth state ready for routing decisions', {
+        isAuthenticated,
+        userId: !!userId,
+        hasValidProfile: store.getState().hasValidProfile(),
+        userName: store.getState().userName,
+        storeName: store.getState().storeName
+      });
 
       console.log('✅ AUTH FLOW: Auth state update completed successfully');
     } catch (error) {
@@ -356,18 +351,34 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const markNewUserReady = useCallback(async (profileData: any) => {
     console.log('🔧 markNewUserReady: Setting profile data', profileData);
     if (profileData) {
+      const userName = profileData.name || 'there';
+      const storeName = profileData.store_name || '';
+      
       // Update store imperatively
-      store.getState().setProfileData(
-        profileData.name || 'there',
-        profileData.store_name || ''
-      );
+      store.getState().setProfileData(userName, storeName);
+      
+      // Check if profile is now valid and update completion status
+      const hasValidProfile = userName && userName !== '' && userName !== 'there' && storeName && storeName !== '';
+      if (hasValidProfile) {
+        console.log('🔧 markNewUserReady: Profile is now valid, marking as complete');
+        store.getState().setProfileSetupComplete(true);
+      }
       
       // Update local state
       setContextState(prev => ({
         ...prev,
-        userName: profileData.name || 'there',
-        storeName: profileData.store_name || '',
+        userName,
+        storeName,
+        isProfileSetupComplete: hasValidProfile,
+        hasValidProfile,
       }));
+      
+      console.log('✅ markNewUserReady: Profile data updated', {
+        userName,
+        storeName,
+        hasValidProfile,
+        isProfileSetupComplete: hasValidProfile
+      });
     }
   }, [store]);
 

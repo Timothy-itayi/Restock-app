@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { useUnifiedAuthState } from "../../../auth";
+import { useUnifiedAuth } from "../../../auth/UnifiedAuthProvider";
 import { useSupabaseRepository } from "../../../hooks/useSupabaseRepository";
 import { RestockSession, SessionStatus } from "../../../domain/entities/RestockSession";
 import { StoredProduct, StoredSupplier, ErrorState, LoadingState } from '../utils/types';
@@ -8,7 +8,7 @@ import { ProductService } from '../../../../backend/services/products';
 import { SupplierService } from '../../../../backend/services/suppliers';
 
 export const useStoredData = () => {
-  const { userId } = useUnifiedAuthState();
+  const { userId } = useUnifiedAuth();
   
   // Data state
   const [storedProducts, setStoredProducts] = useState<StoredProduct[]>([]);

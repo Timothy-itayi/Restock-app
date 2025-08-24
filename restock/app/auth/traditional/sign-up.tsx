@@ -4,7 +4,6 @@ import { router, Link } from 'expo-router';
 import { useSignUp } from '@clerk/clerk-expo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { EmailAuthService } from '../../../backend/services/email-auth';
-import UnifiedAuthGuard from '../../components/UnifiedAuthGuard';
 import { signUpStyles } from '../../../styles/components/sign-up';
 import useThemeStore from '../../stores/useThemeStore';
 
@@ -128,7 +127,6 @@ export default function TraditionalSignUpScreen() {
   };
 
   return (
-    <UnifiedAuthGuard requireNoAuth={true}>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -216,6 +214,5 @@ export default function TraditionalSignUpScreen() {
           </View>
         </KeyboardAvoidingView>
       </ScrollView>
-    </UnifiedAuthGuard>
   );
 }

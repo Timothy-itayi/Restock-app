@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, TextInput, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
-import { Link } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { useSignIn, useAuth, useSSO, useClerk } from '@clerk/clerk-expo';
 import { SessionManager } from '../../../backend/services/session-manager';
 import { UserProfileService } from '../../../backend/services/user-profile';
 import { EmailAuthService } from '../../../backend/services/email-auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Linking from 'expo-linking';
-import { UnifiedAuthGuard } from '../../components/UnifiedAuthGuard';
 
 import { signInStyles } from '../../../styles/components/sign-in';
 import useThemeStore from '../../stores/useThemeStore';
@@ -16,6 +15,39 @@ import { useUnifiedAuth } from '../UnifiedAuthProvider';
 export default function SignInScreen() {
   const { signIn, setActive, isLoaded } = useSignIn();
   const { user } = useClerk();
+
+  // Debug navigation arrival and check for existing authentication
+  useEffect(() => {
+    console.log('🔘 SignInScreen: Component mounted, user arrived at sign-in page');
+    
+    console.log('🔍 SignInScreen: Checking existing auth state', {
+      isAuthenticated: unifiedIsAuthenticated,
+      userId: unifiedUserId,
+      isProfileSetupComplete,
+      hasValidProfile,
+      isProfileLoading
+    });
+    
+    // If user is already authenticated and has complete profile, redirect to dashboard
+    if (unifiedIsAuthenticated && unifiedUserId && !isProfileLoading && isProfileSetupComplete && hasValidProfile) {
+      console.log('🚀 SignInScreen: User already authenticated with complete profile, redirecting to dashboard');
+      router.replace('/(tabs)/dashboard');
+      return;
+    }
+    
+    // If user is authenticated but profile incomplete, redirect to profile setup
+    if (unifiedIsAuthenticated && unifiedUserId && !isProfileLoading && !hasValidProfile) {
+      console.log('🚀 SignInScreen: User authenticated but profile incomplete, redirecting to setup');
+      router.replace('/sso-profile-setup');
+      return;
+    }
+    
+    console.log('✅ SignInScreen: User not authenticated or profile loading, staying on sign-in page');
+    
+    return () => {
+      console.log('🔘 SignInScreen: Component unmounting');
+    };
+  }, [unifiedIsAuthenticated, unifiedUserId, isProfileSetupComplete, hasValidProfile, isProfileLoading]);
   
   // CRITICAL: Always call useAuth unconditionally first
   const rawAuth = useAuth();
@@ -27,6 +59,7 @@ export default function SignInScreen() {
   
   const { theme } = useThemeStore();
   const { startSSOFlow } = useSSO();
+  const { isAuthenticated: unifiedIsAuthenticated, userId: unifiedUserId, isProfileSetupComplete, hasValidProfile, isProfileLoading } = useUnifiedAuth();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -158,6 +191,22 @@ export default function SignInScreen() {
       isReturningUserFlow 
     });
     
+    // 🔒 CRITICAL: Check if user is already authenticated before attempting OAuth
+    if (unifiedIsAuthenticated && unifiedUserId) {
+      console.log('⚠️  GOOGLE FLOW: User already authenticated, preventing OAuth attempt to avoid "Session already exists" error');
+      
+      if (!isProfileLoading && hasValidProfile && isProfileSetupComplete) {
+        console.log('🚀 GOOGLE FLOW: Redirecting already-authenticated user with complete profile to dashboard');
+        router.replace('/(tabs)/dashboard');
+      } else if (!isProfileLoading && !hasValidProfile) {
+        console.log('🚀 GOOGLE FLOW: Redirecting already-authenticated user without profile to setup');
+        router.replace('/sso-profile-setup');
+      } else {
+        console.log('⏳ GOOGLE FLOW: User authenticated but profile loading, staying on sign-in page');
+      }
+      return;
+    }
+    
     if (!isLoaded) {
       console.log('⚠️  GOOGLE FLOW: Clerk not loaded, aborting');
       return;
@@ -241,7 +290,6 @@ export default function SignInScreen() {
   }
 
   return (
-    <UnifiedAuthGuard requireNoAuth={true}>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -309,6 +357,5 @@ export default function SignInScreen() {
           </View>
         </KeyboardAvoidingView>
       </ScrollView>
-    </UnifiedAuthGuard>
   );
 } 

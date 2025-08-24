@@ -6,8 +6,9 @@ import { SupabaseProvider } from './_contexts/SupabaseProvider';
 import { UnifiedAuthProvider } from './auth/UnifiedAuthProvider';
 import { SupabaseHooksProvider } from './infrastructure/repositories/SupabaseHooksProvider';
 import { BaseLoadingScreen } from './components/loading/BaseLoadingScreen';
+import { AuthRouter } from './components/AuthRouter';
 import { CLERK_PUBLISHABLE_KEY } from '../backend/config/clerk';
-import { SessionManager } from '../backend/services/session-manager';
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Linking from 'expo-linking';
@@ -126,21 +127,23 @@ export default function RootLayout() {
         <SupabaseProvider>
           <UnifiedAuthProvider>
             <SupabaseHooksProvider>
-              {showFirstRunSplash ? (
-                <BaseLoadingScreen
-                  title="Restock"
-                  subtitle="Smart restocking for small businesses"
-                  showProgress={false}
-                  progressDuration={1000}
-                />
-              ) : (
-                <Stack>
-                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                  <Stack.Screen name="auth" options={{ headerShown: false }} />
-                  <Stack.Screen name="sso-profile-setup" options={{ headerShown: false }} />
-                  <Stack.Screen name="welcome" options={{ headerShown: false }} />
-                </Stack>
-              )}
+              <AuthRouter>
+                {showFirstRunSplash ? (
+                  <BaseLoadingScreen
+                    title="Restock"
+                    subtitle="Smart restocking for small businesses"
+                    showProgress={false}
+                    progressDuration={1000}
+                  />
+                ) : (
+                  <Stack>
+                    <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                    <Stack.Screen name="auth" options={{ headerShown: false }} />
+                    <Stack.Screen name="sso-profile-setup" options={{ headerShown: false }} />
+                    <Stack.Screen name="welcome" options={{ headerShown: false }} />
+                  </Stack>
+                )}
+              </AuthRouter>
             </SupabaseHooksProvider>
           </UnifiedAuthProvider>
         </SupabaseProvider>

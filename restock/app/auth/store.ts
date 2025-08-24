@@ -130,8 +130,23 @@ const authStoreCreator = create<AuthStore>()(
       setProfileLoading: (loading: boolean) => 
         get().dispatch({ type: 'SET_PROFILE_LOADING', payload: loading }),
       
-      setProfileData: (userName: string, storeName: string) => 
-        get().dispatch({ type: 'SET_PROFILE_DATA', payload: { userName, storeName } }),
+      setProfileData: (userName: string, storeName: string) => {
+        get().dispatch({ type: 'SET_PROFILE_DATA', payload: { userName, storeName } });
+        
+        // Automatically update profile completion status when profile data changes
+        const state = get();
+        const hasValidProfile = state.hasValidProfile();
+        if (state.isProfileSetupComplete !== hasValidProfile) {
+          console.log('📊 AuthStore: Profile completion status changed', {
+            userName,
+            storeName,
+            hasValidProfile,
+            previousStatus: state.isProfileSetupComplete,
+            newStatus: hasValidProfile
+          });
+          get().dispatch({ type: 'SET_PROFILE_SETUP_COMPLETE', payload: hasValidProfile });
+        }
+      },
       
       setProfileError: (error: string | null) => 
         get().dispatch({ type: 'SET_PROFILE_ERROR', payload: error }),
@@ -208,9 +223,13 @@ const authStoreCreator = create<AuthStore>()(
       
       hasValidProfile: () => {
         const state = get();
+        const hasValidUserName = state.userName && state.userName !== '' && state.userName !== 'there';
+        const hasValidStoreName = state.storeName && state.storeName !== '';
+        
         return !state.isProfileLoading && 
                !state.profileError && 
-               (state.userName !== 'there' || state.storeName !== '');
+               hasValidUserName && 
+               hasValidStoreName;
       }
     }),
     {

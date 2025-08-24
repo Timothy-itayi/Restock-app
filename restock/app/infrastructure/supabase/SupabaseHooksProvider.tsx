@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useMemo, useEffect, useState, useRef } from "react";
-import { useUnifiedAuthState } from '../../auth';
+import { useUnifiedAuth } from '../../auth/UnifiedAuthProvider';
 import { registerServices } from "../di/ServiceRegistry";
 
 
@@ -51,7 +51,7 @@ export const SupabaseHooksProvider: React.FC<{
   // 🔒 CRITICAL: Add guard to prevent auth hook usage before provider is ready
   let authState;
   try {
-    authState = useUnifiedAuthState();
+    authState = useUnifiedAuth();
   } catch (error) {
     // Auth provider not ready yet, use fallback values
     console.log('[SupabaseHooksProvider] Auth not ready yet, using fallback values');
