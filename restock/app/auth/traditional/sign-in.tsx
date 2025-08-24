@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, TextInput, Alert, ScrollView, KeyboardAvo
 import { Link, router } from 'expo-router';
 import { useSignIn, useAuth, useSSO, useClerk } from '@clerk/clerk-expo';
 import { SessionManager } from '../../../backend/services/session-manager';
-import { UserProfileService } from '../../../backend/services/user-profile';
+
 import { EmailAuthService } from '../../../backend/services/email-auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Linking from 'expo-linking';
@@ -31,14 +31,14 @@ export default function SignInScreen() {
     // If user is already authenticated and has complete profile, redirect to dashboard
     if (unifiedIsAuthenticated && unifiedUserId && !isProfileLoading && isProfileSetupComplete && hasValidProfile) {
       console.log('🚀 SignInScreen: User already authenticated with complete profile, redirecting to dashboard');
-      router.replace('/(tabs)/dashboard');
+      router.replace('/(tabs)/dashboard' as any);
       return;
     }
     
     // If user is authenticated but profile incomplete, redirect to profile setup
     if (unifiedIsAuthenticated && unifiedUserId && !isProfileLoading && !hasValidProfile) {
       console.log('🚀 SignInScreen: User authenticated but profile incomplete, redirecting to setup');
-      router.replace('/sso-profile-setup');
+      router.replace('/sso-profile-setup' as any);
       return;
     }
     
@@ -197,10 +197,10 @@ export default function SignInScreen() {
       
       if (!isProfileLoading && hasValidProfile && isProfileSetupComplete) {
         console.log('🚀 GOOGLE FLOW: Redirecting already-authenticated user with complete profile to dashboard');
-        router.replace('/(tabs)/dashboard');
+        router.replace('/(tabs)/dashboard' as any);
       } else if (!isProfileLoading && !hasValidProfile) {
         console.log('🚀 GOOGLE FLOW: Redirecting already-authenticated user without profile to setup');
-        router.replace('/sso-profile-setup');
+        router.replace('/sso-profile-setup' as any);
       } else {
         console.log('⏳ GOOGLE FLOW: User authenticated but profile loading, staying on sign-in page');
       }

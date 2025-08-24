@@ -38,7 +38,7 @@ export default function TabLayout() {
   );
 
   return (
-    <UnifiedAuthGuard requireAuth requireProfileSetup>
+    <UnifiedAuthGuard  >
       <Tabs screenOptions={screenOptions}>
         {/* Dashboard */}
         <Tabs.Screen

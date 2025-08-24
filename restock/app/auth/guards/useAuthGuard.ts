@@ -34,7 +34,7 @@ export const useAuthGuard = () => {
     guardLogger.log('Redirecting to profile setup:', route);
     
     try {
-      router.replace(route);
+      router.replace(route as any);
     } catch (error) {
       guardLogger.error('Failed to redirect to profile setup:', error);
     }
@@ -44,7 +44,7 @@ export const useAuthGuard = () => {
     guardLogger.log('Redirecting to auth screen');
     
     try {
-      router.replace('/auth');
+      router.replace('/auth' as any);
     } catch (error) {
       guardLogger.error('Failed to redirect to auth:', error);
     }
@@ -54,7 +54,7 @@ export const useAuthGuard = () => {
     guardLogger.log('Redirecting to dashboard');
     
     try {
-      router.replace('/(tabs)/dashboard');
+      router.replace('/(tabs)/dashboard' as any);
     } catch (error) {
       guardLogger.error('Failed to redirect to dashboard:', error);
     }
