@@ -73,13 +73,13 @@ const RestockSessionsContent: React.FC = () => {
   
   // ✅ CORRECT: Add logging ONLY for debugging auth data
   useEffect(() => {
-    if (userId) {
-      console.log('🔍 RestockSessions: Auth data:', {
-        userId,
-        isAuthenticated
-      });
-    }
-  }, [userId, isAuthenticated]);
+    console.log('🔍 RestockSessions: Auth context update:', {
+      userId,
+      isAuthenticated,
+      authContextKeys: Object.keys(authContext || {}),
+      authContextType: typeof authContext
+    });
+  }, [userId, isAuthenticated, authContext]);
   
   // ✅ CORRECT: Memoize safeParams to prevent unnecessary re-renders
   const safeParams = useMemo(() => {
@@ -131,9 +131,18 @@ const RestockSessionsContent: React.FC = () => {
   
   // ✅ CORRECT: Simplified service readiness check
   const isServiceReady = useMemo(() => {
-    return serviceHealthRef.isHealthy &&
+    const ready = serviceHealthRef.isHealthy &&
            Array.isArray(sessionsRef) &&
            currentSessionStateRef !== undefined;
+    
+    console.log('🔍 RestockSessions: Service readiness check:', {
+      serviceHealthHealthy: serviceHealthRef.isHealthy,
+      sessionsRefIsArray: Array.isArray(sessionsRef),
+      currentSessionStateRef: currentSessionStateRef,
+      isServiceReady: ready
+    });
+    
+    return ready;
   }, [serviceHealthRef.isHealthy, sessionsRef, currentSessionStateRef]);
   
   // ✅ CORRECT: Simplified auth userId reference
@@ -226,10 +235,20 @@ const RestockSessionsContent: React.FC = () => {
         setShowNameModal(false);
         setSessionNameInput('');
         const { router } = await import('expo-router');
-        router.push({
-          pathname: 'add-product' as any,
-          params: { pendingName: sessionNameInputRef.current.trim() }
-        });
+        
+        // Navigate to add-product with the pending name
+        console.log('🚀 Navigating to add-product with name:', sessionNameInputRef.current.trim());
+        
+        try {
+          await router.push({
+            pathname: '/(tabs)/restock-sessions/add-product' as any,
+            params: { pendingName: sessionNameInputRef.current.trim() }
+          });
+        } catch (error) {
+          console.error('❌ Navigation error:', error);
+          // Fallback to relative navigation
+          router.push('add-product' as any);
+        }
       }
     } catch (error) {
       setToastMessage('An error occurred while processing the session');
@@ -287,22 +306,37 @@ const RestockSessionsContent: React.FC = () => {
   const isLoading = sessionList.isLoading || currentSession.isLoading;
   const isServiceInitializing = !serviceHealth.isHealthy || !isServiceReady;
 
-  // Show loading while auth is initializing or has errors
-  if (!isAuthenticated || (isLoading && !hasActiveSessions) || isServiceInitializing) {
+  // Add debug logging to see what's happening
+  console.log('🔍 RestockSessions Render Debug:', {
+    isAuthenticated,
+    userId,
+    isLoading,
+    hasActiveSessions,
+    isServiceInitializing,
+    serviceHealth: serviceHealth.isHealthy,
+    sessionListSessions: sessionList.sessions?.length || 0
+  });
+
+    // Show loading only while auth is initializing
+  if (!isAuthenticated) {
+    console.log('🚫 RestockSessions: User not authenticated');
     return (
       <View style={restockSessionsStyles.container}>
         <Text style={restockSessionsStyles.loadingText}>
-            {!isAuthenticated ? 'Loading authentication...' :
-           isServiceInitializing ? 'Initializing services...' : 'Loading sessions...'}
+          Loading authentication...
         </Text>
-        {isAuthenticated && Array.isArray(serviceHealth.issues) && serviceHealth.issues.length > 0 && (
-          <Text style={restockSessionsStyles.errorText}>
-            Issues: {serviceHealth.issues.join(', ')}
-          </Text>
-        )}
       </View>
     );
   }
+
+  // Show service issues as warnings, but don't block rendering
+  if (isServiceInitializing) {
+    console.log('⚠️ RestockSessions: Services initializing, but allowing render');
+  }
+
+  // Don't block rendering for loading states - let services load in background
+  // This makes it behave like the dashboard
+  console.log('✅ RestockSessions: Rendering main content');
 
   return (
     <View style={restockSessionsStyles.container}>
@@ -331,6 +365,16 @@ const RestockSessionsContent: React.FC = () => {
           </View>
         )}
 
+        {/* Loading indicator when sessions are loading */}
+        {!hasActiveSession && !hasActiveSessions && isLoading && (
+          <View style={restockSessionsStyles.existingSessionsSection}>
+            <Text style={restockSessionsStyles.sectionTitle}>Loading Sessions</Text>
+            <Text style={restockSessionsStyles.sectionSubtitle}>
+              Checking for existing sessions...
+            </Text>
+          </View>
+        )}
+
         {/* Start Section */}
         {!hasActiveSession && !hasActiveSessions && (
           <StartSection
@@ -347,7 +391,15 @@ const RestockSessionsContent: React.FC = () => {
             <View style={restockSessionsStyles.addProductSection}>
               <TouchableOpacity style={restockSessionsStyles.addProductButton} onPress={async () => {
                 const { router } = await import('expo-router');
-                router.push('add-product' as any);
+                console.log('🚀 Add Product button: Navigating to add-product');
+                
+                try {
+                  await router.push('/(tabs)/restock-sessions/add-product' as any);
+                } catch (error) {
+                  console.error('❌ Add Product navigation error:', error);
+                  // Fallback to relative navigation
+                  router.push('add-product' as any);
+                }
               }}>
                 <Text style={restockSessionsStyles.addProductButtonText}>+ Add Product</Text>
               </TouchableOpacity>
