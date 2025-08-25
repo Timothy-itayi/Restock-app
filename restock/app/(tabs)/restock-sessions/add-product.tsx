@@ -16,17 +16,56 @@ import { useThemedStyles } from '../../../styles/useThemedStyles';
 import { getRestockSessionsStyles } from '../../../styles/components/restock-sessions';
 
 export default function AddProductScreen() {
-  const { pendingName } = useLocalSearchParams();
+  // Params
+  let params: Record<string, any> = {};
+  let pendingName = '';
+  try {
+    params = useLocalSearchParams();
+    pendingName = params?.pendingName ?? '';
+  } catch (error) {
+    console.error('❌ AddProductScreen: useLocalSearchParams error:', error);
+  }
+
   const router = useRouter();
-  const restockSessionsStyles = useThemedStyles(getRestockSessionsStyles);
-  
+
+  // Styles
+  let restockSessionsStyles;
+  try {
+    restockSessionsStyles = useThemedStyles(getRestockSessionsStyles);
+  } catch (error) {
+    console.error('❌ AddProductScreen: Styles error:', error);
+    restockSessionsStyles = {
+      container: { flex: 1, backgroundColor: '#fff' },
+      sessionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20 },
+      sessionHeaderTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
+      formContainer: { flex: 1, padding: 20 }
+    };
+  }
+
   // Hooks
-  const currentSession = useRestockSession();
-  const productForm = useProductForm();
-  
+  let currentSession;
+  let productForm;
+  try {
+    currentSession = useRestockSession();
+    productForm = useProductForm();
+  } catch (error) {
+    console.error('❌ AddProductScreen: Hook error:', error);
+    currentSession = { 
+      session: null, 
+      createSession: async () => ({ success: false, error: 'Hook error' }),
+      addProduct: async () => ({ success: false, error: 'Hook error' })
+    };
+    productForm = { resetForm: () => {}, formData: {} };
+  }
+
   // Local state
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Debug logs
+  console.log('🔍 AddProductScreen: Params received:', params);
+  console.log('🔍 AddProductScreen: Pending name:', pendingName);
+  console.log('🔍 AddProductScreen: Hooks loaded:', { currentSession: !!currentSession, productForm: !!productForm });
 
   // Handle form submission
   const handleSubmit = useCallback(async (values: {
@@ -37,44 +76,28 @@ export default function AddProductScreen() {
     notes?: string;
   }) => {
     setIsSubmitting(true);
-    
+
     try {
-      // If no active session, create one first
       if (!currentSession.session) {
-        const sessionName = (pendingName as string) || `Restock Session ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-        
-        console.log('[AddProductScreen] Creating new session for first product:', sessionName);
+        const sessionName = pendingName || `Restock Session ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
         const sessionResult = await currentSession.createSession(sessionName);
-        
+
         if (!sessionResult.success) {
-          setToastMessage(sessionResult.error || 'Failed to create session');
+          setToastMessage(sessionResult.error ?? 'Failed to create session');
           return;
         }
-        
+
         setToastMessage('Session created! Adding product...');
       }
 
-      // Now add the product
-      const result = await currentSession.addProduct({
-        productName: values.productName,
-        quantity: values.quantity,
-        supplierName: values.supplierName,
-        supplierEmail: values.supplierEmail,
-        notes: values.notes
-      });
+      const result = await currentSession.addProduct(values);
 
       if (result.success) {
         setToastMessage('Product added successfully!');
-        
-        // Reset form
         productForm.resetForm();
-        
-        // Navigate back to the main screen after a short delay
-        setTimeout(() => {
-          router.back();
-        }, 1500);
+        setTimeout(() => router.back(), 1500);
       } else {
-        setToastMessage(result.error || 'Failed to add product');
+        setToastMessage(result.error ?? 'Failed to add product');
       }
     } catch (error) {
       console.error('[AddProductScreen] Error adding product:', error);
@@ -84,9 +107,8 @@ export default function AddProductScreen() {
     }
   }, [currentSession, productForm, pendingName, router]);
 
-  // Handle back navigation
+  // Handle back
   const handleBack = useCallback(() => {
-    // If we have unsaved changes, show confirmation
     if (productForm.formData.productName || productForm.formData.quantity || productForm.formData.supplierName) {
       Alert.alert(
         'Discard Changes?',
@@ -105,49 +127,37 @@ export default function AddProductScreen() {
     <SafeAreaView style={[restockSessionsStyles.container, { paddingTop: 20 }]}>
       {/* Header */}
       <View style={restockSessionsStyles.sessionHeader}>
-        <TouchableOpacity 
-          style={{
-            paddingVertical: 8,
-            paddingHorizontal: 12
-          }}
-          onPress={handleBack}
-        >
-          <Text style={{
-            fontFamily: 'Satoshi-Regular',
-            fontSize: 16,
-            color: '#6C757D'
-          }}>← Back</Text>
+        <TouchableOpacity style={{ paddingVertical: 8, paddingHorizontal: 12 }} onPress={handleBack}>
+          <Text style={{ fontFamily: 'Satoshi-Regular', fontSize: 16, color: '#6C757D' }}>← Back</Text>
         </TouchableOpacity>
         <Text style={restockSessionsStyles.sessionHeaderTitle}>
-          {currentSession.session ? 'Add Product' : 'Start New Session'}
+          {currentSession?.session ? 'Add Product' : 'Start New Session'}
         </Text>
-        <View style={{ width: 60 }} /> {/* Spacer for centering */}
+        <View style={{ width: 60 }} />
       </View>
 
-      {/* Content */}
-      <ScrollView 
-        style={{ flex: 1 }}
-        contentContainerStyle={{
-          padding: 20,
-          paddingBottom: 40
-        }}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
+      {/* Form */}
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
         <View style={restockSessionsStyles.formContainer}>
-          <ProductForm
-            isNewSession={!currentSession.session}
-            onSubmit={handleSubmit}
-            isSubmitting={isSubmitting}
-          />
+          {productForm && currentSession ? (
+            <React.Suspense fallback={<Text style={{ textAlign: 'center', color: '#666' }}>Loading form...</Text>}>
+              <ProductForm
+                isNewSession={!currentSession.session}
+                onSubmit={handleSubmit}
+                isSubmitting={isSubmitting}
+              />
+            </React.Suspense>
+          ) : (
+            <Text style={{ textAlign: 'center', color: '#666' }}>Loading form...</Text>
+          )}
         </View>
       </ScrollView>
 
-      {/* Toast Message */}
+      {/* Toast */}
       {toastMessage && (
         <CustomToast
           visible={true}
-          message={String(toastMessage)}
+          message={toastMessage as string}
           onDismiss={() => setToastMessage(null)}
           type="info"
         />

@@ -13,6 +13,7 @@ const ALLOWED_TABS = [
   '/(tabs)/emails',
   '/(tabs)/restock-sessions',
   '/(tabs)/profile',
+ 
 ];
 
 // Flat → tab mapping
@@ -21,6 +22,7 @@ const flatToTabMap: Record<string, string> = {
   '/emails': '/(tabs)/emails',
   '/restock-sessions': '/(tabs)/restock-sessions',
   '/profile': '/(tabs)/profile',
+
 };
 
 // Helper to normalize paths
@@ -28,6 +30,17 @@ function normalizePath(path: string | null | undefined): string | null {
   if (!path) return null;
   if (path.startsWith('/(tabs)/')) return path; // already canonical
   return flatToTabMap[path] ?? path; // map flat → tab if known
+}
+
+// Helper to check if we're inside a tab area (including nested routes)
+function isInsideTabArea(path: string | null | undefined): boolean {
+  if (!path) return false;
+  // Check if we're in any tab area, including nested routes like /add-product
+  return path.startsWith('/(tabs)/') || 
+         path.includes('/restock-sessions/') ||
+         path.includes('/dashboard/') ||
+         path.includes('/emails/') ||
+         path.includes('/profile/');
 }
 
 export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -70,8 +83,9 @@ export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }
 
     if (isAuthenticated && userId) {
       if (hasValidProfile && userName && storeName) {
-        // ✅ Free roam if already inside tabs
-        if (pathname?.startsWith('/(tabs)/')) return null;
+        // ✅ Free roam if already inside tab areas (including nested routes)
+        if (isInsideTabArea(pathname)) return null;
+        console.log('[AuthRouter] User authenticated, redirecting to main tab area');
 
         // ✅ Fallback to last tab or dashboard
         return lastVisitedTab && ALLOWED_TABS.includes(lastVisitedTab)
