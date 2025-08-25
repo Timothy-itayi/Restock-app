@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, Alert } from 'react-native';
+import { View, Text, Alert, TouchableOpacity } from 'react-native';
 import { useProductForm } from '../hooks/useProductForm';
 import { useRestockSession } from '../hooks/useRestockSession';
 import Input from '../../../components/Input';
@@ -118,6 +118,13 @@ export function ProductForm({ onSuccess, onSubmit, isNewSession = false, isSubmi
     productForm.updateField(field, value);
   }, [productForm]);
 
+  // Handle quantity changes
+  const handleQuantityChange = useCallback((increment: boolean) => {
+    const currentQuantity = parseInt(productForm.formData.quantity) || 0;
+    const newQuantity = increment ? currentQuantity + 1 : Math.max(0, currentQuantity - 1);
+    productForm.updateField('quantity', newQuantity.toString());
+  }, [productForm]);
+
   // Check if form can be submitted
   const canSubmit = productForm.formData.productName.trim() && 
                    productForm.formData.quantity.trim() && 
@@ -137,76 +144,109 @@ export function ProductForm({ onSuccess, onSubmit, isNewSession = false, isSubmi
     );
   }
 
+  // Custom placeholderTextColor for all Input fields to ensure darker, more visible placeholder
+  const placeholderTextColor = '#444'; // dark neutral for clear form distinction
+  const forestGreen = '#67C090';
+
   return (
     <View>
       <Text style={restockSessionsStyles.formTitle}>Add Product to Session</Text>
       
-      <View style={restockSessionsStyles.inputGroup}>
+      <View style={[restockSessionsStyles.inputGroup, { paddingHorizontal: 16, paddingVertical: 18 }]}>
         <Input
           label="Product Name"
           value={productForm.formData.productName}
           onChangeText={(value) => handleInputChange('productName', value)}
           placeholder="e.g., Organic Bananas"
+          placeholderTextColor={placeholderTextColor}
           autoCapitalize="words"
+          variant="filled"
           fullWidth
+          multiline
+          numberOfLines={2}
+          style={{ minHeight: 64, textAlignVertical: 'top', backgroundColor: forestGreen }}
         />
         {productForm.validationErrors.productName && (
           <Text style={restockSessionsStyles.errorText}>{productForm.validationErrors.productName}</Text>
         )}
       </View>
 
-      <View style={restockSessionsStyles.inputGroup}>
-        <Input
-          label="Quantity"
-          value={productForm.formData.quantity}
-          onChangeText={(value) => handleInputChange('quantity', value)}
-          placeholder="e.g., 10"
-          keyboardType="numeric"
-          fullWidth
-        />
+      <View style={[restockSessionsStyles.inputGroup, { paddingHorizontal: 16, paddingVertical: 12 }]}>
+        <Text style={restockSessionsStyles.inputLabel}>Quantity</Text>
+        <View style={restockSessionsStyles.quantityContainer}>
+          <TouchableOpacity 
+            style={restockSessionsStyles.quantityButton} 
+            onPress={() => handleQuantityChange(false)}
+            disabled={parseInt(productForm.formData.quantity) <= 0}
+          >
+            <Text style={restockSessionsStyles.quantityButtonText}>−</Text>
+          </TouchableOpacity>
+          
+          <View style={restockSessionsStyles.quantityDisplay}>
+            <Text style={restockSessionsStyles.quantityText}>
+              {productForm.formData.quantity || '0'}
+            </Text>
+          </View>
+          
+          <TouchableOpacity 
+            style={restockSessionsStyles.quantityButton} 
+            onPress={() => handleQuantityChange(true)}
+          >
+            <Text style={restockSessionsStyles.quantityButtonText}>+</Text>
+          </TouchableOpacity>
+        </View>
         {productForm.validationErrors.quantity && (
           <Text style={restockSessionsStyles.errorText}>{productForm.validationErrors.quantity}</Text>
         )}
       </View>
 
-      <View style={restockSessionsStyles.inputGroup}>
+      <View style={[restockSessionsStyles.inputGroup, { paddingHorizontal: 16, paddingVertical: 12 }]}>
         <Input
           label="Supplier Name"
           value={productForm.formData.supplierName}
           onChangeText={(value) => handleInputChange('supplierName', value)}
           placeholder="e.g., Fresh Farms Co"
+          placeholderTextColor={placeholderTextColor}
           autoCapitalize="words"
+          variant="filled"
           fullWidth
+          style={{ backgroundColor: forestGreen }}
         />
         {productForm.validationErrors.supplierName && (
           <Text style={restockSessionsStyles.errorText}>{productForm.validationErrors.supplierName}</Text>
         )}
       </View>
 
-      <View style={restockSessionsStyles.inputGroup}>
+      <View style={[restockSessionsStyles.inputGroup, { paddingHorizontal: 16, paddingVertical: 12 }]}>
         <Input
           label="Supplier Email"
           value={productForm.formData.supplierEmail}
           onChangeText={(value) => handleInputChange('supplierEmail', value)}
           placeholder="e.g., orders@freshfarms.com"
+          placeholderTextColor={placeholderTextColor}
           keyboardType="email-address"
           autoCapitalize="none"
+          variant="filled"
           fullWidth
+          style={{ backgroundColor: forestGreen }}
         />
         {productForm.validationErrors.supplierEmail && (
           <Text style={restockSessionsStyles.errorText}>{productForm.validationErrors.supplierEmail}</Text>
         )}
       </View>
 
-      <View style={restockSessionsStyles.inputGroup}>
+      <View style={[restockSessionsStyles.inputGroup, { paddingHorizontal: 16, paddingVertical: 12 }]}>
         <Input
           label="Notes (Optional)"
           value={productForm.formData.notes || ''}
           onChangeText={(value) => handleInputChange('notes', value)}
           placeholder="e.g., Organic preferred, urgent delivery"
+          placeholderTextColor={placeholderTextColor}
           multiline
           numberOfLines={3}
+          variant="filled"
           fullWidth
+          style={{ backgroundColor: forestGreen }}
         />
       </View>
 

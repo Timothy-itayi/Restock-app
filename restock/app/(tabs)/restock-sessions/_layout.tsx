@@ -6,15 +6,15 @@ export default function RestockSessionsLayout() {
       <Stack.Screen
         name="index"
         options={{
+          title: 'Restock Sessions',
           headerShown: false,
         }}
       />
       <Stack.Screen
         name="add-product"
         options={{
+          title: 'Add Product',
           headerShown: false,
-          presentation: 'modal',
-          animation: 'slide_from_bottom',
         }}
       />
     </Stack>

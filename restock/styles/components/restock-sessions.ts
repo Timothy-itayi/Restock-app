@@ -1,5 +1,5 @@
 import { StyleSheet } from "react-native";
-import { typography } from "../typography";
+import { typography, fontFamily } from "../typography";
 import colors, { type AppColors } from '@/app/theme/colors';
 
 // Notepad Color Palette with semantic button colors
@@ -569,56 +569,112 @@ export const getRestockSessionsStyles = (t: AppColors) => StyleSheet.create({
   // Form container
   formContainer: {
     flex: 1,
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     backgroundColor: t.neutral.lighter, // Warm paper background
   },
   
-  // Form title
+  // Form section divider for better visual separation
+  formSectionDivider: {
+    height: 1,
+    backgroundColor: t.neutral.light,
+    marginVertical: 16,
+    opacity: 0.3,
+  },
+  
+  // Form card container for better visual hierarchy
+  formCard: {
+    backgroundColor: t.neutral.lightest,
+    borderRadius: 16,
+    padding: 24,
+    marginHorizontal: 4,
+    shadowColor: t.neutral.darkest,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  
+  // Form title - More compact
   formTitle: {
-    ...typography.subsectionHeader,
+    fontFamily: fontFamily.satoshiBold,
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: '700' as const,
     color: t.neutral.darkest,
     marginBottom: 24,
     textAlign: "center",
   },
   
-  // Input group
+  // Input group - Better spacing for visibility
   inputGroup: {
     marginBottom: 20,
   },
   
-  // Input label
+  // Input label - Compact but readable
   inputLabel: {
-    ...typography.productName,
+    fontFamily: fontFamily.satoshiMedium,
+    fontSize: 16,
+    lineHeight: 20,
+    fontWeight: '600' as const,
     color: t.neutral.darkest,
     marginBottom: 8,
   },
   
-  // Text input with notepad style
+  // Text input with notepad style - Larger and more prominent
   textInput: {
-    ...typography.bodyMedium,
-    borderWidth: 1,
+    ...typography.bodyLarge,
+    borderWidth: 1.5,
     borderColor: t.neutral.light, // Light grey border
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 20,
+    borderRadius: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
     backgroundColor: t.neutral.lightest, // Pure white background
     color: t.neutral.darkest,
-    minHeight: 56,
+    minHeight: 68,
+    shadowColor: t.neutral.darkest,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   
-  // Quantity input
+  // Text input focus state
+  textInputFocused: {
+    borderColor: t.brand.primary,
+    borderWidth: 2,
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  
+  // Quantity input - Larger and more prominent
   quantityInput: {
-    ...typography.bodyMedium,
-    borderWidth: 1,
+    ...typography.bodyLarge,
+    borderWidth: 1.5,
     borderColor: t.neutral.light, // Light grey border
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 20,
+    borderRadius: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
     backgroundColor: t.neutral.lightest, // Pure white background
     color: t.neutral.darkest,
     textAlign: "center",
-    width: 100,
-    minHeight: 56,
+    width: 120,
+    minHeight: 68,
+    shadowColor: t.neutral.darkest,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  
+  // Quantity input focus state
+  quantityInputFocused: {
+    borderColor: t.brand.primary,
+    borderWidth: 2,
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
   },
   
   // Quantity container
@@ -626,25 +682,51 @@ export const getRestockSessionsStyles = (t: AppColors) => StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    gap: 16,
+    paddingVertical: 12,
   },
   
   // Quantity button
   quantityButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: t.neutral.lighter, // Very light grey
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: t.brand.primary, // Primary color for tappable buttons
     borderWidth: 1,
-    borderColor: t.neutral.light, // Light grey border
+    borderColor: t.brand.primary,
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   
   quantityButtonText: {
-    ...typography.bodyLarge,
+    fontSize: 20,
+    fontWeight: "600",
+    color: t.neutral.lightest, // White text on colored button
+  },
+
+  // Quantity display
+  quantityDisplay: {
+    backgroundColor: t.neutral.lighter, // Light background to distinguish from buttons
+    borderWidth: 1,
+    borderColor: t.neutral.light,
+    borderRadius: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    minWidth: 80,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  quantityText: {
+    fontSize: 18,
     fontWeight: "600",
     color: t.neutral.darkest,
+    textAlign: "center",
   },
   
   // Suggestion item
@@ -663,12 +745,13 @@ export const getRestockSessionsStyles = (t: AppColors) => StyleSheet.create({
     color: t.neutral.darkest,
   },
   
-  // Form buttons
+  // Form buttons - Optimized spacing
   formButtons: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 32,
-    gap: 12,
+    marginTop: 24,
+    marginBottom: 16,
+    gap: 16,
   },
   
   // Cancel button

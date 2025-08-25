@@ -37,15 +37,15 @@ const Input = forwardRef<TextInput, InputProps>(({
   ...props
 }, ref) => {
   const getVariantClasses = () => {
-    const baseClasses = 'border rounded-lg';
+    const baseClasses = 'border rounded-xl';
     
     switch (variant) {
       case 'default':
-        return `${baseClasses} bg-neutral-50 border-neutral-200 focus:border-primary-500`;
+        return `${baseClasses} bg-neutral-50 border-neutral-200 focus:border-primary-500 focus:shadow-md`;
       case 'filled':
-        return `${baseClasses} bg-neutral-100 border-neutral-200 focus:border-primary-500 focus:bg-neutral-50`;
+        return `${baseClasses} bg-neutral-100 border-neutral-200 focus:border-primary-500 focus:bg-neutral-50 focus:shadow-md`;
       case 'outlined':
-        return `${baseClasses} bg-transparent border-neutral-300 focus:border-primary-500`;
+        return `${baseClasses} bg-transparent border-neutral-300 focus:border-primary-500 focus:shadow-md`;
       default:
         return baseClasses;
     }
@@ -54,13 +54,13 @@ const Input = forwardRef<TextInput, InputProps>(({
   const getSizeClasses = () => {
     switch (size) {
       case 'sm':
-        return 'px-3 py-3 text-sm min-h-[48px]';
+        return 'px-4 py-3 text-sm min-h-[48px]';
       case 'md':
-        return 'px-4 py-5 text-base min-h-[56px]';
+        return 'px-4 py-4 text-base min-h-[56px]';
       case 'lg':
-        return 'px-4 py-6 text-lg min-h-[64px]';
+        return 'px-5 py-5 text-lg min-h-[64px]';
       default:
-        return 'px-4 py-5 text-base min-h-[56px]';
+        return 'px-4 py-4 text-base min-h-[56px]';
     }
   };
 
@@ -78,18 +78,18 @@ const Input = forwardRef<TextInput, InputProps>(({
   };
 
   const getLabelClasses = () => {
-    const baseClasses = 'text-sm font-medium mb-1';
+    const baseClasses = 'text-base font-medium mb-3';
     const colorClasses = error ? 'text-error-600' : 'text-neutral-700';
     
     return `${baseClasses} ${colorClasses} ${labelClassName}`;
   };
 
   const getErrorClasses = () => {
-    return `text-sm text-error-600 mt-1 ${errorClassName}`;
+    return `text-sm text-error-600 mt-2 ${errorClassName}`;
   };
 
   const getHelperClasses = () => {
-    return `text-sm text-neutral-500 mt-1 ${helperClassName}`;
+    return `text-sm text-neutral-500 mt-2 ${helperClassName}`;
   };
 
   return (

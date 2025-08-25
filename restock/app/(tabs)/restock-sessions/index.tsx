@@ -5,13 +5,13 @@
  */
 
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useUnifiedAuth } from '../../auth/UnifiedAuthProvider';
 
 // Hooks
 import { useSessionList } from './hooks/useSessionList';
-import { useRestockSession } from './hooks/useRestockSession';
+import { useSessionContext } from './context/SessionContext';
 import { useServiceHealth } from './hooks/useService';
 
 // UI Components
@@ -65,7 +65,7 @@ const RestockSessionsContent: React.FC = () => {
   const rawParams = useLocalSearchParams();
   const restockSessionsStyles = useThemedStyles(getRestockSessionsStyles);
   const sessionList = useSessionList();
-  const currentSession = useRestockSession();
+  const sessionContext = useSessionContext();
   const serviceHealth = useServiceHealth();
   
   // ✅ CORRECT: Handle auth errors in useEffect, not during hook calls
@@ -80,6 +80,22 @@ const RestockSessionsContent: React.FC = () => {
       authContextType: typeof authContext
     });
   }, [userId, isAuthenticated, authContext]);
+
+  // 🔍 DEBUG: Log session context usage
+  useEffect(() => {
+    console.log('🔍 RestockSessions: Session context update:', {
+      hasCurrentSession: !!sessionContext.currentSession,
+      sessionId: sessionContext.sessionId,
+      sessionName: sessionContext.sessionName,
+      workflowState: {
+        isStartingNewSession: sessionContext.isStartingNewSession,
+        isAddingProducts: sessionContext.isAddingProducts,
+        isFinishingSession: sessionContext.isFinishingSession
+      },
+      isSessionActive: sessionContext.isSessionActive,
+      isSessionLoading: sessionContext.isSessionLoading
+    });
+  }, [sessionContext.currentSession, sessionContext.sessionId, sessionContext.sessionName, sessionContext.isStartingNewSession, sessionContext.isAddingProducts, sessionContext.isFinishingSession, sessionContext.isSessionActive, sessionContext.isSessionLoading]);
   
   // ✅ CORRECT: Memoize safeParams to prevent unnecessary re-renders
   const safeParams = useMemo(() => {
@@ -127,7 +143,7 @@ const RestockSessionsContent: React.FC = () => {
   }), [serviceHealth.isHealthy, serviceHealth.issues]);
   
   const sessionsRef = useMemo(() => sessionList.sessions, [sessionList.sessions]);
-  const currentSessionStateRef = useMemo(() => currentSession.session, [currentSession.session]);
+  const currentSessionStateRef = useMemo(() => sessionContext.currentSession, [sessionContext.currentSession]);
   
   // ✅ CORRECT: Simplified service readiness check
   const isServiceReady = useMemo(() => {
@@ -162,29 +178,33 @@ const RestockSessionsContent: React.FC = () => {
 
   // --- START NEW SESSION ---
   const handleStartNewSession = useCallback(async () => {
+    console.log('🚀 RestockSessions: handleStartNewSession called');
+    
     if (!authUserId) {
+      console.log('❌ RestockSessions: Cannot start session - no auth user');
       setToastMessage('Please log in to create a session');
       return;
     }
 
     const defaultName = `Restock Session ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    console.log('📝 RestockSessions: Setting default session name:', defaultName);
     setSessionNameInput(defaultName);
     setShowNameModal(true);
   }, [authUserId]); // Empty dependency array using ref
 
   // Stable references for session operations
-  const currentSessionRef = useRef(currentSession);
+  const sessionContextRef = useRef(sessionContext);
   const sessionListRef = useRef(sessionList);
   
   useEffect(() => {
-    currentSessionRef.current = currentSession;
+    sessionContextRef.current = sessionContext;
     sessionListRef.current = sessionList;
-  }, [currentSession, sessionList]);
+  }, [sessionContext, sessionList]);
 
   // --- SESSION SELECTION ---
   const handleSelectSession = useCallback(async (sessionId: string) => {
     try {
-      await currentSessionRef.current.loadSession(sessionId);
+      await sessionContextRef.current.loadExistingSession(sessionId);
       sessionListRef.current.hideSelectionModal();
       setToastMessage('Session loaded successfully!');
     } catch (error) {
@@ -198,7 +218,7 @@ const RestockSessionsContent: React.FC = () => {
       const result = await sessionListRef.current.deleteSession(sessionId);
       if (result.success) {
         setToastMessage('Session deleted successfully');
-        if (currentSessionRef.current.session?.toValue().id === sessionId) currentSessionRef.current.clearSession();
+        if (sessionContextRef.current.currentSession?.toValue().id === sessionId) sessionContextRef.current.clearCurrentSession();
       } else {
         setToastMessage(result.error || 'Failed to delete session');
       }
@@ -216,22 +236,23 @@ const RestockSessionsContent: React.FC = () => {
 
   // --- NAME SESSION ---
   const handleNameSession = useCallback(async () => {
+    console.log('🚀 RestockSessions: handleNameSession called with name:', sessionNameInputRef.current.trim());
+    
     if (!sessionNameInputRef.current.trim()) {
+      console.log('❌ RestockSessions: No session name provided');
       setToastMessage('Please enter a session name');
       return;
     }
 
     try {
-      if (currentSessionRef.current.session) {
-        const result = await currentSessionRef.current.updateSessionName(currentSessionRef.current.session.toValue().id, sessionNameInputRef.current.trim());
-        if (result.success) {
-          setToastMessage('Session name updated successfully!');
-          setShowNameModal(false);
-          setSessionNameInput('');
-        } else {
-          setToastMessage(result.error || 'Failed to update session name');
-        }
+      if (sessionContextRef.current.currentSession) {
+        console.log('🔄 RestockSessions: Updating existing session name');
+        // TODO: Implement session name update through session context
+        setToastMessage('Session name update coming soon');
+        setShowNameModal(false);
+        setSessionNameInput('');
       } else {
+        console.log('🆕 RestockSessions: Creating new session and navigating to add-product');
         setShowNameModal(false);
         setSessionNameInput('');
         const { router } = await import('expo-router');
@@ -272,10 +293,10 @@ const RestockSessionsContent: React.FC = () => {
 
   // --- LOAD SESSION FROM DASHBOARD ---
   useEffect(() => {
-    if (sessionId && action === 'continue' && !currentSession.session) {
+    if (sessionId && action === 'continue' && !sessionContext.currentSession) {
       const loadSessionAndOpenForm = async () => {
         try {
-          await currentSession.loadSession(sessionId);
+          await sessionContext.loadExistingSession(sessionId);
           setToastMessage('Session loaded successfully! Continue adding products...');
         } catch (error) {
           setToastMessage('Failed to load session');
@@ -284,7 +305,7 @@ const RestockSessionsContent: React.FC = () => {
       };
       setTimeout(loadSessionAndOpenForm, 200);
     }
-  }, [sessionId, action, currentSession]);
+  }, [sessionId, action, sessionContext.currentSession, sessionContext.loadExistingSession]);
 
   // --- AUTH ERROR HANDLING (after all hooks are called) ---
   if (authError) {
@@ -302,9 +323,10 @@ const RestockSessionsContent: React.FC = () => {
 
   // --- RENDER LOGIC ---
   const hasActiveSessions = Array.isArray(sessionList.sessions) && sessionList.sessions.length > 0;
-  const hasActiveSession = currentSession.session !== null;
-  const isLoading = sessionList.isLoading || currentSession.isLoading;
+  const hasActiveSession = sessionContext.currentSession !== null;
+  const isLoading = sessionList.isLoading || sessionContext.isSessionLoading;
   const isServiceInitializing = !serviceHealth.isHealthy || !isServiceReady;
+  const { isCreatingSession, creatingSessionName } = sessionContext;
 
   // Add debug logging to see what's happening
   console.log('🔍 RestockSessions Render Debug:', {
@@ -338,13 +360,30 @@ const RestockSessionsContent: React.FC = () => {
   // This makes it behave like the dashboard
   console.log('✅ RestockSessions: Rendering main content');
 
+  // Show loading state when creating session
+  if (isCreatingSession) {
+    return (
+      <View style={restockSessionsStyles.container}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#6B7F6B" />
+          <Text style={{ marginTop: 16, fontSize: 16, color: '#666', textAlign: 'center' }}>
+            Creating session: {creatingSessionName}
+          </Text>
+          <Text style={{ marginTop: 8, fontSize: 14, color: '#999', textAlign: 'center' }}>
+            Please wait...
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={restockSessionsStyles.container}>
       {/* Session Header */}
       <SessionHeader
-        currentSession={currentSession.session}
+        currentSession={sessionContext.currentSession}
         onNameSession={() => {
-          setSessionNameInput(currentSession.session?.toValue().name || '');
+          setSessionNameInput(sessionContext.currentSession?.toValue().name || '');
           setShowNameModal(true);
         }}
         onShowSessionSelection={() => sessionList.openSelectionModal()}
@@ -391,14 +430,28 @@ const RestockSessionsContent: React.FC = () => {
             <View style={restockSessionsStyles.addProductSection}>
               <TouchableOpacity style={restockSessionsStyles.addProductButton} onPress={async () => {
                 const { router } = await import('expo-router');
-                console.log('🚀 Add Product button: Navigating to add-product');
+                console.log('🚀 Add Product button: Navigating to add-product with session:', sessionContext.currentSession?.toValue().id);
                 
                 try {
-                  await router.push('/(tabs)/restock-sessions/add-product' as any);
+                  await router.push({
+                    pathname: '/(tabs)/restock-sessions/add-product' as any,
+                    params: { 
+                      sessionId: sessionContext.currentSession?.toValue().id,
+                      sessionName: sessionContext.currentSession?.toValue().name,
+                      isExistingSession: 'true'
+                    }
+                  });
                 } catch (error) {
                   console.error('❌ Add Product navigation error:', error);
-                  // Fallback to relative navigation
-                  router.push('add-product' as any);
+                  // Fallback to relative navigation with params
+                  router.push({
+                    pathname: 'add-product' as any,
+                    params: { 
+                      sessionId: sessionContext.currentSession?.toValue().id,
+                      sessionName: sessionContext.currentSession?.toValue().name,
+                      isExistingSession: 'true'
+                    }
+                  });
                 }
               }}>
                 <Text style={restockSessionsStyles.addProductButtonText}>+ Add Product</Text>
@@ -406,23 +459,23 @@ const RestockSessionsContent: React.FC = () => {
             </View>
 
             <ProductList
-              session={currentSession.session}
+              session={sessionContext.currentSession}
               onEditProduct={async (productId) => setToastMessage('Product editing coming soon')}
               onDeleteProduct={async (productId) => {
-                if (!currentSession.session) return setToastMessage('No active session');
-                const result = await currentSession.removeProduct(productId);
-                setToastMessage(result.success ? 'Product deleted successfully!' : result.error || 'Failed to delete product');
+                if (!sessionContext.currentSession) return setToastMessage('No active session');
+                // TODO: Implement product deletion through session context
+                setToastMessage('Product deletion coming soon');
               }}
             />
 
             <FinishSection
-              session={currentSession.session}
+              session={sessionContext.currentSession}
               onFinishSession={async () => {
-                if (!currentSession.session) return setToastMessage('No active session');
+                if (!sessionContext.currentSession) return setToastMessage('No active session');
                 const { router } = await import('expo-router');
                 router.push({
                   pathname: '/(tabs)/emails' as any,
-                  params: { sessionId: currentSession.session.toValue().id }
+                  params: { sessionId: sessionContext.currentSession.toValue().id }
                 });
                 setToastMessage('Redirecting to email generation...');
               }}
@@ -446,8 +499,8 @@ const RestockSessionsContent: React.FC = () => {
       {showNameModal && (
         <NameSessionModal
           visible={showNameModal}
-          title={currentSession.session ? "Rename Session" : "Name Your Session"}
-          message={currentSession.session
+          title={sessionContext.currentSession ? "Rename Session" : "Name Your Session"}
+          message={sessionContext.currentSession
             ? "Give this session a new name to help you identify it later."
             : "Give this restock session a helpful name. You can change it later."
           }
