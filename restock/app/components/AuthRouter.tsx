@@ -7,8 +7,33 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const PERSIST_KEY = 'lastAuthRoute';
 
+// Canonical tab paths
+const ALLOWED_TABS = [
+  '/(tabs)/dashboard',
+  '/(tabs)/emails',
+  '/(tabs)/restock-sessions',
+  '/(tabs)/profile',
+];
+
+// Flat → tab mapping
+const flatToTabMap: Record<string, string> = {
+  '/dashboard': '/(tabs)/dashboard',
+  '/emails': '/(tabs)/emails',
+  '/restock-sessions': '/(tabs)/restock-sessions',
+  '/profile': '/(tabs)/profile',
+};
+
+// Helper to normalize paths
+function normalizePath(path: string | null | undefined): string | null {
+  if (!path) return null;
+  if (path.startsWith('/(tabs)/')) return path; // already canonical
+  return flatToTabMap[path] ?? path; // map flat → tab if known
+}
+
 export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const pathname = usePathname();
+  const rawPathname = usePathname();
+  const pathname = normalizePath(rawPathname); // ✅ always work with normalized paths
+
   const {
     isReady,
     isAuthenticated,
@@ -24,7 +49,7 @@ export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }
   // Load last visited tab once
   useEffect(() => {
     AsyncStorage.getItem(PERSIST_KEY).then(route => {
-      if (route) setLastVisitedTab(route);
+      if (route) setLastVisitedTab(normalizePath(route));
     });
   }, []);
 
@@ -36,7 +61,8 @@ export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }
   }, [pathname]);
 
   // Hydration = auth + profile ready
-  const isHydrated = isReady && (!isAuthenticated || (userId && hasValidProfile && !isProfileLoading));
+  const isHydrated =
+    isReady && (!isAuthenticated || (userId && hasValidProfile && !isProfileLoading));
 
   // Determine target route
   const determineTargetRoute = useCallback((): string | null => {
@@ -44,13 +70,18 @@ export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }
 
     if (isAuthenticated && userId) {
       if (hasValidProfile && userName && storeName) {
-        const allowedTabs = ['/dashboard', '/emails', '/restock-session', '/profile'];
-        return lastVisitedTab && allowedTabs.includes(lastVisitedTab) ? lastVisitedTab : '/dashboard';
+        // ✅ Free roam if already inside tabs
+        if (pathname?.startsWith('/(tabs)/')) return null;
+
+        // ✅ Fallback to last tab or dashboard
+        return lastVisitedTab && ALLOWED_TABS.includes(lastVisitedTab)
+          ? lastVisitedTab
+          : '/(tabs)/dashboard';
       }
       return '/sso-profile-setup';
     }
 
-    if (pathname.startsWith('/welcome') || pathname.includes('/auth')) return pathname;
+    if (pathname?.startsWith('/welcome') || pathname?.includes('/auth')) return pathname;
     return '/welcome';
   }, [isHydrated, isAuthenticated, userId, hasValidProfile, userName, storeName, lastVisitedTab, pathname]);
 

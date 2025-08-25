@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { UserProfile } from './useUserProfile';
-import { useSessionRepository, useProductRepository, useSupplierRepository, useEmailRepository } from '../../../infrastructure/repositories/SupabaseHooksProvider';
+import { useRepositories } from '../../../infrastructure/supabase/SupabaseHooksProvider';
 
 export interface EmailDraft {
   id: string;
@@ -30,7 +30,7 @@ interface SessionData {
 }
 
 export function useEmailSession(userProfile: UserProfile, userId?: string) {
-  const { create, findById, findByUserId, addItem, removeItem, updateName, updateStatus } = useSessionRepository();
+  const { sessionRepository } = useRepositories();
   const [emailSession, setEmailSession] = useState<EmailSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

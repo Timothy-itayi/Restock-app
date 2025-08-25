@@ -132,6 +132,8 @@ export function useRepositoryHealth(): {
 } {
   // ALWAYS call hooks before any conditional logic or try/catch
   const sessionRepo = useSessionRepository();
+  console.log('SessionRepo:', sessionRepo); // What does this actually return?
+console.log('Methods:', Object.keys(sessionRepo || {}));
   const productRepo = useProductRepository();
   const supplierRepo = useSupplierRepository();
   
@@ -148,7 +150,7 @@ export function useRepositoryHealth(): {
     if (!sessionRepo?.findByUserId || !productRepo?.findByUserId || !supplierRepo?.findByUserId) {
       issues.push('Repository methods not properly implemented');
     }
-
+    
     return {
       isHealthy: Array.isArray(issues) ? issues.length === 0 : false,
       issues: Array.isArray(issues) ? issues : []

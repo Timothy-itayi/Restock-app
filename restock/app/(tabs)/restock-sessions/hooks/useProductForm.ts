@@ -6,7 +6,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { useSessionRepository, useProductRepository, useSupplierRepository, useEmailRepository } from '../../../infrastructure/repositories/SupabaseHooksProvider';
+import { useSessionRepository } from '../../../infrastructure/supabase/SupabaseHooksProvider';
 
 export interface ProductFormData {
   productName: string;
@@ -54,7 +54,7 @@ export interface SupplierSuggestion {
  * Business logic is delegated to application service
  */
 export function useProductForm(): ProductFormState & ProductFormActions {
-  const { create, findById, findByUserId, addItem, removeItem, updateName, updateStatus } = useSessionRepository();
+  const sessionRepo = useSessionRepository();
 
   // Form state
   const [formData, setFormData] = useState<ProductFormData>({

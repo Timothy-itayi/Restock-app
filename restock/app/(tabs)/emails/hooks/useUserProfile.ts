@@ -1,6 +1,6 @@
 import { useUnifiedAuth } from '../../../auth';
 
-import { useCallback, useEffect, useState } from 'react';
+import {  useEffect, useState } from 'react';
 
 export interface UserProfile {
   name: string;

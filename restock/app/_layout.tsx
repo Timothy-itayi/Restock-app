@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ClerkProvider } from '@clerk/clerk-expo';
-import { SupabaseProvider } from './_contexts/SupabaseProvider';
+
 import { UnifiedAuthProvider } from './auth/UnifiedAuthProvider';
 import { SupabaseHooksProvider } from './infrastructure/supabase/SupabaseHooksProvider';
 import { BaseLoadingScreen } from './components/loading/BaseLoadingScreen';

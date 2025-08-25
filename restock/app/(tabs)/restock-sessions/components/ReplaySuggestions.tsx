@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { getSessionColorTheme } from '../utils/colorUtils';
 import { RestockSession } from '../utils/types';
-import { useSessionRepository } from '../../../infrastructure/repositories/SupabaseHooksProvider';
+import { useRepositories } from '../../../infrastructure/supabase/SupabaseHooksProvider';
 
 interface ReplaySession {
   id: string;
@@ -26,7 +26,7 @@ export const ReplaySuggestions: React.FC<ReplaySuggestionsProps> = ({
   onReplaySession,
   currentSession
 }) => {
-  const {  findCompletedByUserId } = useSessionRepository();
+  const { sessionRepository } = useRepositories();
   const [suggestions, setSuggestions] = useState<ReplaySession[]>([]);
   const [loading, setLoading] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
@@ -50,7 +50,7 @@ export const ReplaySuggestions: React.FC<ReplaySuggestionsProps> = ({
     setLoading(true);
     try {
       // Get all sessions via repository
-      const sessions = await findCompletedByUserId();
+      const sessions = await sessionRepository?.findCompletedByUserId();
       if (!controller?.signal.aborted && isMounted && sessions) {
         const data = sessions.map((s: any) => ({
           id: s.id,

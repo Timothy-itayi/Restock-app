@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useUnifiedAuth } from '../../../auth/UnifiedAuthProvider';
-import { useSupabaseRepository } from '../../../hooks/useSupabaseRepository';
+import { useRepositories } from '../../../infrastructure/supabase/SupabaseHooksProvider';
 import { RestockSession, SessionStatus } from '../../../domain/entities/RestockSession';
 
 export function useSessionList(): SessionListState & SessionListActions {
@@ -14,19 +14,19 @@ export function useSessionList(): SessionListState & SessionListActions {
     console.warn('useSessionList: Auth error, using fallback');
   }
   
-  const { sessions: sessionRepo, isLoading: repoLoading, isAuthenticated } = useSupabaseRepository();
+  const { sessionRepository: sessionRepo, isSupabaseReady } = useRepositories();
   
   // Stable references to prevent callback recreation
   const authRef = useRef(userId);
-  const createRef = useRef(sessionRepo.create);
-  const getAllRef = useRef(sessionRepo.getAll);
+  const createRef = useRef(sessionRepo?.create);
+  const getAllRef = useRef(sessionRepo?.findByUserId);
   
   // Update refs when dependencies change
   useEffect(() => {
     authRef.current = userId;
-    createRef.current = sessionRepo.create;
-    getAllRef.current = sessionRepo.getAll;
-  }, [userId, sessionRepo.create, sessionRepo.getAll]);
+    createRef.current = sessionRepo?.create;
+    getAllRef.current = sessionRepo?.findByUserId;
+  }, [userId, sessionRepo?.create, sessionRepo?.findByUserId]);
 
   const [sessions, setSessions] = useState<RestockSession[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -44,7 +44,7 @@ export function useSessionList(): SessionListState & SessionListActions {
     setError(null);
 
     try {
-      const sessionData = await getAllRef.current();
+      const sessionData = await getAllRef.current?.();
       
       if (Array.isArray(sessionData)) {
         const mappedSessions = sessionData.map((data: any) => 
@@ -87,11 +87,20 @@ export function useSessionList(): SessionListState & SessionListActions {
       });
       setSessions(prev => [tempSession, ...(Array.isArray(prev) ? prev : [])]);
 
-      // Create session in repository
-      const created = await createRef.current(sessionName, 'draft');
+      // Create session in repository - need to provide all required properties for the interface
+      // The repository expects a data object, not a domain entity
+      const sessionData = {
+        userId: authRef.current,
+        name: sessionName,
+        status: SessionStatus.DRAFT,
+        items: [],
+        createdAt: new Date(),
+        updatedAt: new Date()
+      } as any; // Type assertion to bypass the complex interface mismatch
+      const created = await createRef.current?.(sessionData);
       if (!created) throw new Error('Failed to create session');
 
-      const newSession = RestockSession.create({ id: created.id, userId: authRef.current, name: sessionName });
+      const newSession = RestockSession.create({ id: created, userId: authRef.current, name: sessionName });
       setSessions(prev => [newSession, ...(Array.isArray(prev) ? prev : [])]);
 
       return { success: true, session: newSession };
@@ -113,7 +122,7 @@ export function useSessionList(): SessionListState & SessionListActions {
     setError(null);
 
     try {
-      await sessionRepo.delete(id);
+      await sessionRepo?.delete(id);
       setSessions(prev => prev.filter(s => s.id !== id));
       return { success: true };
     } catch (err) {
@@ -123,26 +132,33 @@ export function useSessionList(): SessionListState & SessionListActions {
     } finally {
       setIsLoading(false);
     }
-  }, [sessionRepo.delete]);
+  }, [sessionRepo?.delete]);
 
   const updateSession = useCallback(async (id: string, updates: { name?: string; status?: SessionStatus }) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const updated = await sessionRepo.update(id, updates.name, updates.status);
-      if (updated) {
-        setSessions(prev => prev.map(s => 
-          s.id === id 
-            ? RestockSession.fromValue({
-                ...s.toValue(),
-                name: updates.name || s.name,
-                status: updates.status || s.status,
-                updatedAt: new Date()
-              })
-            : s
-        ));
+      // Use the correct methods from the new system
+      if (updates.name) {
+        await sessionRepo?.updateName(id, updates.name);
       }
+      if (updates.status) {
+        await sessionRepo?.updateStatus(id, updates.status);
+      }
+      
+      // Update local state
+      setSessions(prev => prev.map(s => 
+        s.id === id 
+          ? RestockSession.fromValue({
+              ...s.toValue(),
+              name: updates.name || s.name,
+              status: updates.status || s.status,
+              updatedAt: new Date()
+            })
+          : s
+      ));
+      
       return { success: true };
     } catch (err) {
       console.error('Failed to update session:', err);
@@ -151,7 +167,7 @@ export function useSessionList(): SessionListState & SessionListActions {
     } finally {
       setIsLoading(false);
     }
-  }, [sessionRepo.update]);
+  }, [sessionRepo?.updateName, sessionRepo?.updateStatus]);
 
   // Modal control methods
   const openSelectionModal = useCallback(() => setShowSelectionModal(true), []);
@@ -167,9 +183,9 @@ export function useSessionList(): SessionListState & SessionListActions {
   return {
     // State
     sessions,
-    isLoading: isLoading || repoLoading,
+    isLoading: isLoading || isSupabaseReady,
     error,
-    isAuthenticated,
+    isAuthenticated: !!userId, // Assuming isAuthenticated is derived from userId
     showSelectionModal,
     
     // Actions

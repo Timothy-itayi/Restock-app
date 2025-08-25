@@ -3,7 +3,7 @@ import { DeviceEventEmitter } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useUnifiedAuth } from '../../../auth/UnifiedAuthProvider';
 import { RestockSession, SessionStatus } from '../../../domain/entities/RestockSession';
-import { useSessionRepository, useProductRepository, useSupplierRepository, useEmailRepository } from '../../../infrastructure/repositories/SupabaseHooksProvider';
+import { useSessionRepository } from '../../../infrastructure/supabase/SupabaseHooksProvider';
 
 interface SessionItemView {
   id: string;
@@ -41,7 +41,7 @@ function mapDomainToView(session: RestockSession): SessionItemView {
 
 export function useDashboardData() {
   const { userId, isAuthenticated, isReady: authReady, isProfileSetupComplete } = useUnifiedAuth();
-  const { create, findById, findByUserId, addItem, removeItem, updateName, updateStatus } = useSessionRepository();
+  const { findByUserId } = useSessionRepository();
 
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [lastRefreshTime, setLastRefreshTime] = useState<number>(0);
@@ -58,7 +58,7 @@ export function useDashboardData() {
     }
     try {
       setSessionsLoading(true);
-      const sessions = await findByUserId(); // No userId parameter needed with RPC
+      const sessions = await findByUserId(); // Use the destructured method directly
       const all = sessions.map(mapDomainToView);
       const unfinished = all.filter((s: SessionItemView) => s.status === SessionStatus.DRAFT || s.status === SessionStatus.EMAIL_GENERATED);
       const finished = all.filter((s: SessionItemView) => s.status === SessionStatus.SENT);
