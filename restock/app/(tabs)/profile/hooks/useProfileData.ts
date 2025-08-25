@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useUnifiedAuth } from "../../../auth/UnifiedAuthProvider";
-import { useSessionRepository, useProductRepository, useSupplierRepository, useEmailRepository } from '../../../infrastructure/repositories/SupabaseHooksProvider';
+import { useRepositories } from '../../../infrastructure/supabase/SupabaseHooksProvider';
 
 export interface ProfileData {
   name: string;
@@ -18,7 +18,7 @@ export function useProfileData() {
     isProfileLoading 
   } = useUnifiedAuth();
   
-  const { create, findById, findByUserId, addItem, removeItem, updateName, updateStatus } = useSessionRepository();
+  const { sessionRepository } = useRepositories();
 
   const [profile, setProfile] = useState<ProfileData>({ name: '', email: '', storeName: '' });
   const [sessionCount, setSessionCount] = useState(0);
@@ -46,14 +46,16 @@ export function useProfileData() {
       try {
         // Profile data is now handled by UnifiedAuthProvider automatically
         // Just load session data
-        const sessions = await findByUserId(userId);
-        if (sessions) {
-          const total = sessions.length;
-          setSessionCount(total);
-          
-          // Email count: approximate via sessions with email_generated + sent
-          const emailRelated = sessions.filter((s: any) => s.status === 'email_generated' || s.status === 'sent').length;
-          setEmailCount(emailRelated);
+        if (sessionRepository) {
+          const sessions = await sessionRepository.findByUserId();
+          if (sessions) {
+            const total = sessions.length;
+            setSessionCount(total);
+            
+            // Email count: approximate via sessions with email_generated + sent
+            const emailRelated = sessions.filter((s: any) => s.status === 'email_generated' || s.status === 'sent').length;
+            setEmailCount(emailRelated);
+          }
         }
       } finally {
         setLoading(false);

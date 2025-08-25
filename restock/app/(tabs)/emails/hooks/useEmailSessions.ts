@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { DeviceEventEmitter } from 'react-native';
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useSessionRepository, useProductRepository, useSupplierRepository, useEmailRepository } from '../../../infrastructure/repositories/SupabaseHooksProvider';
+import { useRepositories } from '../../../infrastructure/supabase/SupabaseHooksProvider';
 import { UserProfile } from './useUserProfile';
 import { EmailDraft, EmailSession } from './useEmailSession';
 
 const STORAGE_KEY = 'emailSessions';
 
 export function useEmailSessions(userProfile: UserProfile, userId?: string) {
-  const { create, findById, findByUserId, addItem, removeItem, updateName, updateStatus } = useSessionRepository();
+  const { sessionRepository } = useRepositories();
   const [emailSessions, setEmailSessions] = useState<EmailSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -49,7 +49,7 @@ export function useEmailSessions(userProfile: UserProfile, userId?: string) {
   };
 
   const loadAllSessions = useCallback(async () => {
-    if (!userId) {
+    if (!userId || !sessionRepository) {
       setIsLoading(false);
       return;
     }
@@ -110,7 +110,7 @@ export function useEmailSessions(userProfile: UserProfile, userId?: string) {
     } finally {
       setIsLoading(false);
     }
-  }, [userId, userProfile.storeName, userProfile.name, userProfile.email]);
+  }, [userId, sessionRepository, userProfile.storeName, userProfile.name, userProfile.email]);
 
   const saveSession = async (session: EmailSession) => {
     try {

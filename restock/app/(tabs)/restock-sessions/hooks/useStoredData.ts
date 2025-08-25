@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useUnifiedAuth } from "../../../auth/UnifiedAuthProvider";
-import { useSupabaseRepository } from "../../../hooks/useSupabaseRepository";
-import { RestockSession, SessionStatus } from "../../../domain/entities/RestockSession";
+
 import { StoredProduct, StoredSupplier, ErrorState, LoadingState } from '../utils/types';
 import { Logger } from '../utils/logger';
 import { ProductService } from '../../../../backend/services/products';

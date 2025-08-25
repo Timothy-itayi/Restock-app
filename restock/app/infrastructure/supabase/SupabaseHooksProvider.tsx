@@ -54,7 +54,7 @@ export const SupabaseHooksProvider: React.FC<{ children: React.ReactNode }> = ({
       repos.emailRepository!.setUserId(userId);
 
       try {
-        registerServices();
+        registerServices(userId);
         console.log("[SupabaseHP] ✅ Services registered");
       } catch (e) {
         console.error("[SupabaseHP] ❌ Failed to register services", e);

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DeviceEventEmitter } from 'react-native';
 import { useUnifiedAuth } from '../../../auth/UnifiedAuthProvider';
-import { useSessionRepository, useProductRepository, useSupplierRepository, useEmailRepository } from '../../../infrastructure/repositories/SupabaseHooksProvider';
+import { useRepositories } from '../../../infrastructure/supabase/SupabaseHooksProvider';
 import type { EmailDraft } from './useEmailSession';
 
 export interface EmailSessionView {
@@ -14,7 +14,7 @@ export interface EmailSessionView {
 
 export function useEmailScreens() {
   const { userId, isAuthenticated } = useUnifiedAuth();
-  const { create, findById, findByUserId, addItem, removeItem, updateName, updateStatus, markAsSent } = useSessionRepository();
+  const { sessionRepository } = useRepositories();
 
   const [sessions, setSessions] = useState<EmailSessionView[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
@@ -79,8 +79,8 @@ export function useEmailScreens() {
     const updated = current.emails.map((e) => (e.id === emailId ? { ...e, status: 'sent' as const } : e));
     await updateEmailInSession(updated);
     const allSent = updated.every((e) => e.status === 'sent');
-    if (allSent) {
-      const result = await markAsSent(activeSessionId);
+    if (allSent && sessionRepository) {
+      const result = await sessionRepository.markAsSent(activeSessionId);
       if (result.success) {
         await AsyncStorage.removeItem('currentEmailSession');
         setSessions([]);
@@ -89,21 +89,24 @@ export function useEmailScreens() {
       }
     }
     return { success: true, message: '' };
-  }, [activeSessionId, markAsSent, sessions, updateEmailInSession]);
+  }, [activeSessionId, sessions, updateEmailInSession]);
 
   const sendAllEmails = useCallback(async () => {
     if (!activeSessionId) return { success: false, message: 'No active session' };
     // Delegate to application layer to mark as sent once backend email send completes via functions
-    const result = await markAsSent(activeSessionId);
-    if (result.success) {
-      await AsyncStorage.removeItem('currentEmailSession');
-      setSessions([]);
-      setActiveSessionId(null);
-      setTimeout(() => DeviceEventEmitter.emit('restock:sessionSent', { sessionId: activeSessionId }), 800);
-      return { success: true, message: 'Emails sent' };
-    }
-    return { success: false, message: result.error || 'Failed to mark session as sent' };
-  }, [activeSessionId, markAsSent]);
+          if (sessionRepository) {
+        const result = await sessionRepository.markAsSent(activeSessionId);
+        if (result.success) {
+          await AsyncStorage.removeItem('currentEmailSession');
+          setSessions([]);
+          setActiveSessionId(null);
+          setTimeout(() => DeviceEventEmitter.emit('restock:sessionSent', { sessionId: activeSessionId }), 800);
+          return { success: true, message: 'Emails sent' };
+        }
+        return { success: false, message: result.error || 'Failed to mark session as sent' };
+      }
+      return { success: false, message: 'Repository not available' };
+  }, [activeSessionId, sessionRepository]);
 
   useEffect(() => {
     load();

@@ -4,7 +4,7 @@ import { useUnifiedAuth } from "../../../auth/UnifiedAuthProvider";
 
 import { RestockSession, SessionStatus } from "../../../domain/entities/RestockSession";
 import { RestockSessionDomainService } from '../../../domain/services/RestockSessionDomainService';
-import { useSessionRepository, useProductRepository, useSupplierRepository, useEmailRepository } from '../../../infrastructure/repositories/SupabaseHooksProvider';
+import { useRepositories } from '../../../infrastructure/supabase/SupabaseHooksProvider';
 import { Logger } from '../utils/logger';
 
 interface SessionState {
@@ -38,7 +38,7 @@ const SESSIONS_HISTORY_KEY = 'restock_sessions_history';
 
 export function useSessionStateManager(): SessionStateManager {
   const { userId } = useUnifiedAuth();
-  const { create, findById, findByUserId, addItem, removeItem, updateName, updateStatus } = useSessionRepository();
+  const { sessionRepository } = useRepositories();
   const [state, setState] = useState<SessionState>({
     currentSession: null,
     allSessions: [],
@@ -60,14 +60,18 @@ export function useSessionStateManager(): SessionStateManager {
       const restored = await restoreSessionFromLocal();
       
       // Then load from server
-      const sessions = await findByUserId();
-      
-      if (sessions && sessions.length > 0) {
-        setState(prev => ({
-          ...prev,
-          allSessions: [...sessions], // Convert readonly to mutable
-          isLoading: false,
-        }));
+      if (sessionRepository) {
+        const sessions = await sessionRepository.findByUserId();
+        
+        if (sessions && sessions.length > 0) {
+          setState(prev => ({
+            ...prev,
+            allSessions: [...sessions], // Convert readonly to mutable
+            isLoading: false,
+          }));
+        } else {
+          setState(prev => ({ ...prev, isLoading: false }));
+        }
       } else {
         setState(prev => ({ ...prev, isLoading: false }));
       }
@@ -88,7 +92,7 @@ export function useSessionStateManager(): SessionStateManager {
         error: 'Failed to load sessions' 
       }));
     }
-  }, [userId, findByUserId]);
+  }, [userId, sessionRepository]);
 
   // Start a new session
   const startNewSession = useCallback(async () => {
