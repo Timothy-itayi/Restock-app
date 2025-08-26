@@ -69,7 +69,7 @@ export function useDashboardData() {
     }
 
     // Don't retry if we just had an error (5 second cooldown)
-    if (hasError && (Date.now() - lastErrorTime) < 500) {
+    if (hasError && (Date.now() - lastErrorTime) < 5000) {
       console.log('🛑 Skipping fetch - error cooldown active');
       setSessionsLoading(false); // Ensure loading is cleared
       return;
