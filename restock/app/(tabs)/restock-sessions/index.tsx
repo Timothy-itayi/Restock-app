@@ -326,7 +326,8 @@ const RestockSessionsContent: React.FC = () => {
   const hasActiveSession = sessionContext.currentSession !== null;
   const isLoading = sessionList.isLoading || sessionContext.isSessionLoading;
   const isServiceInitializing = !serviceHealth.isHealthy || !isServiceReady;
-  const { isCreatingSession, creatingSessionName } = sessionContext;
+  const isCreatingSession = sessionContext.isStartingNewSession;
+  const creatingSessionName = sessionContext.sessionName || '';
 
   // Add debug logging to see what's happening
   console.log('🔍 RestockSessions Render Debug:', {
