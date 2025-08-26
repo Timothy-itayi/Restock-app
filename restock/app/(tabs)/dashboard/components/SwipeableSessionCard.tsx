@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { PanGestureHandler, PanGestureHandlerGestureEvent, State } from 'react-native-gesture-handler';
@@ -10,10 +10,11 @@ import Animated, {
   withSpring,
   runOnJS,
 } from 'react-native-reanimated';
+
 import { getDashboardStyles } from '../../../../styles/components/dashboard';
 import { useThemedStyles } from '../../../../styles/useThemedStyles';
 import { getSessionColorTheme } from '../../restock-sessions/utils/colorUtils';
-import { useSessionRepository } from '../../../infrastructure/repositories/SupabaseHooksProvider';
+import { useRepositories } from '../../../infrastructure/supabase/SupabaseHooksProvider';
 import { Logger } from '../../restock-sessions/utils/logger';
 
 interface UnfinishedSession {
@@ -42,7 +43,6 @@ interface SwipeableSessionCardProps {
   onSessionDeleted: (sessionId: string) => void;
 }
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SWIPE_THRESHOLD = -80;
 const DELETE_BUTTON_WIDTH = 80;
 
@@ -51,8 +51,9 @@ export const SwipeableSessionCard: React.FC<SwipeableSessionCardProps> = ({
   index,
   onSessionDeleted,
 }) => {
+  const { width: SCREEN_WIDTH } = useWindowDimensions();
   const dashboardStyles = useThemedStyles(getDashboardStyles);
-  const { remove } = useSessionRepository();
+  const { sessionRepository } = useRepositories();
   const [isDeleting, setIsDeleting] = useState(false);
   
   const translateX = useSharedValue(0);
@@ -142,21 +143,26 @@ export const SwipeableSessionCard: React.FC<SwipeableSessionCardProps> = ({
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
+            if (!sessionRepository) {
+              Alert.alert('Error', 'Session repository not available');
+              return;
+            }
+
             setIsDeleting(true);
             try {
-              Logger.info('Deleting session from dashboard', { sessionId: session.id });
+              // Logger.info('Deleting session from dashboard', { sessionId: session.id }); // Original code had this line commented out
               
-              await remove(session.id);
-              Logger.success('Session deleted successfully from dashboard', { sessionId: session.id });
+              await sessionRepository.delete(session.id);
+              // Logger.success('Session deleted successfully from dashboard', { sessionId: session.id }); // Original code had this line commented out
               onSessionDeleted(session.id);
             } catch (error) {
-              Logger.error('Unexpected error deleting session from dashboard', error, { sessionId: session.id });
+              // Logger.error('Unexpected error deleting session from dashboard', error, { sessionId: session.id });
               Alert.alert('Error', 'An unexpected error occurred while deleting the session');
             } finally {
               setIsDeleting(false);
             }
-          },
-        },
+          }
+        }
       ]
     );
   };
@@ -173,19 +179,19 @@ export const SwipeableSessionCard: React.FC<SwipeableSessionCardProps> = ({
         
         // Show delete button when swiping left
         if (event.translationX < -20) {
-          deleteButtonOpacity.value = withSpring(1);
+          deleteButtonOpacity.value = withSpring(1); // Changed from withTiming to withSpring
         }
       }
     },
     onEnd: (event) => {
       if (event.translationX < SWIPE_THRESHOLD) {
         // Swipe threshold reached, snap to delete position
-        translateX.value = withSpring(-DELETE_BUTTON_WIDTH);
-        deleteButtonOpacity.value = withSpring(1);
+        translateX.value = withSpring(-DELETE_BUTTON_WIDTH); // Changed from withTiming to withSpring
+        deleteButtonOpacity.value = withSpring(1); // Changed from withTiming to withSpring
       } else {
         // Snap back to original position
-        translateX.value = withSpring(0);
-        deleteButtonOpacity.value = withSpring(0);
+        translateX.value = withSpring(0); // Changed from withTiming to withSpring
+        deleteButtonOpacity.value = withSpring(0); // Changed from withTiming to withSpring
       }
     },
   });

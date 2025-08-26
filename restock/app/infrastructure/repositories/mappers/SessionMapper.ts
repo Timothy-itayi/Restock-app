@@ -62,6 +62,7 @@ export class SessionMapper {
    */
   static toDomain(dbSession: DbSession): RestockSession {
     // Convert database status to domain enum
+    
     const domainStatus = this.mapStatusToDomain(dbSession.status);
     
     // For now, create session without items - items will be loaded separately
@@ -82,6 +83,8 @@ export class SessionMapper {
    * Convert database session and items to domain RestockSession entity with items
    */
   static toDomainWithItems(dbSession: DbSession, dbItems: DbRestockItem[]): RestockSession {
+    console.log('🔍 SessionMapper: dbSession data:', dbSession);
+    console.log('🔍 SessionMapper: dbItems data:', dbItems);
     // Convert database status to domain enum
     const domainStatus = this.mapStatusToDomain(dbSession.status);
     

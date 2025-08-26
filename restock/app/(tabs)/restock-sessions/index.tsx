@@ -6,7 +6,7 @@
 
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useUnifiedAuth } from '../../auth/UnifiedAuthProvider';
 
 // Hooks
@@ -16,7 +16,6 @@ import { useServiceHealth } from './hooks/useService';
 
 // UI Components
 import { SessionHeader } from './components/SessionHeader';
-import { SessionSelection } from './components/SessionSelection';
 import { StartSection } from './components/StartSection';
 import { ProductList } from './components/ProductList';
 import { FinishSection } from './components/FinishSection';
@@ -63,6 +62,7 @@ const RestockSessionsContent: React.FC = () => {
   
   const { userId, isAuthenticated } = authContext;
   const rawParams = useLocalSearchParams();
+  const router = useRouter();
   const restockSessionsStyles = useThemedStyles(getRestockSessionsStyles);
   const sessionList = useSessionList();
   const sessionContext = useSessionContext();
@@ -194,39 +194,16 @@ const RestockSessionsContent: React.FC = () => {
 
   // Stable references for session operations
   const sessionContextRef = useRef(sessionContext);
-  const sessionListRef = useRef(sessionList);
   
   useEffect(() => {
     sessionContextRef.current = sessionContext;
-    sessionListRef.current = sessionList;
-  }, [sessionContext, sessionList]);
+  }, [sessionContext]);
 
   // --- SESSION SELECTION ---
-  const handleSelectSession = useCallback(async (sessionId: string) => {
-    try {
-      await sessionContextRef.current.loadExistingSession(sessionId);
-      sessionListRef.current.hideSelectionModal();
-      setToastMessage('Session loaded successfully!');
-    } catch (error) {
-      setToastMessage('Failed to load session');
-      console.error('[RestockSessions] Error loading session:', error);
-    }
-  }, []); // Empty dependency array using refs
-
-  const handleDeleteSession = useCallback(async (sessionId: string) => {
-    try {
-      const result = await sessionListRef.current.deleteSession(sessionId);
-      if (result.success) {
-        setToastMessage('Session deleted successfully');
-        if (sessionContextRef.current.currentSession?.toValue().id === sessionId) sessionContextRef.current.clearCurrentSession();
-      } else {
-        setToastMessage(result.error || 'Failed to delete session');
-      }
-    } catch (error) {
-      setToastMessage('An error occurred while deleting the session');
-      console.error('[RestockSessions] Error deleting session:', error);
-    }
-  }, []); // Empty dependency array using refs
+  // Handle opening session list
+  const handleOpenSessionList = useCallback(() => {
+    router.push('/(tabs)/restock-sessions/session-list' as any);
+  }, [router]);
 
   // Stable reference for session name input
   const sessionNameInputRef = useRef(sessionNameInput);
@@ -277,19 +254,13 @@ const RestockSessionsContent: React.FC = () => {
     }
   }, []); // Empty dependency array using refs
 
-  // Stable reference to loadSessions
-  const loadSessionsRef = useRef(sessionList.loadSessions);
-  useEffect(() => {
-    loadSessionsRef.current = sessionList.loadSessions;
-  }, [sessionList.loadSessions]);
-  
   // --- AUTO LOAD SESSIONS ---
   useEffect(() => {
-    if (authUserId && loadSessionsRef.current) {
-      const timer = setTimeout(() => loadSessionsRef.current?.(), 100);
+    if (authUserId) {
+      const timer = setTimeout(() => sessionList.loadSessions(), 100);
       return () => clearTimeout(timer);
     }
-  }, [authUserId, loadSessionsRef.current]); // Empty dependency array using refs
+  }, [authUserId, sessionList.loadSessions]);
 
   // --- LOAD SESSION FROM DASHBOARD ---
   useEffect(() => {
@@ -387,7 +358,7 @@ const RestockSessionsContent: React.FC = () => {
           setSessionNameInput(sessionContext.currentSession?.toValue().name || '');
           setShowNameModal(true);
         }}
-        onShowSessionSelection={() => sessionList.openSelectionModal()}
+        onShowSessionSelection={handleOpenSessionList}
         allSessionsCount={Array.isArray(sessionList.sessions) ? sessionList.sessions.length : 0}
       />
 
@@ -399,7 +370,7 @@ const RestockSessionsContent: React.FC = () => {
             <Text style={restockSessionsStyles.sectionSubtitle}>
               You have {Array.isArray(sessionList.sessions) ? sessionList.sessions.length : 0} active session{Array.isArray(sessionList.sessions) && sessionList.sessions.length !== 1 ? 's' : ''}
             </Text>
-            <TouchableOpacity style={restockSessionsStyles.existingSessionsButton} onPress={sessionList.openSelectionModal}>
+            <TouchableOpacity style={restockSessionsStyles.existingSessionsButton} onPress={handleOpenSessionList}>
               <Text style={restockSessionsStyles.existingSessionsButtonText}>Continue Existing Session</Text>
             </TouchableOpacity>
           </View>
@@ -484,17 +455,6 @@ const RestockSessionsContent: React.FC = () => {
           </>
         )}
       </ScrollView>
-
-      {/* Session Selection Modal */}
-      {sessionList.showSelectionModal && (
-        <SessionSelection
-          sessions={sessionList.sessions}
-          onSelectSession={handleSelectSession}
-          onDeleteSession={handleDeleteSession}
-          onClose={sessionList.hideSelectionModal}
-          isLoading={sessionList.isLoading}
-        />
-      )}
 
       {/* Name Modal */}
       {showNameModal && (

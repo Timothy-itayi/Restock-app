@@ -5,7 +5,7 @@
 ## Main Screens
 | App Icon | Onboard/Auth | Dashboard |
 |----------|-----------|------------------|
-| <img src="restock-icon.png" alt="Restock App Icon" width="120"/> | <img src="IMG_1915.PNG" alt="Dashboard Screen" width="200"/> | <img src="IMG_1902.PNG" alt="Restock Sessions Screen" width="200"/> |
+| <img src="restock-icon.png" alt="Restock App Icon" width="120"/> | <img src="restock-dashboard.png" alt="Dashboard Screen" width="200"/> | <img src="IMG_1902.PNG" alt="Restock Sessions Screen" width="200"/> |
 
 ## User Experience
 | User Prompt | Session List |

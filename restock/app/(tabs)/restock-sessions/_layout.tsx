@@ -17,6 +17,13 @@ export default function RestockSessionsLayout() {
           headerShown: false,
         }}
       />
+      <Stack.Screen
+        name="session-list"
+        options={{
+          title: 'Session List',
+          headerShown: false,
+        }}
+      />
     </Stack>
   );
 }
