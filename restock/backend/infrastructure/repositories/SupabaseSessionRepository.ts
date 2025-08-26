@@ -1,4 +1,4 @@
-import { supabase } from '../../config/supabase';
+import { supabaseWithAuth } from '../../config/supabase';
 import { RestockSession } from '../../../app/domain/entities/RestockSession';
 import { SessionRepository } from '../../../app/domain/interfaces/SessionRepository';
 import { SessionMapper } from '../../../app/infrastructure/repositories/mappers/SessionMapper';
@@ -29,11 +29,12 @@ export class SupabaseSessionRepository implements SessionRepository {
   }
 
   async save(session: RestockSession): Promise<void> {
+    const client = await supabaseWithAuth();
     const dbSession = SessionMapper.toDatabase(session);
     
     if (session.id) {
       // Update existing session
-      const { error } = await supabase.rpc('update_restock_session', {
+      const { error } = await client.rpc('update_restock_session', {
         p_id: session.id,
         p_name: dbSession.sessionRecord.name,
         p_status: dbSession.sessionRecord.status
@@ -44,7 +45,7 @@ export class SupabaseSessionRepository implements SessionRepository {
       }
     } else {
       // Create new session
-      const { error } = await supabase.rpc('insert_restock_session', {
+      const { error } = await client.rpc('insert_restock_session', {
         p_name: dbSession.sessionRecord.name,
         p_status: dbSession.sessionRecord.status
       });
@@ -57,8 +58,9 @@ export class SupabaseSessionRepository implements SessionRepository {
 
   async findById(id: string): Promise<RestockSession | null> {
     try {
+      const client = await supabaseWithAuth();
       // Get session via RPC
-      const { data: sessions, error: sessionError } = await supabase.rpc('get_restock_sessions');
+      const { data: sessions, error: sessionError } = await client.rpc('get_restock_sessions');
       
       if (sessionError) {
         throw new Error(`Failed to get sessions: ${sessionError.message}`);
@@ -70,7 +72,7 @@ export class SupabaseSessionRepository implements SessionRepository {
       }
 
       // Get session items via RPC
-      const { data: items, error: itemsError } = await supabase.rpc('get_restock_items');
+      const { data: items, error: itemsError } = await client.rpc('get_restock_items');
       
       if (itemsError) {
         throw new Error(`Failed to get restock items: ${itemsError.message}`);
@@ -87,10 +89,11 @@ export class SupabaseSessionRepository implements SessionRepository {
   }
 
   async findByUserId(): Promise<ReadonlyArray<RestockSession>> {
-    // RPC functions automatically filter by current user, so userId is not needed
     try {
+      const client = await supabaseWithAuth();
+      // RPC functions automatically filter by current user, so userId is not needed
       // Get sessions via RPC
-      const { data: sessions, error: sessionsError } = await supabase.rpc('get_restock_sessions');
+      const { data: sessions, error: sessionsError } = await client.rpc('get_restock_sessions');
       
       if (sessionsError) {
         throw new Error(`Failed to get sessions: ${sessionsError.message}`);
@@ -101,7 +104,7 @@ export class SupabaseSessionRepository implements SessionRepository {
       }
 
       // Get all items via RPC
-      const { data: items, error: itemsError } = await supabase.rpc('get_restock_items');
+      const { data: items, error: itemsError } = await client.rpc('get_restock_items');
       
       if (itemsError) {
         throw new Error(`Failed to get restock items: ${itemsError.message}`);
@@ -127,7 +130,8 @@ export class SupabaseSessionRepository implements SessionRepository {
   }
 
   async delete(id: string): Promise<void> {
-    const { error } = await supabase.rpc('delete_restock_session', {
+    const client = await supabaseWithAuth();
+    const { error } = await client.rpc('delete_restock_session', {
       p_id: id
     });
 
@@ -137,9 +141,9 @@ export class SupabaseSessionRepository implements SessionRepository {
   }
 
   async findUnfinishedByUserId(): Promise<ReadonlyArray<RestockSession>> {
-    // RPC functions automatically filter by current user, so userId is not needed
     try {
-      const { data: sessions, error: sessionsError } = await supabase.rpc('get_restock_sessions');
+      const client = await supabaseWithAuth();
+      const { data: sessions, error: sessionsError } = await client.rpc('get_restock_sessions');
       
       if (sessionsError) {
         throw new Error(`Failed to get sessions: ${sessionsError.message}`);
@@ -155,7 +159,7 @@ export class SupabaseSessionRepository implements SessionRepository {
       }
 
       // Get items for unfinished sessions
-      const { data: items, error: itemsError } = await supabase.rpc('get_restock_items');
+      const { data: items, error: itemsError } = await client.rpc('get_restock_items');
       
       if (itemsError) {
         throw new Error(`Failed to get restock items: ${itemsError.message}`);
@@ -181,7 +185,8 @@ export class SupabaseSessionRepository implements SessionRepository {
   }
 
   async addItem(sessionId: string, item: any): Promise<void> {
-    const { error } = await supabase.rpc('insert_restock_item', {
+    const client = await supabaseWithAuth();
+    const { error } = await client.rpc('insert_restock_item', {
       p_session_id: sessionId,
       p_product_name: item.productName,
       p_supplier_name: item.supplierName,
@@ -196,7 +201,8 @@ export class SupabaseSessionRepository implements SessionRepository {
   }
 
   async removeItem(itemId: string): Promise<void> {
-    const { error } = await supabase.rpc('delete_restock_item', {
+    const client = await supabaseWithAuth();
+    const { error } = await client.rpc('delete_restock_item', {
       p_id: itemId
     });
 
@@ -206,7 +212,8 @@ export class SupabaseSessionRepository implements SessionRepository {
   }
 
   async updateName(sessionId: string, name: string): Promise<void> {
-    const { error } = await supabase.rpc('update_restock_session', {
+    const client = await supabaseWithAuth();
+    const { error } = await client.rpc('update_restock_session', {
       p_id: sessionId,
       p_name: name,
       p_status: null // Keep existing status
@@ -218,7 +225,8 @@ export class SupabaseSessionRepository implements SessionRepository {
   }
 
   async updateStatus(sessionId: string, status: string): Promise<void> {
-    const { error } = await supabase.rpc('update_restock_session', {
+    const client = await supabaseWithAuth();
+    const { error } = await client.rpc('update_restock_session', {
       p_id: sessionId,
       p_name: null, // Keep existing name
       p_status: status
@@ -231,7 +239,8 @@ export class SupabaseSessionRepository implements SessionRepository {
 
   async findAll(): Promise<ReadonlyArray<RestockSession>> {
     try {
-      const { data: sessions, error: sessionsError } = await supabase.rpc('get_restock_sessions');
+      const client = await supabaseWithAuth();
+      const { data: sessions, error: sessionsError } = await client.rpc('get_restock_sessions');
       
       if (sessionsError) {
         throw new Error(`Failed to get sessions: ${sessionsError.message}`);
@@ -242,7 +251,7 @@ export class SupabaseSessionRepository implements SessionRepository {
       }
 
       // Get all items
-      const { data: items, error: itemsError } = await supabase.rpc('get_restock_items');
+      const { data: items, error: itemsError } = await client.rpc('get_restock_items');
       
       if (itemsError) {
         throw new Error(`Failed to get restock items: ${itemsError.message}`);
@@ -274,7 +283,8 @@ export class SupabaseSessionRepository implements SessionRepository {
 
   async create(session: Omit<RestockSession, 'id'>): Promise<string> {
     try {
-      const { data, error } = await supabase.rpc('insert_restock_session', {
+      const client = await supabaseWithAuth();
+      const { data, error } = await client.rpc('insert_restock_session', {
         p_name: session.name,
         p_status: session.status
       });
@@ -293,7 +303,8 @@ export class SupabaseSessionRepository implements SessionRepository {
 
   async markAsSent(sessionId: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const { error } = await supabase.rpc('update_restock_session', {
+      const client = await supabaseWithAuth();
+      const { error } = await client.rpc('update_restock_session', {
         p_id: sessionId,
         p_name: null, // Keep existing name
         p_status: 'sent'
@@ -310,9 +321,9 @@ export class SupabaseSessionRepository implements SessionRepository {
   }
 
   async findCompletedByUserId(): Promise<ReadonlyArray<RestockSession>> {
-    // RPC functions automatically filter by current user, so userId is not needed
     try {
-      const { data: sessions, error: sessionsError } = await supabase.rpc('get_restock_sessions');
+      const client = await supabaseWithAuth();
+      const { data: sessions, error: sessionsError } = await client.rpc('get_restock_sessions');
       
       if (sessionsError) {
         throw new Error(`Failed to get sessions: ${sessionsError.message}`);
@@ -326,7 +337,7 @@ export class SupabaseSessionRepository implements SessionRepository {
       }
 
       // Get items for completed sessions
-      const { data: items, error: itemsError } = await supabase.rpc('get_restock_items');
+      const { data: items, error: itemsError } = await client.rpc('get_restock_items');
       
       if (itemsError) {
         throw new Error(`Failed to get restock items: ${itemsError.message}`);
@@ -352,9 +363,9 @@ export class SupabaseSessionRepository implements SessionRepository {
   }
 
   async findByStatus(status: string): Promise<ReadonlyArray<RestockSession>> {
-    // RPC functions automatically filter by current user, so userId is not needed
     try {
-      const { data: sessions, error: sessionsError } = await supabase.rpc('get_restock_sessions');
+      const client = await supabaseWithAuth();
+      const { data: sessions, error: sessionsError } = await client.rpc('get_restock_sessions');
       
       if (sessionsError) {
         throw new Error(`Failed to get sessions: ${sessionsError.message}`);
@@ -368,7 +379,7 @@ export class SupabaseSessionRepository implements SessionRepository {
       }
 
       // Get items for filtered sessions
-      const { data: items, error: itemsError } = await supabase.rpc('get_restock_items');
+      const { data: items, error: itemsError } = await client.rpc('get_restock_items');
       
       if (itemsError) {
         throw new Error(`Failed to get restock items: ${itemsError.message}`);
@@ -394,9 +405,9 @@ export class SupabaseSessionRepository implements SessionRepository {
   }
 
   async countByUserId(): Promise<number> {
-    // RPC functions automatically filter by current user, so userId is not needed
     try {
-      const { data: sessions, error } = await supabase.rpc('get_restock_sessions');
+      const client = await supabaseWithAuth();
+      const { data: sessions, error } = await client.rpc('get_restock_sessions');
       
       if (error) {
         throw new Error(`Failed to get sessions: ${error.message}`);
@@ -410,9 +421,9 @@ export class SupabaseSessionRepository implements SessionRepository {
   }
 
   async findRecentByUserId(limit: number): Promise<ReadonlyArray<RestockSession>> {
-    // RPC functions automatically filter by current user, so userId is not needed
     try {
-      const { data: sessions, error: sessionsError } = await supabase.rpc('get_restock_sessions');
+      const client = await supabaseWithAuth();
+      const { data: sessions, error: sessionsError } = await client.rpc('get_restock_sessions');
       
       if (sessionsError) {
         throw new Error(`Failed to get sessions: ${sessionsError.message}`);
@@ -426,7 +437,7 @@ export class SupabaseSessionRepository implements SessionRepository {
       }
 
       // Get items for recent sessions
-      const { data: items, error: itemsError } = await supabase.rpc('get_restock_items');
+      const { data: items, error: itemsError } = await client.rpc('get_restock_items');
       
       if (itemsError) {
         throw new Error(`Failed to get restock items: ${itemsError.message}`);

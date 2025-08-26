@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { DeviceEventEmitter } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useUnifiedAuth } from '../../../auth/UnifiedAuthProvider';
 import { RestockSession, SessionStatus } from '../../../domain/entities/RestockSession';
-import { useSessionRepository } from '../../../infrastructure/supabase/SupabaseHooksProvider';
+import { useRepositories } from '../../../infrastructure/supabase/SupabaseHooksProvider';
 
 interface SessionItemView {
   id: string;
@@ -41,73 +41,149 @@ function mapDomainToView(session: RestockSession): SessionItemView {
 
 export function useDashboardData() {
   const { userId, isAuthenticated, isReady: authReady, isProfileSetupComplete } = useUnifiedAuth();
-  const { findByUserId } = useSessionRepository();
+  const { sessionRepository } = useRepositories();
 
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [lastRefreshTime, setLastRefreshTime] = useState<number>(0);
   const [unfinishedSessions, setUnfinishedSessions] = useState<SessionItemView[]>([]);
   const [finishedSessions, setFinishedSessions] = useState<SessionItemView[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [hasError, setHasError] = useState(false);
+  const [lastErrorTime, setLastErrorTime] = useState(0);
+  const [dataInitialized, setDataInitialized] = useState(false);
+
+  // Add request deduplication
+  const [isFetching, setIsFetching] = useState(false);
+  const fetchPromiseRef = useRef<Promise<void> | null>(null);
 
   const canLoad = useMemo(() => authReady && isAuthenticated && !!userId && isProfileSetupComplete, [authReady, isAuthenticated, userId, isProfileSetupComplete]);
 
   const fetchSessions = useCallback(async () => {
-    if (!canLoad) {
-      setSessionsLoading(false);
+    // Don't fetch if we can't load or already fetching
+    if (!canLoad || isFetching) {
+      if (fetchPromiseRef.current) {
+        return fetchPromiseRef.current;
+      }
+      setSessionsLoading(false); // Ensure loading is cleared
       return;
     }
-    try {
-      setSessionsLoading(true);
-      const sessions = await findByUserId(); // Use the destructured method directly
-      const all = sessions.map(mapDomainToView);
-      const unfinished = all.filter((s: SessionItemView) => s.status === SessionStatus.DRAFT || s.status === SessionStatus.EMAIL_GENERATED);
-      const finished = all.filter((s: SessionItemView) => s.status === SessionStatus.SENT);
-      setUnfinishedSessions(unfinished);
-      setFinishedSessions(finished);
-      setLastRefreshTime(Date.now());
-    } finally {
-      setSessionsLoading(false);
+
+    // Don't retry if we just had an error (5 second cooldown)
+    if (hasError && (Date.now() - lastErrorTime) < 500) {
+      console.log('🛑 Skipping fetch - error cooldown active');
+      setSessionsLoading(false); // Ensure loading is cleared
+      return;
     }
-  }, [canLoad, findByUserId]);
 
-  // initial load
+    // Create a single fetch promise
+    const fetchPromise = (async () => {
+      try {
+        setIsFetching(true);
+        setSessionsLoading(true);
+        setHasError(false);
+        
+        console.log('🔄 Dashboard: Starting fetch...');
+        
+        const sessions = await sessionRepository?.findByUserId();
+        const all = sessions?.map(mapDomainToView) || [];
+        const unfinished = all.filter((s: SessionItemView) => s.status === SessionStatus.DRAFT || s.status === SessionStatus.EMAIL_GENERATED);
+        const finished = all.filter((s: SessionItemView) => s.status === SessionStatus.SENT);
+        
+        setUnfinishedSessions(unfinished);
+        setFinishedSessions(finished);
+        setLastRefreshTime(Date.now());
+        setDataInitialized(true);
+        
+        console.log(`📊 Dashboard: Loaded ${all.length} sessions (${unfinished.length} unfinished, ${finished.length} finished)`);
+      } catch (error) {
+        console.error('Dashboard fetch error:', error);
+        setHasError(true);
+        setLastErrorTime(Date.now());
+      } finally {
+        setIsFetching(false);
+        setSessionsLoading(false); // Ensure this always runs
+        fetchPromiseRef.current = null;
+        console.log('🔄 Dashboard: Fetch complete, loading states cleared');
+      }
+    })();
+
+    fetchPromiseRef.current = fetchPromise;
+    return fetchPromise;
+  }, [canLoad, sessionRepository, isFetching, hasError, lastErrorTime]);
+
+  // Add debug logging for loading states
   useEffect(() => {
-    fetchSessions();
-  }, [fetchSessions]);
+    console.log('🔄 Dashboard Loading States:', {
+      sessionsLoading,
+      isFetching,
+      hasError,
+      canLoad,
+      dataInitialized,
+      sessionRepository: !!sessionRepository
+    });
+  }, [sessionsLoading, isFetching, hasError, canLoad, dataInitialized, sessionRepository]);
 
-  // listen for session sent events to refresh
+  // Initial load only once
+  useEffect(() => {
+    if (canLoad && !dataInitialized) {
+      fetchSessions();
+    }
+  }, [canLoad, dataInitialized, fetchSessions]);
+
+  // Listen for session events - only refresh if we have data
   useEffect(() => {
     const sub = DeviceEventEmitter.addListener('restock:sessionSent', () => {
-      setTimeout(() => {
-        fetchSessions();
-      }, 1000);
+      if (dataInitialized && (unfinishedSessions.length > 0 || finishedSessions.length > 0)) {
+        setTimeout(() => {
+          fetchSessions();
+        }, 1000);
+      }
     });
     return () => sub.remove();
-  }, [fetchSessions]);
+  }, [fetchSessions, dataInitialized, unfinishedSessions.length, finishedSessions.length]);
 
-  // listen for session updates to refresh
   useEffect(() => {
     const sub = DeviceEventEmitter.addListener('restock:sessionUpdated', () => {
-      setTimeout(() => {
-        fetchSessions();
-      }, 500);
+      if (dataInitialized && (unfinishedSessions.length > 0 || finishedSessions.length > 0)) {
+        setTimeout(() => {
+          fetchSessions();
+        }, 500);
+      }
     });
     return () => sub.remove();
-  }, [fetchSessions]);
+  }, [fetchSessions, dataInitialized, unfinishedSessions.length, finishedSessions.length]);
 
-  // refresh on focus with throttle
+  // Force clear loading state after 10 seconds to prevent stuck skeleton
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (sessionsLoading) {
+        console.log('⚠️ Dashboard: Force clearing stuck loading state');
+        setSessionsLoading(false);
+      }
+    }, 10000);
+
+    return () => clearTimeout(timeout);
+  }, [sessionsLoading]);
+
+  // Focus refresh - only if we have data and enough time has passed
   useFocusEffect(
     useCallback(() => {
-      if (!canLoad) return;
+      if (!canLoad || hasError) return;
+      
       const now = Date.now();
-      if (now - lastRefreshTime > 2000) {
+      const timeSinceLastRefresh = now - lastRefreshTime;
+      
+      // Only refresh if we have data and it's been more than 10 seconds
+      if (dataInitialized && timeSinceLastRefresh > 10000) {
         fetchSessions();
       }
-    }, [canLoad, fetchSessions, lastRefreshTime])
+    }, [canLoad, fetchSessions, lastRefreshTime, hasError, dataInitialized])
   );
 
+  // Manual refresh - always works
   const onRefresh = useCallback(async () => {
     if (!userId) return;
+    setHasError(false); // Reset error state
     setRefreshing(true);
     try {
       await fetchSessions();
@@ -122,6 +198,8 @@ export function useDashboardData() {
     finishedSessions,
     refreshing,
     onRefresh,
+    hasError,
+    dataInitialized,
   };
 }
 

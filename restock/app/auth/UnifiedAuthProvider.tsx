@@ -11,6 +11,7 @@ import { SupabaseProductRepository } from '../../backend/infrastructure/reposito
 import { SupabaseSupplierRepository } from '../../backend/infrastructure/repositories/SupabaseSupplierRepository';
 import { SupabaseEmailRepository } from '../../backend/infrastructure/repositories/SupabaseEmailRepository';
 import { registerServices, clearUserScope } from '../infrastructure/di/ServiceRegistry';
+import { setClerkTokenGetter } from '../../backend/config/supabase';
 
 interface UnifiedAuthState {
   isReady: boolean;
@@ -44,8 +45,8 @@ export const useUnifiedAuth = () => {
 };
 
 export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Use Clerk's useAuth hook instead of useClerk
-  const { isLoaded, isSignedIn, userId: clerkUserId } = useAuth();
+  // ✅ CORRECT: Call useAuth at component level
+  const { isLoaded, isSignedIn, userId: clerkUserId, getToken } = useAuth();
   
   // Get store reference (but don't subscribe to it) - use getState and setState
   const store = authStore;
@@ -68,6 +69,9 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   // Add this state after your existing contextState
   const [repositories, setRepositories] = useState<RepositoryContextValue | null>(null);
+
+  // Add state to track if repositories are already set up
+  const [repositoriesSetup, setRepositoriesSetup] = useState(false);
 
   // Function to update both local state and store imperatively
   const updateAuthState = useCallback(async () => {
@@ -354,10 +358,17 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   // Add this useEffect after your existing useEffect hooks
   useEffect(() => {
-    if (contextState.isAuthenticated && contextState.userId && contextState.hasValidProfile) {
+    if (contextState.isAuthenticated && contextState.userId && contextState.hasValidProfile && !repositoriesSetup) {
       console.log("[UnifiedAuth] 🔑 Setting up repositories for user", contextState.userId);
       
       try {
+        // ✅ CORRECT: Use getToken from component level, not from inside useEffect
+        setClerkTokenGetter(async () => {
+          const token = await getToken();
+          console.log('[UnifiedAuth] 🔑 Got Clerk token for Supabase:', token ? 'YES' : 'NO');
+          return token;
+        });
+        
         // Register services first
         registerServices(contextState.userId);
         
@@ -379,11 +390,12 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
         repos.emailRepository!.setUserId(contextState.userId);
 
         setRepositories(repos);
+        setRepositoriesSetup(true); // Mark as setup to prevent re-running
         console.log("[UnifiedAuth] ✅ Repositories ready for user", contextState.userId);
       } catch (e) {
         console.error("[UnifiedAuth] ❌ Failed to setup repositories", e);
       }
-    } else {
+    } else if (!contextState.isAuthenticated || !contextState.userId || !contextState.hasValidProfile) {
       // Clear repositories when auth ends
       if (repositories && contextState.userId) {
         try {
@@ -393,8 +405,9 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
         }
       }
       setRepositories(null);
+      setRepositoriesSetup(false); // Reset setup flag
     }
-  }, [contextState.isAuthenticated, contextState.userId, contextState.hasValidProfile]);
+  }, [contextState.isAuthenticated, contextState.userId, contextState.hasValidProfile, getToken, repositoriesSetup]);
 
   // Actions for context
   const triggerAuthCheck = useCallback(async () => {
