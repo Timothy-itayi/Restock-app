@@ -30,80 +30,38 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   },
 });
 
-// Create authenticated client using Clerk's Supabase integration
+// Create authenticated client using Clerk's official Supabase integration
 export async function supabaseWithAuth() {
   if (getClerkTokenFn) {
     try {
       const token = await getClerkTokenFn();
       if (token) {
-        // Try to get Supabase-compatible token from Clerk
-        try {
-          // First, try to use the token directly with Supabase
-          const client = createClient<Database>(supabaseUrl, supabaseAnonKey, {
-            auth: {
-              autoRefreshToken: true,
-              persistSession: true,
-              detectSessionInUrl: false,
+        // Use the official integration method - inject token in headers
+        return createClient<Database>(supabaseUrl, supabaseAnonKey, {
+          global: {
+            fetch: async (url, options = {}) => {
+              // Insert the Clerk Supabase token into the headers
+              const headers = new Headers(options?.headers);
+              headers.set('Authorization', `Bearer ${token}`);
+              
+              // Call the default fetch
+              return fetch(url, {
+                ...options,
+                headers,
+              });
             },
-            realtime: {
-              params: {
-                eventsPerSecond: 10,
-              },
+          },
+          auth: {
+            autoRefreshToken: true,
+            persistSession: true,
+            detectSessionInUrl: false,
+          },
+          realtime: {
+            params: {
+              eventsPerSecond: 10,
             },
-          });
-
-          // Set the JWT in Supabase's auth context
-          const { data, error } = await client.auth.setSession({
-            access_token: token,
-            refresh_token: token,
-          });
-
-          if (error) {
-            console.warn('Failed to set Supabase session with Clerk token:', error);
-            
-            // Fallback: try using token in headers for RPC calls
-            return createClient<Database>(supabaseUrl, supabaseAnonKey, {
-              global: {
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                },
-              },
-              auth: {
-                autoRefreshToken: true,
-                persistSession: true,
-                detectSessionInUrl: false,
-              },
-              realtime: {
-                params: {
-                  eventsPerSecond: 10,
-                },
-              },
-            });
-          }
-
-          return client;
-        } catch (authError) {
-          console.warn('Auth session setup failed:', authError);
-          
-          // Final fallback: use token in headers
-          return createClient<Database>(supabaseUrl, supabaseAnonKey, {
-            global: {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            },
-            auth: {
-              autoRefreshToken: true,
-              persistSession: true,
-              detectSessionInUrl: false,
-            },
-            realtime: {
-              params: {
-                eventsPerSecond: 10,
-              },
-            },
-          });
-        }
+          },
+        });
       }
     } catch (error) {
       console.warn('Failed to get Clerk token for Supabase request:', error);

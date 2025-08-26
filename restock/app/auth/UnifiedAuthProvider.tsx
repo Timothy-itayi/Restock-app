@@ -362,10 +362,10 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       console.log("[UnifiedAuth] 🔑 Setting up repositories for user", contextState.userId);
       
       try {
-        // ✅ CORRECT: Use getToken from component level, not from inside useEffect
+        // Use Clerk's official Supabase JWT template
         setClerkTokenGetter(async () => {
-          const token = await getToken();
-          console.log('[UnifiedAuth] 🔑 Got Clerk token for Supabase:', token ? 'YES' : 'NO');
+          const token = await getToken({ template: 'supabase' }); // Use 'supabase' template
+          console.log('[UnifiedAuth] 🔑 Got Clerk Supabase token:', token ? 'YES' : 'NO');
           return token;
         });
         
