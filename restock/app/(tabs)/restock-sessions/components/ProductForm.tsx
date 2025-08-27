@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, Alert, TouchableOpacity } from 'react-native';
 import { useProductForm } from '../hooks/useProductForm';
-import { useRestockSession } from '../hooks/useRestockSession';
+import { useSessionContext } from '../context/SessionContext';
 import Input from '../../../components/Input';
 import Button from '../../../components/Button';
 import CustomToast from '../../../components/CustomToast';
@@ -26,14 +26,14 @@ interface ProductFormProps {
 
 export function ProductForm({ onSuccess, onSubmit, isNewSession = false, isSubmitting = false }: ProductFormProps) {
   const productForm = useProductForm();
-  const currentSession = useRestockSession();
+  const sessionContext = useSessionContext();
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
   const restockSessionsStyles = useThemedStyles(getRestockSessionsStyles);
 
-  // Check if there's an active session
-  const hasActiveSession = !!currentSession.session;
+  // Check if there's an active session using the new SessionContext
+  const hasActiveSession = !!sessionContext.currentSession;
 
   // Show toast message
   const showToastMessage = useCallback((message: string, type: 'success' | 'error' = 'success') => {
@@ -70,7 +70,7 @@ export function ProductForm({ onSuccess, onSubmit, isNewSession = false, isSubmi
     // Legacy flow - handle submission internally
     if (hasActiveSession) {
       try {
-        const result = await currentSession.addProduct({
+        const result = await sessionContext.addProduct({
           productName: productForm.formData.productName.trim(),
           quantity: parseInt(productForm.formData.quantity),
           supplierName: productForm.formData.supplierName.trim(),
@@ -89,7 +89,7 @@ export function ProductForm({ onSuccess, onSubmit, isNewSession = false, isSubmi
           }
 
           Logger.info('Product added to session', {
-            sessionId: currentSession.session?.toValue().id,
+            sessionId: sessionContext.currentSession?.toValue().id,
             productName: productForm.formData.productName,
             quantity: productForm.formData.quantity,
             supplierName: productForm.formData.supplierName,
@@ -99,7 +99,7 @@ export function ProductForm({ onSuccess, onSubmit, isNewSession = false, isSubmi
         }
       } catch (error) {
         Logger.error('Failed to add product to session', error, {
-          sessionId: currentSession.session?.toValue().id,
+          sessionId: sessionContext.currentSession?.toValue().id,
           formData: productForm.formData,
         });
         showToastMessage('An unexpected error occurred', 'error');
@@ -111,7 +111,7 @@ export function ProductForm({ onSuccess, onSubmit, isNewSession = false, isSubmi
         onSuccess();
       }
     }
-  }, [productForm, currentSession, showToastMessage, onSuccess, hasActiveSession, onSubmit]);
+  }, [productForm, sessionContext, showToastMessage, onSuccess, hasActiveSession, onSubmit]);
 
   // Handle input changes using the hook
   const handleInputChange = useCallback((field: keyof typeof productForm.formData, value: string) => {
