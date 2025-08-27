@@ -18,37 +18,29 @@ import CustomToast from '../../components/CustomToast';
 import { useThemedStyles } from '../../../styles/useThemedStyles';
 import { getRestockSessionsStyles } from '../../../styles/components/restock-sessions';
 
-export default function SessionListScreen() {
+const SessionListScreen: React.FC = () => {
   const router = useRouter();
   const { userId } = useUnifiedAuth();
-  const sessionList = useSessionList();
   const sessionContext = useSessionContext();
   const restockSessionsStyles = useThemedStyles(getRestockSessionsStyles);
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Load sessions when component mounts
-  useEffect(() => {
-    if (userId) {
-      sessionList.loadSessions();
-    }
-  }, [userId]);
-
-  // Handle session selection
+  // 🔍 NEW: Memoize handlers to prevent unnecessary re-renders
   const handleSelectSession = useCallback(async (sessionId: string) => {
     try {
-      await sessionContext.loadExistingSession(sessionId);
-      setToastMessage('Session loaded successfully!');
+      // Use the new session switching method instead of loadExistingSession
+      await sessionContext.switchToSession(sessionId);
+      setToastMessage('Session switched successfully!');
       
       // Navigate back to restock-sessions
       setTimeout(() => router.back(), 1000);
     } catch (error) {
-      setToastMessage('Failed to load session');
-      console.error('[SessionList] Error loading session:', error);
+      setToastMessage('Failed to switch session');
+      console.error('[SessionList] Error switching session:', error);
     }
-  }, [sessionContext, router]);
+  }, [sessionContext.switchToSession, router]);
 
-  // Handle session deletion
   const handleDeleteSession = useCallback(async (sessionId: string) => {
     Alert.alert(
       'Delete Session',
@@ -60,7 +52,7 @@ export default function SessionListScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const result = await sessionList.deleteSession(sessionId);
+              const result = await sessionContext.deleteSession(sessionId);
               if (result.success) {
                 setToastMessage('Session deleted successfully');
                 // Clear current session if it was the deleted one
@@ -78,9 +70,8 @@ export default function SessionListScreen() {
         }
       ]
     );
-  }, [sessionList, sessionContext]);
+  }, [sessionContext.deleteSession, sessionContext.currentSession, sessionContext.clearCurrentSession]);
 
-  // Handle creating new session
   const handleCreateNewSession = useCallback(() => {
     router.push({
       pathname: '/(tabs)/restock-sessions/add-product' as any,
@@ -90,28 +81,35 @@ export default function SessionListScreen() {
     });
   }, [router]);
 
-  // Format date helper
-  const formatDate = (date: Date) => {
+  // 🔍 NEW: Memoize formatDate helper to prevent unnecessary re-renders
+  const formatDate = useCallback((date: Date) => {
     return date.toLocaleDateString('en-US', { 
       month: 'short', 
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
     });
-  };
+  }, []);
 
-  // Get supplier count helper
-  const getSupplierCount = (session: any): number => {
+  // 🔍 NEW: Memoize helper functions to prevent unnecessary re-renders
+  const getSupplierCount = useCallback((session: any): number => {
     const products = session.products || session.toValue?.().items || [];
     const supplierNames = products.map((p: any) => p.supplierName).filter(Boolean);
     return new Set(supplierNames).size;
-  };
+  }, []);
 
-  // Get total quantity helper
-  const getTotalQuantity = (session: any): number => {
+  const getTotalQuantity = useCallback((session: any): number => {
     const products = session.products || session.toValue?.().items || [];
     return products.reduce((sum: number, p: any) => sum + (p.quantity || 0), 0);
-  };
+  }, []);
+
+  // 🔍 NEW: Optimized useEffect to prevent unnecessary re-renders
+  useEffect(() => {
+    if (userId && sessionContext.isSupabaseReady) {
+      // Load sessions immediately without waiting for loading states
+      sessionContext.loadAvailableSessions();
+    }
+  }, [userId, sessionContext.isSupabaseReady]); // Removed loadAvailableSessions dependency
 
   return (
     <SafeAreaView style={restockSessionsStyles.container}>
@@ -129,33 +127,22 @@ export default function SessionListScreen() {
 
       {/* Content */}
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
-        {/* Loading State */}
-        {sessionList.isLoading && (
-          <View style={restockSessionsStyles.existingSessionsSection}>
-            <Text style={restockSessionsStyles.sectionTitle}>Loading Sessions</Text>
-            <Text style={restockSessionsStyles.sectionSubtitle}>Please wait...</Text>
-            <View style={{ marginTop: 16, alignItems: 'center' }}>
-              <ActivityIndicator size="large" color="#6B7F6B" />
-            </View>
-          </View>
-        )}
-
         {/* Sessions List */}
-        {!sessionList.isLoading && Array.isArray(sessionList.sessions) && sessionList.sessions.length > 0 && (
+        {Array.isArray(sessionContext.availableSessions) && sessionContext.availableSessions.length > 0 && (
           <View style={restockSessionsStyles.sessionSelectionContainer}>
             <View style={restockSessionsStyles.sessionSelectionHeader}>
               <Text style={restockSessionsStyles.sessionSelectionTitle}>Your Sessions</Text>
               <Text style={restockSessionsStyles.sessionSelectionSubtitle}>
-                You have {sessionList.sessions.length} unfinished session{sessionList.sessions.length !== 1 ? 's' : ''}
+                You have {sessionContext.availableSessions.length} unfinished session{sessionContext.availableSessions.length !== 1 ? 's' : ''}
               </Text>
             </View>
             
             <ScrollView style={restockSessionsStyles.sessionList}>
-              {sessionList.sessions.map((session, index) => {
+              {sessionContext.availableSessions.map((session, index) => {
                 const id = session.toValue?.().id || session.id;
                 const name = session.toValue?.().name || session.name;
                 const createdAt = session.toValue?.().createdAt || session.createdAt;
-                const products = session.products || session.toValue?.().items || [];
+                const products = session.toValue?.().items || [];
                 
                 return (
                   <TouchableOpacity
@@ -200,7 +187,7 @@ export default function SessionListScreen() {
         )}
 
         {/* Empty State */}
-        {!sessionList.isLoading && (!Array.isArray(sessionList.sessions) || sessionList.sessions.length === 0) && (
+        {(!Array.isArray(sessionContext.availableSessions) || sessionContext.availableSessions.length === 0) && (
           <View style={restockSessionsStyles.existingSessionsSection}>
             <Text style={restockSessionsStyles.sectionTitle}>No Sessions Found</Text>
             <Text style={restockSessionsStyles.sectionSubtitle}>
@@ -231,4 +218,7 @@ export default function SessionListScreen() {
       )}
     </SafeAreaView>
   );
-}
+};
+
+// 🔍 NEW: Wrap with React.memo to prevent unnecessary re-renders from parent components
+export default React.memo(SessionListScreen);

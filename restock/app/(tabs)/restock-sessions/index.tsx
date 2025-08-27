@@ -105,7 +105,10 @@ const RestockSessionsContent: React.FC = () => {
         action: typeof rawParams.action === 'string' ? rawParams.action : undefined,
       };
     }
-    return {};
+    return {
+      sessionId: undefined,
+      action: undefined
+    };
   }, [rawParams]);
   
   // ✅ CORRECT: Memoize sessionId and action
@@ -264,9 +267,15 @@ const RestockSessionsContent: React.FC = () => {
 
   // --- LOAD SESSION FROM DASHBOARD ---
   useEffect(() => {
-    if (sessionId && action === 'continue' && !sessionContext.currentSession) {
+    // Only run if we have a sessionId and action, and we're not already loading
+    // and the current session is different from the one we want to load
+    if (sessionId && 
+        action === 'continue' && 
+        !sessionContext.isLoadingSpecificSession &&
+        sessionContext.currentSession?.toValue().id !== sessionId) {
       const loadSessionAndOpenForm = async () => {
         try {
+          console.log('🚀 Loading specific session from dashboard:', sessionId);
           await sessionContext.loadExistingSession(sessionId);
           setToastMessage('Session loaded successfully! Continue adding products...');
         } catch (error) {
@@ -274,9 +283,11 @@ const RestockSessionsContent: React.FC = () => {
           console.error('[RestockSessions] loadSessionAndOpenForm error:', error);
         }
       };
-      setTimeout(loadSessionAndOpenForm, 200);
+      
+      // Load immediately for better UX when coming from dashboard
+      loadSessionAndOpenForm();
     }
-  }, [sessionId, action, sessionContext.currentSession, sessionContext.loadExistingSession]);
+  }, [sessionId, action, sessionContext.loadExistingSession, sessionContext.isLoadingSpecificSession, sessionContext.currentSession]);
 
   // --- AUTH ERROR HANDLING (after all hooks are called) ---
   if (authError) {

@@ -13,6 +13,7 @@ export const getRestockSessionsStyles = (t: AppColors) => StyleSheet.create({
   // Main container with notepad background
   container: {
     flex: 1,
+    paddingTop: 60,
     backgroundColor: t.neutral.lighter, // Warm paper background
     overflow: "scroll",
   },

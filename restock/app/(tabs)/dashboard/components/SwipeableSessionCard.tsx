@@ -41,6 +41,7 @@ interface SwipeableSessionCardProps {
   session: UnfinishedSession;
   index: number;
   onSessionDeleted: (sessionId: string) => void;
+  onSessionTap?: (sessionId: string, sessionName?: string, sessionIndex?: number) => void;
 }
 
 const SWIPE_THRESHOLD = -80;
@@ -50,6 +51,7 @@ export const SwipeableSessionCard: React.FC<SwipeableSessionCardProps> = ({
   session,
   index,
   onSessionDeleted,
+  onSessionTap,
 }) => {
   const { width: SCREEN_WIDTH } = useWindowDimensions();
   const dashboardStyles = useThemedStyles(getDashboardStyles);
@@ -167,6 +169,27 @@ export const SwipeableSessionCard: React.FC<SwipeableSessionCardProps> = ({
     );
   };
 
+  const handleSessionTap = () => {
+    // Call the tracking function first
+    if (onSessionTap) {
+      onSessionTap(session.id, session.name, index);
+    }
+    
+    console.log('🚀 Navigating to restock-sessions with params:', {
+      sessionId: session.id,
+      action: 'continue'
+    });
+    
+    // Use params object instead of query string
+    router.push({
+      pathname: '/(tabs)/restock-sessions' as any,
+      params: {
+        sessionId: session.id,
+        action: 'continue'
+      }
+    });
+  };
+
   const gestureHandler = useAnimatedGestureHandler<PanGestureHandlerGestureEvent>({
     onStart: () => {
       // Reset delete button opacity when starting new gesture
@@ -268,7 +291,7 @@ export const SwipeableSessionCard: React.FC<SwipeableSessionCardProps> = ({
                   dashboardStyles.continueButton,
                   { backgroundColor: sessionColor.primary }
                 ]}
-                onPress={() => router.push(`/(tabs)/restock-sessions?sessionId=${session.id}&action=continue` as any)}
+                onPress={handleSessionTap}
               >
                 <Text style={[dashboardStyles.continueButtonText, { color: '#FFFFFF' }]}>Continue</Text>
               </TouchableOpacity>
