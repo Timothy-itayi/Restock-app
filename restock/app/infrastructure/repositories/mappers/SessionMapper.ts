@@ -43,8 +43,8 @@ export interface DbSessionForUpdate {
   itemRecords: Array<{
     id?: string;
     session_id: string;
-    product_id: string;
-    supplier_id: string;
+    product_name: string;
+    supplier_name: string;
     quantity: number;
     notes?: string;
   }>;
@@ -73,7 +73,7 @@ export class SessionMapper {
       status: domainStatus,
       items: [], // Items will be loaded separately in the repository
       createdAt: new Date(dbSession.created_at),
-      updatedAt: new Date(dbSession.updated_at)
+      updatedAt: dbSession.updated_at ? new Date(dbSession.updated_at) : undefined
     };
 
     return RestockSession.fromValue(sessionValue);
@@ -93,7 +93,7 @@ export class SessionMapper {
       productId: item.id,
       productName: item.product_name,
       quantity: item.quantity,
-      supplierId: item.supplier_id || item.supplier_name, // Use supplier_name as ID if supplier_id not available
+      supplierId: item.supplier_name, // Use supplier_name as ID since supplier_id doesn't exist in RestockItem
       supplierName: item.supplier_name,
       supplierEmail: item.supplier_email,
       notes: item.notes
@@ -106,7 +106,7 @@ export class SessionMapper {
       status: domainStatus,
       items: domainItems,
       createdAt: new Date(dbSession.created_at),
-      updatedAt: new Date(dbSession.updated_at)
+      updatedAt: dbSession.updated_at ? new Date(dbSession.updated_at) : undefined
     };
 
     return RestockSession.fromValue(sessionValue);
@@ -166,8 +166,8 @@ export class SessionMapper {
 
     const itemRecords = value.items.map(item => ({
       session_id: value.id,
-      product_id: item.productId,
-      supplier_id: item.supplierId,
+      product_name: item.productName, // Use product_name instead of product_id
+      supplier_name: item.supplierName, // Use supplier_name instead of supplier_id
       quantity: item.quantity,
       notes: item.notes
     }));

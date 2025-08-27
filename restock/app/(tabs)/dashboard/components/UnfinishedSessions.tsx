@@ -20,11 +20,13 @@ interface UnfinishedSession {
 interface UnfinishedSessionsProps {
   sessionsLoading: boolean;
   unfinishedSessions: UnfinishedSession[];
+  onSessionTap?: (sessionId: string, sessionName?: string, sessionIndex?: number) => void;
 }
 
 export const UnfinishedSessions: React.FC<UnfinishedSessionsProps> = ({
   sessionsLoading,
-  unfinishedSessions
+  unfinishedSessions,
+  onSessionTap
 }) => {
   const dashboardStyles = useThemedStyles(getDashboardStyles);
   const [sessions, setSessions] = useState<UnfinishedSession[]>(unfinishedSessions);
@@ -72,6 +74,7 @@ export const UnfinishedSessions: React.FC<UnfinishedSessionsProps> = ({
           session={session}
           index={index}
           onSessionDeleted={handleSessionDeleted}
+          onSessionTap={onSessionTap}
         />
       ))}
     </View>

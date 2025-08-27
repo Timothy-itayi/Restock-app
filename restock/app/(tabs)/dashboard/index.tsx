@@ -58,7 +58,7 @@ export default function DashboardScreen() {
   const dashboardStyles = useThemedStyles(getDashboardStyles);
   
   const [displayStartTime] = useState(Date.now());
-  const { unfinishedSessions, finishedSessions, sessionsLoading, refreshing, onRefresh } = useDashboardData();
+  const { unfinishedSessions, finishedSessions, sessionsLoading, refreshing, onRefresh, trackSessionTap } = useDashboardData();
 
   // Profile data is now handled automatically by UnifiedAuthProvider
   // No need for manual fetching in components
@@ -130,7 +130,8 @@ export default function DashboardScreen() {
 
       <UnfinishedSessions 
         sessionsLoading={sessionsLoading} 
-        unfinishedSessions={unfinishedSessions} 
+        unfinishedSessions={unfinishedSessions}
+        onSessionTap={trackSessionTap}
       />
 
       <FinishedSessions 

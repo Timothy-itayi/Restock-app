@@ -56,7 +56,17 @@ export function useDashboardData() {
   const [isFetching, setIsFetching] = useState(false);
   const fetchPromiseRef = useRef<Promise<void> | null>(null);
 
-  const canLoad = useMemo(() => authReady && isAuthenticated && !!userId && isProfileSetupComplete, [authReady, isAuthenticated, userId, isProfileSetupComplete]);
+  const canLoad = useMemo(() => {
+    const ready = authReady && isAuthenticated && !!userId;
+    console.log('🔍 Dashboard canLoad check:', {
+      authReady,
+      isAuthenticated,
+      hasUserId: !!userId,
+      isProfileSetupComplete,
+      canLoad: ready
+    });
+    return ready;
+  }, [authReady, isAuthenticated, userId, isProfileSetupComplete]);
 
   const fetchSessions = useCallback(async () => {
     // Don't fetch if we can't load or already fetching
@@ -136,7 +146,7 @@ export function useDashboardData() {
       if (dataInitialized && (unfinishedSessions.length > 0 || finishedSessions.length > 0)) {
         setTimeout(() => {
           fetchSessions();
-        }, 1000);
+        }, 200); // Reduced from 1000ms
       }
     });
     return () => sub.remove();
@@ -147,20 +157,20 @@ export function useDashboardData() {
       if (dataInitialized && (unfinishedSessions.length > 0 || finishedSessions.length > 0)) {
         setTimeout(() => {
           fetchSessions();
-        }, 500);
+        }, 100); // Reduced from 500ms
       }
     });
     return () => sub.remove();
   }, [fetchSessions, dataInitialized, unfinishedSessions.length, finishedSessions.length]);
 
-  // Force clear loading state after 10 seconds to prevent stuck skeleton
+  // Force clear loading state after 3 seconds to prevent stuck skeleton (reduced from 10s)
   useEffect(() => {
     const timeout = setTimeout(() => {
       if (sessionsLoading) {
         console.log('⚠️ Dashboard: Force clearing stuck loading state');
         setSessionsLoading(false);
       }
-    }, 10000);
+    }, 3000); // Reduced from 10000ms
 
     return () => clearTimeout(timeout);
   }, [sessionsLoading]);
@@ -173,8 +183,8 @@ export function useDashboardData() {
       const now = Date.now();
       const timeSinceLastRefresh = now - lastRefreshTime;
       
-      // Only refresh if we have data and it's been more than 10 seconds
-      if (dataInitialized && timeSinceLastRefresh > 10000) {
+      // Only refresh if we have data and it's been more than 3 seconds (reduced from 10s)
+      if (dataInitialized && timeSinceLastRefresh > 3000) {
         fetchSessions();
       }
     }, [canLoad, fetchSessions, lastRefreshTime, hasError, dataInitialized])
@@ -192,6 +202,17 @@ export function useDashboardData() {
     }
   }, [fetchSessions, userId]);
 
+  // 🔍 NEW: Track session tap for debugging
+  const trackSessionTap = useCallback((sessionId: string, sessionName?: string, sessionIndex?: number) => {
+    console.log('🚀 Dashboard: Session tapped for continue:', {
+      sessionId,
+      sessionName,
+      sessionIndex,
+      timestamp: new Date().toISOString(),
+      userId
+    });
+  }, [userId]);
+
   return {
     sessionsLoading,
     unfinishedSessions,
@@ -200,6 +221,8 @@ export function useDashboardData() {
     onRefresh,
     hasError,
     dataInitialized,
+    // 🔍 NEW: Expose session tap tracking
+    trackSessionTap,
   };
 }
 
