@@ -223,6 +223,29 @@ export class SupabaseSessionRepository implements SessionRepository {
       throw new Error(`Failed to update session name: ${error.message}`);
     }
   }
+ 
+async updateRestockItem(itemId: string, updates: {
+  productName?: string;
+  quantity?: number;
+  supplierName?: string;
+  supplierEmail?: string;
+  notes?: string;
+}): Promise<void> {
+  const client = await supabaseWithAuth();
+  
+  const { error } = await client.rpc('update_restock_item', {
+    p_item_id: itemId,
+    p_product_name: updates.productName || '',
+    p_quantity: updates.quantity || 0,
+    p_supplier_name: updates.supplierName || '',
+    p_supplier_email: updates.supplierEmail || '',
+    p_notes: updates.notes || null
+  });
+
+  if (error) {
+    throw new Error(`Failed to update restock item: ${error.message}`);
+  }
+}
 
   async updateStatus(sessionId: string, status: string): Promise<void> {
     const client = await supabaseWithAuth();

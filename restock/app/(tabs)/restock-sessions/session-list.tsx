@@ -8,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useUnifiedAuth } from '../../auth/UnifiedAuthProvider';
 
 // Hooks
-import { useSessionList } from './hooks/useSessionList';
+
 import { useSessionContext } from './context/SessionContext';
 
 // Components

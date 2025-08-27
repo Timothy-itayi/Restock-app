@@ -115,7 +115,7 @@ export class RestockSession {
     });
   }
 
-  updateItem(productId: string, updates: Partial<Pick<RestockItemValue, 'quantity' | 'notes'>>): RestockSession {
+  updateItem(productId: string, updates: Partial<Pick<RestockItemValue, 'productName' | 'quantity' | 'supplierName' | 'supplierEmail' | 'notes'>>): RestockSession {
     if (updates.quantity !== undefined && updates.quantity <= 0) {
       throw new Error('Quantity must be greater than zero');
     }
@@ -180,6 +180,10 @@ export class RestockSession {
   // Query methods
   hasProduct(productId: string): boolean {
     return this.value.items.some(item => item.productId === productId);
+  }
+
+  findItemById(productId: string): RestockItemValue | undefined {
+    return this.value.items.find(item => item.productId === productId);
   }
 
   isEmpty(): boolean {

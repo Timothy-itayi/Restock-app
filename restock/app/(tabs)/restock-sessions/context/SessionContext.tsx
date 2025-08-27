@@ -49,6 +49,17 @@ interface SessionContextState {
     supplierEmail: string;
     notes?: string;
   }) => Promise<{ success: boolean; error?: string }>;
+  
+  // 🔍 NEW: Edit and delete product functionality
+  editProduct: (productId: string, updates: {
+    productName?: string;
+    quantity?: number;
+    supplierName?: string;
+    supplierEmail?: string;
+    notes?: string;
+  }) => Promise<{ success: boolean; error?: string }>;
+  
+  deleteProduct: (productId: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 const SessionContext = createContext<SessionContextState | null>(null);
@@ -64,8 +75,6 @@ interface SessionProviderProps {
 }
 
 export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) => {
-  console.log('🚀 SessionProvider: Initializing...');
-
   const { userId } = useUnifiedAuth();
   const { sessionRepository, isSupabaseReady } = useRepositories();
 
@@ -139,6 +148,11 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
       console.log('🔍 SessionContext: Repository returned:', session ? 'Session found' : 'Session not found');
       
       if (session) {
+        console.log('🔍 SessionContext: Session object type before setState:', typeof session);
+        console.log('🔍 SessionContext: Session constructor:', session.constructor?.name);
+        console.log('🔍 SessionContext: Session has findItemById:', typeof session.findItemById);
+        console.log('🔍 SessionContext: Session methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(session)));
+        
         setCurrentSession(session);
         setWorkflowState('adding');
         console.log('✅ SessionContext: Loaded specific session by ID', session.toValue());
@@ -267,6 +281,75 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
     }
   }, [isSupabaseReady, sessionRepository, currentSession]);
 
+  // 🔍 NEW: Edit product functionality
+  const editProduct = useCallback(async (productId: string, updates: {
+    productName?: string;
+    quantity?: number;
+    supplierName?: string;
+    supplierEmail?: string;
+    notes?: string;
+  }) => {
+    console.log('🔄 SessionContext: Editing product in session:', productId, updates);
+    if (!isSupabaseReady || !sessionRepository) {
+      return { success: false, error: 'System not ready to edit product' };
+    }
+    if (!currentSession) {
+      return { success: false, error: 'No active session' };
+    }
+    
+    try {
+      setIsSessionLoading(true);
+      
+      // Update the restock item directly in the database
+      await sessionRepository.updateRestockItem(productId, updates);
+      
+      // Update the product in the domain entity for local state only
+      const updatedSession = currentSession.updateItem(productId, updates);
+      
+      // Update the current session state (no need to save to DB)
+      setCurrentSession(updatedSession);
+      
+      console.log('✅ SessionContext: Product edited successfully');
+      return { success: true };
+    } catch (err) {
+      console.error('❌ SessionContext: Error editing product', err);
+      return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
+    } finally {
+      setIsSessionLoading(false);
+    }
+  }, [isSupabaseReady, sessionRepository, currentSession]);
+  // 🔍 NEW: Delete product functionality
+  const deleteProduct = useCallback(async (productId: string) => {
+    console.log('🗑️ SessionContext: Deleting product from session:', productId);
+    if (!isSupabaseReady || !sessionRepository) {
+      return { success: false, error: 'System not ready to delete product' };
+    }
+    if (!currentSession) {
+      return { success: false, error: 'No active session' };
+    }
+    
+    try {
+      setIsSessionLoading(true);
+      
+      // Remove the item from the database
+      await sessionRepository.removeItem(productId);
+      
+      // Update the domain entity
+      const updatedSession = currentSession.removeItem(productId);
+      
+      // Update the current session state
+      setCurrentSession(updatedSession);
+      
+      console.log('✅ SessionContext: Product deleted successfully');
+      return { success: true };
+    } catch (err) {
+      console.error('❌ SessionContext: Error deleting product', err);
+      return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
+    } finally {
+      setIsSessionLoading(false);
+    }
+  }, [isSupabaseReady, sessionRepository, currentSession]);
+
   // --- Initialization ---
   useEffect(() => {
     const init = async () => {
@@ -298,7 +381,41 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
   }, [userId, isSupabaseReady, sessionRepository, pendingSessionId, currentSession, isInitializing]);
 
   // --- Context Value ---
-  const contextValue = useMemo<SessionContextState>(() => ({
+  const contextValue = useMemo<SessionContextState>(() => {
+    // Debug: Check session object type when creating context value
+    if (currentSession) {
+      console.log('🔍 SessionContext: Context value - Session object type:', typeof currentSession);
+      console.log('🔍 SessionContext: Context value - Session constructor:', currentSession.constructor?.name);
+      console.log('🔍 SessionContext: Context value - Session has findItemById:', typeof currentSession.findItemById);
+    }
+    
+    return {
+      currentSession,
+      isSessionActive,
+      isSessionLoading,
+      isInitializing,
+      isStartingNewSession,
+      isAddingProducts,
+      isFinishingSession,
+      startNewSession,
+      loadExistingSession,
+      clearCurrentSession,
+      setSessionWorkflowState,
+      sessionName,
+      sessionId,
+      isLoadingSpecificSession,
+      pendingSessionId,
+      isSupabaseReady,
+      availableSessions,
+      isLoadingSessions,
+      loadAvailableSessions,
+      switchToSession,
+      deleteSession,
+      addProduct,
+      editProduct,
+      deleteProduct,
+    };
+  }, [
     currentSession,
     isSessionActive,
     isSessionLoading,
@@ -306,29 +423,6 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
     isStartingNewSession,
     isAddingProducts,
     isFinishingSession,
-    startNewSession,
-    loadExistingSession,
-    clearCurrentSession,
-    setSessionWorkflowState,
-    sessionName,
-    sessionId,
-    isLoadingSpecificSession,
-    pendingSessionId,
-    isSupabaseReady,
-    availableSessions,
-    isLoadingSessions,
-    loadAvailableSessions,
-    switchToSession,
-    deleteSession,
-    addProduct,
-  }), [
-    currentSession,
-    isSessionActive,
-    isSessionLoading,
-    isInitializing,
-    isStartingNewSession,
-    isAddingProducts,
-    isFinishingSession,
     sessionName,
     sessionId,
     isLoadingSpecificSession,
@@ -344,6 +438,8 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
     switchToSession,
     deleteSession,
     addProduct,
+    editProduct,
+    deleteProduct,
   ]);
 
   return <SessionContext.Provider value={contextValue}>{children}</SessionContext.Provider>;

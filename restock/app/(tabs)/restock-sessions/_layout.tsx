@@ -18,6 +18,13 @@ export default function RestockSessionsLayout() {
         }}
       />
       <Stack.Screen
+        name="edit-product"
+        options={{
+          title: 'Edit Product',
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
         name="session-list"
         options={{
           title: 'Session List',

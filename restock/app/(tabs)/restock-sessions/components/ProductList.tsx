@@ -6,7 +6,7 @@ import { useThemedStyles } from '../../../../styles/useThemedStyles';
 
 interface ProductListProps {
   session: any | null; // domain session or legacy UI type
-  onEditProduct: (productId: string) => void;
+  onEditProduct: (product: any) => void;
   onDeleteProduct: (productId: string) => void;
 }
 
@@ -103,7 +103,7 @@ export const ProductList: React.FC<ProductListProps> = ({
                 <View style={restockSessionsStyles.productActions}>
                   <TouchableOpacity
                     style={restockSessionsStyles.editIconButton}
-                    onPress={() => onEditProduct(productId)}
+                    onPress={() => onEditProduct(product)}
                   >
                     <Ionicons name="pencil" size={16} color="#FFFFFF" />
                   </TouchableOpacity>
@@ -126,7 +126,7 @@ export const ProductList: React.FC<ProductListProps> = ({
                 </View>
               </TouchableOpacity>
               
-              {/* Expanded product details */}
+                                          {/* Expanded product details */}
               {isExpanded && (
                 <View style={restockSessionsStyles.productDetails}>
                   <View style={restockSessionsStyles.productInfoRow}>
