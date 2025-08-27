@@ -443,11 +443,60 @@ const RestockSessionsContent: React.FC = () => {
 
             <ProductList
               session={sessionContext.currentSession}
-              onEditProduct={async (productId) => setToastMessage('Product editing coming soon')}
+              onEditProduct={async (product) => {
+                if (!sessionContext.currentSession) return setToastMessage('No active session');
+                
+                if (!product) {
+                  setToastMessage('Product not found');
+                  return;
+                }
+                
+                // Navigate to edit-product screen
+                const { router } = await import('expo-router');
+                try {
+                  await router.push({
+                    pathname: '/(tabs)/restock-sessions/edit-product' as any,
+                    params: { 
+                      sessionId: sessionContext.currentSession.toValue().id,
+                      editProductId: product.productId || product.id,
+                      editProductName: product.productName,
+                      editQuantity: product.quantity?.toString(),
+                      editSupplierName: product.supplierName,
+                      editSupplierEmail: product.supplierEmail,
+                      editNotes: product.notes
+                    }
+                  });
+                } catch (error) {
+                  console.error('Navigation error:', error);
+                  // Fallback to relative navigation
+                  router.push({
+                    pathname: 'edit-product' as any,
+                    params: { 
+                      sessionId: sessionContext.currentSession.toValue().id,
+                      editProductId: product.productId || product.id,
+                      editProductName: product.productName,
+                      editQuantity: product.quantity?.toString(),
+                      editSupplierName: product.supplierName,
+                      editSupplierEmail: product.supplierEmail,
+                      editNotes: product.notes
+                    }
+                  });
+                }
+              }}
               onDeleteProduct={async (productId) => {
                 if (!sessionContext.currentSession) return setToastMessage('No active session');
-                // TODO: Implement product deletion through session context
-                setToastMessage('Product deletion coming soon');
+                
+                try {
+                  const result = await sessionContext.deleteProduct(productId);
+                  if (result.success) {
+                    setToastMessage('Product deleted successfully');
+                  } else {
+                    setToastMessage(`Failed to delete product: ${result.error}`);
+                  }
+                } catch (error) {
+                  console.error('Error deleting product:', error);
+                  setToastMessage('An error occurred while deleting the product');
+                }
               }}
             />
 

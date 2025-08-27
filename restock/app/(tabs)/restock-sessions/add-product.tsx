@@ -20,7 +20,7 @@ import { useThemedStyles } from '../../../styles/useThemedStyles';
 import { getRestockSessionsStyles } from '../../../styles/components/restock-sessions';
 
 export default function AddProductScreen() {
-  // Params
+  // Params - simplified for add mode only
   const params = useLocalSearchParams();
   const pendingName = params?.pendingName ?? '';
   const sessionId = params?.sessionId ?? '';
@@ -38,7 +38,7 @@ export default function AddProductScreen() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
 
-  /** --- Async initialization effect --- */
+  /** --- Single initialization effect for add mode --- */
   useEffect(() => {
     const init = async () => {
       if (!userId || !isSupabaseReady) return;
@@ -46,36 +46,21 @@ export default function AddProductScreen() {
       setIsInitializing(true);
 
       try {
-        console.log('🔄 AddProductScreen: Initializing with params:', {
-          sessionId,
-          isExistingSession,
-          pendingName,
-          hasCurrentSession: !!sessionContext.currentSession
-        });
+        console.log('🔄 AddProductScreen: Initializing add mode');
 
         // Load existing session if needed
         if (isExistingSession && sessionId) {
-          console.log('🔄 AddProductScreen: Loading existing session:', sessionId);
           await sessionContext.loadExistingSession(sessionId as string);
           
-          // Verify the session was loaded
           if (!sessionContext.currentSession) {
-            console.error('❌ AddProductScreen: Failed to load existing session after loadExistingSession call');
             setToastMessage('Failed to load existing session. Please try again.');
             return;
           }
-          
-          console.log('✅ AddProductScreen: Existing session loaded successfully:', sessionContext.currentSession.toValue().id);
         }
         // Start new session if none exists
-        else if (!sessionContext.currentSession) {
-          if (pendingName) {
-            console.log('🔄 AddProductScreen: Starting new session with name:', pendingName);
-            await sessionContext.startNewSession(pendingName as string);
-          }
+        else if (!sessionContext.currentSession && pendingName) {
+          await sessionContext.startNewSession(pendingName as string);
         }
-        
-        console.log('✅ AddProductScreen: Initialization complete. Current session:', sessionContext.currentSession?.toValue().id);
       } catch (error) {
         console.error('❌ AddProductScreen init error:', error);
         setToastMessage('Failed to initialize session');
@@ -84,9 +69,9 @@ export default function AddProductScreen() {
       }
     };
     init();
-  }, [userId, isSupabaseReady, sessionId, isExistingSession, pendingName, sessionContext.loadExistingSession, sessionContext.startNewSession]);
+  }, [userId, isSupabaseReady, sessionId, isExistingSession, pendingName, sessionContext]);
 
-  /** --- Form submission handler --- */
+  /** --- Form submission handler for adding products --- */
   const handleSubmit = useCallback(async (values: {
     productName: string;
     quantity: number;
@@ -110,7 +95,7 @@ export default function AddProductScreen() {
       let sessionToUse = sessionContext.currentSession;
 
       if (!sessionToUse) {
-        const sessionName = pendingName || `Restock Session ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+        const sessionName = pendingName || `Restock Session ${new Date().toLocaleDateString()}`;
         const result = await sessionContext.startNewSession(sessionName as string);
         if (!result.success) throw new Error(result.error || 'Failed to create session');
         sessionToUse = sessionContext.currentSession;
@@ -119,22 +104,27 @@ export default function AddProductScreen() {
 
       if (!sessionToUse) throw new Error('No session available');
 
-      await sessionRepository.addItem(sessionToUse.id, {
-        productId: `temp_${Date.now()}`,
+      // Add new product
+      console.log('🔄 AddProductScreen: Adding new product to session');
+      
+      const result = await sessionContext.addProduct({
         productName: values.productName,
         quantity: values.quantity,
-        supplierId: `temp_${Date.now()}`,
         supplierName: values.supplierName,
         supplierEmail: values.supplierEmail,
         notes: values.notes
       });
-
-      setToastMessage('Product added successfully!');
-      productForm.resetForm();
-      setTimeout(() => router.back(), 1500);
+      
+      if (result.success) {
+        setToastMessage('Product added successfully!');
+        productForm.resetForm();
+        setTimeout(() => router.back(), 1500);
+      } else {
+        setToastMessage(`Failed to add product: ${result.error}`);
+      }
     } catch (error) {
-      console.error('[AddProductScreen] Error adding product:', error);
-      setToastMessage('An error occurred while adding the product');
+      console.error('[AddProductScreen] Error in handleSubmit:', error);
+      setToastMessage('An error occurred while processing the product');
     } finally {
       setIsSubmitting(false);
     }
@@ -155,20 +145,8 @@ export default function AddProductScreen() {
     } else router.back();
   }, [productForm?.formData, router]);
 
-  // 🔍 NEW: Debug form dependencies
-  useEffect(() => {
-    console.log('🔍 AddProductScreen: Form dependencies check:', {
-      hasProductForm: !!productForm,
-      isSupabaseReady,
-      hasSessionRepository: !!sessionRepository,
-      hasProductRepository: !!productRepository,
-      currentSession: !!sessionContext.currentSession
-    });
-  }, [productForm, isSupabaseReady, sessionRepository, productRepository, sessionContext.currentSession]);
-
   /** --- Render loading state if initializing --- */
   if (isInitializing || sessionContext.isSessionLoading) {
-    console.log('🔄 AddProductScreen: Showing loading state - isInitializing:', isInitializing, 'isSessionLoading:', sessionContext.isSessionLoading);
     return (
       <SafeAreaView style={[restockSessionsStyles.container, { paddingTop: 20, justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color="#333" />
@@ -177,9 +155,8 @@ export default function AddProductScreen() {
     );
   }
 
-  // 🔍 NEW: Show error state if we're supposed to have a session but don't
+  /** --- Show error state if session loading failed --- */
   if (isExistingSession && sessionId && !sessionContext.currentSession) {
-    console.log('❌ AddProductScreen: Showing session loading failed state');
     return (
       <SafeAreaView style={[restockSessionsStyles.container, { paddingTop: 20, justifyContent: 'center', alignItems: 'center' }]}>
         <Text style={{ fontSize: 18, color: '#dc3545', textAlign: 'center', marginBottom: 16 }}>
@@ -203,7 +180,13 @@ export default function AddProductScreen() {
     );
   }
 
-  console.log('✅ AddProductScreen: Reached main render logic. About to render form...');
+  /** --- Get header title --- */
+  const getHeaderTitle = () => {
+    if (sessionContext.currentSession) {
+      return `Add Product to ${sessionContext.currentSession.toValue().name}`;
+    }
+    return 'Start New Session';
+  };
 
   return (
     <SafeAreaView style={[restockSessionsStyles.container, { paddingTop: 20 }]}>
@@ -213,7 +196,7 @@ export default function AddProductScreen() {
           <Text style={{ fontFamily: 'Satoshi-Regular', fontSize: 16, color: '#6C757D' }}>← Back</Text>
         </TouchableOpacity>
         <Text style={restockSessionsStyles.sessionHeaderTitle}>
-          {sessionContext.currentSession ? `Add Product to ${sessionContext.currentSession.toValue().name}` : 'Start New Session'}
+          {getHeaderTitle()}
         </Text>
         <View style={{ width: 60 }} />
       </View>
@@ -226,25 +209,14 @@ export default function AddProductScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={[restockSessionsStyles.formContainer, { minHeight: '100%' }]}>
-          {/* 🔍 NEW: Debug form dependencies right before rendering */}
-          {(() => {
-            console.log('🔍 AddProductScreen: Form rendering condition check:', {
-              hasProductForm: !!productForm,
-              isSupabaseReady,
-              hasSessionRepository: !!sessionRepository,
-              hasProductRepository: !!productRepository,
-              currentSession: !!sessionContext.currentSession,
-              allReady: !!(productForm && isSupabaseReady && sessionRepository && productRepository)
-            });
-            return null;
-          })()}
-          
           {productForm && isSupabaseReady && sessionRepository && productRepository ? (
             <React.Suspense fallback={<Text style={{ textAlign: 'center', color: '#666' }}>Loading form...</Text>}>
               <ProductForm
                 isNewSession={!sessionContext.currentSession}
                 onSubmit={handleSubmit}
                 isSubmitting={isSubmitting}
+                isEditMode={false}
+                submitButtonText={isSubmitting ? 'Adding Product...' : 'Add Product'}
               />
             </React.Suspense>
           ) : (
@@ -252,7 +224,6 @@ export default function AddProductScreen() {
               <Text style={{ textAlign: 'center', color: '#666', marginBottom: 16 }}>
                 Loading form...
               </Text>
-              {/* 🔍 NEW: Show which dependency is missing */}
               <Text style={{ textAlign: 'center', color: '#999', fontSize: 12 }}>
                 Missing: {[
                   !productForm && 'Product Form',

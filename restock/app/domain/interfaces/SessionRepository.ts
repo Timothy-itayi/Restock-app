@@ -21,6 +21,13 @@ export interface SessionRepository {
   removeItem(itemId: string): Promise<void>; // RPC functions handle user isolation
   updateName(sessionId: string, name: string): Promise<void>;
   updateStatus(sessionId: string, status: string): Promise<void>;
+  updateRestockItem(itemId: string, updates: {
+    productName?: string;
+    quantity?: number;
+    supplierName?: string;
+    supplierEmail?: string;
+    notes?: string;
+  }): Promise<void>;
   markAsSent(sessionId: string): Promise<{ success: boolean; error?: string }>;
 
   // Query operations
