@@ -187,12 +187,12 @@ export class SupabaseSessionRepository implements SessionRepository {
   async addItem(sessionId: string, item: any): Promise<void> {
     const client = await supabaseWithAuth();
     const { error } = await client.rpc('insert_restock_item', {
-      p_session_id: sessionId,
-      p_product_name: item.productName,
-      p_supplier_name: item.supplierName,
-      p_supplier_email: item.supplierEmail,
-      p_quantity: item.quantity,
-      p_notes: item.notes
+      p_session_id: sessionId,         // uuid
+      p_product_name: item.productName, // text
+      p_supplier_name: item.supplierName, // text
+      p_supplier_email: item.supplierEmail, // text
+      p_quantity: item.quantity,       // int
+      p_notes: item.notes ?? null      // text
     });
 
     if (error) {

@@ -345,8 +345,8 @@ export const getRestockSessionsStyles = (t: AppColors) => StyleSheet.create({
   // Add Product button (darker green with plus sign)
   addProductButton: {
     backgroundColor: t.brand.primary, // Brand green
-    width: 40,
-    height: 40,
+    width: 140,
+    height: 90,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: t.brand.primary,

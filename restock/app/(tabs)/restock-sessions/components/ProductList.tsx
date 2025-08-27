@@ -21,6 +21,9 @@ export const ProductList: React.FC<ProductListProps> = ({
   const items = session && typeof session.toValue === 'function'
     ? session.toValue().items
     : (session?.products || []);
+    
+  // Ensure items is always an array and has valid structure
+  const validItems = Array.isArray(items) ? items.filter(item => item && typeof item === 'object') : [];
 
   const handleDeleteProduct = (productId: string, productName: string) => {
     Alert.alert(
@@ -41,7 +44,7 @@ export const ProductList: React.FC<ProductListProps> = ({
     setExpandedProduct(expandedProduct === productId ? null : productId);
   };
 
-  if (!Array.isArray(items) || items.length === 0) {
+  if (validItems.length === 0) {
     return (
       <View style={restockSessionsStyles.emptyState}>
         <View style={restockSessionsStyles.emptyStateIcon}>
@@ -61,7 +64,7 @@ export const ProductList: React.FC<ProductListProps> = ({
     <View style={restockSessionsStyles.productListContainer}>
       <View style={restockSessionsStyles.productListHeader}>
         <Text style={restockSessionsStyles.productListTitle}>
-          Products ({Array.isArray(items) ? items.length : 0})
+          Products ({validItems.length})
         </Text>
         <Text style={restockSessionsStyles.productListSubtitle}>
           Tap a product to expand details
@@ -74,15 +77,18 @@ export const ProductList: React.FC<ProductListProps> = ({
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {items.map((product: any, index: number) => {
-          const isExpanded = expandedProduct === product.id;
-          const productName = product.name || product.productName;
+        {validItems.map((product: any, index: number) => {
+          // Ensure we have a stable, unique key for React
+          const productKey = product.id || product.productId || `product-${index}`;
+          const productId = product.id || product.productId;
+          const isExpanded = expandedProduct === productId;
+          const productName = product.name || product.productName || 'Unnamed Product';
           
           return (
-            <View key={product.id} style={restockSessionsStyles.productItem}>
+            <View key={productKey} style={restockSessionsStyles.productItem}>
               <TouchableOpacity
                 style={restockSessionsStyles.productHeader}
-                onPress={() => toggleProductExpansion(product.id)}
+                onPress={() => toggleProductExpansion(productId)}
                 activeOpacity={0.7}
               >
                 <View style={restockSessionsStyles.productInfo}>
@@ -90,26 +96,26 @@ export const ProductList: React.FC<ProductListProps> = ({
                     {productName}
                   </Text>
                   <Text style={restockSessionsStyles.productQuantity}>
-                    Qty: {product.quantity}
+                    Qty: {product.quantity || 0}
                   </Text>
                 </View>
                 
                 <View style={restockSessionsStyles.productActions}>
                   <TouchableOpacity
                     style={restockSessionsStyles.editIconButton}
-                    onPress={() => onEditProduct(product.id)}
+                    onPress={() => onEditProduct(productId)}
                   >
                     <Ionicons name="pencil" size={16} color="#FFFFFF" />
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={restockSessionsStyles.deleteIconButton}
-                    onPress={() => handleDeleteProduct(product.id, productName)}
+                    onPress={() => handleDeleteProduct(productId, productName)}
                   >
                     <Ionicons name="trash" size={16} color="#FFFFFF" />
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={restockSessionsStyles.expandIconButton}
-                    onPress={() => toggleProductExpansion(product.id)}
+                    onPress={() => toggleProductExpansion(productId)}
                   >
                     <Ionicons 
                       name={isExpanded ? "chevron-up" : "chevron-down"} 
@@ -130,7 +136,7 @@ export const ProductList: React.FC<ProductListProps> = ({
                   
                   <View style={restockSessionsStyles.productInfoRow}>
                     <Text style={restockSessionsStyles.productInfoLabel}>Quantity: </Text>
-                    <Text style={restockSessionsStyles.productInfoValue}>{product.quantity}</Text>
+                    <Text style={restockSessionsStyles.productInfoValue}>{product.quantity || 0}</Text>
                   </View>
                   
                   <View style={restockSessionsStyles.productInfoRow}>

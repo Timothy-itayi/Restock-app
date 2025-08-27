@@ -29,7 +29,7 @@ interface SessionContextState {
 
   sessionName: string;
   sessionId: string | null;
-
+ 
   isLoadingSpecificSession: boolean;
   pendingSessionId: string | null;
   isSupabaseReady: boolean;
@@ -40,6 +40,15 @@ interface SessionContextState {
   switchToSession: (sessionId: string) => Promise<void>;
 
   deleteSession: (sessionId: string) => Promise<{ success: boolean; error?: string }>;
+  
+  // 🔍 NEW: Add product functionality
+  addProduct: (params: {
+    productName: string;
+    quantity: number;
+    supplierName: string;
+    supplierEmail: string;
+    notes?: string;
+  }) => Promise<{ success: boolean; error?: string }>;
 }
 
 const SessionContext = createContext<SessionContextState | null>(null);
@@ -116,23 +125,32 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
 
   const loadExistingSession = useCallback(async (sessionId: string) => {
     console.log('🔄 SessionContext: Loading session by ID:', sessionId);
-    if (!isSupabaseReady || !sessionRepository) return;
+    if (!isSupabaseReady || !sessionRepository) {
+      throw new Error('System not ready to load session');
+    }
 
     try {
       setPendingSessionId(sessionId);
       setIsLoadingSpecificSession(true);
       setIsSessionLoading(true);
 
+      console.log('🔍 SessionContext: Calling sessionRepository.findById with:', sessionId);
       const session = await sessionRepository.findById(sessionId);
+      console.log('🔍 SessionContext: Repository returned:', session ? 'Session found' : 'Session not found');
+      
       if (session) {
         setCurrentSession(session);
         setWorkflowState('adding');
         console.log('✅ SessionContext: Loaded specific session by ID', session.toValue());
       } else {
-        console.warn('⚠️ SessionContext: Session not found:', sessionId);
+        const error = `Session not found: ${sessionId}`;
+        console.warn('⚠️ SessionContext:', error);
+        throw new Error(error);
       }
     } catch (err) {
       console.error('❌ SessionContext: Error loading session by ID', err);
+      // Re-throw the error so the calling component can handle it
+      throw err;
     } finally {
       setIsSessionLoading(false);
       setIsLoadingSpecificSession(false);
@@ -209,6 +227,46 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
     }
   }, [isSupabaseReady, sessionRepository, currentSession]);
 
+  // 🔍 NEW: Add product functionality
+  const addProduct = useCallback(async (params: {
+    productName: string;
+    quantity: number;
+    supplierName: string;
+    supplierEmail: string;
+    notes?: string;
+  }) => {
+    console.log('🔄 SessionContext: Adding product to session:', params);
+    if (!isSupabaseReady || !sessionRepository) {
+      return { success: false, error: 'System not ready to add product' };
+    }
+    if (!currentSession) {
+      return { success: false, error: 'No active session' };
+    }
+    
+    try {
+      setIsSessionLoading(true);
+      
+      // Add the product to the session
+      await sessionRepository.addItem(currentSession.toValue().id, {
+        productId: `temp_${Date.now()}`,
+        productName: params.productName,
+        quantity: params.quantity,
+        supplierId: `temp_${Date.now()}`,
+        supplierName: params.supplierName,
+        supplierEmail: params.supplierEmail,
+        notes: params.notes
+      });
+      
+      console.log('✅ SessionContext: Product added successfully');
+      return { success: true };
+    } catch (err) {
+      console.error('❌ SessionContext: Error adding product', err);
+      return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
+    } finally {
+      setIsSessionLoading(false);
+    }
+  }, [isSupabaseReady, sessionRepository, currentSession]);
+
   // --- Initialization ---
   useEffect(() => {
     const init = async () => {
@@ -262,6 +320,7 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
     loadAvailableSessions,
     switchToSession,
     deleteSession,
+    addProduct,
   }), [
     currentSession,
     isSessionActive,
@@ -284,6 +343,7 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
     loadAvailableSessions,
     switchToSession,
     deleteSession,
+    addProduct,
   ]);
 
   return <SessionContext.Provider value={contextValue}>{children}</SessionContext.Provider>;
