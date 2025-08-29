@@ -11,6 +11,7 @@ import React, {
 import { RestockSession, SessionStatus } from '../../../domain/entities/RestockSession';
 import { useUnifiedAuth } from '../../../auth/UnifiedAuthProvider';
 import { useRepositories } from '../../../infrastructure/supabase/SupabaseHooksProvider';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface SessionContextState {
   currentSession: RestockSession | null;
@@ -60,6 +61,20 @@ interface SessionContextState {
   }) => Promise<{ success: boolean; error?: string }>;
   
   deleteProduct: (productId: string) => Promise<{ success: boolean; error?: string }>;
+  
+  // 🔧 NEW: Email generation functionality
+  generateEmails: (options?: {
+    userStoreName?: string;
+    userName?: string;
+    userEmail?: string;
+  }) => Promise<{ success: boolean; error?: string; emailDrafts?: any[] }>;
+  
+  // 🔧 NEW: Email data access
+  generatedEmails: any[] | null;
+  hasGeneratedEmails: boolean;
+  
+  // 🔧 NEW: Clear generated emails
+  clearGeneratedEmails: () => void;
 }
 
 const SessionContext = createContext<SessionContextState | null>(null);
@@ -86,6 +101,7 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
   const [pendingSessionId, setPendingSessionId] = useState<string | null>(null);
   const [availableSessions, setAvailableSessions] = useState<RestockSession[]>([]);
   const [isLoadingSessions] = useState(false);
+  const [generatedEmails, setGeneratedEmails] = useState<any[] | null>(null);
 
   const isSessionActive = !!currentSession;
   const isStartingNewSession = workflowState === 'starting';
@@ -93,6 +109,7 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
   const isFinishingSession = workflowState === 'finishing';
   const sessionName = currentSession?.toValue().name || '';
   const sessionId = currentSession?.toValue().id || null;
+  const hasGeneratedEmails = !!generatedEmails && generatedEmails.length > 0;
 
   // --- Callbacks ---
   const startNewSession = useCallback(async (name: string) => {
@@ -172,12 +189,18 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
   }, [isSupabaseReady, sessionRepository]);
 
   const clearCurrentSession = useCallback(() => {
-    console.log('🔄 SessionContext: Clearing session');
     setCurrentSession(null);
     setWorkflowState('idle');
     setPendingSessionId(null);
-    setIsLoadingSpecificSession(false);
-    console.log('✅ SessionContext: Session cleared');
+    // 🔧 FIXED: Clear generated emails when clearing session
+    setGeneratedEmails(null);
+    console.log('✅ SessionContext: Current session cleared');
+  }, []);
+
+  // 🔧 NEW: Clear generated emails method
+  const clearGeneratedEmails = useCallback(() => {
+    setGeneratedEmails(null);
+    console.log('✅ SessionContext: Generated emails cleared');
   }, []);
 
   const setSessionWorkflowState = useCallback((state: 'starting' | 'adding' | 'finishing') => {
@@ -350,6 +373,94 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
     }
   }, [isSupabaseReady, sessionRepository, currentSession]);
 
+  // 🔧 NEW: Email generation functionality
+  const generateEmails = useCallback(async (options?: {
+    userStoreName?: string;
+    userName?: string;
+    userEmail?: string;
+  }) => {
+    console.log('🔄 SessionContext: Generating emails...');
+    if (!isSupabaseReady || !sessionRepository) {
+      return { success: false, error: 'System not ready to generate emails' };
+    }
+    if (!currentSession) {
+      return { success: false, error: 'No active session' };
+    }
+
+    try {
+      setIsSessionLoading(true);
+      
+      // 🔧 FIXED: Generate actual email content from session data
+      const sessionData = currentSession.toValue();
+      const products = sessionData.items.map(item => ({
+        name: item.productName,
+        quantity: item.quantity,
+        supplierName: item.supplierName,
+        supplierEmail: item.supplierEmail,
+        notes: item.notes
+      }));
+
+      // Generate email drafts grouped by supplier
+      const supplierGroups: { [key: string]: any[] } = {};
+      products.forEach(product => {
+        const supplierName = product.supplierName || 'Unknown Supplier';
+        if (!supplierGroups[supplierName]) {
+          supplierGroups[supplierName] = [];
+        }
+        supplierGroups[supplierName].push(product);
+      });
+
+      const emailDrafts = Object.entries(supplierGroups).map(([supplierName, supplierProducts], index) => {
+        const productList = supplierProducts.map(p => `• ${p.quantity}x ${p.name}`).join('\n');
+        const storeName = options?.userStoreName || 'Your Store';
+        const userName = options?.userName || 'Store Manager';
+        const userEmail = options?.userEmail || 'manager@store.com';
+        
+        return {
+          id: `email-${index}`,
+          supplierName,
+          supplierEmail: supplierProducts[0].supplierEmail || 'supplier@example.com',
+          subject: `Restock Order from ${storeName}`,
+          body: `Hi ${supplierName} team,\n\nWe hope you're doing well! We'd like to place a restock order for the following items:\n\n${productList}\n\nPlease confirm availability at your earliest convenience.\n\nThank you as always for your continued support.\n\nBest regards,\n${userName}\n${storeName}\n${userEmail}`,
+          status: 'draft' as const,
+          products: supplierProducts.map(p => `${p.quantity}x ${p.name}`),
+        };
+      });
+
+      // Save email data to AsyncStorage for the email screen
+      const emailSessionData = {
+        sessionId: sessionData.id,
+        products,
+        emails: emailDrafts,
+        createdAt: sessionData.createdAt,
+        editedEmails: emailDrafts // Start with generated emails as edited versions
+      };
+
+      await AsyncStorage.setItem('currentEmailSession', JSON.stringify(emailSessionData));
+      console.log('✅ SessionContext: Email content generated and saved to AsyncStorage:', emailDrafts.length, 'emails');
+      
+      // 🔧 FIXED: Set generated emails in context state for other components to access
+      setGeneratedEmails(emailDrafts);
+      
+      // Update session status in database
+      await sessionRepository.updateStatus(sessionData.id, 'email_generated');
+      
+      // Create the updated session locally for context state
+      const updatedSession = currentSession.generateEmails();
+      
+      // Update the current session in context
+      setCurrentSession(updatedSession);
+      
+      console.log('✅ SessionContext: Emails generated successfully, session status updated to:', updatedSession.toValue().status);
+      return { success: true, emailDrafts };
+    } catch (err) {
+      console.error('❌ SessionContext: Error generating emails', err);
+      return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
+    } finally {
+      setIsSessionLoading(false);
+    }
+  }, [isSupabaseReady, sessionRepository, currentSession]);
+
   // --- Initialization ---
   useEffect(() => {
     const init = async () => {
@@ -414,6 +525,10 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
       addProduct,
       editProduct,
       deleteProduct,
+      generateEmails,
+      generatedEmails,
+      hasGeneratedEmails,
+      clearGeneratedEmails,
     };
   }, [
     currentSession,
@@ -440,6 +555,10 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
     addProduct,
     editProduct,
     deleteProduct,
+    generateEmails,
+    generatedEmails,
+    hasGeneratedEmails,
+    clearGeneratedEmails,
   ]);
 
   return <SessionContext.Provider value={contextValue}>{children}</SessionContext.Provider>;

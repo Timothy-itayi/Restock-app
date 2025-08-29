@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, Alert } from 'react-native';
+import { View, Text, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { getEmailsStyles } from "../../../styles/components/emails";
 import { useThemedStyles } from "../../../styles/useThemedStyles";
-import { useUserProfile, useEmailEditor, EmailDraft, useEmailScreens } from './hooks';
+import { useUserProfile, useEmailEditor, EmailDraft, useEmailSessions } from './hooks';
 import { 
   EmailCard, 
   EmailEditModal, 
@@ -23,9 +23,9 @@ export default function EmailsScreen() {
   const { theme } = useThemeStore();
   
   // Custom hooks for separation of concerns
-  const { userProfile, isLoading: isUserLoading } = useUserProfile();
+  const { userProfile, isLoading: isUserLoading, userId } = useUserProfile();
   const {
-    sessions: emailSessions,
+    emailSessions,
     activeSession,
     activeSessionId,
     isLoading: isSessionLoading,
@@ -34,7 +34,7 @@ export default function EmailsScreen() {
     sendAllEmails,
     sendEmail,
     refreshSessions,
-  } = useEmailScreens();
+  } = useEmailSessions(userProfile, userId || undefined);
   const { 
     editingEmail, 
     editedSubject, 
@@ -45,7 +45,7 @@ export default function EmailsScreen() {
     cancelEdit, 
     setEditedSubject, 
     setEditedBody 
-  } = useEmailEditor();
+  } = useEmailEditor(userProfile);
 
   // Local state for custom modal
   const [showSendConfirmation, setShowSendConfirmation] = useState(false);
@@ -183,19 +183,6 @@ export default function EmailsScreen() {
 
   // Remove the handleClearSession function since we removed the clear button
 
-  if (isLoading) {
-    return (
-      <View style={[emailsStyles.container, { backgroundColor: useThemeStore.getState().theme.neutral.lighter }]}>
-        <View style={emailsStyles.header}>
-          <Text style={emailsStyles.headerTitle}>Emails</Text>
-        </View>
-        <View style={emailsStyles.emptyState}>
-          <Text style={emailsStyles.emptyStateText}>Loading emails...</Text>
-        </View>
-      </View>
-    );
-  }
-
   return (
     <View style={[emailsStyles.container, { backgroundColor: useThemeStore.getState().theme.neutral.lighter }]}>
       {/* Header */}
@@ -203,11 +190,87 @@ export default function EmailsScreen() {
         <Text style={emailsStyles.headerTitle}>Generated Emails</Text>
       </View>
 
-      <ScrollView 
-        style={{ flex: 1 }}
-        contentContainerStyle={{ flexGrow: 1 }}
-        showsVerticalScrollIndicator={false}
-      >
+    
+      {/* Show loading state */}
+      {isLoading && (
+        <View style={{ padding: 32, alignItems: 'center' }}>
+          <Text style={{ fontSize: 16, color: theme.neutral.medium }}>
+            Loading emails...
+          </Text>
+        </View>
+      )}
+
+      {/* 🔧 FIXED: Show emails if we have them, regardless of SessionContext state */}
+      {!isLoading && emailSessions.length > 0 && activeSession && activeSession.emails.length > 0 ? (
+        <>
+          {/* Session Tabs - hide during sending process and after all emails sent */}
+          {emailSessions.length > 1 && 
+           !activeSession.emails.some(e => e.status === 'sending') && 
+           !activeSession.emails.every(e => e.status === 'sent') && (
+            <SessionTabs
+              sessions={emailSessions}
+              activeSessionId={activeSessionId || ''}
+              onSessionChange={(id) => setActiveSessionId(id)}
+            />
+          )}
+
+          {/* Email Summary - always show if we have emails */}
+          <EmailsSummary 
+            emailCount={activeSession.emails.length}
+            userProfile={userProfile}
+          />
+
+          {/* Gmail-style Email List */}
+          {!activeSession.emails.every(e => e.status === 'sent') && (
+            <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+              <Text style={{
+                fontSize: 14,
+                fontWeight: '600',
+                color: theme.neutral.dark,
+                marginBottom: 12,
+                textTransform: 'uppercase',
+                letterSpacing: 0.5
+              }}>
+                Email Drafts ({activeSession.emails.length})
+              </Text>
+              <ScrollView style={{ maxHeight: 400 }} showsVerticalScrollIndicator={false}>
+                {activeSession.emails.map((email) => (
+                  <EmailCard
+                    key={email.id}
+                    email={email}
+                    onEdit={handleEditEmail}
+                    onSend={handleSendEmail}
+                    onTap={handleEmailTap}
+                  />
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* Success message when all emails are sent */}
+          {activeSession.emails.every(e => e.status === 'sent') && (
+            <View style={emailsStyles.successContainer}>
+              <View style={emailsStyles.successIcon}>
+                <Ionicons name="checkmark" size={32} color={theme.neutral.lightest} />
+              </View>
+              <Text style={emailsStyles.successTitle}>All Emails Sent!</Text>
+              <Text style={emailsStyles.successText}>
+                Your {activeSession.emails.length} professional restock emails have been successfully sent to suppliers. They can now reply directly to your email address.
+              </Text>
+            </View>
+          )}
+
+          {/* Action Buttons - only show if we have emails and they're not all sent */}
+          {!activeSession.emails.every(e => e.status === 'sent') && (
+            <ActionButtons
+              emailSession={activeSession}
+              onSendAll={handleSendAllEmails}
+            />
+          )}
+        </>
+      ) : !isLoading ? (
+        <EmptyState />
+      ) : null}
 
       {/* Success Message Overlay */}
       {showSuccessMessage && (
@@ -261,87 +324,6 @@ export default function EmailsScreen() {
         </View>
       )}
 
-      {/* Show empty state if no session data OR no active session */}
-      {emailSessions.length === 0 || !activeSession ? (
-        <EmptyState />
-      ) : (
-        <>
-          {/* Session Tabs - hide during sending process and after all emails sent */}
-          {emailSessions.length > 1 && 
-           !activeSession.emails.some(e => e.status === 'sending') && 
-           !activeSession.emails.every(e => e.status === 'sent') && (
-            <SessionTabs
-              sessions={emailSessions}
-              activeSessionId={activeSessionId || ''}
-              onSessionChange={(id) => setActiveSessionId(id)}
-            />
-          )}
-
-
-          {/* Email Summary - always show if we have emails */}
-          {activeSession && activeSession.emails.length > 0 && (
-            <EmailsSummary 
-              emailCount={activeSession.emails.length}
-              userProfile={userProfile}
-            />
-          )}
-
-          {/* Gmail-style Email List */}
-          {activeSession && 
-           activeSession.emails.length > 0 && 
-           !activeSession.emails.every(e => e.status === 'sent') && (
-            <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
-              <Text style={{
-                fontSize: 14,
-                fontWeight: '600',
-                color: theme.neutral.dark,
-                marginBottom: 12,
-                textTransform: 'uppercase',
-                letterSpacing: 0.5
-              }}>
-                Email Drafts ({activeSession.emails.length})
-              </Text>
-              <ScrollView style={{ maxHeight: 400 }} showsVerticalScrollIndicator={false}>
-                {activeSession.emails.map((email) => (
-                  <EmailCard
-                    key={email.id}
-                    email={email}
-                    onEdit={handleEditEmail}
-                    onSend={handleSendEmail}
-                    onTap={handleEmailTap}
-                  />
-                ))}
-              </ScrollView>
-            </View>
-          )}
-
-          {/* Success message when all emails are sent */}
-          {activeSession && 
-           activeSession.emails.length > 0 && 
-           activeSession.emails.every(e => e.status === 'sent') && (
-            <View style={emailsStyles.successContainer}>
-              <View style={emailsStyles.successIcon}>
-                <Ionicons name="checkmark" size={32} color={theme.neutral.lightest} />
-              </View>
-              <Text style={emailsStyles.successTitle}>All Emails Sent!</Text>
-              <Text style={emailsStyles.successText}>
-                Your {activeSession.emails.length} professional restock emails have been successfully sent to suppliers. They can now reply directly to your email address.
-              </Text>
-            </View>
-          )}
-
-          {/* Action Buttons - only show if we have emails and they're not all sent */}
-          {activeSession && 
-           activeSession.emails.length > 0 && 
-           !activeSession.emails.every(e => e.status === 'sent') && (
-            <ActionButtons
-              emailSession={activeSession}
-              onSendAll={handleSendAllEmails}
-            />
-          )}
-        </>
-      )}
-
       {/* Email Edit Modal */}
       <EmailEditModal
         visible={showEditModal}
@@ -373,7 +355,8 @@ export default function EmailsScreen() {
         onEdit={handleEditEmail}
         onSend={handleSendEmail}
       />
-      </ScrollView>
     </View>
+
+
   );
 }

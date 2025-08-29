@@ -28,7 +28,7 @@ export interface SessionValue {
   readonly status: SessionStatus;
   readonly items: ReadonlyArray<RestockItemValue>;
   readonly createdAt: Date;
-  readonly updatedAt?: Date;
+  // 🔧 REMOVED: updatedAt since database doesn't support it
 }
 
 /**
@@ -84,7 +84,7 @@ export class RestockSession {
   get status(): SessionStatus { return this.value.status; }
   get items(): ReadonlyArray<RestockItemValue> { return this.value.items; }
   get createdAt(): Date { return this.value.createdAt; }
-  get updatedAt(): Date | undefined { return this.value.updatedAt; }
+  // 🔧 REMOVED: updatedAt since database doesn't support it
 
   // Business logic methods
   addItem(item: Omit<RestockItemValue, 'productId'> & { productId: string }): RestockSession {
@@ -102,7 +102,7 @@ export class RestockSession {
     return new RestockSession({
       ...this.value,
       items: newItems,
-      updatedAt: new Date(),
+      // 🔧 REMOVED: updatedAt since database doesn't have updated_at column
     });
   }
 
@@ -111,7 +111,7 @@ export class RestockSession {
     return new RestockSession({
       ...this.value,
       items: newItems,
-      updatedAt: new Date(),
+      // 🔧 REMOVED: updatedAt since database doesn't have updated_at column
     });
   }
 
@@ -129,7 +129,7 @@ export class RestockSession {
     return new RestockSession({
       ...this.value,
       items: newItems,
-      updatedAt: new Date(),
+      // 🔧 REMOVED: updatedAt since database doesn't have updated_at column
     });
   }
 
@@ -142,7 +142,7 @@ export class RestockSession {
     return new RestockSession({
       ...this.value,
       name: name.trim(),
-      updatedAt: new Date(),
+      // 🔧 REMOVED: updatedAt since database doesn't have updated_at column
     });
   }
 
@@ -160,7 +160,7 @@ export class RestockSession {
     return new RestockSession({
       ...this.value,
       status: SessionStatus.EMAIL_GENERATED,
-      updatedAt: new Date(),
+      // 🔧 REMOVED: updatedAt since database doesn't have updated_at column
     });
   }
 
@@ -173,7 +173,7 @@ export class RestockSession {
     return new RestockSession({
       ...this.value,
       status: SessionStatus.SENT,
-      updatedAt: new Date(),
+      // 🔧 REMOVED: updatedAt since database doesn't have updated_at column
     });
   }
 

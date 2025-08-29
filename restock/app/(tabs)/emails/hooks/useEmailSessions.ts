@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { DeviceEventEmitter } from 'react-native';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRepositories } from '../../../infrastructure/supabase/SupabaseHooksProvider';
+import { useSessionContext } from '../../restock-sessions/context/SessionContext';
 import { UserProfile } from './useUserProfile';
 import { EmailDraft, EmailSession } from './useEmailSession';
 
@@ -9,6 +10,7 @@ const STORAGE_KEY = 'emailSessions';
 
 export function useEmailSessions(userProfile: UserProfile, userId?: string) {
   const { sessionRepository } = useRepositories();
+  const sessionContext = useSessionContext();
   const [emailSessions, setEmailSessions] = useState<EmailSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -49,7 +51,7 @@ export function useEmailSessions(userProfile: UserProfile, userId?: string) {
   };
 
   const loadAllSessions = useCallback(async () => {
-    if (!userId || !sessionRepository) {
+    if (!userId) {
       setIsLoading(false);
       return;
     }
@@ -58,42 +60,125 @@ export function useEmailSessions(userProfile: UserProfile, userId?: string) {
       setIsLoading(true);
       setError(null);
       
-      // Only load current session from temporary storage, don't track or save sessions
-      const currentSessionString = await AsyncStorage.getItem('currentEmailSession');
+      console.log('🔄 [EmailSessions] Starting to load email sessions...');
+      console.log('🔍 [EmailSessions] SessionContext state:', {
+        hasCurrentSession: !!sessionContext.currentSession,
+        sessionStatus: sessionContext.currentSession?.toValue().status,
+        hasGeneratedEmails: !!sessionContext.generatedEmails,
+        generatedEmailsCount: sessionContext.generatedEmails?.length || 0
+      });
+      
       let newSessions: EmailSession[] = [];
       
-      // If there's a current session, create it as a temporary session only
-      if (currentSessionString) {
-        const currentSessionData = JSON.parse(currentSessionString);
+      // 🔧 FIXED: Check SessionContext first for active session with generated emails
+      if (sessionContext.currentSession && 
+          sessionContext.currentSession.toValue().status === 'email_generated') {
         
-        if (currentSessionData.products && currentSessionData.products.length > 0) {
-          let emails = generateEmailsFromSession(
-            currentSessionData.products, 
+        const sessionData = sessionContext.currentSession.toValue();
+        console.log('✅ [EmailSessions] Found active session with email_generated status:', sessionData.id);
+        
+        // 🔧 FIXED: Use emails from SessionContext if available, otherwise generate them
+        let emails: EmailDraft[];
+        
+        if (sessionContext.generatedEmails && sessionContext.generatedEmails.length > 0) {
+          // Use emails already generated in SessionContext
+          emails = sessionContext.generatedEmails.map((email, index) => ({
+            id: email.id || `email-${index}`,
+            supplierName: email.supplierName,
+            supplierEmail: email.supplierEmail,
+            subject: email.subject,
+            body: email.body,
+            status: email.status || 'draft',
+            products: email.products,
+          }));
+          console.log(`✅ [EmailSessions] Using ${emails.length} emails from SessionContext`);
+        } else {
+          console.log('⚠️ [EmailSessions] No generated emails in SessionContext, generating from session data...');
+          // Fallback: generate emails from session data
+          const products = sessionData.items.map(item => ({
+            name: item.productName,
+            quantity: item.quantity,
+            supplierName: item.supplierName,
+            supplierEmail: item.supplierEmail,
+            notes: item.notes
+          }));
+
+          emails = generateEmailsFromSession(
+            products, 
             userProfile.storeName, 
             userProfile.name, 
             userProfile.email
           );
+          console.log(`✅ [EmailSessions] Generated ${emails.length} emails from session data`);
+        }
+        
+        const currentSession: EmailSession = {
+          id: sessionData.id,
+          emails,
+          totalProducts: sessionData.items.length,
+          createdAt: sessionData.createdAt,
+        };
+        
+        newSessions = [currentSession];
+        setActiveSessionId(currentSession.id);
+        
+        console.log(`✅ [EmailSessions] Loaded session from SessionContext: ${currentSession.id} with ${emails.length} emails`);
+        
+        // Also save to AsyncStorage for backward compatibility
+        const emailSessionData = {
+          sessionId: sessionData.id,
+          products: sessionData.items.map(item => ({
+            name: item.productName,
+            quantity: item.quantity,
+            supplierName: item.supplierName,
+            supplierEmail: item.supplierEmail,
+            notes: item.notes
+          })),
+          emails,
+          createdAt: sessionData.createdAt,
+          editedEmails: emails
+        };
+        await AsyncStorage.setItem('currentEmailSession', JSON.stringify(emailSessionData));
+        
+      } else {
+        console.log('⚠️ [EmailSessions] No active session in SessionContext, checking AsyncStorage...');
+        // Fallback to AsyncStorage if no active session in context
+        const currentSessionString = await AsyncStorage.getItem('currentEmailSession');
+        
+        if (currentSessionString) {
+          const currentSessionData = JSON.parse(currentSessionString);
           
-          // Check if there are edited emails
-          if (currentSessionData.editedEmails && Array.isArray(currentSessionData.editedEmails)) {
-            emails = currentSessionData.editedEmails;
+          if (currentSessionData.products && currentSessionData.products.length > 0) {
+            let emails = generateEmailsFromSession(
+              currentSessionData.products, 
+              userProfile.storeName, 
+              userProfile.name, 
+              userProfile.email
+            );
+            
+            // Check if there are edited emails
+            if (currentSessionData.editedEmails && Array.isArray(currentSessionData.editedEmails)) {
+              emails = currentSessionData.editedEmails;
+            }
+            
+            const currentSession: EmailSession = {
+              id: currentSessionData.sessionId,
+              emails,
+              totalProducts: currentSessionData.products.length,
+              createdAt: new Date(currentSessionData.createdAt),
+            };
+            
+            newSessions = [currentSession];
+            setActiveSessionId(currentSession.id);
+            
+            console.log(`✅ [EmailSessions] Loaded session from AsyncStorage: ${currentSession.id} with ${emails.length} emails`);
           }
-          
-          const currentSession: EmailSession = {
-            id: currentSessionData.sessionId,
-            emails,
-            totalProducts: currentSessionData.products.length,
-            createdAt: new Date(currentSessionData.createdAt),
-          };
-          
-          // Only show the session temporarily - don't track or save it
-          newSessions = [currentSession];
-          setActiveSessionId(currentSession.id);
-          
-          console.log(`[EmailSessions] Loaded temporary session ${currentSession.id} with ${emails.length} emails`);
+        } else {
+          console.log('📭 [EmailSessions] No session data found in AsyncStorage either');
         }
       }
       
+      console.log(`📊 [EmailSessions] Final result: ${newSessions.length} sessions loaded`);
       setEmailSessions(newSessions);
       
       // Clear old persistent storage to prevent sessions from reappearing
@@ -110,7 +195,7 @@ export function useEmailSessions(userProfile: UserProfile, userId?: string) {
     } finally {
       setIsLoading(false);
     }
-  }, [userId, sessionRepository, userProfile.storeName, userProfile.name, userProfile.email]);
+  }, [userId, sessionRepository, userProfile.storeName, userProfile.name, userProfile.email, sessionContext.currentSession, sessionContext.generatedEmails]);
 
   const saveSession = async (session: EmailSession) => {
     try {
@@ -378,6 +463,23 @@ export function useEmailSessions(userProfile: UserProfile, userId?: string) {
     };
     initialize();
   }, [loadAllSessions]);
+
+  // 🔧 NEW: Watch for SessionContext changes and reload emails when they're generated
+  useEffect(() => {
+    console.log('🔄 [EmailSessions] SessionContext changed, checking for new emails...');
+    console.log('🔍 [EmailSessions] New SessionContext state:', {
+      hasCurrentSession: !!sessionContext.currentSession,
+      sessionStatus: sessionContext.currentSession?.toValue().status,
+      hasGeneratedEmails: !!sessionContext.generatedEmails,
+      generatedEmailsCount: sessionContext.generatedEmails?.length || 0
+    });
+    
+    // If we have generated emails in SessionContext, reload the sessions
+    if (sessionContext.generatedEmails && sessionContext.generatedEmails.length > 0) {
+      console.log('✅ [EmailSessions] Detected generated emails in SessionContext, reloading...');
+      loadAllSessions();
+    }
+  }, [sessionContext.generatedEmails, sessionContext.currentSession, loadAllSessions]);
 
   return {
     emailSessions,

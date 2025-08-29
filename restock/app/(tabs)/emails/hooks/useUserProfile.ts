@@ -10,7 +10,7 @@ export interface UserProfile {
 }
 
 export const useUserProfile = () => {
-  const { userId } = useUnifiedAuth();
+  const { userId, userName, storeName, isProfileLoading, profileError } = useUnifiedAuth();
   
   const [userProfile, setUserProfile] = useState<UserProfile>({
     name: "",
@@ -30,9 +30,32 @@ export const useUserProfile = () => {
       
       try {
         setError(null);
-        // Use Clerk data for now; avoid direct backend service
-        // This keeps UI decoupled and relies on authenticated user context
-        setUserProfile((prev) => ({ ...prev }));
+        
+        // Get user email from SessionManager
+        let userEmail = 'manager@store.com'; // Default fallback
+        try {
+          const { SessionManager } = await import('../../../../backend/services/session-manager');
+          const session = await SessionManager.getUserSession();
+          if (session?.email) {
+            userEmail = session.email;
+          }
+        } catch (error) {
+          console.warn('Could not get email from SessionManager, using default');
+        }
+        
+        // Use data from UnifiedAuth system
+        const finalProfile = {
+          name: userName || 'Store Manager',
+          email: userEmail,
+          storeName: storeName || 'Your Store',
+          userName: userName || 'Store Manager'
+        };
+        
+        setUserProfile(finalProfile);
+        
+        console.log('📝 useUserProfile: Loaded profile data:', finalProfile);
+        console.log('📝 useUserProfile: Raw UnifiedAuth data:', { userId, userName, storeName, isProfileLoading, profileError });
+        
       } catch (error) {
         console.error('Error loading user profile:', error);
         setError('Failed to load user profile');
@@ -42,7 +65,7 @@ export const useUserProfile = () => {
     };
 
     loadUserProfile();
-  }, [userId]);
+  }, [userId, userName, storeName]);
 
   return {
     userProfile,

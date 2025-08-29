@@ -353,7 +353,8 @@ export class RestockSessionDomainService {
   static generateEmailDrafts(
     session: RestockSession,
     userStoreName?: string,
-    userName?: string
+    userName?: string,
+    userEmail?: string
   ): Array<{
     supplierName: string;
     supplierEmail: string;
@@ -385,7 +386,7 @@ export class RestockSessionDomainService {
       const supplierName = items[0].supplierName;
       
       const subject = this.generateEmailSubject(storeName, supplierName);
-      const body = this.generateEmailBody(items, storeName, senderName, supplierName);
+      const body = this.generateEmailBody(items, storeName, senderName, supplierName, userEmail);
       
       return {
         supplierName,
@@ -475,12 +476,15 @@ export class RestockSessionDomainService {
     items: ReadonlyArray<RestockItemValue>,
     storeName: string,
     senderName: string,
-    supplierName: string
+    supplierName: string,
+    userEmail?: string
   ): string {
     const itemList = items
       .map(item => `• ${item.quantity}x ${item.productName}`)
       .join('\n');
 
+    const email = userEmail || 'manager@store.com';
+    
     return `Hi ${supplierName} team,
 
 We hope you're doing well! We'd like to place a restock order for the following items:
@@ -493,7 +497,8 @@ Thank you for your continued support.
 
 Best regards,
 ${senderName}
-${storeName}`;
+${storeName}
+${email}`;
   }
 
   private static isValidEmail(email: string): boolean {

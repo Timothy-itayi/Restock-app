@@ -16,6 +16,7 @@ export interface GenerateEmailsCommand {
   readonly sessionId: string;
   readonly userStoreName?: string;
   readonly userName?: string;
+  readonly userEmail?: string;
 }
 
 export interface GenerateEmailsResult {
@@ -59,7 +60,8 @@ export class GenerateEmailsUseCase {
       const emailDrafts = RestockSessionDomainService.generateEmailDrafts(
         session,
         command.userStoreName,
-        command.userName
+        command.userName,
+        command.userEmail
       );
 
       // 5. Update session status to indicate emails are generated

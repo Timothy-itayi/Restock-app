@@ -203,9 +203,9 @@ export function EmailDetailModal({
               }}>
                 {userProfile.storeName || 'Your Store'}
               </Text>
-              {userProfile.userName && (
+              {userProfile.name && (
                 <Text style={{ fontSize: 14, color: theme.neutral.medium }}>
-                  {userProfile.userName}
+                  {userProfile.name}
                 </Text>
               )}
               <Text style={{
