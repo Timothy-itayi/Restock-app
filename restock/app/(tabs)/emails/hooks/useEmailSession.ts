@@ -2,6 +2,10 @@ import { useState, useEffect, useCallback } from 'react';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { UserProfile } from './useUserProfile';
 import { useRepositories } from '../../../infrastructure/supabase/SupabaseHooksProvider';
+import { useUnifiedAuth } from '../../../auth/UnifiedAuthProvider';
+
+// 🔧 NEW: Import EmailService for proper email tracking
+import { EmailService } from '../../../../backend/services/emails';
 
 export interface EmailDraft {
   id: string;
@@ -29,7 +33,9 @@ interface SessionData {
   editedEmails?: EmailDraft[];
 }
 
-export function useEmailSession(userProfile: UserProfile, userId?: string) {
+export function useEmailSession(userProfile: UserProfile) {
+  // ✅ CORRECT: Get auth state directly from UnifiedAuth like other hooks
+  const { userId, isAuthenticated, isReady: authReady, getClerkSupabaseToken } = useUnifiedAuth();
   const { sessionRepository } = useRepositories();
   const [emailSession, setEmailSession] = useState<EmailSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -185,10 +191,122 @@ export function useEmailSession(userProfile: UserProfile, userId?: string) {
         emails: updatedEmails
       });
 
+      // 🔧 FIXED: Actually send emails via Resend API with proper authentication
+      console.log('📧 [EmailSession] Starting to send all emails...');
+      
+      // Get the Clerk JWT token for authentication
+      if (!getClerkSupabaseToken) {
+        throw new Error('Authentication not available');
+      }
+      
+      const clerkToken = await getClerkSupabaseToken();
+      if (!clerkToken) {
+        throw new Error('No authentication token available');
+      }
+
+      // Send each email individually
+      const emailPromises = emailSession.emails.map(async (email, index) => {
+        try {
+          console.log(`📧 [EmailSession] Sending email ${index + 1}/${emailSession.emails.length}:`, email.supplierName);
+          
+          const emailUrl = 'https://dxnjzeefmqwhfmpknbjh.supabase.co/functions/v1/send-email';
+          const requestBody = {
+            to: email.supplierEmail,
+            subject: email.subject,
+            html: email.body,
+            from: 'noreply@restockapp.email',
+          };
+          
+          console.log(`📧 [EmailSession] Email ${index + 1} request body:`, requestBody);
+          
+          const response = await fetch(emailUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              // 🔧 FIXED: Use the Clerk JWT token for authentication
+              'Authorization': `Bearer ${clerkToken}`,
+            },
+            body: JSON.stringify(requestBody),
+          });
+
+          console.log(`📧 [EmailSession] Email ${index + 1} response status:`, response.status);
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            console.error(`❌ [EmailSession] Email ${index + 1} failed - Status:`, response.status);
+            console.error(`❌ [EmailSession] Error response:`, errorData);
+            throw new Error(errorData.message || `HTTP ${response.status}`);
+          }
+
+          const result = await response.json();
+          console.log(`✅ [EmailSession] Email ${index + 1} sent successfully:`, email.supplierName);
+          console.log(`✅ [EmailSession] Email ${index + 1} response:`, result);
+          
+          // 🔧 NEW: Track the sent email in the database via EmailService
+          try {
+            console.log(`📧 [EmailSession] Creating email record ${index + 1} in database...`);
+            const emailRecord = await EmailService.createEmail({
+              session_id: emailSession.id,
+              user_id: userId || '',
+              supplier_email: email.supplierEmail,
+              supplier_name: email.supplierName,
+              email_content: email.body,
+              delivery_status: 'sent',
+              sent_via: 'resend',
+              tracking_id: result.messageId || '',
+              resend_webhook_data: JSON.stringify(result),
+              supplier_id: `temp_${Date.now()}_${index}`, // We'll need to get actual supplier ID
+              sent_at: new Date().toISOString(),
+              status: 'sent',
+              error_message: ''
+            });
+            
+            if (emailRecord.error) {
+              console.warn(`⚠️ [EmailSession] Failed to create email record ${index + 1}:`, emailRecord.error);
+            } else {
+              console.log(`✅ [EmailSession] Email record ${index + 1} created successfully:`, emailRecord.data);
+            }
+          } catch (error) {
+            console.warn(`⚠️ [EmailSession] Error creating email record ${index + 1}:`, error);
+          }
+          
+          return { success: true, emailId: email.id, result };
+        } catch (error) {
+          console.error(`❌ [EmailSession] Email ${index + 1} failed:`, email.supplierName);
+          console.error(`❌ [EmailSession] Email ${index + 1} error:`, error);
+          return { success: false, emailId: email.id, error: error instanceof Error ? error.message : 'Unknown error' };
+        }
+      });
+
+      console.log('📧 [EmailSession] Waiting for all emails to complete...');
+      const results = await Promise.all(emailPromises);
+      const failedEmails = results.filter(r => !r.success);
+      const successfulEmails = results.filter(r => r.success);
+      
+      console.log('📊 [EmailSession] Bulk send results:');
+      console.log('📊 [EmailSession] - Successful:', successfulEmails.length);
+      console.log('📊 [EmailSession] - Failed:', failedEmails.length);
+      console.log('📊 [EmailSession] - Total:', results.length);
+      
+      if (failedEmails.length > 0) {
+        console.warn('⚠️ [EmailSession] Some emails failed to send:', failedEmails);
+        return { 
+          success: false, 
+          message: `${failedEmails.length} out of ${emailSession.emails.length} emails failed to send` 
+        };
+      }
+
+      console.log('✅ [EmailSession] All emails sent successfully!');
+
       // Mark session as sent via session repository
-      // Note: This should be updated to use the proper session repository hook
-      console.log('Session marked as sent:', emailSession.id);
-      // TODO: Implement proper session status update
+      if (sessionRepository) {
+        const result = await sessionRepository.markAsSent(emailSession.id);
+        if (result.success) {
+          console.log('✅ [EmailSession] Session marked as sent successfully');
+        } else {
+          console.error('❌ [EmailSession] Failed to mark session as sent:', result.error);
+        }
+      }
 
       // Update UI to show success
       const sentEmails = emailSession.emails.map(email => ({
@@ -206,7 +324,7 @@ export function useEmailSession(userProfile: UserProfile, userId?: string) {
       };
 
     } catch (error) {
-      console.error('Error sending emails:', error);
+      console.error('❌ [EmailSession] Error sending emails:', error);
       
       // Update UI to show failure
       const failedEmails = emailSession.emails.map(email => ({

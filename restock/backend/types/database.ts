@@ -123,6 +123,14 @@ export interface InsertEmailSent {
   supplier_email: string;
   supplier_name: string;
   email_content: string;
+  delivery_status: string;
+  sent_via: string;
+  tracking_id: string;
+  resend_webhook_data: string;
+  supplier_id: string;
+  sent_at: string;
+  status: string;
+  error_message: string;
 }
 
 export interface InsertAuditLog {
@@ -162,6 +170,14 @@ export interface UpdateRestockSession {
 }
 
 export interface UpdateEmailSent {
+  delivery_status?: string;
+  sent_via?: string;
+  tracking_id?: string;
+  resend_webhook_data?: string;
+  session_id?: string;
+  supplier_id?: string;
+  email_content?: string;
+  sent_at?: string;
   status?: 'sent' | 'delivered' | 'failed';
   error_message?: string;
 }

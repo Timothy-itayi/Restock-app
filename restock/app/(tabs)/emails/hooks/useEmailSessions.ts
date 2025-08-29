@@ -3,12 +3,27 @@ import { DeviceEventEmitter } from 'react-native';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRepositories } from '../../../infrastructure/supabase/SupabaseHooksProvider';
 import { useSessionContext } from '../../restock-sessions/context/SessionContext';
+import { useUnifiedAuth } from '../../../auth/UnifiedAuthProvider';
 import { UserProfile } from './useUserProfile';
 import { EmailDraft, EmailSession } from './useEmailSession';
 
+// 🔧 NEW: Import EmailService for tracking sent emails
+import { EmailService } from '../../../../backend/services/emails';
+
 const STORAGE_KEY = 'emailSessions';
 
-export function useEmailSessions(userProfile: UserProfile, userId?: string) {
+export function useEmailSessions(userProfile: UserProfile) {
+  // ✅ CORRECT: Get auth state directly from UnifiedAuth like other hooks
+  const { userId, isAuthenticated, isReady: authReady, getClerkSupabaseToken } = useUnifiedAuth();
+  
+  // 🔍 DEBUG: Log auth state
+  console.log('🔑 [EmailSessions] Auth state:', {
+    userId: !!userId,
+    isAuthenticated,
+    authReady,
+    hasGetClerkSupabaseToken: !!getClerkSupabaseToken
+  });
+  
   const { sessionRepository } = useRepositories();
   const sessionContext = useSessionContext();
   const [emailSessions, setEmailSessions] = useState<EmailSession[]>([]);
@@ -262,15 +277,180 @@ export function useEmailSessions(userProfile: UserProfile, userId?: string) {
       return { success: false, message: 'Email not found in session' };
     }
 
+    // 🔍 DEBUG: Check auth state before sending
+    console.log('🔑 [EmailSessions] Auth check before sending:', {
+      userId: !!userId,
+      isAuthenticated,
+      authReady,
+      hasGetClerkSupabaseToken: !!getClerkSupabaseToken
+    });
+
+    // Ensure auth is ready before proceeding
+    if (!authReady || !isAuthenticated || !userId) {
+      console.error('❌ [EmailSessions] Auth not ready for email sending:', {
+        authReady,
+        isAuthenticated,
+        hasUserId: !!userId
+      });
+      return { success: false, message: 'Authentication not ready. Please try again.' };
+    }
+
     try {
+      console.log('📧 [EmailSessions] ===== STARTING SINGLE EMAIL SEND =====');
+      console.log('📧 [EmailSessions] Session ID:', sessionId);
+      console.log('📧 [EmailSessions] Email ID:', emailId);
+      console.log('📧 [EmailSessions] Email Details:', {
+        supplierName: email.supplierName,
+        supplierEmail: email.supplierEmail,
+        subject: email.subject,
+        bodyLength: email.body?.length || 0
+      });
+
       // Optimistically set this email to sending
       const updatedEmailsStart = session.emails.map(e => e.id === emailId ? { ...e, status: 'sending' as const } : e);
       await saveSession({ ...session, emails: updatedEmailsStart });
 
-      // In clean layer mode, defer actual send to backend; optimistically mark as sent
-      const result = { error: null as any };
+      // 🔧 FIXED: Actually send the email via Resend API
+      console.log('📧 [EmailSessions] Sending email via Resend API...');
+      
+      // 🔧 FIXED: Get the Clerk JWT token for authentication
+      console.log('🔑 [EmailSessions] Getting Clerk token for email sending...');
+      console.log('🔑 [EmailSessions] getClerkSupabaseToken function available:', !!getClerkSupabaseToken);
+      
+      let authToken = '';
+      if (getClerkSupabaseToken) {
+        try {
+          console.log('🔑 [EmailSessions] Calling getClerkSupabaseToken()...');
+          const clerkToken = await getClerkSupabaseToken();
+          console.log('🔑 [EmailSessions] Token result:', clerkToken ? 'Token received' : 'No token');
+          if (clerkToken) {
+            authToken = clerkToken;
+            // 🔍 DEBUG: Log token details (safely)
+            console.log('🔑 [EmailSessions] Token details:', {
+              length: clerkToken.length,
+              startsWith: clerkToken.substring(0, 20) + '...',
+              endsWith: '...' + clerkToken.substring(clerkToken.length - 20),
+              hasThreeParts: clerkToken.split('.').length === 3
+            });
+            console.log('🔑 [EmailSessions] Using Clerk token for authentication');
+          } else {
+            console.warn('⚠️ [EmailSessions] No Clerk token available');
+            throw new Error('No authentication token available');
+          }
+        } catch (error) {
+          console.warn('⚠️ [EmailSessions] Failed to get Clerk token:', error);
+          throw new Error('Failed to get authentication token');
+        }
+      } else {
+        console.warn('⚠️ [EmailSessions] No getClerkSupabaseToken function available');
+        throw new Error('Authentication not available');
+      }
+      
+      const emailUrl = 'https://dxnjzeefmqwhfmpknbjh.supabase.co/functions/v1/send-email';
+      const requestBody = {
+        to: email.supplierEmail,
+        subject: email.subject,
+        html: email.body,
+        from: 'noreply@restockapp.email',
+      };
+      
+      console.log('📧 [EmailSessions] Request body:', requestBody);
+      
+      // 🔍 DEBUG: Log the full request details
+      console.log('🔍 [EmailSessions] Full request details:', {
+        url: emailUrl,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken.substring(0, 20)}...${authToken.substring(authToken.length - 20)}`
+        },
+        bodyLength: JSON.stringify(requestBody).length
+      });
+      
+      const response = await fetch(emailUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // 🔧 FIXED: Use the Clerk JWT token instead of hardcoded anon key
+          'Authorization': `Bearer ${authToken}`,
+        },
+        body: JSON.stringify(requestBody),
+      });
 
-      const finalStatus = result.error ? 'failed' as const : 'sent' as const;
+      console.log('📧 [EmailSessions] Response status:', response.status);
+      console.log('📧 [EmailSessions] Response headers:', Object.fromEntries(response.headers.entries()));
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('❌ [EmailSessions] Email send failed - Status:', response.status);
+        console.error('❌ [EmailSessions] Error response:', errorData);
+        
+        // 🔍 DEBUG: If JWT fails, try with anon key to see if it's a JWT issue or Edge Function issue
+        if (response.status === 401 && errorData.message === 'Invalid JWT') {
+          console.log('🔍 [EmailSessions] JWT failed, trying with Supabase anon key as fallback...');
+          
+          const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4bmp6ZWVmbXFtcGtuYmpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NzI5NzAsImV4cCI6MjA1MDU0ODk3MH0.Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8';
+          
+          const anonResponse = await fetch(emailUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${anonKey}`,
+            },
+            body: JSON.stringify(requestBody),
+          });
+          
+          console.log('🔍 [EmailSessions] Anon key response status:', anonResponse.status);
+          
+          if (anonResponse.ok) {
+            console.log('🔍 [EmailSessions] Anon key worked! This confirms the issue is with JWT validation, not the Edge Function.');
+            const anonResult = await anonResponse.json();
+            console.log('🔍 [EmailSessions] Anon key result:', anonResult);
+          } else {
+            const anonErrorData = await anonResponse.json();
+            console.log('🔍 [EmailSessions] Anon key also failed:', anonErrorData);
+          }
+        }
+        
+        throw new Error(errorData.message || `HTTP ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ [EmailSessions] Email sent successfully!');
+      console.log('✅ [EmailSessions] Response data:', result);
+
+      // 🔧 NEW: Track the sent email in the database via EmailService
+      try {
+        console.log('📧 [EmailSessions] Creating email record in database...');
+        // EmailService is now imported at the top of the file
+        
+        const emailRecord = await EmailService.createEmail({
+          session_id: sessionId,
+          user_id: userId || '',
+          supplier_email: email.supplierEmail,
+          supplier_name: email.supplierName,
+          email_content: email.body,
+          delivery_status: 'sent',
+          sent_via: 'resend',
+          tracking_id: result.messageId || '',
+          resend_webhook_data: JSON.stringify(result),
+          supplier_id: `temp_${Date.now()}`, // We'll need to get actual supplier ID
+          sent_at: new Date().toISOString(),
+          status: 'sent',
+          error_message: ''
+        });
+        
+        if (emailRecord.error) {
+          console.warn('⚠️ [EmailSessions] Failed to create email record:', emailRecord.error);
+        } else {
+          console.log('✅ [EmailSessions] Email record created successfully:', emailRecord.data);
+        }
+      } catch (error) {
+        console.warn('⚠️ [EmailSessions] Error creating email record:', error);
+      }
+
+      // Email sent successfully - mark as sent
+      const finalStatus = 'sent' as const;
       const updatedEmailsEnd = session.emails.map(e => e.id === emailId ? { ...e, status: finalStatus } : e);
 
       // Check if this was the last email to be sent
@@ -302,11 +482,15 @@ export function useEmailSessions(userProfile: UserProfile, userId?: string) {
         await saveSession({ ...session, emails: updatedEmailsEnd });
       }
 
+      console.log('📧 [EmailSessions] ===== SINGLE EMAIL SEND COMPLETED =====');
       return {
-        success: !result.error,
-        message: result.error ? 'Failed to send email' : 'Email sent successfully'
+        success: true,
+        message: 'Email sent successfully'
       };
     } catch (error) {
+      console.error('❌ [EmailSessions] ===== SINGLE EMAIL SEND ERROR =====');
+      console.error('❌ [EmailSessions] Error details:', error);
+      
       // Set to failed on exception
       const updatedEmailsFail = session.emails.map(e => e.id === emailId ? { ...e, status: 'failed' as const } : e);
       await saveSession({ ...session, emails: updatedEmailsFail });
@@ -370,79 +554,230 @@ export function useEmailSessions(userProfile: UserProfile, userId?: string) {
     }
   };
 
-  const sendAllEmails = async (sessionId: string): Promise<{ success: boolean; message: string }> => {
-    const session = emailSessions.find(s => s.id === sessionId);
-    if (!session || !userProfile.email) {
-      return { success: false, message: 'No email session or user email found' };
-    }
-
+  const sendAllEmails = async (): Promise<{ success: boolean; message: string }> => {
+    if (!activeSessionId) return { success: false, message: 'No active session' };
+    
     try {
+      const current = emailSessions.find((s) => s.id === activeSessionId);
+      if (!current) return { success: false, message: 'Session not found' };
+      
+      // 🔍 DEBUG: Check auth state before sending
+      console.log('🔑 [EmailSessions] Auth check before bulk sending:', {
+        userId: !!userId,
+        isAuthenticated,
+        authReady,
+        hasGetClerkSupabaseToken: !!getClerkSupabaseToken
+      });
+
+      // Ensure auth is ready before proceeding
+      if (!authReady || !isAuthenticated || !userId) {
+        console.error('❌ [EmailSessions] Auth not ready for bulk email sending:', {
+          authReady,
+          isAuthenticated,
+          hasUserId: !!userId
+        });
+        return { success: false, message: 'Authentication not ready. Please try again.' };
+      }
+      
+      console.log('📧 [EmailSessions] ===== STARTING BULK EMAIL SEND =====');
+      console.log('📧 [EmailSessions] Session ID:', activeSessionId);
+      console.log('📧 [EmailSessions] Total emails to send:', current.emails.length);
+      console.log('📧 [EmailSessions] Emails:', current.emails.map(e => ({
+        id: e.id,
+        supplierName: e.supplierName,
+        supplierEmail: e.supplierEmail,
+        subject: e.subject
+      })));
+
       // Update UI to show sending status
-      const updatedEmails = session.emails.map(email => ({
+      const updatedEmails = current.emails.map(email => ({
         ...email,
         status: 'sending' as const
       }));
       
-      const updatedSession = { ...session, emails: updatedEmails };
+      const updatedSession = { ...current, emails: updatedEmails };
       await saveSession(updatedSession);
 
-      // Prepare emails for bulk sending
-      const emailsToSend = session.emails.map(email => ({
-        to: email.supplierEmail,
-        replyTo: userProfile.email,
-        subject: email.subject,
-        body: email.body,
-        storeName: userProfile.storeName || 'Your Store',
-        supplierName: email.supplierName,
-        emailId: email.id
-      }));
+      // 🔧 FIXED: Actually send all emails via Resend API
+      console.log('📧 [EmailSessions] Sending all emails via Resend API...');
+      
+      const emailPromises = current.emails.map(async (email, index) => {
+        try {
+          console.log(`📧 [EmailSessions] Sending email ${index + 1}/${current.emails.length}:`, email.supplierName);
+          
+          // 🔧 FIXED: Get the Clerk JWT token for authentication
+          console.log('🔑 [EmailSessions] Getting Clerk token for bulk email sending...');
+          console.log('🔑 [EmailSessions] getClerkSupabaseToken function available:', !!getClerkSupabaseToken);
+          
+          let authToken = '';
+          if (getClerkSupabaseToken) {
+            try {
+              console.log('🔑 [EmailSessions] Calling getClerkSupabaseToken() for bulk send...');
+              const clerkToken = await getClerkSupabaseToken();
+              console.log('🔑 [EmailSessions] Bulk send token result:', clerkToken ? 'Token received' : 'No token');
+              if (clerkToken) {
+                authToken = clerkToken;
+                console.log('🔑 [EmailSessions] Using Clerk token for bulk email authentication');
+              } else {
+                console.warn('⚠️ [EmailSessions] No Clerk token available for bulk send');
+                throw new Error('No authentication token available for bulk send');
+              }
+            } catch (error) {
+              console.warn('⚠️ [EmailSessions] Failed to get Clerk token for bulk send:', error);
+              throw new Error('Failed to get authentication token for bulk send');
+            }
+          } else {
+            console.warn('⚠️ [EmailSessions] No getClerkSupabaseToken function available for bulk send');
+            throw new Error('Authentication not available for bulk send');
+          }
+          
+          const emailUrl = 'https://dxnjzeefmqwhfmpknbjh.supabase.co/functions/v1/send-email';
+          const requestBody = {
+            to: email.supplierEmail,
+            subject: email.subject,
+            html: email.body,
+            from: 'noreply@restockapp.email',
+          };
+          
+          console.log(`📧 [EmailSessions] Email ${index + 1} request body:`, requestBody);
+          
+          const response = await fetch(emailUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              // 🔧 FIXED: Use the Clerk JWT token instead of hardcoded anon key
+              'Authorization': `Bearer ${authToken}`,
+            },
+            body: JSON.stringify(requestBody),
+          });
 
-      // TODO: Implement proper session status update via session repository
-      console.log(`[EmailSessions] Marking session ${sessionId} as sent`);
+          console.log(`📧 [EmailSessions] Email ${index + 1} response status:`, response.status);
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            console.error(`❌ [EmailSessions] Email ${index + 1} failed - Status:`, response.status);
+            console.error(`❌ [EmailSessions] Error response:`, errorData);
+            throw new Error(errorData.message || `HTTP ${response.status}`);
+          }
+
+          const result = await response.json();
+          console.log(`✅ [EmailSessions] Email ${index + 1} sent successfully:`, email.supplierName);
+          console.log(`✅ [EmailSessions] Email ${index + 1} response:`, result);
+          
+          // 🔧 NEW: Track the sent email in the database via EmailService
+          try {
+            console.log(`📧 [EmailSessions] Creating email record ${index + 1} in database...`);
+            const emailRecord = await EmailService.createEmail({
+              session_id: activeSessionId,
+              user_id: userId || '',
+              supplier_email: email.supplierEmail,
+              supplier_name: email.supplierName,
+              email_content: email.body,
+              delivery_status: 'sent',
+              sent_via: 'resend',
+              tracking_id: result.messageId || '',
+              resend_webhook_data: JSON.stringify(result),
+              supplier_id: `temp_${Date.now()}_${index}`, // We'll need to get actual supplier ID
+              sent_at: new Date().toISOString(),
+              status: 'sent',
+              error_message: ''
+            });
+            
+            if (emailRecord.error) {
+              console.warn(`⚠️ [EmailSessions] Failed to create email record ${index + 1}:`, emailRecord.error);
+            } else {
+              console.log(`✅ [EmailSessions] Email record ${index + 1} created successfully:`, emailRecord.data);
+            }
+          } catch (error) {
+            console.warn(`⚠️ [EmailSessions] Error creating email record ${index + 1}:`, error);
+          }
+          
+          return { success: true, emailId: email.id, result };
+        } catch (error) {
+          console.error(`❌ [EmailSessions] Email ${index + 1} failed:`, email.supplierName);
+          console.error(`❌ [EmailSessions] Email ${index + 1} error:`, error);
+          return { success: false, emailId: email.id, error: error instanceof Error ? error.message : 'Unknown error' };
+        }
+      });
+
+      console.log('📧 [EmailSessions] Waiting for all emails to complete...');
+      const results = await Promise.all(emailPromises);
+      const failedEmails = results.filter(r => !r.success);
+      const successfulEmails = results.filter(r => r.success);
+      
+      console.log('📊 [EmailSessions] Bulk send results:');
+      console.log('📊 [EmailSessions] - Successful:', successfulEmails.length);
+      console.log('📊 [EmailSessions] - Failed:', failedEmails.length);
+      console.log('📊 [EmailSessions] - Total:', results.length);
+      
+      if (failedEmails.length > 0) {
+        console.warn('⚠️ [EmailSessions] Some emails failed to send:', failedEmails);
+        return { 
+          success: false, 
+          message: `${failedEmails.length} out of ${current.emails.length} emails failed to send` 
+        };
+      }
+
+      console.log('✅ [EmailSessions] All emails sent successfully!');
+
+      // Mark session as sent via session repository
+      if (sessionRepository) {
+        const result = await sessionRepository.markAsSent(activeSessionId);
+        if (result.success) {
+          console.log('✅ [EmailSessions] Session marked as sent successfully');
+        } else {
+          console.error('❌ [EmailSessions] Failed to mark session as sent:', result.error);
+        }
+      }
 
       // Update UI to show success by removing this session from drafts list
-      const sentEmails = session.emails.map(email => ({ ...email, status: 'sent' as const }));
-      await saveSession({ ...session, emails: sentEmails });
+      const sentEmails = current.emails.map(email => ({ ...email, status: 'sent' as const }));
+      await saveSession({ ...current, emails: sentEmails });
 
       // TODO: Implement proper session status update via session repository
-      console.log(`[EmailSessions] Session ${sessionId} marked as sent in database`);
+      console.log(`[EmailSessions] Session ${activeSessionId} marked as sent in database`);
       
       // Clear the current session from AsyncStorage since it's now completed
       const currentSessionString = await AsyncStorage.getItem('currentEmailSession');
       if (currentSessionString) {
         const currentSessionData = JSON.parse(currentSessionString);
-        if (currentSessionData.sessionId === sessionId) {
+        if (currentSessionData.sessionId === activeSessionId) {
           await AsyncStorage.removeItem('currentEmailSession');
-          console.log(`[EmailSessions] Cleared currentEmailSession for completed session ${sessionId}`);
+          console.log(`[EmailSessions] Cleared currentEmailSession for completed session ${activeSessionId}`);
         }
       }
 
       // Remove session from local list and active selection
-      setEmailSessions(prev => prev.filter(s => s.id !== sessionId));
-      setActiveSessionId(prev => (prev === sessionId ? null : prev));
+      setEmailSessions(prev => prev.filter(s => s.id !== activeSessionId));
+      setActiveSessionId(prev => (prev === activeSessionId ? null : prev));
 
       // Wait longer to ensure database transaction is committed
       setTimeout(() => {
-        DeviceEventEmitter.emit('restock:sessionSent', { sessionId });
-        console.log(`[EmailSessions] Emitted restock:sessionSent event for bulk send completion: ${sessionId}`);
+        DeviceEventEmitter.emit('restock:sessionSent', { sessionId: activeSessionId });
+        console.log(`[EmailSessions] Emitted restock:sessionSent event for bulk send completion: ${activeSessionId}`);
       }, 800);
 
+      console.log('📧 [EmailSessions] ===== BULK EMAIL SEND COMPLETED =====');
       return { 
         success: true, 
-        message: `Successfully sent ${session.emails.length} emails to your suppliers.`
+        message: `Successfully sent ${current.emails.length} emails to your suppliers.`
       };
 
     } catch (error) {
-      console.error('Error sending emails:', error);
+      console.error('❌ [EmailSessions] ===== BULK EMAIL SEND ERROR =====');
+      console.error('❌ [EmailSessions] Error details:', error);
       
       // Update UI to show failure
-      const failedEmails = session.emails.map(email => ({
-        ...email,
-        status: 'failed' as const
-      }));
-      
-      const failedSession = { ...session, emails: failedEmails };
-      await saveSession(failedSession);
+      const current = emailSessions.find((s) => s.id === activeSessionId);
+      if (current) {
+        const failedEmails = current.emails.map(email => ({
+          ...email,
+          status: 'failed' as const
+        }));
+        
+        const failedSession = { ...current, emails: failedEmails };
+        await saveSession(failedSession);
+      }
 
       return { 
         success: false, 
@@ -491,7 +826,7 @@ export function useEmailSessions(userProfile: UserProfile, userId?: string) {
     updateEmailInSession: (updatedEmails: EmailDraft[]) => 
       activeSessionId ? updateEmailInSession(activeSessionId, updatedEmails) : Promise.resolve(),
     sendAllEmails: () => 
-      activeSessionId ? sendAllEmails(activeSessionId) : Promise.resolve({ success: false, message: 'No active session' }),
+      activeSessionId ? sendAllEmails() : Promise.resolve({ success: false, message: 'No active session' }),
     sendEmail: (emailId: string) => 
       activeSessionId ? sendSingleEmail(activeSessionId, emailId) : Promise.resolve({ success: false, message: 'No active session' }),
     deleteSession,

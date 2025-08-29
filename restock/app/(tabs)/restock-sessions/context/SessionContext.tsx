@@ -8,6 +8,7 @@ import React, {
   useMemo,
   useRef,
 } from 'react';
+import { DeviceEventEmitter } from 'react-native';
 import { RestockSession, SessionStatus } from '../../../domain/entities/RestockSession';
 import { useUnifiedAuth } from '../../../auth/UnifiedAuthProvider';
 import { useRepositories } from '../../../infrastructure/supabase/SupabaseHooksProvider';
@@ -41,6 +42,9 @@ interface SessionContextState {
   switchToSession: (sessionId: string) => Promise<void>;
 
   deleteSession: (sessionId: string) => Promise<{ success: boolean; error?: string }>;
+  
+  // 🔧 NEW: Refresh sessions after email sent
+  refreshSessionsAfterEmailSent: (sentSessionId: string) => Promise<void>;
   
   // 🔍 NEW: Add product functionality
   addProduct: (params: {
@@ -212,13 +216,36 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
     console.log('🔄 SessionContext: Loading available sessions...');
     if (!isSupabaseReady || !sessionRepository) return;
     try {
-      const sessions = await sessionRepository.findByUserId();
-      setAvailableSessions([...sessions]);
-      console.log('✅ SessionContext: Available sessions loaded', sessions.length);
+      // 🔧 FIXED: Only load unfinished sessions (DRAFT or EMAIL_GENERATED)
+      const allSessions = await sessionRepository.findByUserId();
+      const unfinishedSessions = allSessions.filter(session => {
+        const status = session.toValue().status;
+        return status === SessionStatus.DRAFT || status === SessionStatus.EMAIL_GENERATED;
+      });
+      setAvailableSessions([...unfinishedSessions]);
+      console.log('✅ SessionContext: Available unfinished sessions loaded', unfinishedSessions.length);
     } catch (err) {
       console.error('❌ SessionContext: Failed to load available sessions', err);
     }
   }, [isSupabaseReady, sessionRepository]);
+
+  // 🔧 NEW: Method to refresh sessions when one is marked as sent
+  const refreshSessionsAfterEmailSent = useCallback(async (sentSessionId: string) => {
+    console.log('🔄 SessionContext: Refreshing sessions after email sent for:', sentSessionId);
+    
+    // Remove the sent session from available sessions
+    setAvailableSessions(prev => prev.filter(s => s.toValue().id !== sentSessionId));
+    
+    // If this was the current session, clear it
+    if (currentSession?.toValue().id === sentSessionId) {
+      setCurrentSession(null);
+      setWorkflowState('idle');
+      console.log('✅ SessionContext: Current session cleared after email sent');
+    }
+    
+    // Reload available sessions to ensure consistency
+    await loadAvailableSessions();
+  }, [currentSession, loadAvailableSessions]);
 
   const switchToSession = useCallback(async (sessionId: string) => {
     console.log('🔄 SessionContext: Switching to session:', sessionId);
@@ -491,6 +518,18 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
     init();
   }, [userId, isSupabaseReady, sessionRepository, pendingSessionId, currentSession, isInitializing]);
 
+  // 🔧 NEW: Listen for session sent events to update context state
+  useEffect(() => {
+    const handleSessionSent = (event: { sessionId: string }) => {
+      console.log('🔄 SessionContext: Received session sent event for:', event.sessionId);
+      refreshSessionsAfterEmailSent(event.sessionId);
+    };
+
+    const subscription = DeviceEventEmitter.addListener('restock:sessionSent', handleSessionSent);
+    
+    return () => subscription.remove();
+  }, [refreshSessionsAfterEmailSent]);
+
   // --- Context Value ---
   const contextValue = useMemo<SessionContextState>(() => {
     // Debug: Check session object type when creating context value
@@ -522,6 +561,7 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
       loadAvailableSessions,
       switchToSession,
       deleteSession,
+      refreshSessionsAfterEmailSent,
       addProduct,
       editProduct,
       deleteProduct,
@@ -552,6 +592,7 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
     loadAvailableSessions,
     switchToSession,
     deleteSession,
+    refreshSessionsAfterEmailSent,
     addProduct,
     editProduct,
     deleteProduct,

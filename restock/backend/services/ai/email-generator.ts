@@ -231,7 +231,7 @@ export class EmailGenerator {
     
     try {
       console.log('👤 Fetching user profile for userId:', userId);
-      const profileResult = await UserProfileService.getUserProfile(userId);
+      const profileResult = await UserProfileService.getUserProfile();
       userProfile = profileResult.data;
       
       if (userProfile) {
