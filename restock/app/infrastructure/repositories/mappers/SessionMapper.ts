@@ -73,7 +73,7 @@ export class SessionMapper {
       status: domainStatus,
       items: [], // Items will be loaded separately in the repository
       createdAt: new Date(dbSession.created_at),
-      updatedAt: dbSession.updated_at ? new Date(dbSession.updated_at) : undefined
+      // 🔧 REMOVED: updatedAt since database doesn't have updated_at column
     };
 
     return RestockSession.fromValue(sessionValue);
@@ -106,7 +106,7 @@ export class SessionMapper {
       status: domainStatus,
       items: domainItems,
       createdAt: new Date(dbSession.created_at),
-      updatedAt: dbSession.updated_at ? new Date(dbSession.updated_at) : undefined
+      // 🔧 REMOVED: updatedAt since database doesn't have updated_at column
     };
 
     return RestockSession.fromValue(sessionValue);

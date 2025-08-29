@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useCallback, useMemo } from 'react';
 import {
     Animated,
     Text,
@@ -37,8 +37,10 @@ const CustomToast: React.FC<CustomToastProps> = (props) => {
     autoDismiss = true,
     duration = 5000,
   } = props || {};
-  const slideAnim = useRef(new Animated.Value(-200)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
+  
+  // 🔧 FIXED: Use useMemo to initialize Animated.Value and avoid useInsertionEffect warnings
+  const slideAnim = useMemo(() => new Animated.Value(-200), []);
+  const opacityAnim = useMemo(() => new Animated.Value(0), []);
 
   const hideToast = useCallback(() => {
     Animated.parallel([

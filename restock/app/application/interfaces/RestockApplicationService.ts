@@ -34,6 +34,7 @@ export interface GenerateEmailsCommand {
   readonly sessionId: string;
   readonly userStoreName?: string;
   readonly userName?: string;
+  readonly userEmail?: string;
 }
 
 export interface GetSessionsQuery {

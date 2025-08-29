@@ -502,15 +502,6 @@ const RestockSessionsContent: React.FC = () => {
 
             <FinishSection
               session={sessionContext.currentSession}
-              onFinishSession={async () => {
-                if (!sessionContext.currentSession) return setToastMessage('No active session');
-                const { router } = await import('expo-router');
-                router.push({
-                  pathname: '/(tabs)/emails' as any,
-                  params: { sessionId: sessionContext.currentSession.toValue().id }
-                });
-                setToastMessage('Redirecting to email generation...');
-              }}
             />
           </>
         )}

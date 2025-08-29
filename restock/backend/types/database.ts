@@ -38,7 +38,6 @@ export interface RestockSession {
   name?: string;
   status: 'draft' | 'email_generated' | 'sent';
   created_at: string; // ISO timestamp string
-  updated_at: string; // ISO timestamp string
   completed_at?: string; // ISO timestamp string
 }
 

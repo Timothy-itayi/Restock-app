@@ -15,7 +15,7 @@ interface EmailsSummaryProps {
 export function EmailsSummary({ emailCount, userProfile }: EmailsSummaryProps) {
   const emailsStyles = useThemedStyles(getEmailsStyles);
   const { theme } = useThemeStore();
-  const { storeName, userName, email } = userProfile;
+  const { storeName, name, email } = userProfile;
   
   return (
     <View style={emailsStyles.emailSummary}>
@@ -90,9 +90,9 @@ export function EmailsSummary({ emailCount, userProfile }: EmailsSummaryProps) {
               </View>
             )}
             
-            {userName && (
+            {name && (
               <Text style={{ fontSize: 13, color: theme.neutral.medium, marginBottom: 2 }}>
-                {userName}
+                {name}
               </Text>
             )}
             

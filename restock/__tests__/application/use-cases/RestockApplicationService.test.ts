@@ -602,7 +602,8 @@ describe('RestockApplicationService', () => {
       // Try to generate emails for empty session
       const emailResult = await applicationService.generateEmails({
         sessionId,
-        userStoreName: 'Test Store'
+        userStoreName: 'Test Store',
+        userEmail: 'test@store.com'
       });
       
       expect(emailResult.success).toBe(false);
