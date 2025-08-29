@@ -34,6 +34,8 @@ interface UnifiedAuthState {
   fetchProfile: (userId: string) => Promise<void>;
   retryProfileLoad: (userId: string) => Promise<void>;
   hasValidProfile: boolean;
+  // Clerk token getter for Supabase authentication
+  getClerkSupabaseToken: () => Promise<string | null>;
 }
 
 const UnifiedAuthContext = createContext<UnifiedAuthState | null>(null);
@@ -65,6 +67,15 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     isProfileLoading: false,
     profileError: null,
     hasValidProfile: false,
+    getClerkSupabaseToken: async () => {
+      try {
+        const token = await getToken({ template: 'supabase' });
+        return token;
+      } catch (error) {
+        console.warn('Failed to get Clerk Supabase token:', error);
+        return null;
+      }
+    },
   });
 
   // Add this state after your existing contextState
@@ -199,6 +210,15 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
         isProfileLoading: currentState.isProfileLoading,
         profileError: currentState.profileError,
         hasValidProfile: currentState.hasValidProfile(),
+        getClerkSupabaseToken: async () => {
+          try {
+            const token = await getToken({ template: 'supabase' });
+            return token;
+          } catch (error) {
+            console.warn('Failed to get Clerk Supabase token:', error);
+            return null;
+          }
+        },
       });
 
       // Step 5: Handle unauthenticated users with stale cache data
@@ -364,9 +384,46 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       try {
         // Use Clerk's official Supabase JWT template
         setClerkTokenGetter(async () => {
-          const token = await getToken({ template: 'supabase' }); // Use 'supabase' template
-          console.log('[UnifiedAuth] 🔑 Got Clerk Supabase token:', token ? 'YES' : 'NO');
-          return token;
+          try {
+            // Try different token approaches
+            console.log('[UnifiedAuth] 🔑 Attempting to get Clerk token...');
+            
+            // First try: Supabase template
+            let token = await getToken({ template: 'supabase' });
+            console.log('[UnifiedAuth] 🔑 Supabase template result:', token ? 'Token received' : 'No token');
+            
+            if (!token) {
+              // Second try: No template (default JWT)
+              console.log('[UnifiedAuth] 🔑 Trying default JWT...');
+              token = await getToken();
+              console.log('[UnifiedAuth] 🔑 Default JWT result:', token ? 'Token received' : 'No token');
+            }
+            
+            if (!token) {
+              // Third try: Custom claims
+              console.log('[UnifiedAuth] 🔑 Trying custom claims...');
+              token = await getToken({ 
+                template: 'supabase',
+                skipCache: true 
+              });
+              console.log('[UnifiedAuth] 🔑 Custom claims result:', token ? 'Token received' : 'No token');
+            }
+            
+            if (token) {
+              // Log token details safely
+              console.log('[UnifiedAuth] 🔑 Token details:', {
+                length: token.length,
+                startsWith: token.substring(0, 20) + '...',
+                endsWith: '...' + token.substring(token.length - 20),
+                hasThreeParts: token.split('.').length === 3
+              });
+            }
+            
+            return token;
+          } catch (error) {
+            console.error('[UnifiedAuth] 🔑 Error getting token:', error);
+            return null;
+          }
         });
         
         // Register services first
@@ -480,6 +537,14 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     fetchProfile,
     retryProfileLoad: fetchProfile, // Same function
   };
+
+  // 🔍 DEBUG: Log context value to see if getClerkSupabaseToken is included
+  console.log('🔑 [UnifiedAuth] Context value check:', {
+    hasGetClerkSupabaseToken: !!contextValue.getClerkSupabaseToken,
+    getClerkSupabaseTokenType: typeof contextValue.getClerkSupabaseToken,
+    contextStateKeys: Object.keys(contextState),
+    contextValueKeys: Object.keys(contextValue)
+  });
 
   return (
     <UnifiedAuthContext.Provider value={contextValue}>

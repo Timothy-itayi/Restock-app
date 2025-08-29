@@ -34,7 +34,7 @@ export default function EmailsScreen() {
     sendAllEmails,
     sendEmail,
     refreshSessions,
-  } = useEmailSessions(userProfile, userId || undefined);
+  } = useEmailSessions(userProfile);
   const { 
     editingEmail, 
     editedSubject, 
@@ -95,16 +95,25 @@ export default function EmailsScreen() {
   };
 
   const handleConfirmSend = async () => {
+    console.log('🚀 [EmailScreen] handleConfirmSend called');
+    console.log('🚀 [EmailScreen] isIndividualSend:', isIndividualSend);
+    console.log('🚀 [EmailScreen] pendingSendEmail:', pendingSendEmail);
+    
     setShowSendConfirmation(false);
     
     if (isIndividualSend && pendingSendEmail) {
+      console.log('🚀 [EmailScreen] Individual email send for:', pendingSendEmail.id);
       // Individual email send
       await handleActualSendEmail(pendingSendEmail.id);
       setPendingSendEmail(null);
     } else {
+      console.log('🚀 [EmailScreen] Bulk email send - calling sendAllEmails()');
       // Bulk email send
       const result = await sendAllEmails();
+      console.log('🚀 [EmailScreen] sendAllEmails result:', result);
+      
       if (result.success) {
+        console.log('🚀 [EmailScreen] Bulk send successful');
         // Show success message
         setSuccessMessage("✅ All emails sent successfully! Returning to dashboard...");
         setShowSuccessMessage(true);
@@ -118,6 +127,7 @@ export default function EmailsScreen() {
           setSuccessMessage("");
         }, 2500);
       } else {
+        console.error('🚀 [EmailScreen] Bulk send failed:', result.message);
         // Only show alert on error
         Alert.alert(
           "Error Sending Emails",
@@ -158,10 +168,17 @@ export default function EmailsScreen() {
   };
   
   const handleActualSendEmail = async (emailId: string) => {
+    console.log('🚀 [EmailScreen] handleActualSendEmail called with emailId:', emailId);
+    console.log('🚀 [EmailScreen] Calling sendEmail(emailId)...');
+    
     const result = await sendEmail(emailId);
+    console.log('🚀 [EmailScreen] sendEmail result:', result);
+    
     if (!result.success) {
+      console.error('🚀 [EmailScreen] Email send failed:', result.message);
       Alert.alert('Error', result.message);
     } else {
+      console.log('🚀 [EmailScreen] Email send successful');
       // Close edit modal if it's open for this email
       if (editingEmail && editingEmail.id === emailId) {
         cancelEdit();

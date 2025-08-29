@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { DeviceEventEmitter } from 'react-native';
 import { useUnifiedAuth } from '../../../auth/UnifiedAuthProvider';
 import { useRepositories } from '../../../infrastructure/supabase/SupabaseHooksProvider';
 import { RestockSession, SessionStatus } from '../../../domain/entities/RestockSession';
@@ -58,7 +59,15 @@ export function useSessionList(): SessionListState & SessionListActions {
             updatedAt: new Date(data.updated_at)
           })
         );
-        setSessions(mappedSessions);
+        
+        // 🔧 FIXED: Only show unfinished sessions (DRAFT or EMAIL_GENERATED)
+        const unfinishedSessions = mappedSessions.filter(session => {
+          const status = session.toValue().status;
+          return status === SessionStatus.DRAFT || status === SessionStatus.EMAIL_GENERATED;
+        });
+        
+        setSessions(unfinishedSessions);
+        console.log('✅ useSessionList: Loaded', unfinishedSessions.length, 'unfinished sessions');
       } else {
         setSessions([]);
       }
@@ -179,6 +188,21 @@ export function useSessionList(): SessionListState & SessionListActions {
       loadSessions();
     }
   }, [userId, loadSessions]);
+
+  // 🔧 NEW: Listen for session sent events to refresh the list
+  useEffect(() => {
+    const handleSessionSent = (event: { sessionId: string }) => {
+      console.log('🔄 useSessionList: Received session sent event for:', event.sessionId);
+      // Remove the sent session from the local state immediately
+      setSessions(prev => prev.filter(s => s.toValue().id !== event.sessionId));
+      // Reload sessions to ensure consistency
+      setTimeout(() => loadSessions(), 100);
+    };
+
+    const subscription = DeviceEventEmitter.addListener('restock:sessionSent', handleSessionSent);
+    
+    return () => subscription.remove();
+  }, [loadSessions]);
 
   return {
     // State
