@@ -108,7 +108,7 @@ export function useEmailScreens() {
       }
       
       // 🔧 FIXED: Actually send the email via Resend API with proper auth
-      const emailUrl = 'https://dxnjzeefmqwhfmpknbjh.supabase.co/functions/v1/send-email';
+      const emailUrl = '';
       const requestBody = {
         to: emailToSend.supplierEmail,
         subject: emailToSend.subject,
