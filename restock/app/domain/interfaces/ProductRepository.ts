@@ -7,6 +7,11 @@
 import { Product } from '../entities/Product';
 
 export interface ProductRepository {
+  /**
+   * Set the current user ID for this repository instance
+   */
+  setUserId(userId: string): void;
+
   // Basic CRUD operations
   save(product: Product): Promise<void>;
   findById(id: string): Promise<Product | null>;
