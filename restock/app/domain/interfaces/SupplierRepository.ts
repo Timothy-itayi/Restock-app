@@ -7,6 +7,11 @@
 import { Supplier } from '../entities/Supplier';
 
 export interface SupplierRepository {
+  /**
+   * Set the current user ID for this repository instance
+   */
+  setUserId(userId: string): void;
+
   // Basic CRUD operations
   save(supplier: Supplier): Promise<void>;
   findById(id: string): Promise<Supplier | null>;

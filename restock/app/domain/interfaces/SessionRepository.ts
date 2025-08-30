@@ -8,6 +8,11 @@
 import { RestockSession } from '../entities/RestockSession';
 
 export interface SessionRepository {
+  /**
+   * Set the current user ID for this repository instance
+   */
+  setUserId(userId: string): void;
+
   // Basic CRUD operations
   save(session: RestockSession): Promise<void>;
   findById(id: string): Promise<RestockSession | null>;

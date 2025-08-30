@@ -23,7 +23,7 @@ export function useEmailSessions(userProfile: UserProfile) {
     hasGetClerkSupabaseToken: !!getClerkSupabaseToken
   });
   
-  const { sessionRepository } = useRepositories();
+  const { sessionRepository, emailRepository } = useRepositories();
   const sessionContext = useSessionContext();
   const [emailSessions, setEmailSessions] = useState<EmailSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
@@ -625,8 +625,6 @@ export function useEmailSessions(userProfile: UserProfile) {
           console.log(`✅ [EmailSessions] Email ${index + 1} sent successfully:`, email.supplierName);
           console.log(`✅ [EmailSessions] Message ID:`, result.messageId);
           
-          // 🔧 Email tracking is now handled by the Edge Function
-          
           return { success: true, emailId: email.id, result };
         } catch (error) {
           console.error(`❌ [EmailSessions] Email ${index + 1} failed:`, email.supplierName);
@@ -666,6 +664,37 @@ export function useEmailSessions(userProfile: UserProfile) {
         }
       } else {
         console.warn('⚠️ [EmailSessions] No sessionRepository available to mark session as sent');
+      }
+
+      // 🔧 Create email records in database for tracking
+      if (emailRepository && authReady && isAuthenticated && userId) {
+        console.log('🔍 [EmailSessions] Creating email records in database for tracking...');
+        
+        for (const email of current.emails) {
+          try {
+            const emailRecordId = await emailRepository.create({
+              sessionId: activeSessionId,
+              supplierEmail: email.supplierEmail,
+              supplierName: email.supplierName,
+              emailContent: email.body,
+              deliveryStatus: 'pending',
+              sentVia: 'resend',
+              status: 'sent',
+              sentAt: new Date().toISOString()
+            });
+            console.log(`✅ [EmailSessions] Email record created for ${email.supplierName}:`, emailRecordId);
+          } catch (error) {
+            console.error(`❌ [EmailSessions] Failed to create email record for ${email.supplierName}:`, error);
+            // Don't fail the session completion if email record creation fails
+          }
+        }
+      } else {
+        console.warn('⚠️ [EmailSessions] Cannot create email records - missing auth context:', {
+          hasEmailRepository: !!emailRepository,
+          authReady,
+          isAuthenticated,
+          hasUserId: !!userId
+        });
       }
 
       // Update UI to show success by removing this session from drafts list
