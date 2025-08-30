@@ -7,8 +7,7 @@ import { useUnifiedAuth } from '../../../auth/UnifiedAuthProvider';
 import { UserProfile } from './useUserProfile';
 import { EmailDraft, EmailSession } from './useEmailSession';
 
-// 🔧 NEW: Import EmailService for tracking sent emails
-import { EmailService } from '../../../../backend/services/emails';
+
 
 const STORAGE_KEY = 'emailSessions';
 
@@ -313,66 +312,46 @@ export function useEmailSessions(userProfile: UserProfile) {
       // 🔧 FIXED: Actually send the email via Resend API
       console.log('📧 [EmailSessions] Sending email via Resend API...');
       
-      // 🔧 FIXED: Get the Clerk JWT token for authentication
-      console.log('🔑 [EmailSessions] Getting Clerk token for email sending...');
-      console.log('🔑 [EmailSessions] getClerkSupabaseToken function available:', !!getClerkSupabaseToken);
-      
-      let authToken = '';
-      if (getClerkSupabaseToken) {
-        try {
-          console.log('🔑 [EmailSessions] Calling getClerkSupabaseToken()...');
-          const clerkToken = await getClerkSupabaseToken();
-          console.log('🔑 [EmailSessions] Token result:', clerkToken ? 'Token received' : 'No token');
-          if (clerkToken) {
-            authToken = clerkToken;
-            // 🔍 DEBUG: Log token details (safely)
-            console.log('🔑 [EmailSessions] Token details:', {
-              length: clerkToken.length,
-              startsWith: clerkToken.substring(0, 20) + '...',
-              endsWith: '...' + clerkToken.substring(clerkToken.length - 20),
-              hasThreeParts: clerkToken.split('.').length === 3
-            });
-            console.log('🔑 [EmailSessions] Using Clerk token for authentication');
-          } else {
-            console.warn('⚠️ [EmailSessions] No Clerk token available');
-            throw new Error('No authentication token available');
-          }
-        } catch (error) {
-          console.warn('⚠️ [EmailSessions] Failed to get Clerk token:', error);
-          throw new Error('Failed to get authentication token');
-        }
-      } else {
-        console.warn('⚠️ [EmailSessions] No getClerkSupabaseToken function available');
-        throw new Error('Authentication not available');
+      // 🔧 FIXED: Use Supabase anon key for Edge Function authentication
+      console.log('🔑 [EmailSessions] Using Supabase anon key for email sending...');
+
+      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_SEND_EMAIL_URL;
+      const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+
+      if (!supabaseUrl || !supabaseAnonKey) {
+        console.error('❌ [EmailSessions] Missing Supabase environment variables');
+        throw new Error('Supabase configuration not found');
       }
-      
-      const emailUrl = 'https://dxnjzeefmqwhfmpknbjh.supabase.co/functions/v1/send-email';
+
+      const emailUrl = `${supabaseUrl}/functions/v1/send-email`;
       const requestBody = {
         to: email.supplierEmail,
         subject: email.subject,
         html: email.body,
         from: 'noreply@restockapp.email',
       };
-      
+
       console.log('📧 [EmailSessions] Request body:', requestBody);
-      
+
       // 🔍 DEBUG: Log the full request details
       console.log('🔍 [EmailSessions] Full request details:', {
         url: emailUrl,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken.substring(0, 20)}...${authToken.substring(authToken.length - 20)}`
+          'Authorization': `Bearer ${supabaseAnonKey.substring(0, 20)}...${supabaseAnonKey.substring(supabaseAnonKey.length - 20)}`,
+          'apikey': supabaseAnonKey.substring(0, 20) + '...'
         },
         bodyLength: JSON.stringify(requestBody).length
       });
-      
+
       const response = await fetch(emailUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          // 🔧 FIXED: Use the Clerk JWT token instead of hardcoded anon key
-          'Authorization': `Bearer ${authToken}`,
+          // 🔧 FIXED: Use Supabase anon key for Edge Function authentication
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
         },
         body: JSON.stringify(requestBody),
       });
@@ -419,35 +398,7 @@ export function useEmailSessions(userProfile: UserProfile) {
       console.log('✅ [EmailSessions] Email sent successfully!');
       console.log('✅ [EmailSessions] Response data:', result);
 
-      // 🔧 NEW: Track the sent email in the database via EmailService
-      try {
-        console.log('📧 [EmailSessions] Creating email record in database...');
-        // EmailService is now imported at the top of the file
-        
-        const emailRecord = await EmailService.createEmail({
-          session_id: sessionId,
-          user_id: userId || '',
-          supplier_email: email.supplierEmail,
-          supplier_name: email.supplierName,
-          email_content: email.body,
-          delivery_status: 'sent',
-          sent_via: 'resend',
-          tracking_id: result.messageId || '',
-          resend_webhook_data: JSON.stringify(result),
-          supplier_id: `temp_${Date.now()}`, // We'll need to get actual supplier ID
-          sent_at: new Date().toISOString(),
-          status: 'sent',
-          error_message: ''
-        });
-        
-        if (emailRecord.error) {
-          console.warn('⚠️ [EmailSessions] Failed to create email record:', emailRecord.error);
-        } else {
-          console.log('✅ [EmailSessions] Email record created successfully:', emailRecord.data);
-        }
-      } catch (error) {
-        console.warn('⚠️ [EmailSessions] Error creating email record:', error);
-      }
+      // 🔧 Email tracking is now handled by the Edge Function
 
       // Email sent successfully - mark as sent
       const finalStatus = 'sent' as const;
@@ -600,53 +551,41 @@ export function useEmailSessions(userProfile: UserProfile) {
 
       // 🔧 FIXED: Actually send all emails via Resend API
       console.log('📧 [EmailSessions] Sending all emails via Resend API...');
-      
+
+      // Get Supabase configuration for all emails
+      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+      const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+
+      if (!supabaseUrl || !supabaseAnonKey) {
+        console.error('❌ [EmailSessions] Missing Supabase environment variables for bulk send');
+        throw new Error('Supabase configuration not found');
+      }
+
       const emailPromises = current.emails.map(async (email, index) => {
         try {
           console.log(`📧 [EmailSessions] Sending email ${index + 1}/${current.emails.length}:`, email.supplierName);
-          
-          // 🔧 FIXED: Get the Clerk JWT token for authentication
-          console.log('🔑 [EmailSessions] Getting Clerk token for bulk email sending...');
-          console.log('🔑 [EmailSessions] getClerkSupabaseToken function available:', !!getClerkSupabaseToken);
-          
-          let authToken = '';
-          if (getClerkSupabaseToken) {
-            try {
-              console.log('🔑 [EmailSessions] Calling getClerkSupabaseToken() for bulk send...');
-              const clerkToken = await getClerkSupabaseToken();
-              console.log('🔑 [EmailSessions] Bulk send token result:', clerkToken ? 'Token received' : 'No token');
-              if (clerkToken) {
-                authToken = clerkToken;
-                console.log('🔑 [EmailSessions] Using Clerk token for bulk email authentication');
-              } else {
-                console.warn('⚠️ [EmailSessions] No Clerk token available for bulk send');
-                throw new Error('No authentication token available for bulk send');
-              }
-            } catch (error) {
-              console.warn('⚠️ [EmailSessions] Failed to get Clerk token for bulk send:', error);
-              throw new Error('Failed to get authentication token for bulk send');
-            }
-          } else {
-            console.warn('⚠️ [EmailSessions] No getClerkSupabaseToken function available for bulk send');
-            throw new Error('Authentication not available for bulk send');
-          }
-          
-          const emailUrl = 'https://dxnjzeefmqwhfmpknbjh.supabase.co/functions/v1/send-email';
+
+          // 🔧 FIXED: Use Supabase anon key for Edge Function authentication
+          console.log('🔑 [EmailSessions] Using Supabase anon key for bulk email sending...');
+
+          const emailUrl = `${supabaseUrl}/functions/v1/send-email`;
+
           const requestBody = {
             to: email.supplierEmail,
             subject: email.subject,
             html: email.body,
             from: 'noreply@restockapp.email',
           };
-          
+
           console.log(`📧 [EmailSessions] Email ${index + 1} request body:`, requestBody);
-          
+
           const response = await fetch(emailUrl, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              // 🔧 FIXED: Use the Clerk JWT token instead of hardcoded anon key
-              'Authorization': `Bearer ${authToken}`,
+              // 🔧 FIXED: Use Supabase anon key for Edge Function authentication
+              'Authorization': `Bearer ${supabaseAnonKey}`,
+              'apikey': supabaseAnonKey,
             },
             body: JSON.stringify(requestBody),
           });
@@ -664,33 +603,7 @@ export function useEmailSessions(userProfile: UserProfile) {
           console.log(`✅ [EmailSessions] Email ${index + 1} sent successfully:`, email.supplierName);
           console.log(`✅ [EmailSessions] Email ${index + 1} response:`, result);
           
-          // 🔧 NEW: Track the sent email in the database via EmailService
-          try {
-            console.log(`📧 [EmailSessions] Creating email record ${index + 1} in database...`);
-            const emailRecord = await EmailService.createEmail({
-              session_id: activeSessionId,
-              user_id: userId || '',
-              supplier_email: email.supplierEmail,
-              supplier_name: email.supplierName,
-              email_content: email.body,
-              delivery_status: 'sent',
-              sent_via: 'resend',
-              tracking_id: result.messageId || '',
-              resend_webhook_data: JSON.stringify(result),
-              supplier_id: `temp_${Date.now()}_${index}`, // We'll need to get actual supplier ID
-              sent_at: new Date().toISOString(),
-              status: 'sent',
-              error_message: ''
-            });
-            
-            if (emailRecord.error) {
-              console.warn(`⚠️ [EmailSessions] Failed to create email record ${index + 1}:`, emailRecord.error);
-            } else {
-              console.log(`✅ [EmailSessions] Email record ${index + 1} created successfully:`, emailRecord.data);
-            }
-          } catch (error) {
-            console.warn(`⚠️ [EmailSessions] Error creating email record ${index + 1}:`, error);
-          }
+          // 🔧 Email tracking is now handled by the Edge Function
           
           return { success: true, emailId: email.id, result };
         } catch (error) {

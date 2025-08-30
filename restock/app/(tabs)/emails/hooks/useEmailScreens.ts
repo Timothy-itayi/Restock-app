@@ -15,6 +15,17 @@ export interface EmailSessionView {
   createdAt: Date;
 }
 
+// Helper function to get email URL safely
+const getEmailFunctionUrl = (): string => {
+  const url = process.env.EXPO_PUBLIC_SUPABASE_SEND_EMAIL_URL;
+  if (!url) {
+    console.error('❌ EXPO_PUBLIC_SUPABASE_SEND_EMAIL_URL is not configured in environment variables');
+
+    throw new Error('Email service not configured. Please check your environment variables.');
+  }
+  return url;
+};
+
 export function useEmailScreens() {
   const { userId, isAuthenticated, getClerkSupabaseToken } = useUnifiedAuth();
   const { sessionRepository } = useRepositories();
@@ -108,7 +119,7 @@ export function useEmailScreens() {
       }
       
       // 🔧 FIXED: Actually send the email via Resend API with proper auth
-      const emailUrl = '';
+      const emailUrl = getEmailFunctionUrl();
       const requestBody = {
         to: emailToSend.supplierEmail,
         subject: emailToSend.subject,
@@ -228,7 +239,7 @@ export function useEmailScreens() {
         try {
           console.log(`📧 [EmailScreens] Sending email ${index + 1}/${current.emails.length}:`, email.supplierName);
           
-          const emailUrl = 'https://dxnjzeefmqwhfmpknbjh.supabase.co/functions/v1/send-email';
+          const emailUrl = getEmailFunctionUrl();
           const requestBody = {
             to: email.supplierEmail,
             subject: email.subject,
