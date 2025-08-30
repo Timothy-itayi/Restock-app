@@ -1,158 +1,115 @@
-import React, { useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+// components/ProductForm.tsx
+import React from 'react';
+import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import { useProductForm, incrementQuantity, decrementQuantity } from '../hooks/useProductForm';
-import Input from '../../../components/Input';
-import Button from '../../../components/Button';
-import CustomToast from '../../../components/CustomToast';
 import { useThemedStyles } from '../../../../styles/useThemedStyles';
 import { getRestockSessionsStyles } from '../../../../styles/components/restock-sessions';
+import Button from '../../../components/Button';
 
 interface ProductFormProps {
-  onSubmit?: (values: {
-    productName: string;
-    quantity: number;
-    supplierName: string;
-    supplierEmail: string;
-    notes?: string;
-  }) => void;
-  isEditMode?: boolean;
-  isSubmitting?: boolean;
-  submitButtonText?: string;
-  initialValues?: Partial<{
-    productName: string;
-    quantity: string;
-    supplierName: string;
-    supplierEmail: string;
-    notes?: string;
-  }>;
+  onSubmit: (values: any) => void;
+  initialValues?: Partial<any>;
+  isSubmitting: boolean;
 }
 
-const ProductFormComponent: React.FC<ProductFormProps> = ({
-  onSubmit,
-  isEditMode = false,
-  isSubmitting = false,
-  submitButtonText,
-  initialValues,
-}) => {
-  const productForm = useProductForm();
+export function ProductForm({ onSubmit, initialValues }: ProductFormProps) {
+  const { formData, updateField, submitForm, isSubmitting, error } = useProductForm(initialValues);
   const styles = useThemedStyles(getRestockSessionsStyles);
 
-  // Destructure stable parts to avoid unnecessary re-renders
-  const { formData, validationErrors, error, setError, updateField, setInitialValues, isSubmitting: formSubmitting } = productForm;
-
-  // ✅ Set initial values once on mount
-  useEffect(() => {
-    if (initialValues) {
-      setInitialValues(initialValues);
-    }
-  }, []); // empty array ensures this runs only once
-
-  // ✅ Input change handler
-  const handleInputChange = useCallback(
-    (field: keyof typeof formData, value: string) => {
-      updateField(field, value);
-    },
-    [updateField, formData] // formData is safe because we only read value, not the whole object
-  );
-
-  // ✅ Quantity change handler
-  const handleQuantityChange = useCallback(
-    (increment: boolean) => {
-      const newQuantity = increment
-        ? incrementQuantity(formData.quantity)
-        : decrementQuantity(formData.quantity);
-      updateField('quantity', newQuantity);
-    },
-    [formData.quantity, updateField]
-  );
-
-  // ✅ Submit handler
-  const handleSubmit = useCallback(() => {
-    if (onSubmit) {
-      onSubmit({
-        productName: formData.productName.trim(),
-        quantity: parseInt(formData.quantity),
-        supplierName: formData.supplierName.trim(),
-        supplierEmail: formData.supplierEmail.trim(),
-        notes: formData.notes?.trim() || undefined,
-      });
-    }
-  }, [onSubmit, formData]);
-
-  const canSubmit =
-    !!formData.productName &&
-    !!formData.quantity &&
-    !!formData.supplierName &&
-    !!formData.supplierEmail &&
-    !formSubmitting;
+  const handleSubmit = () => {
+    submitForm(() => onSubmit({
+      productName: formData.productName.trim(),
+      quantity: Number(formData.quantity),
+      supplierName: formData.supplierName.trim(),
+      supplierEmail: formData.supplierEmail.trim(),
+      notes: formData.notes?.trim() || undefined,
+    }));
+  };
 
   return (
-    <View>
-      <Text style={styles.formTitle}>{isEditMode ? 'Edit Product' : 'Add Product'}</Text>
+    <View style={styles.formCard}>
+      <Text style={styles.formTitle}>Add Product</Text>
 
       {/* Product Name */}
       <View style={styles.inputGroup}>
-        <Input
-          label="Product Name"
+        <Text style={styles.inputLabel}>Product Name</Text>
+        <TextInput
           value={formData.productName}
-          onChangeText={val => handleInputChange('productName', val)}
+          onChangeText={val => updateField('productName', val)}
           placeholder="Product Name"
+          style={styles.textInput}
         />
-        {validationErrors.productName && <Text style={styles.errorText}>{validationErrors.productName}</Text>}
       </View>
 
       {/* Quantity */}
       <View style={styles.inputGroup}>
         <Text style={styles.inputLabel}>Quantity</Text>
         <View style={styles.quantityContainer}>
-          <TouchableOpacity onPress={() => handleQuantityChange(false)}>
-            <Text>-</Text>
+          <TouchableOpacity style={styles.quantityButton} onPress={() => updateField('quantity', decrementQuantity(formData.quantity))}>
+            <Text style={styles.quantityButtonText}>-</Text>
           </TouchableOpacity>
-          <Text>{formData.quantity || '0'}</Text>
-          <TouchableOpacity onPress={() => handleQuantityChange(true)}>
-            <Text>+</Text>
+          <TextInput
+            value={formData.quantity}
+            onChangeText={val => updateField('quantity', val)}
+            keyboardType="numeric"
+            style={styles.quantityInput}
+          />
+          <TouchableOpacity style={styles.quantityButton} onPress={() => updateField('quantity', incrementQuantity(formData.quantity))}>
+            <Text style={styles.quantityButtonText}>+</Text>
           </TouchableOpacity>
         </View>
-        {validationErrors.quantity && <Text style={styles.errorText}>{validationErrors.quantity}</Text>}
       </View>
 
       {/* Supplier Name */}
       <View style={styles.inputGroup}>
-        <Input
-          label="Supplier Name"
+        <Text style={styles.inputLabel}>Supplier Name</Text>
+        <TextInput
           value={formData.supplierName}
-          onChangeText={val => handleInputChange('supplierName', val)}
+          onChangeText={val => updateField('supplierName', val)}
           placeholder="Supplier Name"
+          style={styles.textInput}
         />
-        {validationErrors.supplierName && <Text style={styles.errorText}>{validationErrors.supplierName}</Text>}
       </View>
 
       {/* Supplier Email */}
       <View style={styles.inputGroup}>
-        <Input
-          label="Supplier Email"
+        <Text style={styles.inputLabel}>Supplier Email</Text>
+        <TextInput
           value={formData.supplierEmail}
-          onChangeText={val => handleInputChange('supplierEmail', val)}
-          placeholder="Supplier Email"
+          onChangeText={val => updateField('supplierEmail', val)}
+          placeholder="supplier@example.com"
           keyboardType="email-address"
+          autoCapitalize="none"
+          style={styles.textInput}
         />
-        {validationErrors.supplierEmail && <Text style={styles.errorText}>{validationErrors.supplierEmail}</Text>}
       </View>
 
-      {/* Submit button */}
+      {/* Notes */}
+      <View style={styles.inputGroup}>
+        <Text style={styles.inputLabel}>Notes (Optional)</Text>
+        <TextInput
+          value={formData.notes}
+          onChangeText={val => updateField('notes', val)}
+          placeholder="Additional notes..."
+          multiline
+          numberOfLines={3}
+          style={styles.textInput}
+        />
+      </View>
+
+      {/* Error */}
+      {error && (
+        <Text style={{ color: 'red', marginBottom: 8 }}>{error}</Text>
+      )}
+
+      {/* Form Buttons */}
       <View style={styles.formButtons}>
         <Button
-          title={submitButtonText || (isSubmitting ? 'Submitting...' : isEditMode ? 'Update Product' : 'Add Product')}
+          title={isSubmitting ? 'Submitting...' : 'Submit'}
           onPress={handleSubmit}
-          disabled={!canSubmit || isSubmitting}
+          loading={isSubmitting}
         />
       </View>
-
-      {/* Error toast */}
-      {error && <CustomToast visible message={error} onDismiss={() => setError(null)} />}
     </View>
   );
-};
-
-// ✅ Use React.memo to avoid unnecessary re-renders
-export const ProductForm = React.memo(ProductFormComponent);
+}

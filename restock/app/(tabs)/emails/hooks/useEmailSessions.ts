@@ -323,7 +323,12 @@ export function useEmailSessions(userProfile: UserProfile) {
         throw new Error('Supabase configuration not found');
       }
 
-      const emailUrl = `${supabaseUrl}/functions/v1/send-email`;
+      const emailUrl = supabaseUrl;
+      
+      // 🔍 DEBUG: Log the actual URL and key being used
+      console.log('🔍 [EmailSessions] Email URL:', emailUrl);
+      console.log('🔍 [EmailSessions] Anon key length:', supabaseAnonKey.length);
+      console.log('🔍 [EmailSessions] Anon key starts with:', supabaseAnonKey.substring(0, 20) + '...');
       const requestBody = {
         to: email.supplierEmail,
         subject: email.subject,
@@ -395,8 +400,16 @@ export function useEmailSessions(userProfile: UserProfile) {
       }
 
       const result = await response.json();
+      console.log('✅ [EmailSessions] Email response received:', result);
+      
+      // 🔧 VALIDATE: Check if the email was actually sent successfully
+      if (!result.success || !result.messageId) {
+        console.error('❌ [EmailSessions] Email response indicates failure:', result);
+        throw new Error(result.error || 'Email service returned failure response');
+      }
+      
       console.log('✅ [EmailSessions] Email sent successfully!');
-      console.log('✅ [EmailSessions] Response data:', result);
+      console.log('✅ [EmailSessions] Message ID:', result.messageId);
 
       // 🔧 Email tracking is now handled by the Edge Function
 
@@ -552,13 +565,13 @@ export function useEmailSessions(userProfile: UserProfile) {
       // 🔧 FIXED: Actually send all emails via Resend API
       console.log('📧 [EmailSessions] Sending all emails via Resend API...');
 
-      // Get Supabase configuration for all emails
-      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+      // Get email service configuration
+      const emailUrl = process.env.EXPO_PUBLIC_SUPABASE_SEND_EMAIL_URL;
       const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
-      if (!supabaseUrl || !supabaseAnonKey) {
-        console.error('❌ [EmailSessions] Missing Supabase environment variables for bulk send');
-        throw new Error('Supabase configuration not found');
+      if (!emailUrl || !supabaseAnonKey) {
+        console.error('❌ [EmailSessions] Missing email service environment variables for bulk send');
+        throw new Error('Email service not configured. Please check your environment variables.');
       }
 
       const emailPromises = current.emails.map(async (email, index) => {
@@ -567,8 +580,9 @@ export function useEmailSessions(userProfile: UserProfile) {
 
           // 🔧 FIXED: Use Supabase anon key for Edge Function authentication
           console.log('🔑 [EmailSessions] Using Supabase anon key for bulk email sending...');
-
-          const emailUrl = `${supabaseUrl}/functions/v1/send-email`;
+          
+          // 🔍 DEBUG: Log the actual URL being used for bulk send
+          console.log('🔍 [EmailSessions] Bulk send URL:', emailUrl);
 
           const requestBody = {
             to: email.supplierEmail,
@@ -600,8 +614,16 @@ export function useEmailSessions(userProfile: UserProfile) {
           }
 
           const result = await response.json();
+          console.log(`✅ [EmailSessions] Email ${index + 1} response received:`, result);
+          
+          // 🔧 VALIDATE: Check if the email was actually sent successfully
+          if (!result.success || !result.messageId) {
+            console.error(`❌ [EmailSessions] Email ${index + 1} response indicates failure:`, result);
+            throw new Error(result.error || `Email ${index + 1} service returned failure response`);
+          }
+          
           console.log(`✅ [EmailSessions] Email ${index + 1} sent successfully:`, email.supplierName);
-          console.log(`✅ [EmailSessions] Email ${index + 1} response:`, result);
+          console.log(`✅ [EmailSessions] Message ID:`, result.messageId);
           
           // 🔧 Email tracking is now handled by the Edge Function
           
@@ -635,12 +657,15 @@ export function useEmailSessions(userProfile: UserProfile) {
 
       // Mark session as sent via session repository
       if (sessionRepository) {
+        console.log('🔄 [EmailSessions] Marking session as sent in database:', activeSessionId);
         const result = await sessionRepository.markAsSent(activeSessionId);
         if (result.success) {
-          console.log('✅ [EmailSessions] Session marked as sent successfully');
+          console.log('✅ [EmailSessions] Session marked as sent successfully in database');
         } else {
           console.error('❌ [EmailSessions] Failed to mark session as sent:', result.error);
         }
+      } else {
+        console.warn('⚠️ [EmailSessions] No sessionRepository available to mark session as sent');
       }
 
       // Update UI to show success by removing this session from drafts list
