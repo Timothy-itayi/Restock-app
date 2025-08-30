@@ -209,7 +209,10 @@ export function useEmailSession(userProfile: UserProfile) {
         try {
           console.log(`📧 [EmailSession] Sending email ${index + 1}/${emailSession.emails.length}:`, email.supplierName);
           
-          const emailUrl = `${supabaseUrl}/functions/v1/send-email`;
+          const emailUrl = supabaseUrl;
+          
+          // 🔍 DEBUG: Log the actual URL being used
+          console.log('🔍 [EmailSession] Email URL:', emailUrl);
 
           const requestBody = {
             to: email.supplierEmail,
@@ -253,8 +256,16 @@ export function useEmailSession(userProfile: UserProfile) {
           }
 
           const result = await response.json();
+          console.log(`✅ [EmailSession] Email ${index + 1} response received:`, result);
+          
+          // 🔧 VALIDATE: Check if the email was actually sent successfully
+          if (!result.success || !result.messageId) {
+            console.error(`❌ [EmailSession] Email ${index + 1} response indicates failure:`, result);
+            throw new Error(result.error || `Email ${index + 1} service returned failure response`);
+          }
+          
           console.log(`✅ [EmailSession] Email ${index + 1} sent successfully:`, email.supplierName);
-          console.log(`✅ [EmailSession] Email ${index + 1} response:`, result);
+          console.log(`✅ [EmailSession] Message ID:`, result.messageId);
           
           // 🔧 Email tracking is now handled by the Edge Function
           

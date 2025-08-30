@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, DeviceEventEmitter } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useUnifiedAuth } from '../../auth/UnifiedAuthProvider';
 
@@ -289,6 +289,8 @@ const RestockSessionsContent: React.FC = () => {
     }
   }, [sessionId, action, sessionContext.loadExistingSession, sessionContext.isLoadingSpecificSession, sessionContext.currentSession]);
 
+
+
   // --- AUTH ERROR HANDLING (after all hooks are called) ---
   if (authError) {
     return (
@@ -311,16 +313,75 @@ const RestockSessionsContent: React.FC = () => {
   const isCreatingSession = sessionContext.isStartingNewSession;
   const creatingSessionName = sessionContext.sessionName || '';
 
+  // 🔧 FIXED: Get the first active session if no current session is set
+  const activeSession = useMemo(() => {
+    if (sessionContext.currentSession) {
+      return sessionContext.currentSession;
+    }
+    
+    // If no current session but we have active sessions, use the first one
+    if (hasActiveSessions && Array.isArray(sessionList.sessions) && sessionList.sessions.length > 0) {
+      const firstSession = sessionList.sessions[0];
+      // Only return sessions that are not finished (status !== 'sent')
+      if (firstSession && firstSession.status !== 'sent') {
+        return firstSession;
+      }
+    }
+    
+    return null;
+  }, [sessionContext.currentSession, hasActiveSessions, sessionList.sessions]);
+
+  // 🔧 FIXED: Update hasActiveSession to use the computed activeSession
+  const shouldShowActiveSession = activeSession !== null;
+
   // Add debug logging to see what's happening
   console.log('🔍 RestockSessions Render Debug:', {
     isAuthenticated,
     userId,
     isLoading,
     hasActiveSessions,
+    hasActiveSession,
+    shouldShowActiveSession,
     isServiceInitializing,
     serviceHealth: serviceHealth.isHealthy,
-    sessionListSessions: sessionList.sessions?.length || 0
+    sessionListSessions: sessionList.sessions?.length || 0,
+    activeSessionId: activeSession?.toValue()?.id,
+    activeSessionStatus: activeSession?.toValue()?.status,
+    currentSessionId: sessionContext.currentSession?.toValue()?.id
   });
+
+  // 🔧 NEW: Auto-activate first active session when products are added
+  useEffect(() => {
+    // If we have active sessions but no current session, automatically activate the first one
+    if (hasActiveSessions && !sessionContext.currentSession && !isLoading) {
+      const firstActiveSession = sessionList.sessions.find(session => session.status !== 'sent');
+      
+      if (firstActiveSession && firstActiveSession.status !== 'sent') {
+        console.log('🔄 Auto-activating first active session:', firstActiveSession.id);
+        sessionContext.loadExistingSession(firstActiveSession.id);
+      }
+    }
+  }, [hasActiveSessions, sessionContext.currentSession, isLoading, sessionList.sessions, sessionContext.loadExistingSession]);
+
+ 
+// Listen for product additions and refresh active session
+useEffect(() => {
+  const handleProductAdded = async ({ sessionId }: { sessionId: string }) => {
+    console.log('🔄 Product added, refreshing current session...', sessionId);
+
+    if (sessionContext.currentSession?.toValue()?.id === sessionId) {
+      // Reload the active session so ProductList shows new product
+      await sessionContext.loadExistingSession(sessionId);
+    } else {
+      // Optional: refresh session list to include new sessions
+      sessionList.loadSessions();
+    }
+  };
+
+  const subscription = DeviceEventEmitter.addListener('restock:productAdded', handleProductAdded);
+
+  return () => subscription.remove();
+}, [sessionContext, sessionList]);
 
     // Show loading only while auth is initializing
   if (!isAuthenticated) {
@@ -408,19 +469,19 @@ const RestockSessionsContent: React.FC = () => {
         )}
 
         {/* Active Session */}
-        {hasActiveSession && (
+        {shouldShowActiveSession && activeSession && (
           <>
             <View style={restockSessionsStyles.addProductSection}>
               <TouchableOpacity style={restockSessionsStyles.addProductButton} onPress={async () => {
                 const { router } = await import('expo-router');
-                console.log('🚀 Add Product button: Navigating to add-product with session:', sessionContext.currentSession?.toValue().id);
+                console.log('🚀 Add Product button: Navigating to add-product with session:', activeSession.toValue().id);
                 
                 try {
                   await router.push({
                     pathname: '/(tabs)/restock-sessions/add-product' as any,
                     params: { 
-                      sessionId: sessionContext.currentSession?.toValue().id,
-                      sessionName: sessionContext.currentSession?.toValue().name,
+                      sessionId: activeSession.toValue().id,
+                      sessionName: activeSession.toValue().name,
                       isExistingSession: 'true'
                     }
                   });
@@ -430,8 +491,8 @@ const RestockSessionsContent: React.FC = () => {
                   router.push({
                     pathname: 'add-product' as any,
                     params: { 
-                      sessionId: sessionContext.currentSession?.toValue().id,
-                      sessionName: sessionContext.currentSession?.toValue().name,
+                      sessionId: activeSession.toValue().id,
+                      sessionName: activeSession.toValue().name,
                       isExistingSession: 'true'
                     }
                   });
@@ -442,9 +503,9 @@ const RestockSessionsContent: React.FC = () => {
             </View>
 
             <ProductList
-              session={sessionContext.currentSession}
+              session={activeSession}
               onEditProduct={async (product) => {
-                if (!sessionContext.currentSession) return setToastMessage('No active session');
+                if (!activeSession) return setToastMessage('No active session');
                 
                 if (!product) {
                   setToastMessage('Product not found');
@@ -457,7 +518,7 @@ const RestockSessionsContent: React.FC = () => {
                   await router.push({
                     pathname: '/(tabs)/restock-sessions/edit-product' as any,
                     params: { 
-                      sessionId: sessionContext.currentSession.toValue().id,
+                      sessionId: activeSession.toValue().id,
                       editProductId: product.productId || product.id,
                       editProductName: product.productName,
                       editQuantity: product.quantity?.toString(),
@@ -472,7 +533,7 @@ const RestockSessionsContent: React.FC = () => {
                   router.push({
                     pathname: 'edit-product' as any,
                     params: { 
-                      sessionId: sessionContext.currentSession.toValue().id,
+                      sessionId: activeSession.toValue().id,
                       editProductId: product.productId || product.id,
                       editProductName: product.productName,
                       editQuantity: product.quantity?.toString(),
@@ -484,7 +545,7 @@ const RestockSessionsContent: React.FC = () => {
                 }
               }}
               onDeleteProduct={async (productId) => {
-                if (!sessionContext.currentSession) return setToastMessage('No active session');
+                if (!activeSession) return setToastMessage('No active session');
                 
                 try {
                   const result = await sessionContext.deleteProduct(productId);
@@ -501,7 +562,7 @@ const RestockSessionsContent: React.FC = () => {
             />
 
             <FinishSection
-              session={sessionContext.currentSession}
+              session={activeSession}
             />
           </>
         )}

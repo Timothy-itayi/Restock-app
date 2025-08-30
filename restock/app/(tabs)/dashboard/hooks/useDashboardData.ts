@@ -105,6 +105,7 @@ export function useDashboardData() {
         setDataInitialized(true);
         
         console.log(`📊 Dashboard: Loaded ${all.length} sessions (${unfinished.length} unfinished, ${finished.length} finished)`);
+        console.log('📊 Dashboard: Session statuses:', all.map(s => ({ id: s.id, status: s.status, name: s.name })));
       } catch (error) {
         console.error('Dashboard fetch error:', error);
         setHasError(true);
@@ -140,17 +141,19 @@ export function useDashboardData() {
     }
   }, [canLoad, dataInitialized, fetchSessions]);
 
-  // Listen for session events - only refresh if we have data
+  // Listen for session events - always refresh when session is sent
   useEffect(() => {
     const sub = DeviceEventEmitter.addListener('restock:sessionSent', () => {
-      if (dataInitialized && (unfinishedSessions.length > 0 || finishedSessions.length > 0)) {
-        setTimeout(() => {
-          fetchSessions();
-        }, 200); // Reduced from 1000ms
-      }
+      console.log('🔄 Dashboard: Received restock:sessionSent event, refreshing...');
+      // Always refresh when a session is sent, regardless of current data state
+      // Wait longer to ensure database transaction is fully committed
+      setTimeout(() => {
+        console.log('🔄 Dashboard: Executing delayed refresh after session sent...');
+        fetchSessions();
+      }, 1000); // Increased to 1 second to ensure database commit
     });
     return () => sub.remove();
-  }, [fetchSessions, dataInitialized, unfinishedSessions.length, finishedSessions.length]);
+  }, [fetchSessions]);
 
   useEffect(() => {
     const sub = DeviceEventEmitter.addListener('restock:sessionUpdated', () => {

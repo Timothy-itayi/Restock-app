@@ -10,7 +10,6 @@ import {
   EmailEditModal, 
   EmailsSummary, 
   EmptyState, 
-  ActionButtons,
   SessionTabs,
   SendConfirmationModal,
   EmailDetailModal
@@ -55,6 +54,7 @@ export default function EmailsScreen() {
   const [showEmailDetail, setShowEmailDetail] = useState(false);
   const [pendingSendEmail, setPendingSendEmail] = useState<EmailDraft | null>(null);
   const [isIndividualSend, setIsIndividualSend] = useState(false);
+  const [bulkSendCompleted, setBulkSendCompleted] = useState(false);
 
   const isLoading = isUserLoading || isSessionLoading;
 
@@ -114,6 +114,9 @@ export default function EmailsScreen() {
       
       if (result.success) {
         console.log('🚀 [EmailScreen] Bulk send successful');
+        // Set bulk send completed flag to show success state
+        setBulkSendCompleted(true);
+        
         // Show success message
         setSuccessMessage("✅ All emails sent successfully! Returning to dashboard...");
         setShowSuccessMessage(true);
@@ -125,6 +128,7 @@ export default function EmailsScreen() {
           refreshSessions();
           setShowSuccessMessage(false);
           setSuccessMessage("");
+          setBulkSendCompleted(false);
         }, 2500);
       } else {
         console.error('🚀 [EmailScreen] Bulk send failed:', result.message);
@@ -204,18 +208,17 @@ export default function EmailsScreen() {
     <View style={[emailsStyles.container, { backgroundColor: useThemeStore.getState().theme.neutral.lighter }]}>
       {/* Header */}
       <View style={emailsStyles.header}>
-        <Text style={emailsStyles.headerTitle}>Generated Emails</Text>
+        <Text style={emailsStyles.headerTitle}>Emails</Text>
       </View>
 
-    
-      {/* Show loading state */}
-      {isLoading && (
-        <View style={{ padding: 32, alignItems: 'center' }}>
-          <Text style={{ fontSize: 16, color: theme.neutral.medium }}>
-            Loading emails...
-          </Text>
-        </View>
-      )}
+        {/* Show loading state */}
+        {isLoading && (
+          <View style={{ padding: 32, alignItems: 'center' }}>
+            <Text style={{ fontSize: 16, color: theme.neutral.medium }}>
+              Loading emails...
+            </Text>
+          </View>
+        )}
 
       {/* 🔧 FIXED: Show emails if we have them, regardless of SessionContext state */}
       {!isLoading && emailSessions.length > 0 && activeSession && activeSession.emails.length > 0 ? (
@@ -237,9 +240,9 @@ export default function EmailsScreen() {
             userProfile={userProfile}
           />
 
-          {/* Gmail-style Email List */}
+          {/* Gmail-style Email List - Only this section is scrollable */}
           {!activeSession.emails.every(e => e.status === 'sent') && (
-            <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+            <View style={{ paddingHorizontal: 16, marginBottom: 80 }}>
               <Text style={{
                 fontSize: 14,
                 fontWeight: '600',
@@ -250,7 +253,11 @@ export default function EmailsScreen() {
               }}>
                 Email Drafts ({activeSession.emails.length})
               </Text>
-              <ScrollView style={{ maxHeight: 400 }} showsVerticalScrollIndicator={false}>
+              <ScrollView 
+                style={{ maxHeight: 350 }} 
+                showsVerticalScrollIndicator={true}
+           
+              >
                 {activeSession.emails.map((email) => (
                   <EmailCard
                     key={email.id}
@@ -276,18 +283,66 @@ export default function EmailsScreen() {
               </Text>
             </View>
           )}
-
-          {/* Action Buttons - only show if we have emails and they're not all sent */}
-          {!activeSession.emails.every(e => e.status === 'sent') && (
-            <ActionButtons
-              emailSession={activeSession}
-              onSendAll={handleSendAllEmails}
-            />
-          )}
         </>
+      ) : !isLoading && bulkSendCompleted ? (
+        // Show bulk send success state
+        <View style={emailsStyles.successContainer}>
+          <View style={emailsStyles.successIcon}>
+            <Ionicons name="checkmark" size={32} color={theme.neutral.lightest} />
+          </View>
+          <Text style={emailsStyles.successTitle}>All Emails Sent Successfully!</Text>
+          <Text style={emailsStyles.successText}>
+            Your professional restock emails have been successfully sent to suppliers. They can now reply directly to your email address.
+          </Text>
+          <Text style={[emailsStyles.successText, { marginTop: 16, fontSize: 14, color: theme.neutral.medium }]}>
+            Returning to dashboard...
+          </Text>
+        </View>
       ) : !isLoading ? (
         <EmptyState />
       ) : null}
+
+      {/* 🔧 FIXED: Fixed "Send All" button at bottom, above navigation bar */}
+      {!isLoading && !bulkSendCompleted && activeSession && activeSession.emails.length > 0 && !activeSession.emails.every(e => e.status === 'sent') && (
+        <View style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          backgroundColor: useThemeStore.getState().theme.neutral.lighter,
+          paddingHorizontal: 16,
+          paddingVertical: 16,
+          paddingBottom: 10, // Clear the tab bar
+          borderTopWidth: 1,
+          borderTopColor: useThemeStore.getState().theme.neutral.light,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+          elevation: 8,
+        }}>
+          <TouchableOpacity 
+            style={{
+              backgroundColor: theme.brand.primary,
+              paddingHorizontal: 24,
+              paddingVertical: 16,
+              borderRadius: 8,
+              alignItems: 'center',
+              shadowColor: theme.brand.primary,
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.2,
+              shadowRadius: 4,
+              elevation: 4,
+            }} 
+            onPress={handleSendAllEmails}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Ionicons name="paper-plane" size={20} color={theme.neutral.lightest} />
+              <Text style={{ color: theme.neutral.lightest, fontSize: 18, fontWeight: '600' }}>Send All</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Success Message Overlay */}
       {showSuccessMessage && (
@@ -373,7 +428,5 @@ export default function EmailsScreen() {
         onSend={handleSendEmail}
       />
     </View>
-
-
   );
 }
