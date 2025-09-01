@@ -19,7 +19,6 @@ export function useProductForm(initialValues?: Partial<ProductFormData>) {
     ...initialValues,
   });
   const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const updateField = useCallback((field: keyof ProductFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -35,25 +34,25 @@ export function useProductForm(initialValues?: Partial<ProductFormData>) {
       ...initialValues,
     });
     setError(null);
-    setIsSubmitting(false);
   }, [initialValues]);
 
   const submitForm = useCallback(async (onSuccess?: () => void) => {
-    setIsSubmitting(true);
     setError(null);
 
     // Simple validation
-    if (!formData.productName.trim()) { setError('Product name required'); setIsSubmitting(false); return; }
-    if (!formData.quantity.trim() || isNaN(Number(formData.quantity)) || Number(formData.quantity) <= 0) { setError('Quantity must be > 0'); setIsSubmitting(false); return; }
-    if (!formData.supplierName.trim()) { setError('Supplier name required'); setIsSubmitting(false); return; }
-    if (!formData.supplierEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.supplierEmail)) { setError('Valid email required'); setIsSubmitting(false); return; }
+    if (!formData.productName.trim()) { setError('Product name required'); return; }
+    if (!formData.quantity.trim() || isNaN(Number(formData.quantity)) || Number(formData.quantity) <= 0) { setError('Quantity must be > 0'); return; }
+    if (!formData.supplierName.trim()) { setError('Supplier name required'); return; }
+    if (!formData.supplierEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.supplierEmail)) { setError('Valid email required'); return; }
 
-    try { await new Promise(res => setTimeout(res, 500)); if (onSuccess) onSuccess(); }
-    catch { setError('Submission failed'); }
-    finally { setIsSubmitting(false); }
+    try {
+      if (onSuccess) onSuccess();
+    } catch (error) {
+      setError('Submission failed');
+    }
   }, [formData]);
 
-  return { formData, updateField, resetForm, submitForm, isSubmitting, error };
+  return { formData, updateField, resetForm, submitForm, error };
 }
 
 export const incrementQuantity = (qty: string) => Math.min(Number(qty) + 1, 10000).toString();

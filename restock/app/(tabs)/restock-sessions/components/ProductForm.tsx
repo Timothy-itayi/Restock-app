@@ -14,7 +14,7 @@ interface ProductFormProps {
 }
 
 export function ProductForm({ onSubmit, initialValues, isDisabled = false }: ProductFormProps) {
-  const { formData, updateField, submitForm, isSubmitting, error } = useProductForm(initialValues);
+  const { formData, updateField, submitForm, error } = useProductForm(initialValues);
   const styles = useThemedStyles(getRestockSessionsStyles);
 
   const handleSubmit = () => {
@@ -106,9 +106,8 @@ export function ProductForm({ onSubmit, initialValues, isDisabled = false }: Pro
       {/* Form Buttons */}
       <View style={styles.formButtons}>
         <Button
-          title={isSubmitting ? 'Submitting...' : 'Submit'}
+          title="Submit"
           onPress={handleSubmit}
-          loading={isSubmitting}
           disabled={isDisabled}
         />
       </View>

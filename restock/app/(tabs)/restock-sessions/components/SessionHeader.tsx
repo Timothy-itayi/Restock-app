@@ -46,6 +46,8 @@ export const SessionHeader: React.FC<SessionHeaderProps> = ({
     if (onNameSession) onNameSession();
   };
 
+
+
   return (
     <>
       {/* Session header with switcher */}

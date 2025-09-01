@@ -103,17 +103,20 @@ const RestockSessionsContent: React.FC = () => {
       return {
         sessionId: typeof rawParams.sessionId === 'string' ? rawParams.sessionId : undefined,
         action: typeof rawParams.action === 'string' ? rawParams.action : undefined,
+        createNewSession: rawParams.createNewSession === 'true',
       };
     }
     return {
       sessionId: undefined,
-      action: undefined
+      action: undefined,
+      createNewSession: false
     };
   }, [rawParams]);
   
   // ✅ CORRECT: Memoize sessionId and action
   const sessionId = useMemo(() => safeParams.sessionId, [safeParams.sessionId]);
   const action = useMemo(() => safeParams.action, [safeParams.action]);
+  const createNewSession = useMemo(() => safeParams.createNewSession, [safeParams.createNewSession]);
   
   // Local state - always initialized
   const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
@@ -279,8 +282,8 @@ const RestockSessionsContent: React.FC = () => {
   useEffect(() => {
     // Only run if we have a sessionId and action, and we're not already loading
     // and the current session is different from the one we want to load
-    if (sessionId && 
-        action === 'continue' && 
+    if (sessionId &&
+        action === 'continue' &&
         !sessionContext.isLoadingSpecificSession &&
         sessionContext.currentSession?.toValue().id !== sessionId) {
       const loadSessionAndOpenForm = async () => {
@@ -293,11 +296,19 @@ const RestockSessionsContent: React.FC = () => {
           console.error('[RestockSessions] loadSessionAndOpenForm error:', error);
         }
       };
-      
+
       // Load immediately for better UX when coming from dashboard
       loadSessionAndOpenForm();
     }
   }, [sessionId, action, sessionContext.loadExistingSession, sessionContext.isLoadingSpecificSession, sessionContext.currentSession]);
+
+  // --- HANDLE CREATE NEW SESSION FROM SESSION LIST ---
+  useEffect(() => {
+    if (createNewSession && !sessionContext.currentSession && !sessionContext.isSessionLoading) {
+      console.log('🚀 Creating new session from session list navigation');
+      handleStartNewSession();
+    }
+  }, [createNewSession, sessionContext.currentSession, sessionContext.isSessionLoading, handleStartNewSession]);
 
 
 
@@ -377,8 +388,6 @@ const RestockSessionsContent: React.FC = () => {
 // Listen for product additions and refresh active session
 useEffect(() => {
   const handleProductAdded = async ({ sessionId }: { sessionId: string }) => {
-    console.log('🔄 Product added, refreshing current session...', sessionId);
-
     if (sessionContext.currentSession?.toValue()?.id === sessionId) {
       // Reload the active session so ProductList shows new product
       await sessionContext.loadExistingSession(sessionId);
@@ -386,6 +395,10 @@ useEffect(() => {
       // Optional: refresh session list to include new sessions
       sessionList.loadSessions();
     }
+
+    // 🔧 CRITICAL: Always refresh available sessions for switch button visibility
+    // This ensures the switch button appears when a new session is created
+    await sessionContext.loadAvailableSessions();
   };
 
   const subscription = DeviceEventEmitter.addListener('restock:productAdded', handleProductAdded);
@@ -434,15 +447,22 @@ useEffect(() => {
   return (
     <View style={restockSessionsStyles.container}>
       {/* Session Header */}
-      <SessionHeader
-        currentSession={sessionContext.currentSession}
-        onNameSession={() => {
-          setSessionNameInput(sessionContext.currentSession?.toValue().name || '');
-          setShowNameModal(true);
-        }}
-        onShowSessionSelection={handleOpenSessionList}
-        allSessionsCount={Array.isArray(sessionList.sessions) ? sessionList.sessions.length : 0}
-      />
+      {(() => {
+        // Use the same session count logic as the main screen
+        const sessionCount = Array.isArray(sessionList.sessions) ? sessionList.sessions.length : 0;
+        return (
+          <SessionHeader
+            key={`session-header-${sessionCount}`}
+            currentSession={sessionContext.currentSession}
+            onNameSession={() => {
+              setSessionNameInput(sessionContext.currentSession?.toValue().name || '');
+              setShowNameModal(true);
+            }}
+            onShowSessionSelection={handleOpenSessionList}
+            allSessionsCount={sessionCount}
+          />
+        );
+      })()}
 
       <ScrollView>
         {/* Existing Sessions */}
@@ -459,14 +479,8 @@ useEffect(() => {
         )}
 
         {/* Loading indicator when sessions are loading */}
-        {!hasActiveSession && !hasActiveSessions && isLoading && (
-          <View style={restockSessionsStyles.existingSessionsSection}>
-            <Text style={restockSessionsStyles.sectionTitle}>Loading Sessions</Text>
-            <Text style={restockSessionsStyles.sectionSubtitle}>
-              Checking for existing sessions...
-            </Text>
-          </View>
-        )}
+   
+    
 
         {/* Start Section */}
         {!hasActiveSession && !hasActiveSessions && (

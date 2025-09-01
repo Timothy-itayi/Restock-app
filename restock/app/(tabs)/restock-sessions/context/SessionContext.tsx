@@ -214,16 +214,27 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
 
   const loadAvailableSessions = useCallback(async () => {
     console.log('🔄 SessionContext: Loading available sessions...');
-    if (!isSupabaseReady || !sessionRepository) return;
+    if (!isSupabaseReady || !sessionRepository) {
+      console.log('❌ SessionContext: Cannot load - not ready or no repository');
+      return;
+    }
     try {
       // 🔧 FIXED: Only load unfinished sessions (DRAFT or EMAIL_GENERATED)
       const allSessions = await sessionRepository.findByUserId();
+      console.log('🔍 SessionContext: Found sessions from DB:', allSessions.length);
+      allSessions.forEach(session => {
+        console.log('🔍 SessionContext: Session', session.toValue().id, 'status:', session.toValue().status);
+      });
+
       const unfinishedSessions = allSessions.filter(session => {
         const status = session.toValue().status;
-        return status === SessionStatus.DRAFT || status === SessionStatus.EMAIL_GENERATED;
+        const isUnfinished = status === SessionStatus.DRAFT || status === SessionStatus.EMAIL_GENERATED;
+        console.log('🔍 SessionContext: Session', session.toValue().id, 'status check:', status, 'is unfinished:', isUnfinished);
+        return isUnfinished;
       });
-      setAvailableSessions([...unfinishedSessions]);
+
       console.log('✅ SessionContext: Available unfinished sessions loaded', unfinishedSessions.length);
+      setAvailableSessions([...unfinishedSessions]);
     } catch (err) {
       console.error('❌ SessionContext: Failed to load available sessions', err);
     }
