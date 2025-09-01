@@ -6,6 +6,9 @@ import { ProductMapper } from '../../../app/infrastructure/repositories/mappers/
 
 export class SupabaseProductRepository implements ProductRepository {
   private userId: string | null = null;
+  private getClerkTokenFn: (() => Promise<string | null>) | null = null;
+  private _cachedClient: any = null;
+  private _cachedToken: string | null = null;
 
   constructor(userId?: string) {
     this.userId = userId || null;
@@ -19,6 +22,13 @@ export class SupabaseProductRepository implements ProductRepository {
   }
 
   /**
+   * Set the Clerk token getter function
+   */
+  setClerkTokenGetter(fn: () => Promise<string | null>) {
+    this.getClerkTokenFn = fn;
+  }
+
+  /**
    * Get the current user ID, throwing an error if not set
    */
   private getCurrentUserId(): string {
@@ -28,12 +38,68 @@ export class SupabaseProductRepository implements ProductRepository {
     return this.userId;
   }
 
+  /**
+   * Create an authenticated Supabase client with Clerk JWT token
+   */
+  private async getAuthenticatedClient() {
+    if (!this.getClerkTokenFn) {
+      console.warn('No Clerk token getter set, using default client');
+      return supabase;
+    }
+
+    try {
+      const token = await this.getClerkTokenFn();
+      if (!token) {
+        console.warn('No Clerk token available, using default client');
+        return supabase;
+      }
+
+      // Return cached client if token hasn't changed
+      if (this._cachedClient && this._cachedToken === token) {
+        return this._cachedClient;
+      }
+
+      // Create new authenticated client
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
+      const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
+
+      const client = createClient(supabaseUrl, supabaseAnonKey, {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+        auth: {
+          autoRefreshToken: true,
+          persistSession: true,
+          detectSessionInUrl: false,
+        },
+        realtime: {
+          params: {
+            eventsPerSecond: 10,
+          },
+        },
+      });
+
+      // Cache the client and token
+      this._cachedClient = client;
+      this._cachedToken = token;
+
+      return client;
+    } catch (error) {
+      console.warn('Failed to create authenticated client:', error);
+      return supabase;
+    }
+  }
+
   async save(product: Product): Promise<void> {
+    const client = await this.getAuthenticatedClient();
     const dbProduct = ProductMapper.toDatabase(product);
     
     if (product.id) {
       // Update existing product
-      const { error } = await supabase.rpc('update_product', {
+      const { error } = await client.rpc('update_product', {
         p_id: product.id,
         p_name: dbProduct.name,
         p_default_quantity: dbProduct.default_quantity,
@@ -45,7 +111,7 @@ export class SupabaseProductRepository implements ProductRepository {
       }
     } else {
       // Create new product
-      const { error } = await supabase.rpc('insert_product', {
+      const { error } = await client.rpc('insert_product', {
         p_name: dbProduct.name,
         p_default_quantity: dbProduct.default_quantity,
         p_default_supplier_id: dbProduct.default_supplier_id
@@ -59,7 +125,8 @@ export class SupabaseProductRepository implements ProductRepository {
 
   async findById(id: string): Promise<Product | null> {
     try {
-      const { data: products, error } = await supabase.rpc('get_products');
+      const client = await this.getAuthenticatedClient();
+      const { data: products, error } = await client.rpc('get_products');
       
       if (error) {
         throw new Error(`Failed to get products: ${error.message}`);
@@ -75,7 +142,8 @@ export class SupabaseProductRepository implements ProductRepository {
 
   async findByUserId(): Promise<ReadonlyArray<Product>> {
     try {
-      const { data: products, error } = await supabase.rpc('get_products');
+      const client = await this.getAuthenticatedClient();
+      const { data: products, error } = await client.rpc('get_products');
       
       if (error) {
         throw new Error(`Failed to get products: ${error.message}`);
@@ -89,7 +157,8 @@ export class SupabaseProductRepository implements ProductRepository {
   }
 
   async delete(id: string): Promise<void> {
-    const { error } = await supabase.rpc('delete_product', {
+    const client = await this.getAuthenticatedClient();
+    const { error } = await client.rpc('delete_product', {
       p_id: id
     });
 
@@ -100,7 +169,8 @@ export class SupabaseProductRepository implements ProductRepository {
 
   async findByName(name: string): Promise<ReadonlyArray<Product>> {
     try {
-      const { data: products, error } = await supabase.rpc('get_products');
+      const client = await this.getAuthenticatedClient();
+      const { data: products, error } = await client.rpc('get_products');
       
       if (error) {
         throw new Error(`Failed to get products: ${error.message}`);
@@ -119,7 +189,8 @@ export class SupabaseProductRepository implements ProductRepository {
 
   async search(searchTerm: string): Promise<ReadonlyArray<Product>> {
     try {
-      const { data: products, error } = await supabase.rpc('get_products');
+      const client = await this.getAuthenticatedClient();
+      const { data: products, error } = await client.rpc('get_products');
       
       if (error) {
         throw new Error(`Failed to get products: ${error.message}`);
@@ -139,7 +210,8 @@ export class SupabaseProductRepository implements ProductRepository {
 
   async findBySupplierId(supplierId: string): Promise<ReadonlyArray<Product>> {
     try {
-      const { data: products, error } = await supabase.rpc('get_products');
+      const client = await this.getAuthenticatedClient();
+      const { data: products, error } = await client.rpc('get_products');
       
       if (error) {
         throw new Error(`Failed to get products: ${error.message}`);
@@ -158,7 +230,8 @@ export class SupabaseProductRepository implements ProductRepository {
 
   async findAll(): Promise<ReadonlyArray<Product>> {
     try {
-      const { data: products, error } = await supabase.rpc('get_products');
+      const client = await this.getAuthenticatedClient();
+      const { data: products, error } = await client.rpc('get_products');
       
       if (error) {
         throw new Error(`Failed to get products: ${error.message}`);
@@ -173,7 +246,8 @@ export class SupabaseProductRepository implements ProductRepository {
 
   async countByUserId(): Promise<number> {
     try {
-      const { data: products, error } = await supabase.rpc('get_products');
+      const client = await this.getAuthenticatedClient();
+      const { data: products, error } = await client.rpc('get_products');
       
       if (error) {
         throw new Error(`Failed to get products: ${error.message}`);
@@ -188,7 +262,8 @@ export class SupabaseProductRepository implements ProductRepository {
 
   async findMostUsed(limit: number): Promise<ReadonlyArray<Product>> {
     try {
-      const { data: products, error } = await supabase.rpc('get_products');
+      const client = await this.getAuthenticatedClient();
+      const { data: products, error } = await client.rpc('get_products');
       
       if (error) {
         throw new Error(`Failed to get products: ${error.message}`);

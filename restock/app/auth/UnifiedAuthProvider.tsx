@@ -432,19 +432,36 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
         // Then create repository instances
         const repos: RepositoryContextValue = {
           userRepository: new SupabaseUserRepository(),
-          sessionRepository: new SupabaseSessionRepository(),
-          productRepository: new SupabaseProductRepository(),
-          supplierRepository: new SupabaseSupplierRepository(),
-          emailRepository: new SupabaseEmailRepository(),
+          sessionRepository: new SupabaseSessionRepository(contextState.userId),
+          productRepository: new SupabaseProductRepository(contextState.userId),
+          supplierRepository: new SupabaseSupplierRepository(contextState.userId),
+          emailRepository: new SupabaseEmailRepository(contextState.userId),
           isSupabaseReady: true,
           isUserContextSet: true,
         };
 
-        // Inject userId
-        repos.sessionRepository!.setUserId(contextState.userId);
-        repos.productRepository!.setUserId(contextState.userId);
-        repos.supplierRepository!.setUserId(contextState.userId);
-        repos.emailRepository!.setUserId(contextState.userId);
+        // Configure token getters and userId
+        console.log('[UnifiedAuth] 🔑 Configuring token getters for repositories...');
+        if (repos.sessionRepository && typeof repos.sessionRepository.setClerkTokenGetter === 'function') {
+          repos.sessionRepository.setClerkTokenGetter(contextState.getClerkSupabaseToken);
+          repos.sessionRepository.setUserId(contextState.userId);
+          console.log('[UnifiedAuth] ✅ Configured sessionRepository');
+        }
+        if (repos.productRepository && typeof repos.productRepository.setClerkTokenGetter === 'function') {
+          repos.productRepository.setClerkTokenGetter(contextState.getClerkSupabaseToken);
+          repos.productRepository.setUserId(contextState.userId);
+          console.log('[UnifiedAuth] ✅ Configured productRepository');
+        }
+        if (repos.supplierRepository && typeof repos.supplierRepository.setClerkTokenGetter === 'function') {
+          repos.supplierRepository.setClerkTokenGetter(contextState.getClerkSupabaseToken);
+          repos.supplierRepository.setUserId(contextState.userId);
+          console.log('[UnifiedAuth] ✅ Configured supplierRepository');
+        }
+        if (repos.emailRepository && typeof repos.emailRepository.setClerkTokenGetter === 'function') {
+          repos.emailRepository.setClerkTokenGetter(contextState.getClerkSupabaseToken);
+          repos.emailRepository.setUserId(contextState.userId);
+          console.log('[UnifiedAuth] ✅ Configured emailRepository');
+        }
 
         setRepositories(repos);
         setRepositoriesSetup(true); // Mark as setup to prevent re-running

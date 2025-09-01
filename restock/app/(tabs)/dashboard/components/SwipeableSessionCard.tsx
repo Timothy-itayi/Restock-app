@@ -16,6 +16,7 @@ import { useThemedStyles } from '../../../../styles/useThemedStyles';
 import { getSessionColorTheme } from '../../restock-sessions/utils/colorUtils';
 import { useRepositories } from '../../../infrastructure/supabase/SupabaseHooksProvider';
 import { Logger } from '../../restock-sessions/utils/logger';
+import { DeviceEventEmitter } from 'react-native';
 
 interface UnfinishedSession {
   id: string;
@@ -156,6 +157,11 @@ export const SwipeableSessionCard: React.FC<SwipeableSessionCardProps> = ({
               
               await sessionRepository.delete(session.id);
               // Logger.success('Session deleted successfully from dashboard', { sessionId: session.id }); // Original code had this line commented out
+
+              // Emit event to notify other components (like restock-sessions tab) about session deletion
+              console.log('📢 Dashboard: Emitting session deleted event for:', session.id);
+              DeviceEventEmitter.emit('restock:sessionDeleted', { sessionId: session.id });
+
               onSessionDeleted(session.id);
             } catch (error) {
               // Logger.error('Unexpected error deleting session from dashboard', error, { sessionId: session.id });

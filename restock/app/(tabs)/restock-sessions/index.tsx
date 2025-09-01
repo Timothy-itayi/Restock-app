@@ -182,14 +182,14 @@ const RestockSessionsContent: React.FC = () => {
   // --- START NEW SESSION ---
   const handleStartNewSession = useCallback(async () => {
     console.log('🚀 RestockSessions: handleStartNewSession called');
-    
+
     if (!authUserId) {
       console.log('❌ RestockSessions: Cannot start session - no auth user');
       setToastMessage('Please log in to create a session');
       return;
     }
 
-    const defaultName = `Restock Session ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    const defaultName = `Restock ${new Date().toLocaleDateString()}`;
     console.log('📝 RestockSessions: Setting default session name:', defaultName);
     setSessionNameInput(defaultName);
     setShowNameModal(true);
@@ -216,9 +216,10 @@ const RestockSessionsContent: React.FC = () => {
 
   // --- NAME SESSION ---
   const handleNameSession = useCallback(async () => {
-    console.log('🚀 RestockSessions: handleNameSession called with name:', sessionNameInputRef.current.trim());
-    
-    if (!sessionNameInputRef.current.trim()) {
+    const trimmedName = sessionNameInputRef.current.trim();
+    console.log('🚀 RestockSessions: handleNameSession called with name:', trimmedName);
+
+    if (!trimmedName) {
       console.log('❌ RestockSessions: No session name provided');
       setToastMessage('Please enter a session name');
       return;
@@ -233,21 +234,30 @@ const RestockSessionsContent: React.FC = () => {
         setSessionNameInput('');
       } else {
         console.log('🆕 RestockSessions: Creating new session and navigating to add-product');
+        console.log('🚀 RestockSessions: Navigation params to send:', { pendingName: trimmedName });
+
         setShowNameModal(false);
         setSessionNameInput('');
         const { router } = await import('expo-router');
-        
+
         // Navigate to add-product with the pending name
-        console.log('🚀 Navigating to add-product with name:', sessionNameInputRef.current.trim());
-        
+        console.log('🚀 Navigating to add-product with name:', trimmedName);
+
         try {
           await router.push({
             pathname: '/(tabs)/restock-sessions/add-product' as any,
-            params: { pendingName: sessionNameInputRef.current.trim() }
+            params: { pendingName: trimmedName }
           });
         } catch (error) {
           console.error('❌ Navigation error:', error);
-          // Fallback to relative navigation
+          // Fallback to relative navigation - try to preserve pendingName in session storage
+          console.log('⚠️ RestockSessions: Using fallback navigation, storing pendingName in AsyncStorage');
+          try {
+            const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+            await AsyncStorage.setItem('pendingSessionName', trimmedName);
+          } catch (storageError) {
+            console.error('❌ RestockSessions: Failed to store pending name:', storageError);
+          }
           router.push('add-product' as any);
         }
       }

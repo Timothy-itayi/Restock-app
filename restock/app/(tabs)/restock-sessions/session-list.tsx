@@ -55,10 +55,7 @@ const SessionListScreen: React.FC = () => {
               const result = await sessionContext.deleteSession(sessionId);
               if (result.success) {
                 setToastMessage('Session deleted successfully');
-                // Clear current session if it was the deleted one
-                if (sessionContext.currentSession?.toValue().id === sessionId) {
-                  sessionContext.clearCurrentSession();
-                }
+                // Note: SessionContext.deleteSession() already handles clearing current session if needed
               } else {
                 setToastMessage(result.error || 'Failed to delete session');
               }
@@ -70,7 +67,7 @@ const SessionListScreen: React.FC = () => {
         }
       ]
     );
-  }, [sessionContext.deleteSession, sessionContext.currentSession, sessionContext.clearCurrentSession]);
+  }, [sessionContext.deleteSession]);
 
   const handleCreateNewSession = useCallback(() => {
     router.push({

@@ -272,16 +272,29 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
     if (!isSupabaseReady || !sessionRepository) {
       return { success: false, error: 'System not ready to delete session' };
     }
+
+    // Capture current session state to avoid dependency issues
+    const currentSessionId = currentSession?.toValue().id;
+
     try {
       setIsSessionLoading(true);
       await sessionRepository.delete(sessionId);
       console.log('✅ SessionContext: Session deleted', sessionId);
+
+      // Update available sessions
       setAvailableSessions(prev => prev.filter(s => s.toValue().id !== sessionId));
-      if (currentSession?.toValue().id === sessionId) {
+
+      // Clear current session if it was the deleted one
+      if (currentSessionId === sessionId) {
         setCurrentSession(null);
         setWorkflowState('idle');
         console.log('✅ SessionContext: Current session deleted, clearing state');
       }
+
+      // Emit event to notify other components (like useSessionList) about session deletion
+      console.log('📢 SessionContext: Emitting session deleted event for:', sessionId);
+      DeviceEventEmitter.emit('restock:sessionDeleted', { sessionId });
+
       return { success: true };
     } catch (err) {
       console.error('❌ SessionContext: Error deleting session', err);
@@ -289,7 +302,7 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
     } finally {
       setIsSessionLoading(false);
     }
-  }, [isSupabaseReady, sessionRepository, currentSession]);
+  }, [isSupabaseReady, sessionRepository]);
 
   // 🔍 NEW: Add product functionality
   const addProduct = useCallback(async (params: {
@@ -306,11 +319,9 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
     if (!currentSession) {
       return { success: false, error: 'No active session' };
     }
-    
+
     try {
-      setIsSessionLoading(true);
-      
-      // Add the product to the session
+      // Add the product to the session - remove loading state to speed up
       await sessionRepository.addItem(currentSession.toValue().id, {
         productId: `temp_${Date.now()}`,
         productName: params.productName,
@@ -320,14 +331,12 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
         supplierEmail: params.supplierEmail,
         notes: params.notes
       });
-      
+
       console.log('✅ SessionContext: Product added successfully');
       return { success: true };
     } catch (err) {
       console.error('❌ SessionContext: Error adding product', err);
       return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
-    } finally {
-      setIsSessionLoading(false);
     }
   }, [isSupabaseReady, sessionRepository, currentSession]);
 

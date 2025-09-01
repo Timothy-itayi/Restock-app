@@ -1,4 +1,4 @@
-import { supabaseWithAuth } from '../../config/supabase';
+import { supabase } from '../../config/supabase';
 import { RestockSession } from '../../../app/domain/entities/RestockSession';
 import { SessionRepository } from '../../../app/domain/interfaces/SessionRepository';
 import { SessionMapper } from '../../../app/infrastructure/repositories/mappers/SessionMapper';
@@ -6,6 +6,7 @@ import type { RestockSession as DbRestockSession, RestockItem as DbRestockItem }
 
 export class SupabaseSessionRepository implements SessionRepository {
   private userId: string | null = null;
+  private getClerkTokenFn: (() => Promise<string | null>) | null = null;
 
   constructor(userId?: string) {
     this.userId = userId || null;
@@ -19,6 +20,13 @@ export class SupabaseSessionRepository implements SessionRepository {
   }
 
   /**
+   * Set the Clerk token getter function
+   */
+  setClerkTokenGetter(fn: () => Promise<string | null>) {
+    this.getClerkTokenFn = fn;
+  }
+
+  /**
    * Get the current user ID, throwing an error if not set
    */
   private getCurrentUserId(): string {
@@ -28,8 +36,66 @@ export class SupabaseSessionRepository implements SessionRepository {
     return this.userId;
   }
 
+  /**
+   * Create an authenticated Supabase client with Clerk JWT token
+   */
+  private _cachedClient: any = null;
+  private _cachedToken: string | null = null;
+
+  private async getAuthenticatedClient() {
+    if (!this.getClerkTokenFn) {
+      console.warn('No Clerk token getter set, using default client');
+      return supabase;
+    }
+
+    try {
+      const token = await this.getClerkTokenFn();
+      if (!token) {
+        console.warn('No Clerk token available, using default client');
+        return supabase;
+      }
+
+      // Return cached client if token hasn't changed
+      if (this._cachedClient && this._cachedToken === token) {
+        return this._cachedClient;
+      }
+
+      // Create new authenticated client
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
+      const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
+
+      const client = createClient(supabaseUrl, supabaseAnonKey, {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+        auth: {
+          autoRefreshToken: true,
+          persistSession: true,
+          detectSessionInUrl: false,
+        },
+        realtime: {
+          params: {
+            eventsPerSecond: 10,
+          },
+        },
+      });
+
+      // Cache the client and token
+      this._cachedClient = client;
+      this._cachedToken = token;
+
+      return client;
+    } catch (error) {
+      console.warn('Failed to create authenticated client:', error);
+      return supabase;
+    }
+  }
+
   async save(session: RestockSession): Promise<void> {
-    const client = await supabaseWithAuth();
+    const client = await this.getAuthenticatedClient();
     const dbSession = SessionMapper.toDatabase(session);
     
     if (session.id) {
@@ -58,7 +124,7 @@ export class SupabaseSessionRepository implements SessionRepository {
 
   async findById(id: string): Promise<RestockSession | null> {
     try {
-      const client = await supabaseWithAuth();
+      const client = await this.getAuthenticatedClient();
       // Get session via RPC
       const { data: sessions, error: sessionError } = await client.rpc('get_restock_sessions');
       
@@ -90,7 +156,19 @@ export class SupabaseSessionRepository implements SessionRepository {
 
   async findByUserId(): Promise<ReadonlyArray<RestockSession>> {
     try {
-      const client = await supabaseWithAuth();
+      console.log('[SupabaseSessionRepository] 🔍 findByUserId called:', {
+        hasGetAuthenticatedClient: typeof this.getAuthenticatedClient === 'function',
+        hasTokenGetter: !!this.getClerkTokenFn,
+        userId: this.userId,
+        constructorName: this.constructor.name
+      });
+
+      if (typeof this.getAuthenticatedClient !== 'function') {
+        console.error('[SupabaseSessionRepository] ❌ getAuthenticatedClient method missing');
+        throw new Error('Repository method getAuthenticatedClient is not available');
+      }
+
+      const client = await this.getAuthenticatedClient();
       // RPC functions automatically filter by current user, so userId is not needed
       // Get sessions via RPC
       const { data: sessions, error: sessionsError } = await client.rpc('get_restock_sessions');
@@ -130,7 +208,7 @@ export class SupabaseSessionRepository implements SessionRepository {
   }
 
   async delete(id: string): Promise<void> {
-    const client = await supabaseWithAuth();
+    const client = await this.getAuthenticatedClient();
     const { error } = await client.rpc('delete_restock_session', {
       p_id: id
     });
@@ -142,7 +220,7 @@ export class SupabaseSessionRepository implements SessionRepository {
 
   async findUnfinishedByUserId(): Promise<ReadonlyArray<RestockSession>> {
     try {
-      const client = await supabaseWithAuth();
+      const client = await this.getAuthenticatedClient();
       const { data: sessions, error: sessionsError } = await client.rpc('get_restock_sessions');
       
       if (sessionsError) {
@@ -185,7 +263,7 @@ export class SupabaseSessionRepository implements SessionRepository {
   }
 
   async addItem(sessionId: string, item: any): Promise<void> {
-    const client = await supabaseWithAuth();
+    const client = await this.getAuthenticatedClient();
     const { error } = await client.rpc('insert_restock_item', {
       p_session_id: sessionId,         // uuid
       p_product_name: item.productName, // text
@@ -201,7 +279,7 @@ export class SupabaseSessionRepository implements SessionRepository {
   }
 
   async removeItem(itemId: string): Promise<void> {
-    const client = await supabaseWithAuth();
+    const client = await this.getAuthenticatedClient();
     const { error } = await client.rpc('delete_restock_item', {
       p_id: itemId
     });
@@ -212,7 +290,7 @@ export class SupabaseSessionRepository implements SessionRepository {
   }
 
   async updateName(sessionId: string, name: string): Promise<void> {
-    const client = await supabaseWithAuth();
+    const client = await this.getAuthenticatedClient();
     const { error } = await client.rpc('update_restock_session', {
       p_id: sessionId,
       p_name: name,
@@ -231,7 +309,7 @@ async updateRestockItem(itemId: string, updates: {
   supplierEmail?: string;
   notes?: string;
 }): Promise<void> {
-  const client = await supabaseWithAuth();
+  const client = await this.getAuthenticatedClient();
   
   const { error } = await client.rpc('update_restock_item', {
     p_item_id: itemId,
@@ -248,7 +326,7 @@ async updateRestockItem(itemId: string, updates: {
 }
 
   async updateStatus(sessionId: string, status: string): Promise<void> {
-    const client = await supabaseWithAuth();
+    const client = await this.getAuthenticatedClient();
     const { error } = await client.rpc('update_restock_session', {
       p_id: sessionId,
       p_name: null, // Keep existing name
@@ -262,7 +340,7 @@ async updateRestockItem(itemId: string, updates: {
 
   async findAll(): Promise<ReadonlyArray<RestockSession>> {
     try {
-      const client = await supabaseWithAuth();
+      const client = await this.getAuthenticatedClient();
       const { data: sessions, error: sessionsError } = await client.rpc('get_restock_sessions');
       
       if (sessionsError) {
@@ -306,7 +384,7 @@ async updateRestockItem(itemId: string, updates: {
 
   async create(session: Omit<RestockSession, 'id'>): Promise<string> {
     try {
-      const client = await supabaseWithAuth();
+      const client = await this.getAuthenticatedClient();
       const { data, error } = await client.rpc('insert_restock_session', {
         p_name: session.name,
         p_status: session.status
@@ -326,7 +404,7 @@ async updateRestockItem(itemId: string, updates: {
 
   async markAsSent(sessionId: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const client = await supabaseWithAuth();
+      const client = await this.getAuthenticatedClient();
       const { error } = await client.rpc('update_restock_session', {
         p_id: sessionId,
         p_name: null, // Keep existing name
@@ -345,7 +423,7 @@ async updateRestockItem(itemId: string, updates: {
 
   async findCompletedByUserId(): Promise<ReadonlyArray<RestockSession>> {
     try {
-      const client = await supabaseWithAuth();
+      const client = await this.getAuthenticatedClient();
       const { data: sessions, error: sessionsError } = await client.rpc('get_restock_sessions');
       
       if (sessionsError) {
@@ -387,7 +465,7 @@ async updateRestockItem(itemId: string, updates: {
 
   async findByStatus(status: string): Promise<ReadonlyArray<RestockSession>> {
     try {
-      const client = await supabaseWithAuth();
+      const client = await this.getAuthenticatedClient();
       const { data: sessions, error: sessionsError } = await client.rpc('get_restock_sessions');
       
       if (sessionsError) {
@@ -429,7 +507,7 @@ async updateRestockItem(itemId: string, updates: {
 
   async countByUserId(): Promise<number> {
     try {
-      const client = await supabaseWithAuth();
+      const client = await this.getAuthenticatedClient();
       const { data: sessions, error } = await client.rpc('get_restock_sessions');
       
       if (error) {
@@ -445,7 +523,7 @@ async updateRestockItem(itemId: string, updates: {
 
   async findRecentByUserId(limit: number): Promise<ReadonlyArray<RestockSession>> {
     try {
-      const client = await supabaseWithAuth();
+      const client = await this.getAuthenticatedClient();
       const { data: sessions, error: sessionsError } = await client.rpc('get_restock_sessions');
       
       if (sessionsError) {

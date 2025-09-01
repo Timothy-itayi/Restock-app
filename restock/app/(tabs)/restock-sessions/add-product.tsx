@@ -9,6 +9,7 @@ import CustomToast from '../../components/CustomToast';
 import { useSessionContext } from './context/SessionContext';
 import { useRepositories } from '../../infrastructure/supabase/SupabaseHooksProvider';
 import { useUnifiedAuth } from '../../auth/UnifiedAuthProvider';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function AddProductScreen() {
   const params = useLocalSearchParams();
@@ -18,12 +19,68 @@ export default function AddProductScreen() {
   const { sessionRepository, productRepository, isSupabaseReady } = useRepositories();
   const sessionContext = useSessionContext();
 
+  // Debug logging for repository readiness
+  console.log('🔍 AddProduct: Repository state:', {
+    isSupabaseReady,
+    hasSessionRepository: !!sessionRepository,
+    hasProductRepository: !!productRepository,
+    userId: !!userId
+  });
+
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const pendingName = params?.pendingName ?? '';
-  const sessionId = typeof params?.sessionId === 'string' ? params.sessionId : '';
+  // Clear "system initializing" message when repositories become ready
+  useEffect(() => {
+    if (isSupabaseReady && toastMessage === 'System initializing - please try again in a moment') {
+      setToastMessage(null);
+    }
+  }, [isSupabaseReady, toastMessage]);
+
+  const [finalPendingName, setFinalPendingName] = useState<string>('');
+
+  const pendingName = Array.isArray(params?.pendingName) ? params.pendingName[0] : params?.pendingName ?? '';
+  const sessionId = Array.isArray(params?.sessionId) ? params.sessionId[0] : (typeof params?.sessionId === 'string' ? params.sessionId : '');
   const isExistingSession = params?.isExistingSession === 'true';
+
+  // 🔧 DEBUG: Log navigation parameters and check AsyncStorage fallback
+  useEffect(() => {
+    const checkPendingName = async () => {
+      console.log('🔍 AddProduct: Navigation params received:', {
+        pendingName,
+        sessionId,
+        isExistingSession,
+        allParams: params
+      });
+
+      let nameToUse = pendingName;
+
+      // If no pendingName from params, check AsyncStorage for fallback
+      if (!nameToUse) {
+        try {
+          const storedName = await AsyncStorage.getItem('pendingSessionName');
+          if (storedName) {
+            console.log('🔍 AddProduct: Found fallback name in AsyncStorage:', storedName);
+            nameToUse = storedName;
+            // Clear the stored name since we're using it
+            await AsyncStorage.removeItem('pendingSessionName');
+          }
+        } catch (error) {
+          console.error('❌ AddProduct: Error checking AsyncStorage for pending name:', error);
+        }
+      }
+
+      // If still no name, use a default
+      if (!nameToUse) {
+        nameToUse = `Restock ${new Date().toLocaleDateString()}`;
+        console.log('🔍 AddProduct: Using default name:', nameToUse);
+      }
+
+      setFinalPendingName(nameToUse);
+    };
+
+    checkPendingName();
+  }, [pendingName, sessionId, isExistingSession, params]);
 
   // 🔧 NEW: Load existing session if provided
   useEffect(() => {
@@ -45,8 +102,16 @@ export default function AddProductScreen() {
   }, [router]);
 
   const handleAddProduct = useCallback(async (values: any) => {
-    if (!isSupabaseReady || !userId) {
-      setToastMessage('System not ready');
+    // Check authentication first
+    if (!userId) {
+      setToastMessage('User not authenticated');
+      return;
+    }
+
+    // Check if repositories are ready
+    if (!isSupabaseReady) {
+      console.log('⏳ AddProduct: System not ready, showing message to user');
+      setToastMessage('System initializing - please try again in a moment');
       return;
     }
 
@@ -55,32 +120,42 @@ export default function AddProductScreen() {
       let sessionToUse = sessionContext.currentSession;
 
       if (!sessionToUse) {
-        const result = await sessionContext.startNewSession(pendingName as string || `Restock ${new Date().toLocaleDateString()}`);
+        console.log('🔍 AddProduct: Creating new session with finalPendingName:', {
+          finalPendingName,
+          finalPendingNameType: typeof finalPendingName,
+          finalPendingNameLength: finalPendingName?.length || 0
+        });
+
+        console.log('🔍 AddProduct: Final name to use for session:', finalPendingName);
+
+        const result = await sessionContext.startNewSession(finalPendingName);
         if (!result.success) throw new Error(result.error || 'Failed to create session');
         sessionToUse = sessionContext.currentSession;
         setToastMessage('Session created!');
       }
 
-             const addResult = await sessionContext.addProduct(values);
-       if (addResult.success) {
-         setToastMessage('Product added successfully!');
-         
-         // 🔧 NEW: Emit event to notify main screen that product was added
-         DeviceEventEmitter.emit('restock:productAdded', {
-           sessionId: sessionToUse?.toValue()?.id,
-           productName: values.productName
-         });
-         
-         setTimeout(() => router.back(), 1500);
-       } else {
-         setToastMessage(`Failed: ${addResult.error}`);
-       }
+      const addResult = await sessionContext.addProduct(values);
+      if (addResult.success) {
+        // 🔧 NEW: Emit event to notify main screen that product was added
+        DeviceEventEmitter.emit('restock:productAdded', {
+          sessionId: sessionToUse?.toValue()?.id,
+          productName: values.productName
+        });
+
+        // Immediate navigation for instant feedback
+        router.back();
+
+        // No toast delay needed - navigation provides immediate feedback
+      } else {
+        setToastMessage(`Failed: ${addResult.error}`);
+        setIsSubmitting(false); // Reset state on failure
+      }
     } catch (err) {
       setToastMessage('Error adding product');
-    } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false); // Reset state on error
     }
-  }, [sessionContext, router, pendingName, userId, isSupabaseReady]);
+    // Remove finally block - handle state reset in success/error cases above
+  }, [sessionContext, router, finalPendingName, userId, isSupabaseReady]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -103,6 +178,7 @@ export default function AddProductScreen() {
           <ProductForm
             onSubmit={handleAddProduct}
             isSubmitting={isSubmitting}
+            isDisabled={!isSupabaseReady}
           />
         </View>
       </ScrollView>
