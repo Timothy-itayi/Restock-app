@@ -120,8 +120,8 @@ export default function AddProductScreen() {
         <View style={{ width: 60 }} />
       </View>
 
-      <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }}>
-        <View style={styles.formContainer}>
+      <ScrollView >
+        <View >
           <ProductForm
             onSubmit={handleAddProduct}
             isSubmitting={isSubmitting}

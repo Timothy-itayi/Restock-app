@@ -102,20 +102,20 @@ export default function EditProductScreen() {
   );
 
   return (
-    <SafeAreaView style={restockSessionsStyles.container}>
+    <SafeAreaView style={restockSessionsStyles.EditProductcontainer}>
       <View style={restockSessionsStyles.sessionHeader}>
         <TouchableOpacity onPress={handleBack}><Text>← Back</Text></TouchableOpacity>
         <Text style={restockSessionsStyles.sessionHeaderTitle}>Edit Product</Text>
         <View style={{ width: 60 }} />
       </View>
 
-      <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 20 }}>
+      <ScrollView >
         <ProductForm
           initialValues={initialFormValues}
           isEditMode
           onSubmit={handleSubmit}
           isSubmitting={isSubmitting}
-          submitButtonText={isSubmitting ? 'Updating...' : 'Update Product'}
+
         />
       </ScrollView>
 
