@@ -16,18 +16,16 @@ export function useSessionList(): SessionListState & SessionListActions {
   }
   
   const { sessionRepository: sessionRepo, isSupabaseReady } = useRepositories();
-  
+
   // Stable references to prevent callback recreation
   const authRef = useRef(userId);
-  const createRef = useRef(sessionRepo?.create);
-  const getAllRef = useRef(sessionRepo?.findByUserId);
-  
+  const repoRef = useRef(sessionRepo);
+
   // Update refs when dependencies change
   useEffect(() => {
     authRef.current = userId;
-    createRef.current = sessionRepo?.create;
-    getAllRef.current = sessionRepo?.findByUserId;
-  }, [userId, sessionRepo?.create, sessionRepo?.findByUserId]);
+    repoRef.current = sessionRepo;
+  }, [userId, sessionRepo]);
 
   const [sessions, setSessions] = useState<RestockSession[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -45,18 +43,39 @@ export function useSessionList(): SessionListState & SessionListActions {
     setError(null);
 
     try {
-      const sessionData = await getAllRef.current?.();
-      
+      console.log('[useSessionList] 🔍 Loading sessions:', {
+        hasSessionRepo: !!sessionRepo,
+        hasRepoRef: !!repoRef.current,
+        sessionRepoType: sessionRepo?.constructor?.name,
+        repoRefType: typeof repoRef.current,
+        isSupabaseReady
+      });
+
+      if (!sessionRepo) {
+        console.warn('[useSessionList] ⚠️ sessionRepo is null, repositories not ready');
+        setSessions([]);
+        return;
+      }
+
+      if (!repoRef.current) {
+        console.warn('[useSessionList] ⚠️ repoRef.current is null, repositories not ready');
+        setSessions([]);
+        return;
+      }
+
+      const sessionData = await repoRef.current.findByUserId();
+
+      console.log('[useSessionList] 📋 Session data received:', sessionData);
+
       if (Array.isArray(sessionData)) {
-        const mappedSessions = sessionData.map((data: any) => 
+        const mappedSessions = sessionData.map((data: any) =>
           RestockSession.fromValue({
             id: data.id,
             userId: authRef.current || '',
             name: data.name,
             status: data.status as SessionStatus,
             items: [], // Initialize with empty items array
-            createdAt: new Date(data.created_at),
-            updatedAt: new Date(data.updated_at)
+            createdAt: new Date(data.created_at)
           })
         );
         
@@ -103,10 +122,9 @@ export function useSessionList(): SessionListState & SessionListActions {
         name: sessionName,
         status: SessionStatus.DRAFT,
         items: [],
-        createdAt: new Date(),
-        updatedAt: new Date()
+        createdAt: new Date()
       } as any; // Type assertion to bypass the complex interface mismatch
-      const created = await createRef.current?.(sessionData);
+      const created = await repoRef.current?.create(sessionData);
       if (!created) throw new Error('Failed to create session');
 
       const newSession = RestockSession.create({ id: created, userId: authRef.current, name: sessionName });
@@ -126,22 +144,7 @@ export function useSessionList(): SessionListState & SessionListActions {
     }
   }, []);
 
-  const deleteSession = useCallback(async (id: string) => {
-    setIsLoading(true);
-    setError(null);
 
-    try {
-      await sessionRepo?.delete(id);
-      setSessions(prev => prev.filter(s => s.id !== id));
-      return { success: true };
-    } catch (err) {
-      console.error('Failed to delete session:', err);
-      setError('Failed to delete session');
-      return { success: false, error: 'Failed to delete session' };
-    } finally {
-      setIsLoading(false);
-    }
-  }, [sessionRepo?.delete]);
 
   const updateSession = useCallback(async (id: string, updates: { name?: string; status?: SessionStatus }) => {
     setIsLoading(true);
@@ -150,20 +153,19 @@ export function useSessionList(): SessionListState & SessionListActions {
     try {
       // Use the correct methods from the new system
       if (updates.name) {
-        await sessionRepo?.updateName(id, updates.name);
+        await repoRef.current?.updateName(id, updates.name);
       }
       if (updates.status) {
-        await sessionRepo?.updateStatus(id, updates.status);
+        await repoRef.current?.updateStatus(id, updates.status);
       }
       
       // Update local state
       setSessions(prev => prev.map(s => 
         s.id === id 
-          ? RestockSession.fromValue({
+                      ? RestockSession.fromValue({
               ...s.toValue(),
               name: updates.name || s.name,
-              status: updates.status || s.status,
-              updatedAt: new Date()
+              status: updates.status || s.status
             })
           : s
       ));
@@ -176,7 +178,7 @@ export function useSessionList(): SessionListState & SessionListActions {
     } finally {
       setIsLoading(false);
     }
-  }, [sessionRepo?.updateName, sessionRepo?.updateStatus]);
+  }, []);
 
   // Modal control methods
   const openSelectionModal = useCallback(() => setShowSelectionModal(true), []);
@@ -187,9 +189,9 @@ export function useSessionList(): SessionListState & SessionListActions {
     if (authRef.current && userId) {
       loadSessions();
     }
-  }, [userId, loadSessions]);
+  }, [userId]);
 
-  // 🔧 NEW: Listen for session sent events to refresh the list
+    // 🔧 NEW: Listen for session events to keep state synchronized
   useEffect(() => {
     const handleSessionSent = (event: { sessionId: string }) => {
       console.log('🔄 useSessionList: Received session sent event for:', event.sessionId);
@@ -199,10 +201,21 @@ export function useSessionList(): SessionListState & SessionListActions {
       setTimeout(() => loadSessions(), 100);
     };
 
-    const subscription = DeviceEventEmitter.addListener('restock:sessionSent', handleSessionSent);
-    
-    return () => subscription.remove();
-  }, [loadSessions]);
+    const handleSessionDeleted = (event: { sessionId: string }) => {
+      console.log('🔄 useSessionList: Received session deleted event for:', event.sessionId);
+      // Remove the deleted session from the local state immediately
+      setSessions(prev => prev.filter(s => s.toValue().id !== event.sessionId));
+      console.log('✅ useSessionList: Session removed from local state');
+    };
+
+    const sentSubscription = DeviceEventEmitter.addListener('restock:sessionSent', handleSessionSent);
+    const deletedSubscription = DeviceEventEmitter.addListener('restock:sessionDeleted', handleSessionDeleted);
+
+    return () => {
+      sentSubscription.remove();
+      deletedSubscription.remove();
+    };
+  }, []);
 
   return {
     // State
@@ -211,11 +224,10 @@ export function useSessionList(): SessionListState & SessionListActions {
     error,
     isAuthenticated: !!userId, // Assuming isAuthenticated is derived from userId
     showSelectionModal,
-    
+
     // Actions
     loadSessions,
     createNewSession,
-    deleteSession,
     updateSession,
     openSelectionModal,
     hideSelectionModal
@@ -234,7 +246,6 @@ interface SessionListState {
 interface SessionListActions {
   loadSessions: () => Promise<void>;
   createNewSession: (name?: string) => Promise<{ success: boolean; session?: RestockSession; error?: string }>;
-  deleteSession: (id: string) => Promise<{ success: boolean; error?: string }>;
   updateSession: (id: string, updates: { name?: string; status?: SessionStatus }) => Promise<{ success: boolean; error?: string }>;
   openSelectionModal: () => void;
   hideSelectionModal: () => void;

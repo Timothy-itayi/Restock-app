@@ -18,17 +18,30 @@ export default function AddProductScreen() {
   const { sessionRepository, productRepository, isSupabaseReady } = useRepositories();
   const sessionContext = useSessionContext();
 
+  // Debug logging for repository readiness
+  console.log('🔍 AddProduct: Repository state:', {
+    isSupabaseReady,
+    hasSessionRepository: !!sessionRepository,
+    hasProductRepository: !!productRepository,
+    userId: !!userId
+  });
+
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const pendingName = params?.pendingName ?? '';
-  const sessionId = typeof params?.sessionId === 'string' ? params.sessionId : '';
+  // Clear "system initializing" message when repositories become ready
+  useEffect(() => {
+    if (isSupabaseReady && toastMessage === 'System initializing - please try again in a moment') {
+      setToastMessage(null);
+    }
+  }, [isSupabaseReady, toastMessage]);
+
+  const sessionId = Array.isArray(params?.sessionId) ? params.sessionId[0] : (typeof params?.sessionId === 'string' ? params.sessionId : '');
   const isExistingSession = params?.isExistingSession === 'true';
 
   // 🔧 NEW: Load existing session if provided
   useEffect(() => {
     if (isExistingSession && sessionId && !sessionContext.currentSession) {
-      console.log('🔄 Loading existing session for add-product:', sessionId);
       sessionContext.loadExistingSession(sessionId);
     }
   }, [isExistingSession, sessionId, sessionContext.currentSession, sessionContext.loadExistingSession]);
@@ -45,42 +58,51 @@ export default function AddProductScreen() {
   }, [router]);
 
   const handleAddProduct = useCallback(async (values: any) => {
-    if (!isSupabaseReady || !userId) {
-      setToastMessage('System not ready');
+    // Check authentication first
+    if (!userId) {
+      setToastMessage('User not authenticated');
+      return;
+    }
+
+    // Check if repositories are ready
+    if (!isSupabaseReady) {
+      console.log('⏳ AddProduct: System not ready, showing message to user');
+      setToastMessage('System initializing - please try again in a moment');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      let sessionToUse = sessionContext.currentSession;
+      const sessionToUse = sessionContext.currentSession;
 
       if (!sessionToUse) {
-        const result = await sessionContext.startNewSession(pendingName as string || `Restock ${new Date().toLocaleDateString()}`);
-        if (!result.success) throw new Error(result.error || 'Failed to create session');
-        sessionToUse = sessionContext.currentSession;
-        setToastMessage('Session created!');
+        setToastMessage('No active session found. Please create a session first.');
+        setIsSubmitting(false);
+        return;
       }
 
-             const addResult = await sessionContext.addProduct(values);
-       if (addResult.success) {
-         setToastMessage('Product added successfully!');
-         
-         // 🔧 NEW: Emit event to notify main screen that product was added
-         DeviceEventEmitter.emit('restock:productAdded', {
-           sessionId: sessionToUse?.toValue()?.id,
-           productName: values.productName
-         });
-         
-         setTimeout(() => router.back(), 1500);
-       } else {
-         setToastMessage(`Failed: ${addResult.error}`);
-       }
+      const addResult = await sessionContext.addProduct(values);
+      if (addResult.success) {
+        // 🔧 NEW: Emit event to notify main screen that product was added
+        DeviceEventEmitter.emit('restock:productAdded', {
+          sessionId: sessionToUse.toValue().id,
+          productName: values.productName
+        });
+
+        // Immediate navigation for instant feedback
+        router.back();
+
+        // No toast delay needed - navigation provides immediate feedback
+      } else {
+        setToastMessage(`Failed: ${addResult.error}`);
+        setIsSubmitting(false); // Reset state on failure
+      }
     } catch (err) {
       setToastMessage('Error adding product');
-    } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false); // Reset state on error
     }
-  }, [sessionContext, router, pendingName, userId, isSupabaseReady]);
+    // Remove finally block - handle state reset in success/error cases above
+  }, [sessionContext, router, userId, isSupabaseReady]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -103,6 +125,7 @@ export default function AddProductScreen() {
           <ProductForm
             onSubmit={handleAddProduct}
             isSubmitting={isSubmitting}
+            isDisabled={!isSupabaseReady}
           />
         </View>
       </ScrollView>

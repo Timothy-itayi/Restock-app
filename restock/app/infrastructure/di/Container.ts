@@ -25,7 +25,7 @@ export class DIContainer {
   }
 
   /**
-   * Register a service under a specific scope
+   * Register a factory-based service (lazy instantiation)
    */
   register<T>(
     key: string,
@@ -37,7 +37,25 @@ export class DIContainer {
     const map = this.scopedServices.get(scope)!;
 
     map.set(key, { factory, singleton: options.singleton ?? true });
-    console.log(`[DIContainer] Registered service: ${key} (singleton: ${options.singleton}) in scope: ${scope}`);
+    console.log(`[DIContainer] 🏗️ Registered factory service: ${key} (singleton: ${options.singleton}) in scope: ${scope}`);
+  }
+
+  /**
+   * Register a pre-built instance (useful for repositories)
+   */
+  registerInstance<T>(key: string, instance: T, options: { scope?: string } = {}) {
+    const scope = options.scope || 'global';
+    if (!this.scopedServices.has(scope)) this.scopedServices.set(scope, new Map());
+    const map = this.scopedServices.get(scope)!;
+
+    map.set(key, {
+      factory: () => instance,
+      singleton: true,
+      instance,
+      instanceCreatedAt: Date.now(),
+      accessCount: 0,
+    });
+    console.log(`[DIContainer] 📦 Registered instance: ${key} in scope: ${scope}`);
   }
 
   /**
@@ -77,7 +95,7 @@ export class DIContainer {
   clearScope(scope: string) {
     if (this.scopedServices.has(scope)) {
       this.scopedServices.delete(scope);
-      console.log(`[DIContainer] Cleared all services for scope: ${scope}`);
+      console.log(`[DIContainer] 🧹 Cleared all services for scope: ${scope}`);
     }
   }
 
@@ -85,11 +103,13 @@ export class DIContainer {
    * Debug info for all scopes
    */
   debugServices() {
-    console.log('[DIContainer] Scoped services:');
+    console.log('[DIContainer] 🔍 Scoped services:');
     this.scopedServices.forEach((map, scope) => {
       console.log(` Scope: ${scope}`);
       map.forEach((def, key) => {
-        console.log(`  - ${key}: singleton=${def.singleton}, hasInstance=${!!def.instance}`);
+        console.log(
+          `  - ${key}: singleton=${def.singleton}, hasInstance=${!!def.instance}, accessCount=${def.accessCount ?? 0}`
+        );
       });
     });
   }
@@ -107,5 +127,6 @@ export class DIContainer {
 
   clearAll() {
     this.scopedServices.clear();
+    console.log('[DIContainer] 🚨 Cleared ALL scopes and services');
   }
 }

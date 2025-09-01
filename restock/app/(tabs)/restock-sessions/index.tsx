@@ -103,17 +103,20 @@ const RestockSessionsContent: React.FC = () => {
       return {
         sessionId: typeof rawParams.sessionId === 'string' ? rawParams.sessionId : undefined,
         action: typeof rawParams.action === 'string' ? rawParams.action : undefined,
+        createNewSession: rawParams.createNewSession === 'true',
       };
     }
     return {
       sessionId: undefined,
-      action: undefined
+      action: undefined,
+      createNewSession: false
     };
   }, [rawParams]);
   
   // ✅ CORRECT: Memoize sessionId and action
   const sessionId = useMemo(() => safeParams.sessionId, [safeParams.sessionId]);
   const action = useMemo(() => safeParams.action, [safeParams.action]);
+  const createNewSession = useMemo(() => safeParams.createNewSession, [safeParams.createNewSession]);
   
   // Local state - always initialized
   const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
@@ -182,14 +185,14 @@ const RestockSessionsContent: React.FC = () => {
   // --- START NEW SESSION ---
   const handleStartNewSession = useCallback(async () => {
     console.log('🚀 RestockSessions: handleStartNewSession called');
-    
+
     if (!authUserId) {
       console.log('❌ RestockSessions: Cannot start session - no auth user');
       setToastMessage('Please log in to create a session');
       return;
     }
 
-    const defaultName = `Restock Session ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    const defaultName = `Restock ${new Date().toLocaleDateString()}`;
     console.log('📝 RestockSessions: Setting default session name:', defaultName);
     setSessionNameInput(defaultName);
     setShowNameModal(true);
@@ -216,44 +219,41 @@ const RestockSessionsContent: React.FC = () => {
 
   // --- NAME SESSION ---
   const handleNameSession = useCallback(async () => {
-    console.log('🚀 RestockSessions: handleNameSession called with name:', sessionNameInputRef.current.trim());
-    
-    if (!sessionNameInputRef.current.trim()) {
-      console.log('❌ RestockSessions: No session name provided');
+    const trimmedName = sessionNameInputRef.current.trim();
+
+    if (!trimmedName) {
       setToastMessage('Please enter a session name');
       return;
     }
 
     try {
       if (sessionContextRef.current.currentSession) {
-        console.log('🔄 RestockSessions: Updating existing session name');
         // TODO: Implement session name update through session context
         setToastMessage('Session name update coming soon');
         setShowNameModal(false);
         setSessionNameInput('');
       } else {
-        console.log('🆕 RestockSessions: Creating new session and navigating to add-product');
+        // Create the session immediately before navigating
+        const createResult = await sessionContextRef.current.startNewSession(trimmedName);
+        if (!createResult.success) {
+          setToastMessage('Failed to create session');
+          return;
+        }
+
         setShowNameModal(false);
         setSessionNameInput('');
+
         const { router } = await import('expo-router');
-        
-        // Navigate to add-product with the pending name
-        console.log('🚀 Navigating to add-product with name:', sessionNameInputRef.current.trim());
-        
+
+        // Navigate to add-product screen (session is now active)
         try {
-          await router.push({
-            pathname: '/(tabs)/restock-sessions/add-product' as any,
-            params: { pendingName: sessionNameInputRef.current.trim() }
-          });
+          await router.push('/(tabs)/restock-sessions/add-product' as any);
         } catch (error) {
-          console.error('❌ Navigation error:', error);
-          // Fallback to relative navigation
           router.push('add-product' as any);
         }
       }
     } catch (error) {
       setToastMessage('An error occurred while processing the session');
-      console.error('[RestockSessions] Error in handleNameSession:', error);
     }
   }, []); // Empty dependency array using refs
 
@@ -269,25 +269,30 @@ const RestockSessionsContent: React.FC = () => {
   useEffect(() => {
     // Only run if we have a sessionId and action, and we're not already loading
     // and the current session is different from the one we want to load
-    if (sessionId && 
-        action === 'continue' && 
+    if (sessionId &&
+        action === 'continue' &&
         !sessionContext.isLoadingSpecificSession &&
         sessionContext.currentSession?.toValue().id !== sessionId) {
       const loadSessionAndOpenForm = async () => {
         try {
-          console.log('🚀 Loading specific session from dashboard:', sessionId);
           await sessionContext.loadExistingSession(sessionId);
           setToastMessage('Session loaded successfully! Continue adding products...');
         } catch (error) {
           setToastMessage('Failed to load session');
-          console.error('[RestockSessions] loadSessionAndOpenForm error:', error);
         }
       };
-      
+
       // Load immediately for better UX when coming from dashboard
       loadSessionAndOpenForm();
     }
   }, [sessionId, action, sessionContext.loadExistingSession, sessionContext.isLoadingSpecificSession, sessionContext.currentSession]);
+
+  // --- HANDLE CREATE NEW SESSION FROM SESSION LIST ---
+  useEffect(() => {
+    if (createNewSession && !sessionContext.currentSession && !sessionContext.isSessionLoading) {
+      handleStartNewSession();
+    }
+  }, [createNewSession, sessionContext.currentSession, sessionContext.isSessionLoading, handleStartNewSession]);
 
 
 
@@ -345,9 +350,9 @@ const RestockSessionsContent: React.FC = () => {
     isServiceInitializing,
     serviceHealth: serviceHealth.isHealthy,
     sessionListSessions: sessionList.sessions?.length || 0,
-    activeSessionId: activeSession?.toValue()?.id,
-    activeSessionStatus: activeSession?.toValue()?.status,
-    currentSessionId: sessionContext.currentSession?.toValue()?.id
+    activeSessionId: activeSession && typeof activeSession.toValue === 'function' ? activeSession.toValue().id : null,
+    activeSessionStatus: activeSession && typeof activeSession.toValue === 'function' ? activeSession.toValue().status : null,
+    currentSessionId: sessionContext.currentSession && typeof sessionContext.currentSession.toValue === 'function' ? sessionContext.currentSession.toValue().id : null
   });
 
   // 🔧 NEW: Auto-activate first active session when products are added
@@ -367,8 +372,6 @@ const RestockSessionsContent: React.FC = () => {
 // Listen for product additions and refresh active session
 useEffect(() => {
   const handleProductAdded = async ({ sessionId }: { sessionId: string }) => {
-    console.log('🔄 Product added, refreshing current session...', sessionId);
-
     if (sessionContext.currentSession?.toValue()?.id === sessionId) {
       // Reload the active session so ProductList shows new product
       await sessionContext.loadExistingSession(sessionId);
@@ -376,11 +379,31 @@ useEffect(() => {
       // Optional: refresh session list to include new sessions
       sessionList.loadSessions();
     }
+
+    // 🔧 CRITICAL: Always refresh available sessions for switch button visibility
+    // This ensures the switch button appears when a new session is created
+    await sessionContext.loadAvailableSessions();
   };
 
-  const subscription = DeviceEventEmitter.addListener('restock:productAdded', handleProductAdded);
+  const handleSessionDeleted = ({ sessionId }: { sessionId: string }) => {
+    // If the deleted session was the current session, clear it immediately
+    if (sessionContext.currentSession?.toValue()?.id === sessionId) {
+      console.log('🔄 Main screen: Current session deleted, clearing state');
+      sessionContext.clearCurrentSession();
+    }
+    // Always refresh available sessions to update switch button
+    sessionContext.loadAvailableSessions();
+    // Also refresh the session list to reflect the deletion
+    sessionList.loadSessions();
+  };
 
-  return () => subscription.remove();
+  const productSubscription = DeviceEventEmitter.addListener('restock:productAdded', handleProductAdded);
+  const deleteSubscription = DeviceEventEmitter.addListener('restock:sessionDeleted', handleSessionDeleted);
+
+  return () => {
+    productSubscription.remove();
+    deleteSubscription.remove();
+  };
 }, [sessionContext, sessionList]);
 
     // Show loading only while auth is initializing
@@ -424,15 +447,22 @@ useEffect(() => {
   return (
     <View style={restockSessionsStyles.container}>
       {/* Session Header */}
-      <SessionHeader
-        currentSession={sessionContext.currentSession}
-        onNameSession={() => {
-          setSessionNameInput(sessionContext.currentSession?.toValue().name || '');
-          setShowNameModal(true);
-        }}
-        onShowSessionSelection={handleOpenSessionList}
-        allSessionsCount={Array.isArray(sessionList.sessions) ? sessionList.sessions.length : 0}
-      />
+      {(() => {
+        // Use the same session count logic as the main screen
+        const sessionCount = Array.isArray(sessionList.sessions) ? sessionList.sessions.length : 0;
+        return (
+          <SessionHeader
+            key={`session-header-${sessionCount}`}
+            currentSession={sessionContext.currentSession}
+            onNameSession={() => {
+              setSessionNameInput(sessionContext.currentSession?.toValue().name || '');
+              setShowNameModal(true);
+            }}
+            onShowSessionSelection={handleOpenSessionList}
+            allSessionsCount={sessionCount}
+          />
+        );
+      })()}
 
       <ScrollView>
         {/* Existing Sessions */}
@@ -449,14 +479,8 @@ useEffect(() => {
         )}
 
         {/* Loading indicator when sessions are loading */}
-        {!hasActiveSession && !hasActiveSessions && isLoading && (
-          <View style={restockSessionsStyles.existingSessionsSection}>
-            <Text style={restockSessionsStyles.sectionTitle}>Loading Sessions</Text>
-            <Text style={restockSessionsStyles.sectionSubtitle}>
-              Checking for existing sessions...
-            </Text>
-          </View>
-        )}
+   
+    
 
         {/* Start Section */}
         {!hasActiveSession && !hasActiveSessions && (
@@ -474,14 +498,15 @@ useEffect(() => {
             <View style={restockSessionsStyles.addProductSection}>
               <TouchableOpacity style={restockSessionsStyles.addProductButton} onPress={async () => {
                 const { router } = await import('expo-router');
-                console.log('🚀 Add Product button: Navigating to add-product with session:', activeSession.toValue().id);
-                
+                const sessionData = activeSession.toValue();
+                console.log('🚀 Add Product button: Navigating to add-product with session:', sessionData.id);
+
                 try {
                   await router.push({
                     pathname: '/(tabs)/restock-sessions/add-product' as any,
-                    params: { 
-                      sessionId: activeSession.toValue().id,
-                      sessionName: activeSession.toValue().name,
+                    params: {
+                      sessionId: sessionData.id,
+                      sessionName: sessionData.name,
                       isExistingSession: 'true'
                     }
                   });
@@ -490,9 +515,9 @@ useEffect(() => {
                   // Fallback to relative navigation with params
                   router.push({
                     pathname: 'add-product' as any,
-                    params: { 
-                      sessionId: activeSession.toValue().id,
-                      sessionName: activeSession.toValue().name,
+                    params: {
+                      sessionId: sessionData.id,
+                      sessionName: sessionData.name,
                       isExistingSession: 'true'
                     }
                   });
@@ -514,11 +539,12 @@ useEffect(() => {
                 
                 // Navigate to edit-product screen
                 const { router } = await import('expo-router');
+                const sessionData = activeSession.toValue();
                 try {
                   await router.push({
                     pathname: '/(tabs)/restock-sessions/edit-product' as any,
-                    params: { 
-                      sessionId: activeSession.toValue().id,
+                    params: {
+                      sessionId: sessionData.id,
                       editProductId: product.productId || product.id,
                       editProductName: product.productName,
                       editQuantity: product.quantity?.toString(),
@@ -532,8 +558,8 @@ useEffect(() => {
                   // Fallback to relative navigation
                   router.push({
                     pathname: 'edit-product' as any,
-                    params: { 
-                      sessionId: activeSession.toValue().id,
+                    params: {
+                      sessionId: sessionData.id,
                       editProductId: product.productId || product.id,
                       editProductName: product.productName,
                       editQuantity: product.quantity?.toString(),

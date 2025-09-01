@@ -214,16 +214,27 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
 
   const loadAvailableSessions = useCallback(async () => {
     console.log('🔄 SessionContext: Loading available sessions...');
-    if (!isSupabaseReady || !sessionRepository) return;
+    if (!isSupabaseReady || !sessionRepository) {
+      console.log('❌ SessionContext: Cannot load - not ready or no repository');
+      return;
+    }
     try {
       // 🔧 FIXED: Only load unfinished sessions (DRAFT or EMAIL_GENERATED)
       const allSessions = await sessionRepository.findByUserId();
+      console.log('🔍 SessionContext: Found sessions from DB:', allSessions.length);
+      allSessions.forEach(session => {
+        console.log('🔍 SessionContext: Session', session.toValue().id, 'status:', session.toValue().status);
+      });
+
       const unfinishedSessions = allSessions.filter(session => {
         const status = session.toValue().status;
-        return status === SessionStatus.DRAFT || status === SessionStatus.EMAIL_GENERATED;
+        const isUnfinished = status === SessionStatus.DRAFT || status === SessionStatus.EMAIL_GENERATED;
+        console.log('🔍 SessionContext: Session', session.toValue().id, 'status check:', status, 'is unfinished:', isUnfinished);
+        return isUnfinished;
       });
-      setAvailableSessions([...unfinishedSessions]);
+
       console.log('✅ SessionContext: Available unfinished sessions loaded', unfinishedSessions.length);
+      setAvailableSessions([...unfinishedSessions]);
     } catch (err) {
       console.error('❌ SessionContext: Failed to load available sessions', err);
     }
@@ -272,16 +283,39 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
     if (!isSupabaseReady || !sessionRepository) {
       return { success: false, error: 'System not ready to delete session' };
     }
+
     try {
       setIsSessionLoading(true);
+
+      // Capture current session state to avoid dependency issues
+      const currentSessionId = currentSession?.toValue().id;
+      const wasCurrentSession = currentSessionId === sessionId;
+
+      console.log('🔍 SessionContext: Deleting session', sessionId, 'was current:', wasCurrentSession);
+
       await sessionRepository.delete(sessionId);
-      console.log('✅ SessionContext: Session deleted', sessionId);
-      setAvailableSessions(prev => prev.filter(s => s.toValue().id !== sessionId));
-      if (currentSession?.toValue().id === sessionId) {
+      console.log('✅ SessionContext: Session deleted from database', sessionId);
+
+      // Update available sessions first
+      setAvailableSessions(prev => {
+        const filtered = prev.filter(s => s.toValue().id !== sessionId);
+        console.log('✅ SessionContext: Available sessions updated, count:', filtered.length);
+        return filtered;
+      });
+
+      // Clear current session if it was the deleted one
+      if (wasCurrentSession) {
+        console.log('🔄 SessionContext: Clearing current session (was deleted)');
         setCurrentSession(null);
         setWorkflowState('idle');
-        console.log('✅ SessionContext: Current session deleted, clearing state');
+        setPendingSessionId(null);
+        setGeneratedEmails(null); // Clear any generated emails too
       }
+
+      // Emit event to notify other components about session deletion
+      console.log('📢 SessionContext: Emitting session deleted event for:', sessionId);
+      DeviceEventEmitter.emit('restock:sessionDeleted', { sessionId });
+
       return { success: true };
     } catch (err) {
       console.error('❌ SessionContext: Error deleting session', err);
@@ -289,7 +323,7 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
     } finally {
       setIsSessionLoading(false);
     }
-  }, [isSupabaseReady, sessionRepository, currentSession]);
+  }, [isSupabaseReady, sessionRepository]);
 
   // 🔍 NEW: Add product functionality
   const addProduct = useCallback(async (params: {
@@ -306,11 +340,9 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
     if (!currentSession) {
       return { success: false, error: 'No active session' };
     }
-    
+
     try {
-      setIsSessionLoading(true);
-      
-      // Add the product to the session
+      // Add the product to the session - remove loading state to speed up
       await sessionRepository.addItem(currentSession.toValue().id, {
         productId: `temp_${Date.now()}`,
         productName: params.productName,
@@ -320,14 +352,12 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
         supplierEmail: params.supplierEmail,
         notes: params.notes
       });
-      
+
       console.log('✅ SessionContext: Product added successfully');
       return { success: true };
     } catch (err) {
       console.error('❌ SessionContext: Error adding product', err);
       return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
-    } finally {
-      setIsSessionLoading(false);
     }
   }, [isSupabaseReady, sessionRepository, currentSession]);
 

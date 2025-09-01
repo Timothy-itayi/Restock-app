@@ -1,120 +1,145 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
-import { useAuth } from "@clerk/clerk-expo";
-import { registerServices } from "../di/ServiceRegistry";
+// SupabaseHooksProvider.tsx
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useUnifiedAuth } from '../../auth/UnifiedAuthProvider';
 
-import { SupabaseUserRepository } from "../../../backend/infrastructure/repositories/SupabaseUserRepository";
-import { SupabaseSessionRepository } from "../../../backend/infrastructure/repositories/SupabaseSessionRepository";
-import { SupabaseProductRepository } from "../../../backend/infrastructure/repositories/SupabaseProductRepository";
-import { SupabaseSupplierRepository } from "../../../backend/infrastructure/repositories/SupabaseSupplierRepository";
-import { SupabaseEmailRepository } from "../../../backend/infrastructure/repositories/SupabaseEmailRepository";
+import { SupabaseUserRepository } from '../../../backend/infrastructure/repositories/SupabaseUserRepository';
+import { SupabaseSessionRepository } from '../../../backend/infrastructure/repositories/SupabaseSessionRepository';
+import { SupabaseProductRepository } from '../../../backend/infrastructure/repositories/SupabaseProductRepository';
+import { SupabaseSupplierRepository } from '../../../backend/infrastructure/repositories/SupabaseSupplierRepository';
+import { SupabaseEmailRepository } from '../../../backend/infrastructure/repositories/SupabaseEmailRepository';
+import { registerServices, clearUserScope } from '../di/ServiceRegistry';
 
-import {
-  SessionRepository,
-  ProductRepository,
-  SupplierRepository,
-  EmailRepository,
-  UserRepository,
-} from "../../domain/interfaces";
-
-interface RepositoryContextValue {
-  userRepository: UserRepository | null;
-  sessionRepository: SessionRepository | null;
-  productRepository: ProductRepository | null;
-  supplierRepository: SupplierRepository | null;
-  emailRepository: EmailRepository | null;
-  isSupabaseReady: boolean;
-  isUserContextSet: boolean;
+interface RepositoryContextType {
+  userRepository: SupabaseUserRepository;
+  sessionRepository: SupabaseSessionRepository;
+  productRepository: SupabaseProductRepository;
+  supplierRepository: SupabaseSupplierRepository;
+  emailRepository: SupabaseEmailRepository;
 }
 
-const RepositoryContext = createContext<RepositoryContextValue | null>(null);
+const RepositoryContext = createContext<RepositoryContextType | undefined>(undefined);
+
+export const useRepositories = (): RepositoryContextType & { isSupabaseReady: boolean } => {
+  const context = useContext(RepositoryContext);
+  console.log('[SupabaseHP] 🔍 useRepositories called, context exists:', !!context);
+
+  if (!context) {
+    console.log('[SupabaseHP] ⚠️ No context available, returning null repositories');
+    return {
+      userRepository: null as any,
+      sessionRepository: null as any,
+      productRepository: null as any,
+      supplierRepository: null as any,
+      emailRepository: null as any,
+      isSupabaseReady: false
+    };
+  }
+
+  console.log('[SupabaseHP] ✅ Returning repositories from context:', {
+    hasSessionRepository: !!context.sessionRepository,
+    sessionRepositoryType: context.sessionRepository?.constructor?.name
+  });
+
+  return { ...context, isSupabaseReady: true };
+};
 
 export const SupabaseHooksProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { userId, isLoaded, isSignedIn } = useAuth();
-  const [repositories, setRepositories] = useState<RepositoryContextValue | null>(null);
+  console.log('[SupabaseHP] 🔄 SupabaseHooksProvider rendered');
+  const { userId, isAuthenticated, getClerkSupabaseToken } = useUnifiedAuth();
+  const [repos, setRepos] = useState<RepositoryContextType | null>(null);
+  console.log('[SupabaseHP] 📋 Auth state:', { userId, isAuthenticated });
 
-  // react to auth state
   useEffect(() => {
-    if (isLoaded && isSignedIn && userId) {
-      console.log("[SupabaseHP] 🔑 Auth ready, building repos for", userId);
+    let isMounted = true;
 
-      const repos: RepositoryContextValue = {
-        userRepository: new SupabaseUserRepository(),
-        sessionRepository: new SupabaseSessionRepository(),
-        productRepository: new SupabaseProductRepository(),
-        supplierRepository: new SupabaseSupplierRepository(),
-        emailRepository: new SupabaseEmailRepository(),
-        isSupabaseReady: true,
-        isUserContextSet: true,
-      };
-
-      // inject userId into repos that need it
-      repos.sessionRepository!.setUserId(userId);
-      repos.productRepository!.setUserId(userId);
-      repos.supplierRepository!.setUserId(userId);
-      repos.emailRepository!.setUserId(userId);
+    const init = async () => {
+      if (!userId || !isAuthenticated) {
+        console.log('[SupabaseHP] No auth, skipping repo init');
+        setRepos(null); // Clear repos when not authenticated
+        return;
+      }
 
       try {
-        registerServices(userId);
-        console.log("[SupabaseHP] ✅ Services registered");
-      } catch (e) {
-        console.error("[SupabaseHP] ❌ Failed to register services", e);
-      }
+        console.log('[SupabaseHP] 🔑 Getting token from unified auth...');
+        const token = await getClerkSupabaseToken();
 
-      setRepositories(repos);
-    } else {
-      if (repositories) {
-        console.log("[SupabaseHP] 🚪 Auth ended, clearing repos");
-        try {
-          
-        } catch (e) {
-          console.warn("[SupabaseHP] ⚠️ Failed to unregister services", e);
+        if (!token) {
+          console.warn('[SupabaseHP] ⚠️ No token from unified auth');
+          setRepos(null);
+          return;
         }
+
+        if (!isMounted) return;
+
+        console.log('[SupabaseHP] 🏗️ Creating repository instances...');
+        const repositories: RepositoryContextType = {
+          userRepository: new SupabaseUserRepository(),
+          sessionRepository: new SupabaseSessionRepository(),
+          productRepository: new SupabaseProductRepository(),
+          supplierRepository: new SupabaseSupplierRepository(),
+          emailRepository: new SupabaseEmailRepository(),
+        };
+
+        // Configure token getters for repositories that need them
+        console.log('[SupabaseHP] 🔑 Configuring token getters...');
+        Object.values(repositories).forEach((repo, index) => {
+          const repoName = Object.keys(repositories)[index];
+          if (repo) {
+            console.log(`[SupabaseHP] 🔍 Checking repo ${repoName}:`, {
+              hasSetClerkTokenGetter: typeof repo.setClerkTokenGetter === 'function',
+              hasSetUserId: typeof repo.setUserId === 'function',
+              hasGetAuthenticatedClient: typeof repo.getAuthenticatedClient === 'function',
+              repoType: repo.constructor.name
+            });
+
+            if (typeof repo.setClerkTokenGetter === 'function') {
+              repo.setClerkTokenGetter(getClerkSupabaseToken);
+              console.log(`[SupabaseHP] ✅ Configured token getter for ${repoName}`);
+            }
+            if (typeof repo.setUserId === 'function') {
+              repo.setUserId(userId);
+              console.log(`[SupabaseHP] ✅ Configured userId for ${repoName}`);
+            }
+          }
+        });
+        console.log('[SupabaseHP] ✅ Token getters configured');
+
+        // Save to state for Context consumers
+        setRepos(repositories);
+        console.log('[SupabaseHP] 💾 Repositories saved to context state');
+
+        // Register in DI for service consumers
+        try {
+          registerServices(userId, repositories);
+          console.log('[SupabaseHP] ✅ Services registered for DI');
+        } catch (e) {
+          console.error('[SupabaseHP] ❌ Failed to register services with DI', e);
+        }
+      } catch (error) {
+        console.error('[SupabaseHP] ❌ Failed to initialize repositories', error);
+        setRepos(null);
       }
-      setRepositories(null);
-    }
-  }, [isLoaded, isSignedIn, userId]);
+    };
+
+    init();
+
+    return () => {
+      isMounted = false;
+      if (userId) {
+        clearUserScope(userId);
+        console.log('[SupabaseHP] 🧹 Cleared DI scope on unmount');
+      }
+    };
+  }, [userId, isAuthenticated, getClerkSupabaseToken]);
+
+  // Only render children when authenticated and repos are ready
+  if (!isAuthenticated || !repos) {
+    return null; // could render a loading spinner if needed
+  }
 
   return (
-    <RepositoryContext.Provider
-      value={
-        repositories ?? {
-          userRepository: null,
-          sessionRepository: null,
-          productRepository: null,
-          supplierRepository: null,
-          emailRepository: null,
-          isSupabaseReady: false,
-          isUserContextSet: false,
-        }
-      }
-    >
+    <RepositoryContext.Provider value={repos}>
       {children}
     </RepositoryContext.Provider>
   );
 };
-
-export const useRepositories = (): RepositoryContextValue => {
-  const ctx = useContext(RepositoryContext);
-  if (!ctx) throw new Error("useRepositories must be used within SupabaseHooksProvider");
-  return ctx;
-};
-
-const createRepositoryHook = <T extends object>(
-  selector: (ctx: RepositoryContextValue) => T | null
-) => {
-  return () => {
-    const context = useRepositories();
-    const repo = selector(context);
-    return {
-      ...repo,
-      isReady: context.isSupabaseReady,
-      isUserContextSet: context.isUserContextSet,
-    };
-  };
-};
-
-export const useUserRepository = createRepositoryHook((ctx) => ctx.userRepository);
-export const useSessionRepository = createRepositoryHook((ctx) => ctx.sessionRepository);
-export const useProductRepository = createRepositoryHook((ctx) => ctx.productRepository);
-export const useSupplierRepository = createRepositoryHook((ctx) => ctx.supplierRepository);
-export const useEmailRepository = createRepositoryHook((ctx) => ctx.emailRepository);

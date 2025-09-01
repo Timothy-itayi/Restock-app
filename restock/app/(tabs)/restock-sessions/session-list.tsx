@@ -55,10 +55,7 @@ const SessionListScreen: React.FC = () => {
               const result = await sessionContext.deleteSession(sessionId);
               if (result.success) {
                 setToastMessage('Session deleted successfully');
-                // Clear current session if it was the deleted one
-                if (sessionContext.currentSession?.toValue().id === sessionId) {
-                  sessionContext.clearCurrentSession();
-                }
+                // Note: SessionContext.deleteSession() already handles clearing current session if needed
               } else {
                 setToastMessage(result.error || 'Failed to delete session');
               }
@@ -70,14 +67,13 @@ const SessionListScreen: React.FC = () => {
         }
       ]
     );
-  }, [sessionContext.deleteSession, sessionContext.currentSession, sessionContext.clearCurrentSession]);
+  }, [sessionContext.deleteSession]);
 
   const handleCreateNewSession = useCallback(() => {
+    // Navigate back to main restock sessions tab with flag to start new session
     router.push({
-      pathname: '/(tabs)/restock-sessions/add-product' as any,
-      params: { 
-        pendingName: `Restock Session ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-      }
+      pathname: '/(tabs)/restock-sessions' as any,
+      params: { createNewSession: 'true' }
     });
   }, [router]);
 
@@ -136,14 +132,14 @@ const SessionListScreen: React.FC = () => {
                 You have {sessionContext.availableSessions.length} unfinished session{sessionContext.availableSessions.length !== 1 ? 's' : ''}
               </Text>
             </View>
-            
+
             <ScrollView style={restockSessionsStyles.sessionList}>
               {sessionContext.availableSessions.map((session, index) => {
                 const id = session.toValue?.().id || session.id;
                 const name = session.toValue?.().name || session.name;
                 const createdAt = session.toValue?.().createdAt || session.createdAt;
                 const products = session.toValue?.().items || [];
-                
+
                 return (
                   <TouchableOpacity
                     key={id}
@@ -161,12 +157,12 @@ const SessionListScreen: React.FC = () => {
                         <Ionicons name="trash" size={16} color="#EF4444" />
                       </TouchableOpacity>
                     </View>
-                    
+
                     <View style={restockSessionsStyles.sessionCardContent}>
                       <Text style={restockSessionsStyles.sessionCardSubtitle}>
                         {products.length} products • {getTotalQuantity(session)} total quantity
                       </Text>
-                      
+
                       {products.length > 0 && (
                         <View style={restockSessionsStyles.sessionCardSuppliers}>
                           <Text style={restockSessionsStyles.sessionCardSuppliersText}>
@@ -175,7 +171,7 @@ const SessionListScreen: React.FC = () => {
                         </View>
                       )}
                     </View>
-                    
+
                     <View style={restockSessionsStyles.sessionCardFooter}>
                       <Text style={restockSessionsStyles.sessionCardAction}>Tap to continue</Text>
                     </View>
@@ -196,9 +192,16 @@ const SessionListScreen: React.FC = () => {
           </View>
         )}
 
-        {/* Create New Session Button */}
-        <View style={restockSessionsStyles.sessionSelectionFooter}>
-          <TouchableOpacity 
+        {/* Create New Session Section */}
+        <View style={restockSessionsStyles.sessionSelectionContainer}>
+          <View style={restockSessionsStyles.sessionSelectionHeader}>
+            <Text style={restockSessionsStyles.sessionSelectionTitle}>Start Fresh</Text>
+            <Text style={restockSessionsStyles.sessionSelectionSubtitle}>
+              Create a new restocking session
+            </Text>
+          </View>
+
+          <TouchableOpacity
             style={restockSessionsStyles.newSessionButton}
             onPress={handleCreateNewSession}
           >
