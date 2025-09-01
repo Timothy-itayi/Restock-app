@@ -11,6 +11,7 @@ interface ProductFormProps {
   initialValues?: Partial<any>;
   isSubmitting: boolean;
   isDisabled?: boolean;
+  isEditMode?: boolean;
 }
 
 export function ProductForm({ onSubmit, initialValues, isDisabled = false }: ProductFormProps) {

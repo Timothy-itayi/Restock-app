@@ -254,7 +254,7 @@ export const getRestockSessionsStyles = (t: AppColors) => StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: t.neutral.darkest,
-    marginBottom: 4,
+   
   },
 
   sessionSwitcherButton: {
@@ -427,12 +427,16 @@ export const getRestockSessionsStyles = (t: AppColors) => StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: "lightgray",
   },
   
   // Product info label (category)
   productInfoLabel: {
     fontFamily: 'Satoshi-Bold',
     fontSize: 14,
+  
+    lineHeight: 20,
     color: t.neutral.darkest,
     fontWeight: "600", // Semi-bold for category
   },
@@ -441,6 +445,7 @@ export const getRestockSessionsStyles = (t: AppColors) => StyleSheet.create({
   productInfoValue: {
     fontFamily: 'Satoshi-Regular',
     fontSize: 14,
+    paddingLeft: 10,
     color: t.neutral.dark, // Dark grey for values
     fontWeight: "400", // Regular weight for values
   },
@@ -568,11 +573,11 @@ export const getRestockSessionsStyles = (t: AppColors) => StyleSheet.create({
   },
   
   // Form container
-  formContainer: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+  EditProductcontainer: {
+   
+    paddingTop: 1,
     backgroundColor: t.neutral.lighter, // Warm paper background
+  
   },
   
   // Form section divider for better visual separation
@@ -583,17 +588,12 @@ export const getRestockSessionsStyles = (t: AppColors) => StyleSheet.create({
     opacity: 0.3,
   },
   
-  // Form card container for better visual hierarchy
+  // Form card - Simplified for consistency
   formCard: {
-    backgroundColor: t.neutral.lightest,
-    borderRadius: 16,
-    padding: 24,
-    marginHorizontal: 4,
-    shadowColor: t.neutral.darkest,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
+  
+    borderRadius: 8,
+    padding: 30,
+    
   },
   
   // Form title - More compact
@@ -616,66 +616,51 @@ export const getRestockSessionsStyles = (t: AppColors) => StyleSheet.create({
   inputLabel: {
     fontFamily: fontFamily.satoshiMedium,
     fontSize: 16,
+    paddingBottom: 5,
     lineHeight: 20,
     fontWeight: '600' as const,
     color: t.neutral.darkest,
-    marginBottom: 8,
+  
   },
   
-  // Text input with notepad style - Larger and more prominent
+  // Text input - Consistent with sign-up form
   textInput: {
-    ...typography.bodyLarge,
-    borderWidth: 1.5,
-    borderColor: t.neutral.light, // Light grey border
-    borderRadius: 12,
-    paddingHorizontal: 20,
-    paddingVertical: 24,
-    backgroundColor: t.neutral.lightest, // Pure white background
+    ...typography.bodyMedium,
+    backgroundColor: t.neutral.lightest,
+    borderWidth: 1,
+    borderColor: t.neutral.light,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+  
+    
     color: t.neutral.darkest,
-    minHeight: 68,
-    shadowColor: t.neutral.darkest,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    minHeight: 60,
   },
   
-  // Text input focus state
+  // Text input focus state - Consistent with sign-up form
   textInputFocused: {
     borderColor: t.brand.primary,
-    borderWidth: 2,
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
+    minHeight: 96,
   },
   
-  // Quantity input - Larger and more prominent
+  // Quantity input - Consistent with sign-up form
   quantityInput: {
-    ...typography.bodyLarge,
-    borderWidth: 1.5,
-    borderColor: t.neutral.light, // Light grey border
-    borderRadius: 12,
-    paddingHorizontal: 20,
-    paddingVertical: 24,
-    backgroundColor: t.neutral.lightest, // Pure white background
+    ...typography.bodyMedium,
+    backgroundColor: t.neutral.lightest,
+    borderWidth: 1,
+    borderColor: t.neutral.light,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 20,
     color: t.neutral.darkest,
     textAlign: "center",
     width: 120,
-    minHeight: 68,
-    shadowColor: t.neutral.darkest,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    minHeight: 56,
   },
   
-  // Quantity input focus state
+  // Quantity input focus state - Consistent with sign-up form
   quantityInputFocused: {
     borderColor: t.brand.primary,
-    borderWidth: 2,
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
   },
   
   // Quantity container
@@ -749,9 +734,12 @@ export const getRestockSessionsStyles = (t: AppColors) => StyleSheet.create({
   // Form buttons - Optimized spacing
   formButtons: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "center",
+    backgroundColor: t.brand.primary,
     marginTop: 24,
     marginBottom: 16,
+    padding: 20,
+    borderRadius: 10,
     gap: 16,
   },
   
@@ -766,15 +754,14 @@ export const getRestockSessionsStyles = (t: AppColors) => StyleSheet.create({
     alignItems: "center",
   },
   
-  // Save button (green for progress)
+  // Save button - Consistent with sign-up form
   saveButton: {
     flex: 1,
-    backgroundColor: t.brand.primary, // Green for progress
+    backgroundColor: t.brand.primary,
     borderRadius: 8,
-    paddingVertical: 16,
+    padding: 16,
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: t.brand.primary,
+    marginBottom: 16,
   },
   
   buttonText: {
