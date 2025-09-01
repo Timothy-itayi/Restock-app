@@ -220,53 +220,40 @@ const RestockSessionsContent: React.FC = () => {
   // --- NAME SESSION ---
   const handleNameSession = useCallback(async () => {
     const trimmedName = sessionNameInputRef.current.trim();
-    console.log('🚀 RestockSessions: handleNameSession called with name:', trimmedName);
 
     if (!trimmedName) {
-      console.log('❌ RestockSessions: No session name provided');
       setToastMessage('Please enter a session name');
       return;
     }
 
     try {
       if (sessionContextRef.current.currentSession) {
-        console.log('🔄 RestockSessions: Updating existing session name');
         // TODO: Implement session name update through session context
         setToastMessage('Session name update coming soon');
         setShowNameModal(false);
         setSessionNameInput('');
       } else {
-        console.log('🆕 RestockSessions: Creating new session and navigating to add-product');
-        console.log('🚀 RestockSessions: Navigation params to send:', { pendingName: trimmedName });
+        // Create the session immediately before navigating
+        const createResult = await sessionContextRef.current.startNewSession(trimmedName);
+        if (!createResult.success) {
+          setToastMessage('Failed to create session');
+          return;
+        }
 
         setShowNameModal(false);
         setSessionNameInput('');
+
         const { router } = await import('expo-router');
 
-        // Navigate to add-product with the pending name
-        console.log('🚀 Navigating to add-product with name:', trimmedName);
-
+        // Navigate to add-product screen (session is now active)
         try {
-          await router.push({
-            pathname: '/(tabs)/restock-sessions/add-product' as any,
-            params: { pendingName: trimmedName }
-          });
+          await router.push('/(tabs)/restock-sessions/add-product' as any);
         } catch (error) {
-          console.error('❌ Navigation error:', error);
-          // Fallback to relative navigation - try to preserve pendingName in session storage
-          console.log('⚠️ RestockSessions: Using fallback navigation, storing pendingName in AsyncStorage');
-          try {
-            const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
-            await AsyncStorage.setItem('pendingSessionName', trimmedName);
-          } catch (storageError) {
-            console.error('❌ RestockSessions: Failed to store pending name:', storageError);
-          }
           router.push('add-product' as any);
         }
       }
     } catch (error) {
       setToastMessage('An error occurred while processing the session');
-      console.error('[RestockSessions] Error in handleNameSession:', error);
     }
   }, []); // Empty dependency array using refs
 
@@ -288,12 +275,10 @@ const RestockSessionsContent: React.FC = () => {
         sessionContext.currentSession?.toValue().id !== sessionId) {
       const loadSessionAndOpenForm = async () => {
         try {
-          console.log('🚀 Loading specific session from dashboard:', sessionId);
           await sessionContext.loadExistingSession(sessionId);
           setToastMessage('Session loaded successfully! Continue adding products...');
         } catch (error) {
           setToastMessage('Failed to load session');
-          console.error('[RestockSessions] loadSessionAndOpenForm error:', error);
         }
       };
 
@@ -305,7 +290,6 @@ const RestockSessionsContent: React.FC = () => {
   // --- HANDLE CREATE NEW SESSION FROM SESSION LIST ---
   useEffect(() => {
     if (createNewSession && !sessionContext.currentSession && !sessionContext.isSessionLoading) {
-      console.log('🚀 Creating new session from session list navigation');
       handleStartNewSession();
     }
   }, [createNewSession, sessionContext.currentSession, sessionContext.isSessionLoading, handleStartNewSession]);
@@ -366,9 +350,9 @@ const RestockSessionsContent: React.FC = () => {
     isServiceInitializing,
     serviceHealth: serviceHealth.isHealthy,
     sessionListSessions: sessionList.sessions?.length || 0,
-    activeSessionId: activeSession?.toValue()?.id,
-    activeSessionStatus: activeSession?.toValue()?.status,
-    currentSessionId: sessionContext.currentSession?.toValue()?.id
+    activeSessionId: activeSession && typeof activeSession.toValue === 'function' ? activeSession.toValue().id : null,
+    activeSessionStatus: activeSession && typeof activeSession.toValue === 'function' ? activeSession.toValue().status : null,
+    currentSessionId: sessionContext.currentSession && typeof sessionContext.currentSession.toValue === 'function' ? sessionContext.currentSession.toValue().id : null
   });
 
   // 🔧 NEW: Auto-activate first active session when products are added
@@ -401,9 +385,25 @@ useEffect(() => {
     await sessionContext.loadAvailableSessions();
   };
 
-  const subscription = DeviceEventEmitter.addListener('restock:productAdded', handleProductAdded);
+  const handleSessionDeleted = ({ sessionId }: { sessionId: string }) => {
+    // If the deleted session was the current session, clear it immediately
+    if (sessionContext.currentSession?.toValue()?.id === sessionId) {
+      console.log('🔄 Main screen: Current session deleted, clearing state');
+      sessionContext.clearCurrentSession();
+    }
+    // Always refresh available sessions to update switch button
+    sessionContext.loadAvailableSessions();
+    // Also refresh the session list to reflect the deletion
+    sessionList.loadSessions();
+  };
 
-  return () => subscription.remove();
+  const productSubscription = DeviceEventEmitter.addListener('restock:productAdded', handleProductAdded);
+  const deleteSubscription = DeviceEventEmitter.addListener('restock:sessionDeleted', handleSessionDeleted);
+
+  return () => {
+    productSubscription.remove();
+    deleteSubscription.remove();
+  };
 }, [sessionContext, sessionList]);
 
     // Show loading only while auth is initializing
@@ -498,14 +498,15 @@ useEffect(() => {
             <View style={restockSessionsStyles.addProductSection}>
               <TouchableOpacity style={restockSessionsStyles.addProductButton} onPress={async () => {
                 const { router } = await import('expo-router');
-                console.log('🚀 Add Product button: Navigating to add-product with session:', activeSession.toValue().id);
-                
+                const sessionData = activeSession.toValue();
+                console.log('🚀 Add Product button: Navigating to add-product with session:', sessionData.id);
+
                 try {
                   await router.push({
                     pathname: '/(tabs)/restock-sessions/add-product' as any,
-                    params: { 
-                      sessionId: activeSession.toValue().id,
-                      sessionName: activeSession.toValue().name,
+                    params: {
+                      sessionId: sessionData.id,
+                      sessionName: sessionData.name,
                       isExistingSession: 'true'
                     }
                   });
@@ -514,9 +515,9 @@ useEffect(() => {
                   // Fallback to relative navigation with params
                   router.push({
                     pathname: 'add-product' as any,
-                    params: { 
-                      sessionId: activeSession.toValue().id,
-                      sessionName: activeSession.toValue().name,
+                    params: {
+                      sessionId: sessionData.id,
+                      sessionName: sessionData.name,
                       isExistingSession: 'true'
                     }
                   });
@@ -538,11 +539,12 @@ useEffect(() => {
                 
                 // Navigate to edit-product screen
                 const { router } = await import('expo-router');
+                const sessionData = activeSession.toValue();
                 try {
                   await router.push({
                     pathname: '/(tabs)/restock-sessions/edit-product' as any,
-                    params: { 
-                      sessionId: activeSession.toValue().id,
+                    params: {
+                      sessionId: sessionData.id,
                       editProductId: product.productId || product.id,
                       editProductName: product.productName,
                       editQuantity: product.quantity?.toString(),
@@ -556,8 +558,8 @@ useEffect(() => {
                   // Fallback to relative navigation
                   router.push({
                     pathname: 'edit-product' as any,
-                    params: { 
-                      sessionId: activeSession.toValue().id,
+                    params: {
+                      sessionId: sessionData.id,
                       editProductId: product.productId || product.id,
                       editProductName: product.productName,
                       editQuantity: product.quantity?.toString(),

@@ -9,7 +9,6 @@ import CustomToast from '../../components/CustomToast';
 import { useSessionContext } from './context/SessionContext';
 import { useRepositories } from '../../infrastructure/supabase/SupabaseHooksProvider';
 import { useUnifiedAuth } from '../../auth/UnifiedAuthProvider';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function AddProductScreen() {
   const params = useLocalSearchParams();
@@ -37,55 +36,12 @@ export default function AddProductScreen() {
     }
   }, [isSupabaseReady, toastMessage]);
 
-  const [finalPendingName, setFinalPendingName] = useState<string>('');
-
-  const pendingName = Array.isArray(params?.pendingName) ? params.pendingName[0] : params?.pendingName ?? '';
   const sessionId = Array.isArray(params?.sessionId) ? params.sessionId[0] : (typeof params?.sessionId === 'string' ? params.sessionId : '');
   const isExistingSession = params?.isExistingSession === 'true';
-
-  // 🔧 DEBUG: Log navigation parameters and check AsyncStorage fallback
-  useEffect(() => {
-    const checkPendingName = async () => {
-      console.log('🔍 AddProduct: Navigation params received:', {
-        pendingName,
-        sessionId,
-        isExistingSession,
-        allParams: params
-      });
-
-      let nameToUse = pendingName;
-
-      // If no pendingName from params, check AsyncStorage for fallback
-      if (!nameToUse) {
-        try {
-          const storedName = await AsyncStorage.getItem('pendingSessionName');
-          if (storedName) {
-            console.log('🔍 AddProduct: Found fallback name in AsyncStorage:', storedName);
-            nameToUse = storedName;
-            // Clear the stored name since we're using it
-            await AsyncStorage.removeItem('pendingSessionName');
-          }
-        } catch (error) {
-          console.error('❌ AddProduct: Error checking AsyncStorage for pending name:', error);
-        }
-      }
-
-      // If still no name, use a default
-      if (!nameToUse) {
-        nameToUse = `Restock ${new Date().toLocaleDateString()}`;
-        console.log('🔍 AddProduct: Using default name:', nameToUse);
-      }
-
-      setFinalPendingName(nameToUse);
-    };
-
-    checkPendingName();
-  }, [pendingName, sessionId, isExistingSession, params]);
 
   // 🔧 NEW: Load existing session if provided
   useEffect(() => {
     if (isExistingSession && sessionId && !sessionContext.currentSession) {
-      console.log('🔄 Loading existing session for add-product:', sessionId);
       sessionContext.loadExistingSession(sessionId);
     }
   }, [isExistingSession, sessionId, sessionContext.currentSession, sessionContext.loadExistingSession]);
@@ -117,28 +73,19 @@ export default function AddProductScreen() {
 
     setIsSubmitting(true);
     try {
-      let sessionToUse = sessionContext.currentSession;
+      const sessionToUse = sessionContext.currentSession;
 
       if (!sessionToUse) {
-        console.log('🔍 AddProduct: Creating new session with finalPendingName:', {
-          finalPendingName,
-          finalPendingNameType: typeof finalPendingName,
-          finalPendingNameLength: finalPendingName?.length || 0
-        });
-
-        console.log('🔍 AddProduct: Final name to use for session:', finalPendingName);
-
-        const result = await sessionContext.startNewSession(finalPendingName);
-        if (!result.success) throw new Error(result.error || 'Failed to create session');
-        sessionToUse = sessionContext.currentSession;
-        setToastMessage('Session created!');
+        setToastMessage('No active session found. Please create a session first.');
+        setIsSubmitting(false);
+        return;
       }
 
       const addResult = await sessionContext.addProduct(values);
       if (addResult.success) {
         // 🔧 NEW: Emit event to notify main screen that product was added
         DeviceEventEmitter.emit('restock:productAdded', {
-          sessionId: sessionToUse?.toValue()?.id,
+          sessionId: sessionToUse.toValue().id,
           productName: values.productName
         });
 
@@ -155,7 +102,7 @@ export default function AddProductScreen() {
       setIsSubmitting(false); // Reset state on error
     }
     // Remove finally block - handle state reset in success/error cases above
-  }, [sessionContext, router, finalPendingName, userId, isSupabaseReady]);
+  }, [sessionContext, router, userId, isSupabaseReady]);
 
   return (
     <SafeAreaView style={styles.container}>

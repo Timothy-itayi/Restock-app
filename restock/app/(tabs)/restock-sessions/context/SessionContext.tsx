@@ -284,25 +284,35 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
       return { success: false, error: 'System not ready to delete session' };
     }
 
-    // Capture current session state to avoid dependency issues
-    const currentSessionId = currentSession?.toValue().id;
-
     try {
       setIsSessionLoading(true);
-      await sessionRepository.delete(sessionId);
-      console.log('✅ SessionContext: Session deleted', sessionId);
 
-      // Update available sessions
-      setAvailableSessions(prev => prev.filter(s => s.toValue().id !== sessionId));
+      // Capture current session state to avoid dependency issues
+      const currentSessionId = currentSession?.toValue().id;
+      const wasCurrentSession = currentSessionId === sessionId;
+
+      console.log('🔍 SessionContext: Deleting session', sessionId, 'was current:', wasCurrentSession);
+
+      await sessionRepository.delete(sessionId);
+      console.log('✅ SessionContext: Session deleted from database', sessionId);
+
+      // Update available sessions first
+      setAvailableSessions(prev => {
+        const filtered = prev.filter(s => s.toValue().id !== sessionId);
+        console.log('✅ SessionContext: Available sessions updated, count:', filtered.length);
+        return filtered;
+      });
 
       // Clear current session if it was the deleted one
-      if (currentSessionId === sessionId) {
+      if (wasCurrentSession) {
+        console.log('🔄 SessionContext: Clearing current session (was deleted)');
         setCurrentSession(null);
         setWorkflowState('idle');
-        console.log('✅ SessionContext: Current session deleted, clearing state');
+        setPendingSessionId(null);
+        setGeneratedEmails(null); // Clear any generated emails too
       }
 
-      // Emit event to notify other components (like useSessionList) about session deletion
+      // Emit event to notify other components about session deletion
       console.log('📢 SessionContext: Emitting session deleted event for:', sessionId);
       DeviceEventEmitter.emit('restock:sessionDeleted', { sessionId });
 
