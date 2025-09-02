@@ -454,10 +454,7 @@ useEffect(() => {
           <SessionHeader
             key={`session-header-${sessionCount}`}
             currentSession={sessionContext.currentSession}
-            onNameSession={() => {
-              setSessionNameInput(sessionContext.currentSession?.toValue().name || '');
-              setShowNameModal(true);
-            }}
+           
             onShowSessionSelection={handleOpenSessionList}
             allSessionsCount={sessionCount}
           />
