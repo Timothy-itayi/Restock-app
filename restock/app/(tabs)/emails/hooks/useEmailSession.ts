@@ -12,7 +12,8 @@ export interface EmailDraft {
   supplierName: string;
   supplierEmail: string;
   subject: string;
-  body: string;
+  body: string;        // Plain text version
+  htmlBody?: string;   // HTML version for better formatting
   status: 'draft' | 'sending' | 'sent' | 'failed';
   products: string[];
   isEdited?: boolean;
@@ -218,9 +219,10 @@ export function useEmailSession(userProfile: UserProfile) {
           const requestBody = {
             to: email.supplierEmail,
             subject: email.subject,
-            html: email.body,
-            from: 'orders@restockapp.email',     // your domain, authenticated
-            reply_to: userProfile.email,         // the user's actual email
+            html: email.htmlBody || email.body,  // Use HTML if available
+            text: email.body,                    // Always include plain text
+            from: 'orders@restockapp.email',
+            reply_to: userProfile.email,        // the user's actual email
 
             // Add proper headers for deliverability
             headers: {

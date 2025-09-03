@@ -130,6 +130,18 @@ private generateFallbackEmail(context: EmailContext, maxLength: number = 300): G
       <p style="color: white; margin: 10px 0 0 0; opacity: 0.9;">Professional Store Management</p>
     </div>
     
+    <!-- Email Routing Info -->
+    <div style="background: #f8f9fa; padding: 15px 20px; border-bottom: 1px solid #e9ecef; font-size: 12px; color: #6c757d;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <strong>From:</strong> orders@restockapp.email
+        </div>
+        <div>
+          <strong>Reply-To:</strong> ${context.userEmail}
+        </div>
+      </div>
+    </div>
+
     <!-- Content -->
     <div style="padding: 30px 20px;">
       <div style="font-size: 18px; margin-bottom: 20px; color: #2c3e50;">
@@ -159,6 +171,21 @@ private generateFallbackEmail(context: EmailContext, maxLength: number = 300): G
     <div style="background: #f8f9fa; padding: 20px; text-align: center; color: #6c757d; font-size: 12px;">
       <p style="margin: 0;">Sent via <strong>Restock App</strong> - Professional Store Management</p>
       <p style="margin: 5px 0 0 0;">This email was sent to ${context.supplierName} on behalf of ${context.storeName}</p>
+      
+      <!-- Email Routing Information -->
+      <div style="margin: 10px 0 0 0; padding: 10px; background: white; border-radius: 4px; border: 1px solid #e9ecef;">
+        <div style="font-size: 11px; color: #999; margin-bottom: 5px;">
+          <strong>Email Routing:</strong>
+        </div>
+        <div style="font-size: 11px; color: #666;">
+          <div style="margin-bottom: 2px;">
+            <strong>From:</strong> orders@restockapp.email (Restock App)
+          </div>
+          <div>
+            <strong>Reply-To:</strong> ${context.userEmail} (${context.userName || 'Store Manager'})
+          </div>
+        </div>
+      </div>
     </div>
     
   </div>
