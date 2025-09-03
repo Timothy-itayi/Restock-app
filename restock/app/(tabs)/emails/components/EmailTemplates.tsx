@@ -31,7 +31,7 @@ export const EmailTemplates: React.FC<EmailTemplatesProps> = ({
       id: 'default-restock',
       name: 'Standard Restock Order',
       subject: 'Restock Order Request',
-      body: `Hi team,\n\nWe hope you're doing well! We'd like to place a restock order for the following items:\n\n[PRODUCT_LIST]\n\nPlease confirm availability at your earliest convenience.\n\nThank you as always for your continued support.\n\nBest regards,\n[STORE_NAME]\n[STORE_EMAIL]`,
+      body: `Hi team,\n\nWe hope you're doing well! We'd like to place a restock order for the following items:\n\n[PRODUCT_LIST]\n\nPlease confirm availability at your earliest convenience.\n\nThank you as always for your continued support.\n\nBest regards,\n[USER_NAME]\n[STORE_NAME]\n[USER_EMAIL]`,
       usage: 0
     });
 
@@ -39,7 +39,7 @@ export const EmailTemplates: React.FC<EmailTemplatesProps> = ({
       id: 'urgent-restock',
       name: 'Urgent Restock Request',
       subject: 'URGENT: Restock Order Needed',
-      body: `Hi team,\n\nWe urgently need to restock the following items due to high customer demand:\n\n[PRODUCT_LIST]\n\nCould you please expedite this order? We'd appreciate your fastest processing time.\n\nPlease confirm availability and delivery timeline.\n\nThank you for your quick attention to this matter.\n\nBest regards,\n[STORE_NAME]\n[STORE_EMAIL]`,
+      body: `Hi team,\n\nWe urgently need to restock the following items due to high customer demand:\n\n[PRODUCT_LIST]\n\nCould you please expedite this order? We'd appreciate your fastest processing time.\n\nPlease confirm availability and delivery timeline.\n\nThank you for your quick attention to this matter.\n\nBest regards,\n[USER_NAME]\n[STORE_NAME]\n[USER_EMAIL]`,
       usage: 0
     });
 
@@ -73,7 +73,7 @@ export const EmailTemplates: React.FC<EmailTemplatesProps> = ({
           subject: pattern,
           body: data.example.body
             .replace(/\b[A-Z][a-z]+ [A-Z][a-z]+\b/g, '[STORE_NAME]')
-            .replace(/[a-z]+@[a-z]+\.[a-z]+/g, '[STORE_EMAIL]'),
+            .replace(/[a-z]+@[a-z]+\.[a-z]+/g, '[USER_EMAIL]'),
           usage: data.count
         });
       });

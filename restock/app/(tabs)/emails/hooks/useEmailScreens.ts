@@ -4,6 +4,7 @@ import { DeviceEventEmitter } from 'react-native';
 import { useUnifiedAuth } from '../../../auth/UnifiedAuthProvider';
 import { useRepositories } from '../../../infrastructure/supabase/SupabaseHooksProvider';
 import type { EmailDraft } from './useEmailSession';
+import { useUserProfile } from './useUserProfile';
 
 // 🔧 NEW: Import EmailService for proper email tracking
 import { EmailService } from '../../../../backend/services/emails';
@@ -28,6 +29,7 @@ const getEmailFunctionUrl = (): string => {
 
 export function useEmailScreens() {
   const { userId, isAuthenticated, getClerkSupabaseToken } = useUnifiedAuth();
+  const userProfile = useUserProfile();
   const { sessionRepository } = useRepositories();
 
   const [sessions, setSessions] = useState<EmailSessionView[]>([]);
@@ -124,7 +126,8 @@ export function useEmailScreens() {
         to: emailToSend.supplierEmail,
         subject: emailToSend.subject,
         html: emailToSend.body,
-        from: 'noreply@restockapp.email', // This should be your verified domain
+        from: 'orders@restockapp.email',     // your domain, authenticated
+        reply_to: userProfile.userProfile.email,         // the user's actual email
       };
       
       console.log('📧 [EmailScreens] Sending request to:', emailUrl);
@@ -244,7 +247,8 @@ export function useEmailScreens() {
             to: email.supplierEmail,
             subject: email.subject,
             html: email.body,
-            from: 'noreply@restockapp.email',
+            from: 'orders@restockapp.email',     // your domain, authenticated
+            reply_to: userProfile.userProfile.email,         // the user's actual email
           };
           
           console.log(`📧 [EmailScreens] Email ${index + 1} request body:`, requestBody);

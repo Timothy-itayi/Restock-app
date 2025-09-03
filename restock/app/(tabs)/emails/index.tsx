@@ -58,9 +58,10 @@ export default function EmailsScreen() {
 
   const isLoading = isUserLoading || isSessionLoading;
 
-  // Refresh sessions when screen gains focus (handles coming from Restock tab)
+  // Refresh sessions when screen comes into focus to ensure state is up to date
   useFocusEffect(
     React.useCallback(() => {
+      console.log('🔄 [EmailScreen] Screen focused, refreshing sessions...');
       refreshSessions();
     }, [refreshSessions])
   );
@@ -121,15 +122,11 @@ export default function EmailsScreen() {
         setSuccessMessage("✅ All emails sent successfully! Returning to dashboard...");
         setShowSuccessMessage(true);
         
-        // Wait 2.5 seconds then clear and navigate
-        setTimeout(() => {
-          setActiveSessionId(null);
-          cancelEdit();
-          refreshSessions();
-          setShowSuccessMessage(false);
-          setSuccessMessage("");
-          setBulkSendCompleted(false);
-        }, 2500);
+        // Clear local state immediately - the useEmailSessions hook will handle session clearing
+        cancelEdit();
+        setShowSuccessMessage(false);
+        setSuccessMessage("");
+        setBulkSendCompleted(false);
       } else {
         console.error('🚀 [EmailScreen] Bulk send failed:', result.message);
         // Only show alert on error

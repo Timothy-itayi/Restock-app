@@ -87,103 +87,181 @@ export class GroqEmailClient {
     }
   }
 
-  private generateFallbackEmail(context: EmailContext, maxLength: number = 300): GeneratedEmail {
-    const startTime = Date.now();
+
+private generateFallbackEmail(context: EmailContext, maxLength: number = 300): GeneratedEmail {
+  const startTime = Date.now();
+  
+  // Build detailed product list with HTML formatting
+  const productListHTML = context.products.map(p => {
+    const notes = p.notes ? ` <span style="color: #666; font-style: italic;">(${p.notes})</span>` : '';
+    return `<li style="margin: 8px 0; padding: 8px 0; border-bottom: 1px solid #eee;"><strong>${p.quantity}x ${p.name}</strong>${notes}</li>`;
+  }).join('');
+  
+  // Generate personalized subject based on urgency and supplier
+  let subject = `Restock Order from ${context.storeName}`;
+  if (context.urgencyLevel === 'urgent') {
+    subject = `Urgent Restock Order - ${context.storeName}`;
+  } else if (context.urgencyLevel === 'rush') {
+    subject = `Rush Order - ${context.storeName} to ${context.supplierName}`;
+  }
+
+  // Generate personalized email body based on tone
+  const personalizedGreeting = this.getPersonalizedGreetingHTML(context);
+  const intro = this.getPersonalizedIntroHTML(context);
+  const urgencyNote = this.getUrgencyNoteHTML(context.urgencyLevel);
+  const closing = this.getPersonalizedClosingHTML(context);
+  
+  // Create professional HTML email body
+  const body = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Restock Order from ${context.storeName}</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
+  
+  <div style="background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow: hidden;">
     
-    // Build detailed product list with better formatting
-    const productList = context.products.map(p => {
-      const notes = p.notes ? ` (${p.notes})` : '';
-      return `• ${p.quantity}x ${p.name}${notes}`;
-    }).join('\n');
+    <!-- Header -->
+    <div style="background: linear-gradient(135deg, #6B7F6B 0%, #A7B9A7 100%); padding: 30px 20px; text-align: center;">
+      <h1 style="color: white; font-size: 24px; font-weight: 600; margin: 0;">Restock App</h1>
+      <p style="color: white; margin: 10px 0 0 0; opacity: 0.9;">Professional Store Management</p>
+    </div>
     
-    // Generate personalized subject based on urgency and supplier
-    let subject = `Restock Order from ${context.storeName}`;
-    if (context.urgencyLevel === 'urgent') {
-      subject = `Urgent Restock Order - ${context.storeName}`;
-    } else if (context.urgencyLevel === 'rush') {
-      subject = `Rush Order - ${context.storeName} to ${context.supplierName}`;
-    }
-
-    // Generate personalized email body based on tone
-    const personalizedGreeting = this.getPersonalizedGreeting(context);
-    const intro = this.getPersonalizedIntro(context);
-    const urgencyNote = this.getUrgencyNote(context.urgencyLevel);
-    const closing = this.getPersonalizedClosing(context);
+    <!-- Content -->
+    <div style="padding: 30px 20px;">
+      <div style="font-size: 18px; margin-bottom: 20px; color: #2c3e50;">
+        ${personalizedGreeting}
+      </div>
+      
+      ${urgencyNote}
+      
+      <p style="margin: 20px 0; color: #555;">
+        ${intro}
+      </p>
+      
+      <!-- Product List -->
+      <div style="background: #f8f9fa; border-left: 4px solid #6B7F6B; padding: 20px; margin: 20px 0; border-radius: 0 8px 8px 0;">
+        <h3 style="margin: 0 0 15px 0; color: #2c3e50; font-size: 16px;">Order Items:</h3>
+        <ul style="margin: 0; padding: 0; list-style: none;">
+          ${productListHTML}
+        </ul>
+      </div>
+      
+      <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #e9ecef;">
+        ${closing}
+      </div>
+    </div>
     
-    const body = `${personalizedGreeting}\n\n${intro}\n\n${productList}\n\n${urgencyNote}${closing}`;
+    <!-- Footer -->
+    <div style="background: #f8f9fa; padding: 20px; text-align: center; color: #6c757d; font-size: 12px;">
+      <p style="margin: 0;">Sent via <strong>Restock App</strong> - Professional Store Management</p>
+      <p style="margin: 5px 0 0 0;">This email was sent to ${context.supplierName} on behalf of ${context.storeName}</p>
+    </div>
+    
+  </div>
+</body>
+</html>`;
 
-    const generationTime = Date.now() - startTime;
+  const generationTime = Date.now() - startTime;
 
-    return {
-      subject,
-      body,
-      confidence: 0.85, // Slightly higher confidence for improved fallback
-      generationTime
-    };
+  return {
+    subject,
+    body,
+    confidence: 0.9, // Higher confidence for professional HTML template
+    generationTime
+  };
+}
+
+private getPersonalizedGreetingHTML(context: EmailContext): string {
+  switch (context.tone) {
+    case 'friendly':
+      return `Hello <strong>${context.supplierName}</strong> team!<br><br>I hope you're having a great day!`;
+    case 'urgent':
+      return `Dear <strong>${context.supplierName}</strong>,`;
+    case 'professional':
+    default:
+      return `Dear <strong>${context.supplierName}</strong> team,<br><br>I hope this email finds you well.`;
   }
+}
 
-  private getPersonalizedGreeting(context: EmailContext): string {
-    switch (context.tone) {
-      case 'friendly':
-        return `Hello ${context.supplierName} team,\n\nI hope you're having a great day!`;
-      case 'urgent':
-        return `Dear ${context.supplierName},`;
-      case 'professional':
-      default:
-        return `Dear ${context.supplierName} team,\n\nI hope this email finds you well.`;
-    }
+private getPersonalizedIntroHTML(context: EmailContext): string {
+  switch (context.tone) {
+    case 'friendly':
+      return `We're reaching out to place our next restock order with you. Here's what we need:`;
+    case 'urgent':
+      return `I need to place a restock order with the following products:`;
+    case 'professional':
+    default:
+      return `We would like to place a restock order for the following items:`;
   }
+}
 
-  private getPersonalizedIntro(context: EmailContext): string {
-    switch (context.tone) {
-      case 'friendly':
-        return `We're reaching out to place our next restock order with you. Here's what we need:`;
-      case 'urgent':
-        return `I need to place a restock order with the following products:`;
-      case 'professional':
-      default:
-        return `We would like to place a restock order for the following items:`;
-    }
+private getUrgencyNoteHTML(urgencyLevel: string): string {
+  switch (urgencyLevel) {
+    case 'rush':
+      return `<div style="background: #ff6b6b; color: white; padding: 12px; border-radius: 6px; margin: 20px 0; text-align: center; font-weight: 600;">
+        🚨 RUSH ORDER - Please deliver within 24 hours if possible
+      </div>`;
+    case 'urgent':
+      return `<div style="background: #ffa726; color: white; padding: 12px; border-radius: 6px; margin: 20px 0; text-align: center; font-weight: 600;">
+        ⚠️ URGENT ORDER - Please prioritize for delivery within 2-3 business days
+      </div>`;
+    case 'normal':
+    default:
+      return ``;
   }
+}
 
-  private getUrgencyNote(urgencyLevel: string): string {
-    switch (urgencyLevel) {
-      case 'rush':
-        return `Please note: This is a rush order and we would appreciate delivery within 24 hours if possible.\n\n`;
-      case 'urgent':
-        return `Please prioritize this order for delivery within 2-3 business days.\n\n`;
-      case 'normal':
-      default:
-        return ``;
-    }
+private getPersonalizedClosingHTML(context: EmailContext): string {
+  const userName = context.userName || 'Store Manager';
+  const userEmail = context.userEmail || 'manager@store.com';
+  
+  const baseClosing = `
+    <p style="margin: 20px 0; color: #555;">
+      Please confirm availability and expected delivery time at your earliest convenience.
+    </p>
+    <p style="margin: 20px 0; color: #555;">
+      Thank you for your continued partnership and excellent service.
+    </p>
+    <div style="margin-top: 30px;">
+      <div style="font-weight: 600; color: #2c3e50; font-size: 16px;">Best regards,</div>
+      <div style="margin-top: 10px; color: #555;">
+        <strong>${userName}</strong><br>
+        ${context.storeName}<br>
+        <a href="mailto:${userEmail}" style="color: #6B7F6B; text-decoration: none;">${userEmail}</a>
+      </div>
+    </div>`;
+
+  switch (context.tone) {
+    case 'friendly':
+      return `
+        <p style="margin: 20px 0; color: #555;">
+          Looking forward to hearing from you soon!
+        </p>
+        <div style="margin-top: 30px;">
+          <div style="font-weight: 600; color: #2c3e50; font-size: 16px;">Thanks,</div>
+          <div style="margin-top: 10px; color: #555;">
+            <strong>${userName}</strong><br>
+            ${context.storeName}<br>
+            <a href="mailto:${userEmail}" style="color: #6B7F6B; text-decoration: none;">${userEmail}</a>
+          </div>
+        </div>`;
+    case 'urgent':
+      return `
+        <p style="margin: 20px 0; color: #555; font-weight: 600;">
+          Please respond as soon as possible.
+        </p>
+        ${baseClosing}`;
+    case 'professional':
+    default:
+      return baseClosing;
   }
+}
 
-  private getPersonalizedClosing(context: EmailContext): string {
-    const userName = context.userName || 'Store Manager';
-    const baseClosing = `Please confirm availability and expected delivery time at your earliest convenience.
 
-Thank you for your continued partnership and excellent service.
-
-Best regards,
-${userName}
-${context.storeName}`;
-
-    switch (context.tone) {
-      case 'friendly':
-        return `Looking forward to hearing from you soon!
-
-Thanks,
-${userName}
-${context.storeName}`;
-      case 'urgent':
-        return `Please respond as soon as possible.
-
-${baseClosing}`;
-      case 'professional':
-      default:
-        return baseClosing;
-    }
-  }
 
   async generateSubject(context: EmailContext): Promise<string> {
     const result = await this.generateEmail(context, 50);

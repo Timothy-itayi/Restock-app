@@ -37,6 +37,8 @@ export function useEmailSessions(userProfile: UserProfile) {
     const actualUserName = userUserName || 'Store Manager';
     const actualUserEmail = userUserEmail || 'manager@store.com';
     
+    console.log('📝 [EmailSessions] Using user info for email generation:', { actualStoreName, actualUserName, actualUserEmail });
+    
     // Group products by supplier
     const supplierGroups: { [key: string]: any[] } = {};
     
@@ -333,7 +335,8 @@ export function useEmailSessions(userProfile: UserProfile) {
         to: email.supplierEmail,
         subject: email.subject,
         html: email.body,
-        from: 'noreply@restockapp.email',
+        from: 'orders@restockapp.email',     // your domain, authenticated
+        reply_to: userProfile.email,         // the user's actual email
       };
 
       console.log('📧 [EmailSessions] Request body:', requestBody);
@@ -588,7 +591,8 @@ export function useEmailSessions(userProfile: UserProfile) {
             to: email.supplierEmail,
             subject: email.subject,
             html: email.body,
-            from: 'noreply@restockapp.email',
+            from: 'orders@restockapp.email',     // your domain, authenticated
+            reply_to: userProfile.email,         // the user's actual email
           };
 
           console.log(`📧 [EmailSessions] Email ${index + 1} request body:`, requestBody);
@@ -697,13 +701,6 @@ export function useEmailSessions(userProfile: UserProfile) {
         });
       }
 
-      // Update UI to show success by removing this session from drafts list
-      const sentEmails = current.emails.map(email => ({ ...email, status: 'sent' as const }));
-      await saveSession({ ...current, emails: sentEmails });
-
-      // TODO: Implement proper session status update via session repository
-      console.log(`[EmailSessions] Session ${activeSessionId} marked as sent in database`);
-      
       // Clear the current session from AsyncStorage since it's now completed
       const currentSessionString = await AsyncStorage.getItem('currentEmailSession');
       if (currentSessionString) {
@@ -714,9 +711,11 @@ export function useEmailSessions(userProfile: UserProfile) {
         }
       }
 
-      // Remove session from local list and active selection
+      // Remove session from local list and active selection immediately
       setEmailSessions(prev => prev.filter(s => s.id !== activeSessionId));
       setActiveSessionId(prev => (prev === activeSessionId ? null : prev));
+      
+      console.log(`[EmailSessions] Session ${activeSessionId} removed from UI state`);
 
       // Wait longer to ensure database transaction is committed
       setTimeout(() => {
