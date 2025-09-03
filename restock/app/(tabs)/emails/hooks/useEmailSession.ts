@@ -218,7 +218,15 @@ export function useEmailSession(userProfile: UserProfile) {
             to: email.supplierEmail,
             subject: email.subject,
             html: email.body,
-            from: 'noreply@restockapp.email',
+            from: 'orders@restockapp.email',     // your domain, authenticated
+            reply_to: userProfile.email,         // the user's actual email
+
+            // Add proper headers for deliverability
+            headers: {
+              'X-Mailer': 'The Restock App',
+              'X-Priority': '3',
+              'X-MSMail-Priority': 'Normal'
+            }
           };
 
           console.log(`📧 [EmailSession] Email ${index + 1} request body:`, requestBody);

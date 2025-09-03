@@ -48,6 +48,8 @@ export function generateEmailDraftsFromSession(
 ): EmailDraft[] {
   const { storeName, name: userName, email: userEmail } = userProfile;
   
+  console.log('📝 [EmailSessionConverter] Using user profile for email generation:', { storeName, userName, userEmail });
+  
   // Group products by supplier
   const supplierGroups: { [key: string]: typeof sessionData.products } = {};
   

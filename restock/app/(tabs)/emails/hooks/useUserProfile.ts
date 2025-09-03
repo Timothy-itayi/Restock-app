@@ -1,17 +1,18 @@
 import { useUnifiedAuth } from '../../../auth';
-
-import {  useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useUser } from '@clerk/clerk-expo';
 
 export interface UserProfile {
   name: string;
   email: string;
   storeName: string;
-  userName?: string; // Backward compatibility alias for name
+  userName?: string;
 }
 
 export const useUserProfile = () => {
   const { userId, userName, storeName, isProfileLoading, profileError } = useUnifiedAuth();
-  
+  const { user } = useUser(); // Get Clerk user data for email fallback
+
   const [userProfile, setUserProfile] = useState<UserProfile>({
     name: "",
     email: "",
@@ -24,53 +25,47 @@ export const useUserProfile = () => {
   useEffect(() => {
     const loadUserProfile = async () => {
       if (!userId) {
+        console.log("No userId available yet");
         setIsLoading(false);
         return;
       }
-      
+
       try {
         setError(null);
-        
-        // Get user email from SessionManager
-        let userEmail = 'manager@store.com'; // Default fallback
-        try {
-          const { SessionManager } = await import('../../../../backend/services/session-manager');
-          const session = await SessionManager.getUserSession();
-          if (session?.email) {
-            userEmail = session.email;
-          }
-        } catch (error) {
-          console.warn('Could not get email from SessionManager, using default');
-        }
-        
-        // Use data from UnifiedAuth system
-        const finalProfile = {
+
+        // Use the same fallback pattern as ProfileInfo component
+        // 1. First try to get email from database (via UnifiedAuth context if available)
+        // 2. Then try Clerk user email as fallback (same as ProfileInfo)
+        // 3. Finally use default fallback
+        const clerkUserEmail = user?.emailAddresses[0]?.emailAddress;
+        const displayEmail = clerkUserEmail || 'manager@store.com';
+
+        const finalProfile: UserProfile = {
           name: userName || 'Store Manager',
-          email: userEmail,
+          email: displayEmail,
           storeName: storeName || 'Your Store',
-          userName: userName || 'Store Manager'
+          userName: userName || 'Store Manager',
         };
-        
+
         setUserProfile(finalProfile);
-        
-        console.log('📝 useUserProfile: Loaded profile data:', finalProfile);
-        console.log('📝 useUserProfile: Raw UnifiedAuth data:', { userId, userName, storeName, isProfileLoading, profileError });
-        
-      } catch (error) {
-        console.error('Error loading user profile:', error);
-        setError('Failed to load user profile');
+
+        console.log("📝 useUserProfile: Loaded profile data using same pattern as ProfileInfo:", finalProfile);
+        console.log("📝 useUserProfile: Email sources:", { 
+          clerkUserEmail: clerkUserEmail,
+          finalEmail: displayEmail
+        });
+        console.log("📝 useUserProfile: Raw UnifiedAuth data:", { userId, userName, storeName, isProfileLoading, profileError });
+
+      } catch (err) {
+        console.error("Error loading user profile:", err);
+        setError("Failed to load user profile");
       } finally {
         setIsLoading(false);
       }
     };
 
     loadUserProfile();
-  }, [userId, userName, storeName]);
+  }, [userId, userName, storeName, user?.emailAddresses]);
 
-  return {
-    userProfile,
-    isLoading,
-    error,
-    userId
-  };
-}
+  return { userProfile, isLoading, error, userId };
+};
