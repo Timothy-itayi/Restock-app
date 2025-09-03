@@ -143,14 +143,22 @@ export function useDashboardData() {
 
   // Listen for session events - always refresh when session is sent
   useEffect(() => {
-    const sub = DeviceEventEmitter.addListener('restock:sessionSent', () => {
-      console.log('🔄 Dashboard: Received restock:sessionSent event, refreshing...');
+    const sub = DeviceEventEmitter.addListener('restock:sessionSent', (eventData) => {
+      console.log('🔄 Dashboard: Received restock:sessionSent event, refreshing...', eventData);
+      
+      // Immediately update UI to show session completion
+      if (eventData?.sessionId) {
+        // Remove the completed session from unfinished list immediately
+        setUnfinishedSessions(prev => prev.filter(s => s.id !== eventData.sessionId));
+        console.log(`🔄 Dashboard: Immediately removed session ${eventData.sessionId} from unfinished list`);
+      }
+      
       // Always refresh when a session is sent, regardless of current data state
-      // Wait longer to ensure database transaction is fully committed
+      // Reduced delay since email sending now has proper database updates
       setTimeout(() => {
         console.log('🔄 Dashboard: Executing delayed refresh after session sent...');
         fetchSessions();
-      }, 1000); // Increased to 1 second to ensure database commit
+      }, 800); // Reduced from 1000ms for better UX
     });
     return () => sub.remove();
   }, [fetchSessions]);

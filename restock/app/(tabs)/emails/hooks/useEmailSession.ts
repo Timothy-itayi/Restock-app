@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { DeviceEventEmitter } from 'react-native';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { UserProfile } from './useUserProfile';
 import { useRepositories } from '../../../infrastructure/supabase/SupabaseHooksProvider';
@@ -310,6 +311,15 @@ export function useEmailSession(userProfile: UserProfile) {
         const result = await sessionRepository.markAsSent(emailSession.id);
         if (result.success) {
           console.log('✅ [EmailSession] Session marked as sent successfully');
+          
+          // Clear current session storage
+          await AsyncStorage.removeItem('currentEmailSession');
+          
+          // Emit event to update dashboard
+          setTimeout(() => {
+            DeviceEventEmitter.emit('restock:sessionSent', { sessionId: emailSession.id });
+            console.log(`[EmailSession] Emitted restock:sessionSent event for session ${emailSession.id}`);
+          }, 500);
         } else {
           console.error('❌ [EmailSession] Failed to mark session as sent:', result.error);
         }
@@ -363,6 +373,38 @@ export function useEmailSession(userProfile: UserProfile) {
   useEffect(() => {
     loadSessionData();
   }, [loadSessionData]);
+
+  // 🔧 NEW: Listen for session deletion events to clear email session
+  useEffect(() => {
+    const handleSessionDeleted = (event: { sessionId: string }) => {
+      console.log('🔄 [EmailSession] Received session deleted event for:', event.sessionId);
+      
+      // Clear email session if it matches the deleted session
+      if (emailSession && emailSession.id === event.sessionId) {
+        console.log('🔄 [EmailSession] Clearing email session (was deleted)');
+        setEmailSession(null);
+        
+        // Clear current session storage
+        const clearCurrentSessionStorage = async () => {
+          try {
+            await AsyncStorage.removeItem('currentEmailSession');
+            console.log(`[EmailSession] Cleared currentEmailSession for deleted session ${event.sessionId}`);
+          } catch (error) {
+            console.error('Error clearing current session storage:', error);
+          }
+        };
+        
+        clearCurrentSessionStorage();
+        console.log('✅ [EmailSession] Email session cleared');
+      }
+    };
+
+    const deletedSubscription = DeviceEventEmitter.addListener('restock:sessionDeleted', handleSessionDeleted);
+    
+    return () => {
+      deletedSubscription.remove();
+    };
+  }, [emailSession]);
 
   return {
     emailSession,

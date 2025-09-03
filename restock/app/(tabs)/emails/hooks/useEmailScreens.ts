@@ -203,7 +203,7 @@ export function useEmailScreens() {
           setSessions([]);
           setActiveSessionId(null);
           console.log('🔄 [EmailScreens] Emitting sessionSent event...');
-          setTimeout(() => DeviceEventEmitter.emit('restock:sessionSent', { sessionId: activeSessionId }), 800);
+          setTimeout(() => DeviceEventEmitter.emit('restock:sessionSent', { sessionId: activeSessionId }), 500);
         } else {
           console.error('❌ [EmailScreens] Failed to mark session as sent:', markResult.error);
         }
@@ -346,7 +346,7 @@ export function useEmailScreens() {
           setSessions([]);
           setActiveSessionId(null);
           console.log('🔄 [EmailScreens] Emitting sessionSent event...');
-          setTimeout(() => DeviceEventEmitter.emit('restock:sessionSent', { sessionId: activeSessionId }), 800);
+          setTimeout(() => DeviceEventEmitter.emit('restock:sessionSent', { sessionId: activeSessionId }), 500);
           console.log('📧 [EmailScreens] ===== BULK EMAIL SEND COMPLETED =====');
           return { success: true, message: 'All emails sent successfully' };
         }
@@ -368,6 +368,47 @@ export function useEmailScreens() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // 🔧 NEW: Listen for session deletion events to clear email sessions
+  useEffect(() => {
+    const handleSessionDeleted = (event: { sessionId: string }) => {
+      console.log('🔄 [EmailScreens] Received session deleted event for:', event.sessionId);
+      
+      // Remove the deleted session from email sessions
+      setSessions(prev => prev.filter(s => s.id !== event.sessionId));
+      
+      // Clear active session if it was the deleted one
+      if (activeSessionId === event.sessionId) {
+        console.log('🔄 [EmailScreens] Clearing active session (was deleted)');
+        setActiveSessionId(null);
+      }
+      
+      // Clear current session storage if it was the deleted session
+      const clearCurrentSessionStorage = async () => {
+        try {
+          const currentSessionString = await AsyncStorage.getItem('currentEmailSession');
+          if (currentSessionString) {
+            const currentSessionData = JSON.parse(currentSessionString);
+            if (currentSessionData.sessionId === event.sessionId) {
+              await AsyncStorage.removeItem('currentEmailSession');
+              console.log(`[EmailScreens] Cleared currentEmailSession for deleted session ${event.sessionId}`);
+            }
+          }
+        } catch (error) {
+          console.error('Error clearing current session storage:', error);
+        }
+      };
+      
+      clearCurrentSessionStorage();
+      console.log('✅ [EmailScreens] Session removed from email sessions');
+    };
+
+    const deletedSubscription = DeviceEventEmitter.addListener('restock:sessionDeleted', handleSessionDeleted);
+    
+    return () => {
+      deletedSubscription.remove();
+    };
+  }, [activeSessionId]);
 
   return {
     sessions,
