@@ -1,45 +1,79 @@
 import { StyleSheet } from "react-native";
-import { typography } from "../typography";
+import { fontFamily } from "../typography";
 import colors, { type AppColors } from '@/app/theme/colors';
+import { useAppTheme } from '@/app/hooks/useResponsiveStyles';
 
-// Tabs styling using the unified semantic color system
-export const getTabsStyles = (t: AppColors) => StyleSheet.create({
-  // Tab bar container styles
+// Enhanced tabs styling with unified responsive design for iPad optimization
+export const getTabsStyles = (appTheme: ReturnType<typeof useAppTheme>) => {
+  // Defensive check for undefined theme with enhanced logging
+  if (!appTheme || !appTheme.layout || !appTheme.colors) {
+    console.warn('⚠️ getTabsStyles: appTheme is undefined, using fallback styles', {
+      hasAppTheme: !!appTheme,
+      hasLayout: !!(appTheme?.layout),
+      hasColors: !!(appTheme?.colors)
+    });
+    return StyleSheet.create({
+      tabBar: { backgroundColor: '#FFFFFF', height: 60 },
+      tabIcon: { width: 24, height: 24 },
+    });
+  }
+  
+  console.log('🎨 Generating Tabs Styles:', {
+    deviceType: appTheme.device.deviceType,
+    isTablet: appTheme.device.isTablet,
+    tabBarHeight: appTheme.layout.tabBarHeight,
+    paddingHorizontal: appTheme.layout.paddingHorizontal,
+    maxContentWidth: appTheme.layout.maxContentWidth
+  });
+  
+  return StyleSheet.create({
+  // Tab bar container styles - Enhanced for iPad with better spacing
   tabBar: {
-    backgroundColor: t.neutral.lightest, // Pure white background (paper)
+    backgroundColor: appTheme.colors.neutral.lightest, // Pure white background (paper)
     borderTopWidth: 1,
-    borderTopColor: t.neutral.light, // Light grey border
-    height: 88,
-    paddingBottom: 20,
-    paddingTop: 8,
+    borderTopColor: appTheme.colors.neutral.light, // Light grey border
+    height: appTheme.layout.tabBarHeight,
+    paddingBottom: appTheme.device.isTablet ? appTheme.spacing.md : appTheme.spacing.lg,
+    paddingTop: appTheme.device.isTablet ? appTheme.spacing.md : appTheme.spacing.sm,
+    maxWidth: appTheme.layout.maxContentWidth as any,
+    alignSelf: 'center',
+    // Enhanced iPad spacing for better touch targets
+    paddingHorizontal: appTheme.device.isTablet ? appTheme.spacing.xl : appTheme.spacing.md,
   },
   
-  // Header styles
+  // Header styles - Enhanced for iPad
   header: {
-    backgroundColor: t.neutral.lightest, // Pure white background
+    backgroundColor: appTheme.colors.neutral.lightest, // Pure white background
     borderBottomWidth: 1,
-    borderBottomColor: t.neutral.light, // Light grey border
+    borderBottomColor: appTheme.colors.neutral.light, // Light grey border
+    paddingHorizontal: appTheme.layout.paddingHorizontal,
   },
   
-  // Tab icon styles
+  // Tab icon styles - Larger touch targets for iPad
   tabIcon: {
-    width: 24,
-    height: 24,
+    width: appTheme.device.isTablet ? 32 : 24,
+    height: appTheme.device.isTablet ? 32 : 24,
+    // Ensure adequate touch target size
+    minHeight: appTheme.layout.touchTargetMin,
+    minWidth: appTheme.layout.touchTargetMin,
   },
   
-  // Tab label styles
+  // Tab label styles - Better typography for iPad viewing distances
   tabLabel: {
-    ...typography.caption,
+    fontFamily: fontFamily.satoshi,
+    fontSize: appTheme.typography.caption,
     fontWeight: "500",
-    marginTop: 4,
+    marginTop: appTheme.spacing.xs,
+    // Better contrast for tablet viewing
+    letterSpacing: appTheme.device.isTablet ? 0.3 : 0,
   },
   
-  // Floating action button styles
+  // Floating action button styles - Larger for iPad
   floatingButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: t.brand.primary, // Brand green
+    width: appTheme.device.isTablet ? 64 : 56,
+    height: appTheme.device.isTablet ? 64 : 56,
+    borderRadius: appTheme.device.isTablet ? 32 : 28,
+    backgroundColor: appTheme.colors.brand.primary, // Brand green
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: "#000000",
@@ -47,79 +81,137 @@ export const getTabsStyles = (t: AppColors) => StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 8,
-    marginBottom: 8,
+    marginBottom: appTheme.spacing.sm,
+    // Better positioning for iPad
+    marginRight: appTheme.device.isTablet ? appTheme.spacing.xl : appTheme.spacing.md,
   },
   
-  // Tab screen specific styles
+  // Tab screen specific styles - Responsive container for iPad
   tabScreen: {
-    backgroundColor: t.neutral.lightest, // Pure white background
+    flex: 1,
+    backgroundColor: appTheme.colors.neutral.lightest, // Pure white background
+    maxWidth: appTheme.layout.maxContentWidth as any,
+    alignSelf: 'center',
+    width: '100%',
   },
   
-  // Tab content styles
+  // Tab content styles - Better content organization for tablet
   tabContent: {
     flex: 1,
-    backgroundColor: t.neutral.lightest,
+    backgroundColor: appTheme.colors.neutral.lightest,
+    paddingHorizontal: appTheme.layout.paddingHorizontal,
+    maxWidth: appTheme.layout.maxContentWidth as any,
+    alignSelf: 'center',
+    width: '100%',
   },
 });
+};
 
-// Tab bar configuration options for expo-router
-export const getTabBarOptions = (t: typeof colors) => ({
+// Enhanced tab bar configuration for expo-router with iPad optimization
+export const getTabBarOptions = (appTheme: ReturnType<typeof useAppTheme>) => {
+  // Defensive check for undefined theme with enhanced logging
+  if (!appTheme || !appTheme.layout || !appTheme.colors) {
+    console.warn('⚠️ getTabBarOptions: appTheme is undefined, using fallback options', {
+      hasAppTheme: !!appTheme,
+      hasLayout: !!(appTheme?.layout),
+      hasColors: !!(appTheme?.colors)
+    });
+    return {
+      tabBarActiveTintColor: '#1A1D20',
+      tabBarInactiveTintColor: '#6C757D',
+      tabBarStyle: { backgroundColor: '#FFFFFF', height: 60 },
+    };
+  }
+  
+  console.log('🎯 Generating Tab Bar Options:', {
+    deviceType: appTheme.device.deviceType,
+    isTablet: appTheme.device.isTablet,
+    tabBarHeight: appTheme.layout.tabBarHeight,
+    iconSize: appTheme.device.isTablet ? 32 : 24,
+    paddingHorizontal: appTheme.device.isTablet ? appTheme.spacing.xl : appTheme.spacing.md
+  });
+  
+  return {
   // Active tab color (black for portfolio aesthetic)
-  tabBarActiveTintColor: t.neutral.darkest,
+  tabBarActiveTintColor: appTheme.colors.neutral.darkest,
   
   // Inactive tab color (light grey)
-  tabBarInactiveTintColor: t.neutral.medium,
+  tabBarInactiveTintColor: appTheme.colors.neutral.medium,
   
-  // Tab bar container styling
+  // Enhanced tab bar container styling for iPad
   tabBarStyle: {
-    backgroundColor: t.neutral.lightest, // Pure white background
+    backgroundColor: appTheme.colors.neutral.lightest, // Pure white background
     borderTopWidth: 1,
-    borderTopColor: t.neutral.light, // Light grey border
-    height: 88,
-    paddingBottom: 20,
-    paddingTop: 8,
+    borderTopColor: appTheme.colors.neutral.light, // Light grey border
+    height: appTheme.layout.tabBarHeight,
+    paddingBottom: appTheme.device.isTablet ? appTheme.spacing.md : appTheme.spacing.lg,
+    paddingTop: appTheme.device.isTablet ? appTheme.spacing.md : appTheme.spacing.sm,
+    maxWidth: appTheme.layout.maxContentWidth as any,
+    alignSelf: 'center',
+    // Enhanced iPad spacing and touch targets
+    paddingHorizontal: appTheme.device.isTablet ? appTheme.spacing.xl : appTheme.spacing.md,
   },
   
-  // Header styling
+  // Header styling with responsive padding
   headerStyle: {
-    backgroundColor: t.neutral.lightest, // Pure white background
+    backgroundColor: appTheme.colors.neutral.lightest, // Pure white background
     borderBottomWidth: 1,
-    borderBottomColor: t.neutral.light, // Light grey border
+    borderBottomColor: appTheme.colors.neutral.light, // Light grey border
+    paddingHorizontal: appTheme.layout.paddingHorizontal,
   },
   
   // Header text color
-  headerTintColor: t.neutral.darkest, // Dark text
+  headerTintColor: appTheme.colors.neutral.darkest, // Dark text
   
-  // Header title styling
+  // Header title styling with responsive typography
   headerTitleStyle: {
-    ...typography.subsectionHeader,
+    fontFamily: fontFamily.satoshi,
+    fontSize: appTheme.typography.subsectionHeader,
     fontWeight: "600" as const,
-    color: t.neutral.darkest, // Dark text
+    color: appTheme.colors.neutral.darkest, // Dark text
+    letterSpacing: appTheme.device.isTablet ? 0.2 : 0,
   },
   
-  // Tab label styling
+  // Tab label styling with responsive typography for iPad
   tabBarLabelStyle: {
-    ...typography.caption,
+    fontFamily: fontFamily.satoshi,
+    fontSize: appTheme.typography.caption,
     fontWeight: "500" as const,
-    marginTop: 4,
+    marginTop: appTheme.spacing.xs,
+    letterSpacing: appTheme.device.isTablet ? 0.3 : 0,
   },
   
-  // Tab icon styling
+  // Tab icon styling with enhanced touch targets for iPad
   tabBarIconStyle: {
-    width: 24,
-    height: 24,
+    width: appTheme.device.isTablet ? 32 : 24,
+    height: appTheme.device.isTablet ? 32 : 24,
+    marginBottom: appTheme.device.isTablet ? appTheme.spacing.xs : 0,
   },
   
   // Tab press animation
-  tabBarPressColor: t.neutral.lighter, // Very light grey for press feedback
+  tabBarPressColor: appTheme.colors.neutral.lighter, // Very light grey for press feedback
   
   // Tab press opacity
   tabBarPressOpacity: 0.8,
-});
+  
+  // Enhanced tab button style for iPad
+  tabBarItemStyle: {
+    paddingVertical: appTheme.device.isTablet ? appTheme.spacing.sm : appTheme.spacing.xs,
+    minHeight: appTheme.layout.touchTargetMin,
+    minWidth: appTheme.layout.touchTargetMin,
+  },
+  };
+};
 
-// Backward-compatible static exports
-export const tabsStyles = getTabsStyles(colors);
-export const tabBarOptions = getTabBarOptions(colors);
+// Utility hook for components that need both styles and options
+export const useTabsTheme = () => {
+  const appTheme = useAppTheme();
+  return {
+    styles: getTabsStyles(appTheme),
+    options: getTabBarOptions(appTheme),
+    appTheme,
+  };
+};
 
 // Individual tab screen options (for customization per tab)
 export const tabScreenOptions = {
@@ -150,4 +242,4 @@ export const tabScreenOptions = {
       name: "person",
     },
   },
-}; 
+};

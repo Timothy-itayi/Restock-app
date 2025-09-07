@@ -1,5 +1,7 @@
-// Theme configuration for the Restock app
-// Updated to match portfolio aesthetic with semantic color system
+// Unified Theme & Responsive System for Restock App
+// Portfolio aesthetic with semantic color system + iPad responsive design
+
+import { ViewStyle } from 'react-native';
 
 export const colors = {
   // Primary portfolio colors (dark grey and white)
@@ -487,16 +489,169 @@ export const getStatusBackgroundColor = (status: 'success' | 'error' | 'warning'
   }
 };
 
-// Export theme object for easy access
+// ========================
+// RESPONSIVE DESIGN SYSTEM
+// ========================
+
+// iPad generation specifications for breakpoint targeting
+export const deviceSpecs = {
+  // Target iPad generations (5th-10th)
+  'iPad 5th-6th gen': { width: 768, height: 1024, ppi: 264 },
+  'iPad 7th-9th gen': { width: 810, height: 1080, ppi: 264 }, 
+  'iPad 10th gen': { width: 820, height: 1180, ppi: 264 },
+} as const;
+
+// Responsive breakpoint system optimized for iPad
+export const breakpoints = {
+  mobile: 0,
+  mobileLarge: 414,
+  tablet: 768,        // iPad 5th-6th gen
+  tabletLarge: 810,   // iPad 7th-9th gen  
+  tabletXLarge: 820,  // iPad 10th gen
+  desktop: 1024,
+} as const;
+
+// Responsive spacing system scaled for iPad interaction
+export const responsiveSpacing = {
+  mobile: {
+    xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24, xxxl: 32,
+  },
+  tablet: {
+    xs: 6, sm: 12, md: 16, lg: 20, xl: 24, xxl: 32, xxxl: 40,
+  },
+  tabletLarge: {
+    xs: 8, sm: 16, md: 20, lg: 24, xl: 32, xxl: 40, xxxl: 48,
+  },
+} as const;
+
+// Responsive typography optimized for tablet viewing distances
+export const responsiveTypography = {
+  mobile: {
+    appTitle: 28, sectionHeader: 20, subsectionHeader: 18,
+    productName: 16, buttonText: 16, bodyLarge: 16, bodyMedium: 14, 
+    bodySmall: 12, caption: 11,
+  },
+  tablet: {
+    appTitle: 32, sectionHeader: 24, subsectionHeader: 20,
+    productName: 18, buttonText: 18, bodyLarge: 18, bodyMedium: 16,
+    bodySmall: 14, caption: 12,
+  },
+  tabletLarge: {
+    appTitle: 36, sectionHeader: 28, subsectionHeader: 22,
+    productName: 18, buttonText: 18, bodyLarge: 20, bodyMedium: 18,
+    bodySmall: 16, caption: 13,
+  },
+} as const;
+
+// Responsive layout configurations for optimal iPad experience
+export const responsiveLayouts = {
+  mobile: {
+    maxContentWidth: '100%',
+    paddingHorizontal: 20,
+    columns: 1,
+    actionGridColumns: 2,
+    cardMinWidth: 0,
+    tabBarHeight: 60,
+    touchTargetMin: 44, // iOS HIG minimum
+  },
+  tablet: {
+    maxContentWidth: 768,
+    paddingHorizontal: 32,
+    columns: 2,
+    actionGridColumns: 3,
+    cardMinWidth: 200,
+    tabBarHeight: 70,
+    touchTargetMin: 44,
+  },
+  tabletLarge: {
+    maxContentWidth: 900,
+    paddingHorizontal: 40,
+    columns: 3,
+    actionGridColumns: 4,
+    cardMinWidth: 220,
+    tabBarHeight: 80,
+    touchTargetMin: 44,
+  },
+} as const;
+
+// Responsive component patterns for iPad - Fixed TypeScript compatibility
+export const responsivePatterns = {
+  // Container with max width and centering for iPad
+  container: (deviceType: keyof typeof responsiveLayouts): ViewStyle => ({
+    flex: 1,
+    maxWidth: responsiveLayouts[deviceType]?.maxContentWidth || '100%',
+    alignSelf: 'center',
+    width: '100%',
+  }),
+  
+  // Multi-column grid for tablet layouts
+  grid: (deviceType: keyof typeof responsiveLayouts, gap: number = 16): ViewStyle => ({
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: gap,
+  }),
+  
+  // Card layout with responsive width
+  card: (deviceType: keyof typeof responsiveLayouts): ViewStyle => ({
+    minWidth: responsiveLayouts[deviceType]?.cardMinWidth || 0,
+    flex: deviceType === 'mobile' ? 1 : 0,
+    marginBottom: responsiveSpacing[deviceType]?.md || 16,
+  }),
+  
+  // Action grid for dashboard and quick actions
+  actionGrid: (deviceType: keyof typeof responsiveLayouts): ViewStyle => ({
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: deviceType === 'mobile' ? 'space-between' : 'space-around',
+    gap: responsiveSpacing[deviceType]?.md || 16,
+  }),
+
+  // Touch targets optimized for tablet
+  touchTarget: (deviceType: keyof typeof responsiveLayouts): ViewStyle => ({
+    minHeight: responsiveLayouts[deviceType]?.touchTargetMin || 44,
+    minWidth: responsiveLayouts[deviceType]?.touchTargetMin || 44,
+  }),
+} as const;
+
+// Utility functions for responsive design
+export const getDeviceType = (width: number): keyof typeof responsiveLayouts => {
+  if (width < breakpoints.tablet) return 'mobile';
+  if (width < breakpoints.tabletLarge) return 'tablet';
+  return 'tabletLarge';
+};
+
+export const getResponsiveValue = <T>(
+  values: Partial<Record<keyof typeof responsiveLayouts, T>>,
+  deviceType: keyof typeof responsiveLayouts,
+  fallback: T
+): T => {
+  return values[deviceType] || values.tablet || fallback;
+};
+
+// Export unified theme object with responsive capabilities
 export const theme = {
+  // Core design tokens
   colors,
   spacing,
   borderRadius,
   typography,
   shadows,
   components,
+  
+  // Responsive design system
+  breakpoints,
+  responsiveSpacing,
+  responsiveTypography,
+  responsiveLayouts,
+  responsivePatterns,
+  deviceSpecs,
+  
+  // Utility functions
   getStatusColor,
   getStatusBackgroundColor,
+  getDeviceType,
+  getResponsiveValue,
 };
 
 export default theme; 

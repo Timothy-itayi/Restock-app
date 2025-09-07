@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { ScrollView, RefreshControl, View, Text } from "react-native";
-import { getDashboardStyles } from "../../../styles/components/dashboard";
-import { useThemedStyles } from "../../../styles/useThemedStyles";
+import { useDashboardTheme } from "../../../styles/components/dashboard";
+import { useAppTheme } from "../../hooks/useResponsiveStyles";
 import { useUnifiedAuth } from "../../auth/UnifiedAuthProvider";
-
 import { useDashboardData } from "./hooks/useDashboardData";
 import { 
   WelcomeSection, 
@@ -12,32 +11,6 @@ import {
   StatsOverviewEnhanced, 
   EmptyState 
 } from './components';
-import useThemeStore from "../../stores/useThemeStore";
-
-interface SessionItem {
-  id: string;
-  quantity: number;
-  products: {
-    id: string;
-    name: string;
-  }[];
-  suppliers: {
-    id: string;
-    name: string;
-  }[];
-}
-
-interface UnfinishedSession {
-  id: string;
-  name?: string;
-  createdAt: string;
-  status: string;
-  totalItems: number;
-  totalQuantity: number;
-  uniqueSuppliers: number;
-  uniqueProducts: number;
-  items: SessionItem[];
-}
 
 export default function DashboardScreen() {
   // Use the new unified auth system with profile data
@@ -52,47 +25,21 @@ export default function DashboardScreen() {
     profileError,
     retryProfileLoad
   } = useUnifiedAuth();
-  const isSignedIn = isAuthenticated;
   
-  // Use themed styles
-  const dashboardStyles = useThemedStyles(getDashboardStyles);
+  // Use responsive theme system
+  const { styles: dashboardStyles } = useDashboardTheme();
+  const appTheme = useAppTheme();
   
-  const [displayStartTime] = useState(Date.now());
   const { unfinishedSessions, finishedSessions, sessionsLoading, refreshing, onRefresh, trackSessionTap } = useDashboardData();
 
-  // Profile data is now handled automatically by UnifiedAuthProvider
-  // No need for manual fetching in components
-  
   // Show loading state while profile is being fetched
   const isLoadingProfile = isProfileLoading && (!userName || !storeName);
-
-  // Component display logging
-  useEffect(() => {
-    console.log('📺 Dashboard: Component mounted', {
-      timestamp: displayStartTime,
-      userId: !!userId,
-      isSignedIn,
-      authReady,
-      isAuthenticated,
-      authType
-    });
-
-    return () => {
-      const displayDuration = Date.now() - displayStartTime;
-      console.log('📺 Dashboard: Component unmounted', {
-        displayDuration,
-        timestamp: Date.now()
-      });
-    };
-  }, [displayStartTime, userId, isSignedIn, authReady, isAuthenticated, authType]);
-
-  // data fetching and refresh now handled by useDashboardData
 
   // Show loading state while profile is being fetched
   if (isLoadingProfile) {
     return (
       <View style={[dashboardStyles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <Text style={{ fontSize: 18, color: '#666' }}>Loading your profile...</Text>
+        <Text style={{ fontSize: 18, color: appTheme.colors.neutral.medium }}>Loading your profile...</Text>
       </View>
     );
   }
@@ -103,11 +50,13 @@ export default function DashboardScreen() {
       contentContainerStyle={dashboardStyles.contentContainer}
       showsVerticalScrollIndicator={false}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[useThemeStore.getState().theme.neutral.medium]} />
+        <RefreshControl 
+          refreshing={refreshing} 
+          onRefresh={onRefresh} 
+          colors={[appTheme.colors.neutral.medium]} 
+        />
       }
     >
-      {/* Auth system is now working properly - no need for debugger */}
-      
       <WelcomeSection 
         profileLoading={isProfileLoading} 
         userName={userName} 
@@ -117,16 +66,12 @@ export default function DashboardScreen() {
         userId={userId}
       />
       
-  
-
       {/* Enhanced Overview with donut chart */}
       <StatsOverviewEnhanced 
         sessionsLoading={sessionsLoading} 
         unfinishedSessions={unfinishedSessions} 
         finishedSessions={finishedSessions}
       />
-
-  
 
       <UnfinishedSessions 
         sessionsLoading={sessionsLoading} 

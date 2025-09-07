@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { getDashboardStyles } from '../../../../styles/components/dashboard';
-import { useThemedStyles } from '../../../../styles/useThemedStyles';
+import { useDashboardTheme } from '../../../../styles/components/dashboard';
+import { useAppTheme } from '../../../hooks/useResponsiveStyles';
 import SkeletonBox from '../../../components/skeleton/SkeletonBox';
 
 interface WelcomeSectionProps {
@@ -21,7 +21,8 @@ export const WelcomeSection: React.FC<WelcomeSectionProps> = ({
   retryProfileLoad,
   userId
 }) => {
-  const dashboardStyles = useThemedStyles(getDashboardStyles);
+  const { styles: dashboardStyles } = useDashboardTheme();
+  const appTheme = useAppTheme();
   
   const handleRetry = () => {
     if (userId && retryProfileLoad) {
@@ -33,10 +34,10 @@ export const WelcomeSection: React.FC<WelcomeSectionProps> = ({
   if (profileError && !profileLoading) {
     return (
       <View style={dashboardStyles.welcomeSection}>
-        <Text style={[dashboardStyles.welcomeTitle, { color: '#DC3545' }]}>
+        <Text style={[dashboardStyles.welcomeTitle, { color: appTheme.colors.status.error }]}>
           Error loading profile
         </Text>
-        <Text style={[dashboardStyles.welcomeSubtitle, { color: '#666' }]}>
+        <Text style={[dashboardStyles.welcomeSubtitle, { color: appTheme.colors.neutral.medium }]}>
           {profileError}
         </Text>
         <TouchableOpacity 
@@ -45,11 +46,11 @@ export const WelcomeSection: React.FC<WelcomeSectionProps> = ({
             marginTop: 12,
             paddingHorizontal: 16,
             paddingVertical: 8,
-            backgroundColor: '#007AFF',
+            backgroundColor: appTheme.colors.brand.primary,
             borderRadius: 8,
           }}
         >
-          <Text style={{ color: 'white', fontWeight: '600' }}>Retry</Text>
+          <Text style={{ color: appTheme.colors.neutral.lightest, fontWeight: '600' }}>Retry</Text>
         </TouchableOpacity>
       </View>
     );
