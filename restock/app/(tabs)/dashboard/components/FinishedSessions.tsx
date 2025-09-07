@@ -1,9 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { getDashboardStyles } from '../../../../styles/components/dashboard';
-import { useThemedStyles } from '../../../../styles/useThemedStyles';
-import useThemeStore from '../../../stores/useThemeStore';
+import { useDashboardTheme } from '../../../../styles/components/dashboard';
+import { useAppTheme } from '../../../hooks/useResponsiveStyles';
 
 interface FinishedSession {
   id: string;
@@ -27,8 +26,8 @@ export const FinishedSessions: React.FC<FinishedSessionsProps> = ({
   sessionsLoading,
   finishedSessions
 }) => {
-  const dashboardStyles = useThemedStyles(getDashboardStyles);
-  const { theme } = useThemeStore();
+  const { styles: dashboardStyles } = useDashboardTheme();
+  const appTheme = useAppTheme();
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { 
@@ -59,30 +58,30 @@ export const FinishedSessions: React.FC<FinishedSessionsProps> = ({
       {finishedSessions.map((session, index) => {
         return (
           <View key={session.id} style={{
-            backgroundColor: theme.neutral.lighter,
+            backgroundColor: appTheme.colors.neutral.lighter,
             borderRadius: 8,
             padding: 12,
             marginBottom: 8,
             borderLeftWidth: 3,
-            borderLeftColor: theme.status.success,
+            borderLeftColor: appTheme.colors.status.success,
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between'
           }}>
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                <Ionicons name="checkmark-circle" size={14} color={theme.status.success} style={{ marginRight: 6 }} />
+                <Ionicons name="checkmark-circle" size={14} color={appTheme.colors.status.success} style={{ marginRight: 6 }} />
                 <Text style={{
                   fontSize: 14,
                   fontWeight: '600',
-                  color: theme.neutral.darkest
+                  color: appTheme.colors.neutral.darkest
                 }}>
                   {session.name || `Session #${index + 1}`}
                 </Text>
               </View>
               <Text style={{
                 fontSize: 12,
-                color: theme.neutral.medium,
+                color: appTheme.colors.neutral.medium,
                 marginBottom: 2
               }}>
                 {formatDate(session.createdAt)} • {session.totalItems} items • {session.uniqueSuppliers} suppliers
@@ -91,7 +90,7 @@ export const FinishedSessions: React.FC<FinishedSessionsProps> = ({
             
             <TouchableOpacity
               style={{
-                backgroundColor: theme.status.success,
+                backgroundColor: appTheme.colors.status.success,
                 paddingHorizontal: 12,
                 paddingVertical: 6,
                 borderRadius: 6
@@ -102,7 +101,7 @@ export const FinishedSessions: React.FC<FinishedSessionsProps> = ({
               }}
             >
               <Text style={{
-                color: theme.neutral.lightest,
+                color: appTheme.colors.neutral.lightest,
                 fontSize: 12,
                 fontWeight: '500'
               }}>
