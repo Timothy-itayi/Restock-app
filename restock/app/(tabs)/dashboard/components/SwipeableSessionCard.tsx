@@ -1,22 +1,18 @@
-import React, { useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, useWindowDimensions } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, useWindowDimensions, DeviceEventEmitter } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { PanGestureHandler, PanGestureHandlerGestureEvent, State } from 'react-native-gesture-handler';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
-  useAnimatedGestureHandler,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
-  runOnJS,
 } from 'react-native-reanimated';
 
 import { useDashboardTheme } from '../../../../styles/components/dashboard';
 import { useAppTheme } from '../../../hooks/useResponsiveStyles';
 import { getSessionColorTheme } from '../../restock-sessions/utils/colorUtils';
 import { useRepositories } from '../../../infrastructure/supabase/SupabaseHooksProvider';
-import { Logger } from '../../restock-sessions/utils/logger';
-import { DeviceEventEmitter } from 'react-native';
 
 interface UnfinishedSession {
   id: string;
@@ -84,13 +80,11 @@ export const SwipeableSessionCard: React.FC<SwipeableSessionCardProps> = ({
       supplierCounts[supplierName] = (supplierCounts[supplierName] || 0) + 1;
     });
 
-    const breakdown = Object.entries(supplierCounts).map(([name, count]) => ({
+    return Object.entries(supplierCounts).map(([name, count]) => ({
       name,
       count,
       percentage: Math.round((count / session.totalItems) * 100)
     }));
-
-    return breakdown;
   };
 
   const getDetailedSupplierBreakdown = (session: UnfinishedSession): SupplierInfo[] => {
@@ -154,18 +148,11 @@ export const SwipeableSessionCard: React.FC<SwipeableSessionCardProps> = ({
 
             setIsDeleting(true);
             try {
-              // Logger.info('Deleting session from dashboard', { sessionId: session.id }); // Original code had this line commented out
-              
               await sessionRepository.delete(session.id);
-              // Logger.success('Session deleted successfully from dashboard', { sessionId: session.id }); // Original code had this line commented out
-
-              // Emit event to notify other components (like restock-sessions tab) about session deletion
               console.log('📢 Dashboard: Emitting session deleted event for:', session.id);
               DeviceEventEmitter.emit('restock:sessionDeleted', { sessionId: session.id });
-
               onSessionDeleted(session.id);
             } catch (error) {
-              // Logger.error('Unexpected error deleting session from dashboard', error, { sessionId: session.id });
               Alert.alert('Error', 'An unexpected error occurred while deleting the session');
             } finally {
               setIsDeleting(false);
@@ -177,17 +164,10 @@ export const SwipeableSessionCard: React.FC<SwipeableSessionCardProps> = ({
   };
 
   const handleSessionTap = () => {
-    // Call the tracking function first
     if (onSessionTap) {
       onSessionTap(session.id, session.name, index);
     }
     
-    console.log('🚀 Navigating to restock-sessions with params:', {
-      sessionId: session.id,
-      action: 'continue'
-    });
-    
-    // Use params object instead of query string
     router.push({
       pathname: '/(tabs)/restock-sessions' as any,
       params: {
@@ -197,34 +177,28 @@ export const SwipeableSessionCard: React.FC<SwipeableSessionCardProps> = ({
     });
   };
 
-  const gestureHandler = useAnimatedGestureHandler<PanGestureHandlerGestureEvent>({
-    onStart: () => {
-      // Reset delete button opacity when starting new gesture
+  // New Gesture API (replaces PanGestureHandler + useAnimatedGestureHandler)
+  const panGesture = Gesture.Pan()
+    .onStart(() => {
       deleteButtonOpacity.value = 0;
-    },
-    onActive: (event) => {
-      // Only allow left swipe (negative values)
+    })
+    .onUpdate((event) => {
       if (event.translationX < 0) {
         translateX.value = event.translationX;
-        
-        // Show delete button when swiping left
         if (event.translationX < -20) {
-          deleteButtonOpacity.value = withSpring(1); // Changed from withTiming to withSpring
+          deleteButtonOpacity.value = withSpring(1);
         }
       }
-    },
-    onEnd: (event) => {
+    })
+    .onEnd((event) => {
       if (event.translationX < SWIPE_THRESHOLD) {
-        // Swipe threshold reached, snap to delete position
-        translateX.value = withSpring(-DELETE_BUTTON_WIDTH); // Changed from withTiming to withSpring
-        deleteButtonOpacity.value = withSpring(1); // Changed from withTiming to withSpring
+        translateX.value = withSpring(-DELETE_BUTTON_WIDTH);
+        deleteButtonOpacity.value = withSpring(1);
       } else {
-        // Snap back to original position
-        translateX.value = withSpring(0); // Changed from withTiming to withSpring
-        deleteButtonOpacity.value = withSpring(0); // Changed from withTiming to withSpring
+        translateX.value = withSpring(0);
+        deleteButtonOpacity.value = withSpring(0);
       }
-    },
-  });
+    });
 
   const animatedCardStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: translateX.value }],
@@ -248,11 +222,7 @@ export const SwipeableSessionCard: React.FC<SwipeableSessionCardProps> = ({
           onPress={handleDeleteSession}
           disabled={isDeleting}
         >
-          <Ionicons 
-            name="trash-outline" 
-            size={24} 
-            color="white" 
-          />
+          <Ionicons name="trash-outline" size={24} color="white" />
           <Text style={styles.deleteButtonText}>
             {isDeleting ? 'Deleting...' : 'Delete'}
           </Text>
@@ -260,32 +230,34 @@ export const SwipeableSessionCard: React.FC<SwipeableSessionCardProps> = ({
       </Animated.View>
 
       {/* Session Card (Foreground) */}
-      <PanGestureHandler onGestureEvent={gestureHandler}>
+      <GestureDetector gesture={panGesture}>
         <Animated.View style={[styles.cardContainer, animatedCardStyle]}>
-          <View style={[
-            dashboardStyles.sessionCard,
-            {
-              borderLeftWidth: 4,
-              borderLeftColor: sessionColor.primary,
-              backgroundColor: sessionColor.light
-            }
-          ]}>
+          <View
+            style={[
+              dashboardStyles.sessionCard,
+              {
+                borderLeftWidth: 4,
+                borderLeftColor: sessionColor.primary,
+                backgroundColor: sessionColor.light,
+              },
+            ]}
+          >
             <View style={dashboardStyles.sessionHeader}>
               <View style={dashboardStyles.sessionInfo}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                  <View style={[
-                    { 
-                      width: 8, 
-                      height: 8, 
-                      borderRadius: 4, 
+                  <View
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: 4,
                       backgroundColor: sessionColor.primary,
-                      marginRight: 8
-                    }
-                  ]} />
+                      marginRight: 8,
+                    }}
+                  />
                   <Text style={dashboardStyles.sessionTitle}>
                     {session.name
                       ? `${session.name} • `
-                      : `Session #${(session.id && typeof session.id === 'string') ? session.id.slice(-4) : (index + 1)} • `}
+                      : `Session #${typeof session.id === 'string' ? session.id.slice(-4) : index + 1} • `}
                     {formatDate(session.createdAt)}
                   </Text>
                 </View>
@@ -293,34 +265,38 @@ export const SwipeableSessionCard: React.FC<SwipeableSessionCardProps> = ({
                   {session.totalItems} items • {totalQuantity} total quantity • {session.uniqueSuppliers} suppliers
                 </Text>
               </View>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[
                   dashboardStyles.continueButton,
-                  { backgroundColor: sessionColor.primary }
+                  { backgroundColor: sessionColor.primary },
                 ]}
                 onPress={handleSessionTap}
               >
-                <Text style={[dashboardStyles.continueButtonText, { color: '#FFFFFF' }]}>Continue</Text>
+                <Text style={[dashboardStyles.continueButtonText, { color: '#FFFFFF' }]}>
+                  Continue
+                </Text>
               </TouchableOpacity>
             </View>
 
             <View style={dashboardStyles.breakdownContainer}>
               <View style={dashboardStyles.breakdownHeader}>
                 <Text style={dashboardStyles.breakdownTitle}>SUPPLIER BREAKDOWN</Text>
-                <Text style={dashboardStyles.breakdownTotal}>{session.uniqueSuppliers} suppliers</Text>
+                <Text style={dashboardStyles.breakdownTotal}>
+                  {session.uniqueSuppliers} suppliers
+                </Text>
               </View>
-              
+
               <View style={dashboardStyles.chartContainer}>
                 <View style={dashboardStyles.chart}>
                   {supplierBreakdown.map((supplier, idx) => (
-                    <View 
+                    <View
                       key={supplier.name}
                       style={[
                         dashboardStyles.chartSegment,
-                        { 
+                        {
                           backgroundColor: getSupplierColor(idx),
-                          flex: supplier.count
-                        }
+                          flex: supplier.count,
+                        },
                       ]}
                     />
                   ))}
@@ -332,10 +308,10 @@ export const SwipeableSessionCard: React.FC<SwipeableSessionCardProps> = ({
                 {detailedSupplierBreakdown.map((supplier, idx) => (
                   <View key={supplier.id} style={dashboardStyles.breakdownItem}>
                     <View style={dashboardStyles.breakdownItemHeader}>
-                      <View 
+                      <View
                         style={[
-                          dashboardStyles.breakdownItemIcon, 
-                          { backgroundColor: getSupplierColor(idx) }
+                          dashboardStyles.breakdownItemIcon,
+                          { backgroundColor: getSupplierColor(idx) },
                         ]}
                       >
                         <Ionicons name="business" size={12} color="white" />
@@ -356,7 +332,7 @@ export const SwipeableSessionCard: React.FC<SwipeableSessionCardProps> = ({
             </View>
           </View>
         </Animated.View>
-      </PanGestureHandler>
+      </GestureDetector>
     </View>
   );
 };
@@ -395,10 +371,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 8,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
     elevation: 5,
