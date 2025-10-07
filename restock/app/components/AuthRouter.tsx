@@ -44,8 +44,13 @@ function isInsideTabArea(path: string | null | undefined): boolean {
 }
 
 export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  console.log('[AuthRouter] 🚀 Component rendering started');
+  
   const rawPathname = usePathname();
+  console.log('[AuthRouter] 📍 Got pathname:', rawPathname);
+  
   const pathname = normalizePath(rawPathname); // ✅ always work with normalized paths
+  console.log('[AuthRouter] 📍 Normalized pathname:', pathname);
 
   const {
     isReady,
@@ -56,6 +61,8 @@ export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }
     hasValidProfile,
     isProfileLoading,
   } = useUnifiedAuth();
+  
+  console.log('[AuthRouter] 🔑 Got auth state from UnifiedAuth');
 
   const [lastVisitedTab, setLastVisitedTab] = useState<string | null>(null);
 
@@ -77,9 +84,33 @@ export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }
   const isHydrated =
     isReady && (!isAuthenticated || (userId && hasValidProfile && !isProfileLoading));
 
+  console.log('[AuthRouter] Hydration check:', {
+    isHydrated,
+    isReady,
+    isAuthenticated,
+    userId: !!userId,
+    hasValidProfile,
+    isProfileLoading,
+    rawPathname,
+    pathname
+  });
+
   // Determine target route
   const determineTargetRoute = useCallback((): string | null => {
-    if (!isHydrated) return null;
+    console.log('[AuthRouter] determineTargetRoute called:', {
+      isHydrated,
+      isAuthenticated,
+      userId: !!userId,
+      hasValidProfile,
+      userName: !!userName,
+      storeName: !!storeName,
+      pathname
+    });
+    
+    if (!isHydrated) {
+      console.log('[AuthRouter] Not hydrated yet, returning null');
+      return null;
+    }
 
     if (isAuthenticated && userId) {
       if (hasValidProfile && userName && storeName) {
@@ -95,16 +126,33 @@ export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }
       return '/sso-profile-setup';
     }
 
-    if (pathname?.startsWith('/welcome') || pathname?.includes('/auth')) return pathname;
+    if (pathname?.startsWith('/welcome') || pathname?.includes('/auth')) {
+      console.log('[AuthRouter] Already on welcome/auth route, staying put:', pathname);
+      return pathname;
+    }
+    
+    console.log('[AuthRouter] Not authenticated and not on welcome/auth, redirecting to /welcome');
     return '/welcome';
   }, [isHydrated, isAuthenticated, userId, hasValidProfile, userName, storeName, lastVisitedTab, pathname]);
 
   const targetRoute = determineTargetRoute();
 
+  console.log('[AuthRouter] Target route determined:', {
+    targetRoute,
+    currentPathname: pathname,
+    willRedirect: targetRoute && pathname !== targetRoute
+  });
+
   // Redirect when route is wrong
   useEffect(() => {
-    if (!targetRoute) return;
-    if (pathname === targetRoute) return;
+    if (!targetRoute) {
+      console.log('[AuthRouter] No target route, skipping redirect');
+      return;
+    }
+    if (pathname === targetRoute) {
+      console.log('[AuthRouter] Already at target route, no redirect needed');
+      return;
+    }
 
     console.log('[AuthRouter] Redirecting from', pathname, 'to', targetRoute);
     router.replace(targetRoute as any);
@@ -112,6 +160,7 @@ export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }
 
   // Always render children once hydrated
   if (!isHydrated) {
+    console.log('[AuthRouter] Not hydrated, showing loading screen');
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
         <ActivityIndicator size="large" color="#6B7F6B" />
@@ -122,5 +171,6 @@ export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }
     );
   }
 
+  console.log('[AuthRouter] Hydrated, rendering children');
   return <>{children}</>;
 };
