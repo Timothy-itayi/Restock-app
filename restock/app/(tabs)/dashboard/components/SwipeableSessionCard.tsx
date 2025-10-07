@@ -11,8 +11,8 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 
-import { useDashboardTheme } from '../../../../styles/components/dashboard';
-import { useAppTheme } from '../../../hooks/useResponsiveStyles';
+import { getDashboardStyles } from '../../../../styles/components/dashboard';
+import { useThemedStyles } from '../../../../styles/useThemedStyles';
 import { getSessionColorTheme } from '../../restock-sessions/utils/colorUtils';
 import { useRepositories } from '../../../infrastructure/supabase/SupabaseHooksProvider';
 import { Logger } from '../../restock-sessions/utils/logger';
@@ -55,8 +55,9 @@ export const SwipeableSessionCard: React.FC<SwipeableSessionCardProps> = ({
   onSessionTap,
 }) => {
   const { width: SCREEN_WIDTH } = useWindowDimensions();
-  const { styles: dashboardStyles } = useDashboardTheme();
-  const appTheme = useAppTheme();
+  const theme = useThemedStyles((t) => t);
+  const dashboardStyles = getDashboardStyles(theme);
+  const theme = useThemedStyles((t) => t);
   const { sessionRepository } = useRepositories();
   const [isDeleting, setIsDeleting] = useState(false);
   

@@ -3,51 +3,47 @@
 import { StyleSheet } from "react-native";
 import { fontFamily } from "../typography";
 import colors, { type AppColors } from '@/app/theme/colors';
-import { useAppTheme } from '@/app/hooks/useResponsiveStyles';
 
-// Enhanced dashboard styles with responsive design for iPad optimization
-export const getDashboardStyles = (appTheme: ReturnType<typeof useAppTheme>) => {
-  // Defensive check for undefined theme
-  if (!appTheme || !appTheme.layout || !appTheme.colors) {
-    console.warn('getDashboardStyles: appTheme is undefined, using fallback styles');
-    return StyleSheet.create({
-      container: { flex: 1, backgroundColor: '#FFFFFF' },
-      contentContainer: { padding: 20 },
-      section: { marginBottom: 24 },
-      sectionHeader: { marginBottom: 16 },
-      sectionTitle: { fontSize: 18, fontWeight: '600', color: '#1A1D20' },
-      welcomeSection: { marginBottom: 24, paddingTop: 8 },
-      welcomeTitle: { fontSize: 28, fontWeight: '400', color: '#1A1D20', lineHeight: 36, marginBottom: 8 },
-      welcomeSubtitle: { fontSize: 16, color: '#6C757D', lineHeight: 22 },
-      userName: { fontWeight: '600' },
-      statsGrid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
-      statCard: { flex: 1, backgroundColor: '#F8F9FA', padding: 16, borderRadius: 8, marginHorizontal: 4, alignItems: 'center' },
-      statNumber: { fontSize: 24, fontWeight: '700', color: '#1A1D20', marginBottom: 4 },
-      statLabel: { fontSize: 12, color: '#6C757D', textAlign: 'center' },
-      sessionCard: { backgroundColor: '#FFFFFF', borderRadius: 8, padding: 16, marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
-      sessionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
-      sessionInfo: { flex: 1, marginRight: 12 },
-      sessionTitle: { fontSize: 16, fontWeight: '600', color: '#1A1D20', marginBottom: 4 },
-      sessionSubtitle: { fontSize: 14, color: '#6C757D' },
-      continueButton: { backgroundColor: '#22C55E', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 6 },
-      continueButtonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
-      breakdownContainer: { marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: '#E1E8ED' },
-      breakdownHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-      breakdownTitle: { fontSize: 12, fontWeight: '600', color: '#6C757D', letterSpacing: 0.5 },
-      breakdownTotal: { fontSize: 12, color: '#6C757D' },
-      chartContainer: { marginBottom: 16 },
-      chart: { flexDirection: 'row', height: 8, borderRadius: 4, overflow: 'hidden', marginBottom: 8 },
-      chartSegment: { height: '100%' },
-      chartLabel: { fontSize: 12, color: '#6C757D', textAlign: 'center' },
-      breakdownList: { gap: 12 },
-      breakdownItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8 },
-      breakdownItemHeader: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-      breakdownItemIcon: { width: 24, height: 24, borderRadius: 12, marginRight: 8, justifyContent: 'center', alignItems: 'center' },
-      breakdownItemName: { fontSize: 14, fontWeight: '500', color: '#1A1D20', flex: 1 },
-      breakdownItemStats: { alignItems: 'flex-end' },
-      breakdownItemPercentage: { fontSize: 12, fontWeight: '600', color: '#1A1D20', marginBottom: 2 },
-      breakdownItemCount: { fontSize: 11, color: '#6C757D' },
-      emptyState: { alignItems: 'center', padding: 40 },
+// Dashboard styles with simple theme
+export const getDashboardStyles = (theme: AppColors) => {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.neutral.lightest },
+    contentContainer: { padding: 20 },
+    section: { marginBottom: 24 },
+    sectionHeader: { marginBottom: 16 },
+    sectionTitle: { fontSize: 18, fontWeight: '600', color: theme.neutral.darkest, fontFamily: fontFamily.satoshi },
+    welcomeSection: { marginBottom: 24, paddingTop: 8 },
+    welcomeTitle: { fontSize: 28, fontWeight: '400', color: theme.neutral.darkest, lineHeight: 36, marginBottom: 8, fontFamily: fontFamily.satoshi },
+    welcomeSubtitle: { fontSize: 16, color: theme.neutral.medium, lineHeight: 22, fontFamily: fontFamily.satoshi },
+    userName: { fontWeight: '600' },
+    statsGrid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
+    statCard: { flex: 1, backgroundColor: theme.neutral.lighter, padding: 16, borderRadius: 8, marginHorizontal: 4, alignItems: 'center' },
+    statNumber: { fontSize: 24, fontWeight: '700', color: theme.neutral.darkest, marginBottom: 4, fontFamily: fontFamily.satoshi },
+    statLabel: { fontSize: 12, color: theme.neutral.medium, textAlign: 'center', fontFamily: fontFamily.satoshi },
+    sessionCard: { backgroundColor: theme.neutral.lightest, borderRadius: 8, padding: 16, marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
+    sessionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
+    sessionInfo: { flex: 1, marginRight: 12 },
+    sessionTitle: { fontSize: 16, fontWeight: '600', color: theme.neutral.darkest, marginBottom: 4, fontFamily: fontFamily.satoshi },
+    sessionSubtitle: { fontSize: 14, color: theme.neutral.medium, fontFamily: fontFamily.satoshi },
+    continueButton: { backgroundColor: theme.brand.primary, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 6 },
+    continueButtonText: { color: theme.neutral.lightest, fontSize: 14, fontWeight: '600', fontFamily: fontFamily.satoshi },
+    breakdownContainer: { marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: theme.neutral.light },
+    breakdownHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+    breakdownTitle: { fontSize: 12, fontWeight: '600', color: theme.neutral.medium, letterSpacing: 0.5, fontFamily: fontFamily.satoshi },
+    breakdownTotal: { fontSize: 12, color: theme.neutral.medium, fontFamily: fontFamily.satoshi },
+    chartContainer: { marginBottom: 16 },
+    chart: { flexDirection: 'row', height: 8, borderRadius: 4, overflow: 'hidden', marginBottom: 8 },
+    chartSegment: { height: '100%' },
+    chartLabel: { fontSize: 12, color: theme.neutral.medium, textAlign: 'center', fontFamily: fontFamily.satoshi },
+    breakdownList: { gap: 12 },
+    breakdownItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8 },
+    breakdownItemHeader: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+    breakdownItemIcon: { width: 24, height: 24, borderRadius: 12, marginRight: 8, justifyContent: 'center', alignItems: 'center' },
+    breakdownItemName: { fontSize: 14, fontWeight: '500', color: theme.neutral.darkest, flex: 1, fontFamily: fontFamily.satoshi },
+    breakdownItemStats: { alignItems: 'flex-end' },
+    breakdownItemPercentage: { fontSize: 12, fontWeight: '600', color: theme.neutral.darkest, marginBottom: 2, fontFamily: fontFamily.satoshi },
+    breakdownItemCount: { fontSize: 11, color: theme.neutral.medium, fontFamily: fontFamily.satoshi },
+    emptyState: { alignItems: 'center', padding: 40 },
       emptyStateTitle: { fontSize: 18, fontWeight: '600', color: '#1A1D20', marginTop: 16 },
       emptyStateText: { fontSize: 14, color: '#6C757D', textAlign: 'center', marginTop: 8 },
       startNewButton: { backgroundColor: '#22C55E', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8, marginTop: 16 },
@@ -517,38 +513,7 @@ export const getDashboardStyles = (appTheme: ReturnType<typeof useAppTheme>) => 
     fontSize: 12,
     fontWeight: "600",
   },
-});
+  });
 };
 
 
-const fallbackTheme = {
-  colors,
-  device: { deviceType: 'mobile' as const, isTablet: false, isMobile: true, width: 375, height: 667, isLandscape: false },
-  spacing: { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24, xxxl: 32 },
-  typography: { appTitle: 28, sectionHeader: 20, subsectionHeader: 18, productName: 16, buttonText: 16, bodyLarge: 16, bodyMedium: 14, bodySmall: 12, caption: 11 },
-  layout: { maxContentWidth: '100%' as const, paddingHorizontal: 20, columns: 1, actionGridColumns: 2, cardMinWidth: 0, tabBarHeight: 60, touchTargetMin: 44 },
-  patterns: {
-    container: () => ({ flex: 1, maxWidth: '100%', alignSelf: 'center' as const, width: '100%' }),
-    grid: () => ({ flexDirection: 'row' as const, flexWrap: 'wrap' as const, justifyContent: 'space-between' as const }),
-    card: () => ({ flex: 1, minWidth: 0 }),
-    actionGrid: () => ({ flexDirection: 'row' as const, flexWrap: 'wrap' as const, justifyContent: 'space-between' as const, gap: 16 }),
-    touchTarget: () => ({ minHeight: 44, minWidth: 44 })
-  },
-  breakpoints: { mobile: 0, tablet: 768 },
-  getResponsiveValue: <T>(values: Partial<Record<string, T>>, fallback: T): T => fallback,
-};
-
-// Backward-compatible static export (deprecated - use useDashboardTheme instead)
-export const dashboardStyles = getDashboardStyles(fallbackTheme);
-
-
-// Utility hook for dashboard components
-export const useDashboardTheme = () => {
-  const appTheme = useAppTheme();
-  return {
-    styles: getDashboardStyles(appTheme),
-    appTheme,
-  };
-};
-
-// Create a fallback theme for backward compatibility

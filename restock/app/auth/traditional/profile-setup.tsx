@@ -7,7 +7,9 @@ import { SessionManager } from '../../../backend/services/session-manager';
 import { EmailAuthService } from '../../../backend/services/email-auth';
 import { useUnifiedAuth } from "../UnifiedAuthProvider";
 import UnifiedAuthGuard from '../../components/UnifiedAuthGuard';
-import { profileSetupStyles } from '../../../styles/components/auth/traditional/profile-setup';
+import { useThemedStyles } from '../../styles/useThemedStyles';
+import { StyleSheet } from 'react-native';
+import { ResponsiveContainer } from '../../components/responsive/ResponsiveLayouts';
 
 export default function ProfileSetupScreen() {
   // CRITICAL: Always call useAuth unconditionally first
@@ -155,24 +157,99 @@ export default function ProfileSetupScreen() {
     }
   };
 
+  const styles = useThemedStyles((theme) => ({
+    scrollViewContent: {
+      flexGrow: 1,
+    },
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.neutral.lighter,
+    },
+    content: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: theme.spacing.lg,
+    },
+    title: {
+      fontFamily: theme.typography.appTitle.fontFamily,
+      fontSize: theme.typography.appTitle.fontSize,
+      color: theme.colors.neutral.darkest,
+      textAlign: 'center',
+      marginBottom: theme.spacing.sm,
+      fontWeight: 'bold',
+    },
+    subtitle: {
+      fontFamily: theme.typography.bodyMedium.fontFamily,
+      fontSize: theme.typography.bodyMedium.fontSize,
+      color: theme.colors.neutral.medium,
+      textAlign: 'center',
+      marginBottom: theme.spacing.xxl,
+      lineHeight: theme.typography.bodyMedium.lineHeight,
+    },
+    formSection: {
+      width: '100%',
+      maxWidth: theme.device.isTablet ? 500 : 350,
+      alignItems: 'stretch',
+    },
+    sectionTitle: {
+      fontFamily: theme.typography.subsectionHeader.fontFamily,
+      fontSize: theme.typography.subsectionHeader.fontSize,
+      color: theme.colors.neutral.darkest,
+      fontWeight: '600',
+      marginBottom: theme.spacing.md,
+      marginTop: theme.spacing.lg,
+    },
+    input: {
+      fontFamily: theme.typography.bodyMedium.fontFamily,
+      fontSize: theme.typography.bodyMedium.fontSize,
+      backgroundColor: theme.colors.neutral.lightest,
+      borderWidth: 1,
+      borderColor: theme.colors.neutral.light,
+      borderRadius: 8,
+      paddingHorizontal: theme.spacing.lg,
+      paddingVertical: theme.spacing.lg,
+      marginBottom: theme.spacing.lg,
+      color: theme.colors.neutral.darkest,
+      minHeight: theme.layout.touchTargetMin + 12,
+    },
+    button: {
+      backgroundColor: theme.colors.brand.primary,
+      borderRadius: 8,
+      paddingVertical: theme.spacing.lg,
+      alignItems: 'center',
+      marginTop: theme.spacing.xl,
+      minHeight: theme.layout.touchTargetMin,
+    },
+    buttonDisabled: {
+      opacity: 0.6,
+    },
+    buttonText: {
+      fontFamily: theme.typography.buttonText.fontFamily,
+      fontSize: theme.typography.buttonText.fontSize,
+      color: theme.colors.neutral.lightest,
+      fontWeight: '600',
+    },
+  }));
+
   return (
     <UnifiedAuthGuard requireAuth={true} requireProfileSetup={false}>
-      <ScrollView contentContainerStyle={profileSetupStyles.scrollViewContent}>
+      <ScrollView contentContainerStyle={styles.scrollViewContent}>
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={profileSetupStyles.container}
+          style={styles.container}
         >
-          <View style={profileSetupStyles.content}>
-            <Text style={profileSetupStyles.title}>Complete Your Profile</Text>
-            <Text style={profileSetupStyles.subtitle}>
+          <ResponsiveContainer style={styles.content}>
+            <Text style={styles.title}>Complete Your Profile</Text>
+            <Text style={styles.subtitle}>
               Tell us a bit about yourself and your store to get started
             </Text>
             
-            <View style={profileSetupStyles.formSection}>
-              <Text style={profileSetupStyles.sectionTitle}>Personal Information</Text>
+            <View style={styles.formSection}>
+              <Text style={styles.sectionTitle}>Personal Information</Text>
               
               <TextInput
-                style={profileSetupStyles.input}
+                style={styles.input}
                 placeholder="Enter your first name"
                 placeholderTextColor="#666666"
                 value={name}
@@ -180,10 +257,10 @@ export default function ProfileSetupScreen() {
                 autoCapitalize="words"
               />
               
-              <Text style={profileSetupStyles.sectionTitle}>Store Information</Text>
+              <Text style={styles.sectionTitle}>Store Information</Text>
               
               <TextInput
-                style={profileSetupStyles.input}
+                style={styles.input}
                 placeholder="Enter your store name"
                 placeholderTextColor="#666666"
                 value={storeName}
@@ -192,16 +269,16 @@ export default function ProfileSetupScreen() {
               />
               
               <TouchableOpacity 
-                style={[profileSetupStyles.button, loading && profileSetupStyles.buttonDisabled]}
+                style={[styles.button, loading && styles.buttonDisabled]}
                 onPress={handleCreateProfile}
                 disabled={loading}
               >
-                <Text style={profileSetupStyles.buttonText}>
+                <Text style={styles.buttonText}>
                   {loading ? 'Creating Profile...' : 'Complete Setup'}
                 </Text>
               </TouchableOpacity>
             </View>
-          </View>
+          </ResponsiveContainer>
         </KeyboardAvoidingView>
       </ScrollView>
     </UnifiedAuthGuard>

@@ -7,7 +7,9 @@ import * as Linking from 'expo-linking';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useUnifiedAuth } from './UnifiedAuthProvider';
 import { ClerkClientService } from '../../backend/services/clerk-client';
-import { authIndexStyles } from '../../styles/components/auth-index';
+import { useThemedStyles } from '../../styles/useThemedStyles';
+import { StyleSheet } from 'react-native';
+import { ResponsiveContainer } from '../components/responsive/ResponsiveLayouts';
 
 export default function AuthIndexScreen() {
   const { startSSOFlow } = useSSO();
@@ -99,34 +101,106 @@ export default function AuthIndexScreen() {
     }
   }, [authFlowState]);
 
+  const styles = useThemedStyles((theme) => ({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.neutral.lighter,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    title: {
+      fontFamily: theme.typography.appTitle.fontFamily,
+      fontSize: theme.typography.appTitle.fontSize,
+      fontWeight: 'bold',
+      marginBottom: theme.spacing.sm,
+      textAlign: 'center',
+      color: theme.colors.neutral.darkest,
+    },
+    subtitle: {
+      fontFamily: theme.typography.bodyMedium.fontFamily,
+      fontSize: theme.typography.bodyMedium.fontSize,
+      color: theme.colors.brand.secondary,
+      textAlign: 'center',
+      marginBottom: theme.spacing.xxl,
+      fontWeight: '600',
+    },
+    primaryButton: {
+      backgroundColor: theme.colors.brand.primary,
+      paddingVertical: theme.spacing.lg,
+      paddingHorizontal: theme.spacing.xxl,
+      borderRadius: 8,
+      marginBottom: theme.spacing.lg,
+      width: '100%',
+      maxWidth: theme.device.isTablet ? 400 : 300,
+      alignItems: 'center',
+    },
+    primaryButtonText: {
+      fontFamily: theme.typography.buttonText.fontFamily,
+      color: theme.colors.neutral.lightest,
+      fontSize: theme.typography.buttonText.fontSize,
+      fontWeight: '600',
+      textAlign: 'center',
+    },
+    secondaryButton: {
+      backgroundColor: theme.colors.neutral.lightest,
+      paddingVertical: theme.spacing.lg,
+      paddingHorizontal: theme.spacing.xxl,
+      borderRadius: 8,
+      marginBottom: theme.spacing.xl,
+      width: '100%',
+      maxWidth: theme.device.isTablet ? 400 : 300,
+      borderWidth: 1,
+      borderColor: theme.colors.brand.primary,
+      alignItems: 'center',
+    },
+    secondaryButtonText: {
+      fontFamily: theme.typography.buttonText.fontFamily,
+      color: theme.colors.brand.primary,
+      fontSize: theme.typography.buttonText.fontSize,
+      fontWeight: '600',
+      textAlign: 'center',
+    },
+    linkButton: {
+      paddingVertical: theme.spacing.sm,
+      alignItems: 'center',
+    },
+    linkButtonText: {
+      fontFamily: theme.typography.bodySmall.fontFamily,
+      color: theme.colors.brand.primary,
+      fontSize: theme.typography.bodySmall.fontSize,
+      fontWeight: '500',
+      textAlign: 'center',
+    },
+  }));
+
   return (
-    <View style={authIndexStyles.container}>
-      <Text style={authIndexStyles.title}>Welcome to Restock</Text>
-      <Text style={authIndexStyles.subtitle}>Choose how you'd like to get started</Text>
+    <ResponsiveContainer>
+      <Text style={styles.title}>Welcome to Restock</Text>
+      <Text style={styles.subtitle}>Choose how you'd like to get started</Text>
 
       <TouchableOpacity 
-        style={authIndexStyles.primaryButton}
+        style={styles.primaryButton}
         onPress={handleGoogleSignUp}
         disabled={googleLoading}
       >
-        <Text style={authIndexStyles.primaryButtonText}>
+        <Text style={styles.primaryButtonText}>
           {googleLoading ? 'Signing up...' : 'Continue with Google'}
         </Text>
       </TouchableOpacity>
 
       <TouchableOpacity 
-        style={authIndexStyles.secondaryButton}
+        style={styles.secondaryButton}
         onPress={() => router.push('/auth/traditional/sign-up')}
       >
-        <Text style={authIndexStyles.secondaryButtonText}>Create account with email</Text>
+        <Text style={styles.secondaryButtonText}>Create account with email</Text>
       </TouchableOpacity>
 
       <TouchableOpacity 
-        style={authIndexStyles.linkButton}
+        style={styles.linkButton}
         onPress={() => router.push('/auth/traditional/sign-in')}
       >
-        <Text style={authIndexStyles.linkButtonText}>Already have an account? Sign in</Text>
+        <Text style={styles.linkButtonText}>Already have an account? Sign in</Text>
       </TouchableOpacity>
-    </View>
+    </ResponsiveContainer>
   );
 }

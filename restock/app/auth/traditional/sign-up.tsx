@@ -4,7 +4,9 @@ import { useSignUp, useSSO } from '@clerk/clerk-expo';
 import * as Linking from 'expo-linking';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
-import { signUpStyles } from '../../../styles/components/sign-up';
+import { useThemedStyles } from '../../styles/useThemedStyles';
+import { StyleSheet } from 'react-native';
+import { ResponsiveContainer } from '../../components/responsive/ResponsiveLayouts';
 
 export default function SignUpScreen() {
   const { signUp, isLoaded } = useSignUp();
@@ -40,37 +42,103 @@ export default function SignUpScreen() {
     }
   };
 
+  const styles = useThemedStyles((theme) => ({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.neutral.lighter,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    titleContainer: {
+      alignItems: 'center',
+      marginBottom: theme.spacing.xxl,
+    },
+    title: {
+      fontFamily: theme.typography.appTitle.fontFamily,
+      fontSize: theme.typography.appTitle.fontSize,
+      color: theme.colors.neutral.darkest,
+      textAlign: 'center',
+      fontWeight: 'bold',
+    },
+    googleButton: {
+      backgroundColor: theme.colors.neutral.lightest,
+      borderWidth: 1,
+      borderColor: theme.colors.neutral.light,
+      borderRadius: 8,
+      paddingVertical: theme.spacing.lg,
+      paddingHorizontal: theme.spacing.xxl,
+      alignItems: 'center',
+      marginBottom: theme.spacing.lg,
+      width: '100%',
+      maxWidth: theme.device.isTablet ? 400 : 300,
+      minHeight: theme.layout.touchTargetMin,
+    },
+    googleButtonText: {
+      fontFamily: theme.typography.buttonText.fontFamily,
+      fontSize: theme.typography.buttonText.fontSize,
+      color: theme.colors.neutral.darkest,
+      fontWeight: '600',
+    },
+    button: {
+      backgroundColor: theme.colors.brand.primary,
+      borderRadius: 8,
+      paddingVertical: theme.spacing.lg,
+      paddingHorizontal: theme.spacing.xxl,
+      alignItems: 'center',
+      marginBottom: theme.spacing.xl,
+      width: '100%',
+      maxWidth: theme.device.isTablet ? 400 : 300,
+      minHeight: theme.layout.touchTargetMin,
+    },
+    buttonText: {
+      fontFamily: theme.typography.buttonText.fontFamily,
+      fontSize: theme.typography.buttonText.fontSize,
+      color: theme.colors.neutral.lightest,
+      fontWeight: '600',
+    },
+    linkContainer: {
+      alignItems: 'center',
+    },
+    linkText: {
+      fontFamily: theme.typography.bodyMedium.fontFamily,
+      fontSize: theme.typography.bodyMedium.fontSize,
+      color: theme.colors.brand.primary,
+      textAlign: 'center',
+      fontWeight: '500',
+    },
+  }));
+
   return (
-    <View style={signUpStyles.container}>
-      <View style={signUpStyles.titleContainer}>
-        <Text style={signUpStyles.title}>Create your account</Text>
+    <ResponsiveContainer>
+      <View style={styles.titleContainer}>
+        <Text style={styles.title}>Create your account</Text>
       </View>
 
       <TouchableOpacity
-        style={signUpStyles.googleButton}
+        style={styles.googleButton}
         onPress={handleGoogleSignUp}
       >
-        <Text style={signUpStyles.googleButtonText}>
+        <Text style={styles.googleButtonText}>
           Continue with Google
         </Text>
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={signUpStyles.button}
+        style={styles.button}
         onPress={() => router.push('/auth/email-signup' as any)}
       >
-        <Text style={signUpStyles.buttonText}>
+        <Text style={styles.buttonText}>
           Sign up with Email
         </Text>
       </TouchableOpacity>
 
-      <View style={signUpStyles.linkContainer}>
+      <View style={styles.linkContainer}>
         <TouchableOpacity
           onPress={() => router.push('/auth/traditional/sign-in' as any)}
         >
-          <Text style={signUpStyles.linkText}>Already have an account? Sign in</Text>
+          <Text style={styles.linkText}>Already have an account? Sign in</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </ResponsiveContainer>
   );
 }

@@ -1,7 +1,6 @@
 import React from "react";
 import { ScrollView, RefreshControl, View, Text } from "react-native";
-import { useDashboardTheme } from "../../../styles/components/dashboard";
-import { useAppTheme } from "../../hooks/useResponsiveStyles";
+import { useThemedStyles } from "../../../styles/useThemedStyles";
 import { useUnifiedAuth } from "../../auth/UnifiedAuthProvider";
 import { useDashboardData } from "./hooks/useDashboardData";
 import { 
@@ -11,6 +10,7 @@ import {
   StatsOverviewEnhanced, 
   EmptyState 
 } from './components';
+import { getDashboardStyles } from "../../../styles/components/dashboard";
 
 export default function DashboardScreen() {
   // Use the new unified auth system with profile data
@@ -26,9 +26,9 @@ export default function DashboardScreen() {
     retryProfileLoad
   } = useUnifiedAuth();
   
-  // Use responsive theme system
-  const { styles: dashboardStyles } = useDashboardTheme();
-  const appTheme = useAppTheme();
+  // Use simple theme system
+  const theme = useThemedStyles((t) => t);
+  const dashboardStyles = getDashboardStyles(theme);
   
   const { unfinishedSessions, finishedSessions, sessionsLoading, refreshing, onRefresh, trackSessionTap } = useDashboardData();
 
@@ -39,7 +39,7 @@ export default function DashboardScreen() {
   if (isLoadingProfile) {
     return (
       <View style={[dashboardStyles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <Text style={{ fontSize: 18, color: appTheme.colors.neutral.medium }}>Loading your profile...</Text>
+        <Text style={{ fontSize: 18, color: theme.neutral.medium }}>Loading your profile...</Text>
       </View>
     );
   }
@@ -53,7 +53,7 @@ export default function DashboardScreen() {
         <RefreshControl 
           refreshing={refreshing} 
           onRefresh={onRefresh} 
-          colors={[appTheme.colors.neutral.medium]} 
+          colors={[theme.neutral.medium]} 
         />
       }
     >

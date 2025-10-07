@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import Svg, { Circle, Text as SvgText } from 'react-native-svg';
-import { useDashboardTheme } from '../../../../styles/components/dashboard';
-import { useAppTheme } from '../../../hooks/useResponsiveStyles';
+import { getDashboardStyles } from '../../../../styles/components/dashboard';
+import { useThemedStyles } from '../../../../styles/useThemedStyles';
 import SkeletonBox from '../../../components/skeleton/SkeletonBox';
 
 interface Session {
@@ -51,7 +51,7 @@ const DonutChart: React.FC<{
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke={appTheme.colors.neutral.light}
+          stroke={theme.neutral.light}
           strokeWidth={strokeWidth}
           fill="transparent"
         />
@@ -62,7 +62,7 @@ const DonutChart: React.FC<{
             cx={size / 2}
             cy={size / 2}
             r={radius}
-            stroke={appTheme.colors.status.info}
+            stroke={theme.status.info}
             strokeWidth={strokeWidth}
             fill="transparent"
             strokeDasharray={`${activeStroke - gap} ${circumference - activeStroke + gap}`}
@@ -78,7 +78,7 @@ const DonutChart: React.FC<{
             cx={size / 2}
             cy={size / 2}
             r={radius}
-            stroke={appTheme.colors.status.success}
+            stroke={theme.status.success}
             strokeWidth={strokeWidth}
             fill="transparent"
             strokeDasharray={`${finishedStroke - gap} ${circumference - finishedStroke + gap}`}
@@ -95,7 +95,7 @@ const DonutChart: React.FC<{
           textAnchor="middle"
           fontSize="20"
           fontWeight="600"
-          fill={appTheme.colors.neutral.darkest}
+          fill={theme.neutral.darkest}
         >
           {total}
         </SvgText>
@@ -104,7 +104,7 @@ const DonutChart: React.FC<{
           y={size / 2 + 12}
           textAnchor="middle"
           fontSize="12"
-          fill={appTheme.colors.neutral.medium}
+          fill={theme.neutral.medium}
         >
           Sessions
         </SvgText>
@@ -118,8 +118,9 @@ export const StatsOverviewEnhanced: React.FC<StatsOverviewEnhancedProps> = ({
   unfinishedSessions,
   finishedSessions
 }) => {
-  const { styles: dashboardStyles } = useDashboardTheme();
-  const appTheme = useAppTheme();
+  const theme = useThemedStyles((t) => t);
+  const dashboardStyles = getDashboardStyles(theme);
+  const theme = useThemedStyles((t) => t);
   const allSessions = [...unfinishedSessions, ...finishedSessions];
   const totalProducts = allSessions.reduce((sum, session) => sum + session.uniqueProducts, 0);
   const totalSuppliers = allSessions.reduce((sum, session) => sum + session.uniqueSuppliers, 0);
@@ -143,16 +144,16 @@ export const StatsOverviewEnhanced: React.FC<StatsOverviewEnhancedProps> = ({
             width: 120,
             height: 120,
             borderRadius: 60,
-            backgroundColor: appTheme.colors.neutral.lighter,
+            backgroundColor: theme.neutral.lighter,
             justifyContent: 'center',
             alignItems: 'center',
             borderWidth: 2,
-            borderColor: appTheme.colors.neutral.light,
+            borderColor: theme.neutral.light,
             borderStyle: 'dashed'
           }}>
-            <Text style={{ fontSize: 16, color: appTheme.colors.neutral.medium, fontWeight: '500' }}>No Data</Text>
+            <Text style={{ fontSize: 16, color: theme.neutral.medium, fontWeight: '500' }}>No Data</Text>
           </View>
-          <Text style={{ fontSize: 14, color: appTheme.colors.neutral.medium, marginTop: 12 }}>
+          <Text style={{ fontSize: 14, color: theme.neutral.medium, marginTop: 12 }}>
             Start your first restock session
           </Text>
         </View>
@@ -179,10 +180,10 @@ export const StatsOverviewEnhanced: React.FC<StatsOverviewEnhancedProps> = ({
                   width: 12,
                   height: 12,
                   borderRadius: 6,
-                  backgroundColor: appTheme.colors.status.info,
+                  backgroundColor: theme.status.info,
                   marginRight: 6
                 }} />
-                <Text style={{ fontSize: 12, color: appTheme.colors.neutral.medium }}>
+                <Text style={{ fontSize: 12, color: theme.neutral.medium }}>
                   {unfinishedSessions.length} Active
                 </Text>
               </View>
@@ -192,10 +193,10 @@ export const StatsOverviewEnhanced: React.FC<StatsOverviewEnhancedProps> = ({
                   width: 12,
                   height: 12,
                   borderRadius: 6,
-                  backgroundColor: appTheme.colors.status.success,
+                  backgroundColor: theme.status.success,
                   marginRight: 6
                 }} />
-                <Text style={{ fontSize: 12, color: appTheme.colors.neutral.medium }}>
+                <Text style={{ fontSize: 12, color: theme.neutral.medium }}>
                   {finishedSessions.length} Finished
                 </Text>
               </View>
@@ -208,31 +209,31 @@ export const StatsOverviewEnhanced: React.FC<StatsOverviewEnhancedProps> = ({
             justifyContent: 'space-around',
             paddingVertical: 16,
             borderTopWidth: 1,
-            borderTopColor: appTheme.colors.neutral.light
+            borderTopColor: theme.neutral.light
           }}>
             <View style={{ alignItems: 'center' }}>
-              <Text style={{ fontSize: 20, fontWeight: '700', color: appTheme.colors.neutral.darkest }}>
+              <Text style={{ fontSize: 20, fontWeight: '700', color: theme.neutral.darkest }}>
                 {allSessions.length}
               </Text>
-              <Text style={{ fontSize: 11, color: appTheme.colors.neutral.medium, marginTop: 2 }}>
+              <Text style={{ fontSize: 11, color: theme.neutral.medium, marginTop: 2 }}>
                 Total Sessions
               </Text>
             </View>
             
             <View style={{ alignItems: 'center' }}>
-              <Text style={{ fontSize: 20, fontWeight: '700', color: appTheme.colors.neutral.darkest }}>
+              <Text style={{ fontSize: 20, fontWeight: '700', color: theme.neutral.darkest }}>
                 {totalProducts}
               </Text>
-              <Text style={{ fontSize: 11, color: appTheme.colors.neutral.medium, marginTop: 2 }}>
+              <Text style={{ fontSize: 11, color: theme.neutral.medium, marginTop: 2 }}>
                 Products
               </Text>
             </View>
             
             <View style={{ alignItems: 'center' }}>
-              <Text style={{ fontSize: 20, fontWeight: '700', color: appTheme.colors.neutral.darkest }}>
+              <Text style={{ fontSize: 20, fontWeight: '700', color: theme.neutral.darkest }}>
                 {totalSuppliers}
               </Text>
-              <Text style={{ fontSize: 11, color: appTheme.colors.neutral.medium, marginTop: 2 }}>
+              <Text style={{ fontSize: 11, color: theme.neutral.medium, marginTop: 2 }}>
                 Suppliers
               </Text>
             </View>

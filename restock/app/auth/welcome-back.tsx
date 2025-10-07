@@ -7,7 +7,9 @@ import { EmailAuthService } from '../../backend/services/email-auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Linking from 'expo-linking';
 import UnifiedAuthGuard from '../components/UnifiedAuthGuard';
-import { welcomeBackStyles } from '../../styles/components/welcome-back';
+import { useThemedStyles } from '../../styles/useThemedStyles';
+import { StyleSheet } from 'react-native';
+import { ResponsiveContainer } from '../components/responsive/ResponsiveLayouts';
 import { useUnifiedAuth } from "./UnifiedAuthProvider";
 
 export default function WelcomeBackScreen() {
@@ -191,169 +193,329 @@ export default function WelcomeBackScreen() {
     setShowEmailForm(!showEmailForm);
   };
 
+  const styles = useThemedStyles((theme) => ({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.neutral.lighter,
+      justifyContent: 'center',
+    },
+    titleContainer: {
+      alignItems: 'center',
+      marginBottom: theme.spacing.xxl,
+      paddingHorizontal: theme.spacing.lg,
+    },
+    title: {
+      fontFamily: theme.typography.appTitle.fontFamily,
+      fontSize: theme.typography.appTitle.fontSize,
+      color: theme.colors.neutral.darkest,
+      textAlign: 'center',
+      marginBottom: theme.spacing.sm,
+      fontWeight: 'bold',
+    },
+    subtitle: {
+      fontFamily: theme.typography.bodyMedium.fontFamily,
+      fontSize: theme.typography.bodyMedium.fontSize,
+      color: theme.colors.neutral.medium,
+      textAlign: 'center',
+      lineHeight: theme.typography.bodyMedium.lineHeight,
+    },
+    methodContainer: {
+      alignItems: 'center',
+      marginBottom: theme.spacing.lg,
+    },
+    methodLabel: {
+      fontFamily: theme.typography.bodySmall.fontFamily,
+      fontSize: theme.typography.bodySmall.fontSize,
+      color: theme.colors.brand.primary,
+      fontWeight: '500',
+    },
+    googleButton: {
+      backgroundColor: theme.colors.neutral.lightest,
+      borderWidth: 1,
+      borderColor: theme.colors.neutral.light,
+      borderRadius: 8,
+      paddingVertical: theme.spacing.lg,
+      paddingHorizontal: theme.spacing.xxl,
+      alignItems: 'center',
+      marginBottom: theme.spacing.lg,
+      minHeight: theme.layout.touchTargetMin,
+      width: '100%',
+      maxWidth: theme.device.isTablet ? 400 : 300,
+      alignSelf: 'center',
+    },
+    googleButtonText: {
+      fontFamily: theme.typography.buttonText.fontFamily,
+      fontSize: theme.typography.buttonText.fontSize,
+      color: theme.colors.neutral.darkest,
+      fontWeight: '600',
+    },
+    emailButton: {
+      backgroundColor: theme.colors.brand.primary,
+      borderRadius: 8,
+      paddingVertical: theme.spacing.lg,
+      paddingHorizontal: theme.spacing.xxl,
+      alignItems: 'center',
+      marginBottom: theme.spacing.lg,
+      minHeight: theme.layout.touchTargetMin,
+      width: '100%',
+      maxWidth: theme.device.isTablet ? 400 : 300,
+      alignSelf: 'center',
+    },
+    emailButtonText: {
+      fontFamily: theme.typography.buttonText.fontFamily,
+      fontSize: theme.typography.buttonText.fontSize,
+      color: theme.colors.neutral.lightest,
+      fontWeight: '600',
+    },
+    emailFormContainer: {
+      width: '100%',
+      maxWidth: theme.device.isTablet ? 400 : 300,
+      alignSelf: 'center',
+    },
+    input: {
+      fontFamily: theme.typography.bodyMedium.fontFamily,
+      fontSize: theme.typography.bodyMedium.fontSize,
+      backgroundColor: theme.colors.neutral.lightest,
+      borderWidth: 1,
+      borderColor: theme.colors.neutral.light,
+      borderRadius: 8,
+      paddingHorizontal: theme.spacing.lg,
+      paddingVertical: theme.spacing.lg,
+      marginBottom: theme.spacing.lg,
+      color: theme.colors.neutral.darkest,
+      minHeight: theme.layout.touchTargetMin + 12,
+    },
+    button: {
+      backgroundColor: theme.colors.brand.primary,
+      borderRadius: 8,
+      paddingVertical: theme.spacing.lg,
+      alignItems: 'center',
+      marginBottom: theme.spacing.lg,
+      minHeight: theme.layout.touchTargetMin,
+    },
+    buttonDisabled: {
+      opacity: 0.6,
+    },
+    buttonText: {
+      fontFamily: theme.typography.buttonText.fontFamily,
+      fontSize: theme.typography.buttonText.fontSize,
+      color: theme.colors.neutral.lightest,
+      fontWeight: '600',
+    },
+    divider: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginVertical: theme.spacing.xl,
+      paddingHorizontal: theme.spacing.lg,
+    },
+    dividerLine: {
+      flex: 1,
+      height: 1,
+      backgroundColor: theme.colors.neutral.light,
+    },
+    dividerText: {
+      fontFamily: theme.typography.bodySmall.fontFamily,
+      fontSize: theme.typography.bodySmall.fontSize,
+      marginHorizontal: theme.spacing.lg,
+      color: theme.colors.neutral.medium,
+    },
+    secondaryButton: {
+      backgroundColor: theme.colors.neutral.lightest,
+      borderWidth: 1,
+      borderColor: theme.colors.brand.primary,
+      borderRadius: 8,
+      paddingVertical: theme.spacing.lg,
+      paddingHorizontal: theme.spacing.xxl,
+      alignItems: 'center',
+      marginBottom: theme.spacing.lg,
+      minHeight: theme.layout.touchTargetMin,
+      width: '100%',
+      maxWidth: theme.device.isTablet ? 400 : 300,
+      alignSelf: 'center',
+    },
+    secondaryButtonText: {
+      fontFamily: theme.typography.buttonText.fontFamily,
+      fontSize: theme.typography.buttonText.fontSize,
+      color: theme.colors.brand.primary,
+      fontWeight: '600',
+    },
+    linkButton: {
+      alignItems: 'center',
+      paddingVertical: theme.spacing.sm,
+    },
+    linkButtonText: {
+      fontFamily: theme.typography.bodyMedium.fontFamily,
+      fontSize: theme.typography.bodyMedium.fontSize,
+      color: theme.colors.brand.primary,
+      fontWeight: '500',
+    },
+  }));
+
   return (
     <UnifiedAuthGuard requireNoAuth={true}>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={welcomeBackStyles.container}
+          style={styles.container}
         >
-          <View style={welcomeBackStyles.titleContainer}>
-            <Text style={welcomeBackStyles.title}>Welcome Back!</Text>
-            <Text style={welcomeBackStyles.subtitle}>
-              {lastUserEmail ? `Ready to continue with ${lastUserEmail}?` : 'Ready to continue managing your restock operations?'}
-            </Text>
-          </View>
-
-          {lastAuthMethod && (
-            <View style={welcomeBackStyles.methodContainer}>
-              <Text style={welcomeBackStyles.methodLabel}>
-                You last signed in with {lastAuthMethod === 'google' ? 'Google' : 'email'}
+          <ResponsiveContainer>
+            <View style={styles.titleContainer}>
+              <Text style={styles.title}>Welcome Back!</Text>
+              <Text style={styles.subtitle}>
+                {lastUserEmail ? `Ready to continue with ${lastUserEmail}?` : 'Ready to continue managing your restock operations?'}
               </Text>
             </View>
-          )}
 
-          {/* Show appropriate sign-in method based on last auth method */}
-          {lastAuthMethod === 'google' ? (
-            <TouchableOpacity 
-              style={welcomeBackStyles.googleButton}
-              onPress={handleSignBackInWithGoogle}
-              disabled={googleLoading}
-            >
-              <Text style={welcomeBackStyles.googleButtonText}>
-                {googleLoading ? 'Signing in...' : 'Sign Back In with Google'}
-              </Text>
-            </TouchableOpacity>
-          ) : lastAuthMethod === 'email' ? (
-            <View>
-              {!showEmailForm ? (
-                <TouchableOpacity 
-                  style={welcomeBackStyles.emailButton}
-                  onPress={toggleEmailForm}
-                  disabled={googleLoading || emailLoading}
-                >
-                  <Text style={welcomeBackStyles.emailButtonText}>
-                    Sign Back In with Email
-                  </Text>
-                </TouchableOpacity>
-              ) : (
-                <View style={welcomeBackStyles.emailFormContainer}>
-                  <TextInput
-                    style={welcomeBackStyles.input}
-                    placeholder="Enter your email address"
-                    placeholderTextColor="#666666"
-                    value={email}
-                    onChangeText={setEmail}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                  />
+            {lastAuthMethod && (
+              <View style={styles.methodContainer}>
+                <Text style={styles.methodLabel}>
+                  You last signed in with {lastAuthMethod === 'google' ? 'Google' : 'email'}
+                </Text>
+              </View>
+            )}
 
-                  <TextInput
-                    style={welcomeBackStyles.input}
-                    placeholder="Enter your password"
-                    placeholderTextColor="#666666"
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry={true}
-                    autoCapitalize="none"
-                  />
-
-                  <TouchableOpacity 
-                    style={[welcomeBackStyles.button, emailLoading && welcomeBackStyles.buttonDisabled]}
-                    onPress={handleEmailSignIn}
-                    disabled={emailLoading}
-                  >
-                    <Text style={welcomeBackStyles.buttonText}>
-                      {emailLoading ? 'Signing in...' : 'Sign In'}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
-          ) : (
-            // No previous auth method - show both options
-            <View>
+            {/* Show appropriate sign-in method based on last auth method */}
+            {lastAuthMethod === 'google' ? (
               <TouchableOpacity 
-                style={welcomeBackStyles.googleButton}
+                style={styles.googleButton}
                 onPress={handleSignBackInWithGoogle}
                 disabled={googleLoading}
               >
-                <Text style={welcomeBackStyles.googleButtonText}>
-                  {googleLoading ? 'Signing in...' : 'Continue with Google'}
+                <Text style={styles.googleButtonText}>
+                  {googleLoading ? 'Signing in...' : 'Sign Back In with Google'}
                 </Text>
               </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={welcomeBackStyles.emailButton}
-                onPress={toggleEmailForm}
-                disabled={googleLoading || emailLoading}
-              >
-                <Text style={welcomeBackStyles.emailButtonText}>
-                  Continue with Email
-                </Text>
-              </TouchableOpacity>
-
-              {showEmailForm && (
-                <View style={welcomeBackStyles.emailFormContainer}>
-                  <TextInput
-                    style={welcomeBackStyles.input}
-                    placeholder="Enter your email address"
-                    placeholderTextColor="#666666"
-                    value={email}
-                    onChangeText={setEmail}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                  />
-
-                  <TextInput
-                    style={welcomeBackStyles.input}
-                    placeholder="Enter your password"
-                    placeholderTextColor="#666666"
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry={true}
-                    autoCapitalize="none"
-                  />
-
+            ) : lastAuthMethod === 'email' ? (
+              <View>
+                {!showEmailForm ? (
                   <TouchableOpacity 
-                    style={[welcomeBackStyles.button, emailLoading && welcomeBackStyles.buttonDisabled]}
-                    onPress={handleEmailSignIn}
-                    disabled={emailLoading}
+                    style={styles.emailButton}
+                    onPress={toggleEmailForm}
+                    disabled={googleLoading || emailLoading}
                   >
-                    <Text style={welcomeBackStyles.buttonText}>
-                      {emailLoading ? 'Signing in...' : 'Sign In'}
+                    <Text style={styles.emailButtonText}>
+                      Sign Back In with Email
                     </Text>
                   </TouchableOpacity>
-                </View>
-              )}
+                ) : (
+                  <View style={styles.emailFormContainer}>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Enter your email address"
+                      placeholderTextColor="#666666"
+                      value={email}
+                      onChangeText={setEmail}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                    />
+
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Enter your password"
+                      placeholderTextColor="#666666"
+                      value={password}
+                      onChangeText={setPassword}
+                      secureTextEntry={true}
+                      autoCapitalize="none"
+                    />
+
+                    <TouchableOpacity 
+                      style={[styles.button, emailLoading && styles.buttonDisabled]}
+                      onPress={handleEmailSignIn}
+                      disabled={emailLoading}
+                    >
+                      <Text style={styles.buttonText}>
+                        {emailLoading ? 'Signing in...' : 'Sign In'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            ) : (
+              // No previous auth method - show both options
+              <View>
+                <TouchableOpacity 
+                  style={styles.googleButton}
+                  onPress={handleSignBackInWithGoogle}
+                  disabled={googleLoading}
+                >
+                  <Text style={styles.googleButtonText}>
+                    {googleLoading ? 'Signing in...' : 'Continue with Google'}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={styles.emailButton}
+                  onPress={toggleEmailForm}
+                  disabled={googleLoading || emailLoading}
+                >
+                  <Text style={styles.emailButtonText}>
+                    Continue with Email
+                  </Text>
+                </TouchableOpacity>
+
+                {showEmailForm && (
+                  <View style={styles.emailFormContainer}>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Enter your email address"
+                      placeholderTextColor="#666666"
+                      value={email}
+                      onChangeText={setEmail}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                    />
+
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Enter your password"
+                      placeholderTextColor="#666666"
+                      value={password}
+                      onChangeText={setPassword}
+                      secureTextEntry={true}
+                      autoCapitalize="none"
+                    />
+
+                    <TouchableOpacity 
+                      style={[styles.button, emailLoading && styles.buttonDisabled]}
+                      onPress={handleEmailSignIn}
+                      disabled={emailLoading}
+                    >
+                      <Text style={styles.buttonText}>
+                        {emailLoading ? 'Signing in...' : 'Sign In'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            )}
+
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or</Text>
+              <View style={styles.dividerLine} />
             </View>
-          )}
 
-          <View style={welcomeBackStyles.divider}>
-            <View style={welcomeBackStyles.dividerLine} />
-            <Text style={welcomeBackStyles.dividerText}>or</Text>
-            <View style={welcomeBackStyles.dividerLine} />
-          </View>
+            <TouchableOpacity 
+              style={styles.secondaryButton}
+              onPress={handleSignUpWithDifferentEmail}
+              disabled={googleLoading || emailLoading}
+            >
+              <Text style={styles.secondaryButtonText}>
+                Not signed up yet?
+              </Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={welcomeBackStyles.secondaryButton}
-            onPress={handleSignUpWithDifferentEmail}
-            disabled={googleLoading || emailLoading}
-          >
-            <Text style={welcomeBackStyles.secondaryButtonText}>
-              Not signed up yet?
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={welcomeBackStyles.linkButton}
-            onPress={handleBackToSignIn}
-            disabled={googleLoading || emailLoading}
-          >
-            <Text style={welcomeBackStyles.linkButtonText}>
-              Back to Sign In
-            </Text>
-          </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.linkButton}
+              onPress={handleBackToSignIn}
+              disabled={googleLoading || emailLoading}
+            >
+              <Text style={styles.linkButtonText}>
+                Back to Sign In
+              </Text>
+            </TouchableOpacity>
+          </ResponsiveContainer>
         </KeyboardAvoidingView>
       </ScrollView>
     </UnifiedAuthGuard>

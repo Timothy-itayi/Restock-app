@@ -10,7 +10,8 @@ import {
   Animated
 } from 'react-native';
 import { router } from 'expo-router';
-import { welcomeStyles } from '../styles/components/welcome';
+import { useThemedStyles } from '../styles/useThemedStyles';
+import { ResponsiveContainer } from './components/responsive/ResponsiveLayouts';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -101,23 +102,164 @@ export default function WelcomeScreen() {
     });
   };
 
+  const styles = useThemedStyles((theme) => ({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.neutral.lighter,
+    },
+    header: {
+      paddingTop: theme.spacing.xxl,
+      paddingHorizontal: theme.layout.paddingHorizontal,
+      paddingBottom: theme.spacing.lg,
+      alignItems: 'center',
+    },
+    appTitle: {
+      fontFamily: theme.typography.appTitle.fontFamily,
+      fontSize: theme.typography.appTitle.fontSize,
+      color: theme.colors.brand.primary,
+      fontWeight: 'bold',
+    },
+    titleContainer: {
+      paddingHorizontal: theme.layout.paddingHorizontal,
+      paddingBottom: theme.spacing.xl,
+      alignItems: 'center',
+    },
+    mainTitle: {
+      fontFamily: theme.typography.sectionHeader.fontFamily,
+      fontSize: theme.typography.sectionHeader.fontSize,
+      color: theme.colors.neutral.darkest,
+      textAlign: 'center',
+      marginBottom: theme.spacing.sm,
+      fontWeight: 'bold',
+    },
+    mainSubtitle: {
+      fontFamily: theme.typography.bodyLarge.fontFamily,
+      fontSize: theme.typography.bodyLarge.fontSize,
+      color: theme.colors.neutral.medium,
+      textAlign: 'center',
+      lineHeight: theme.typography.bodyLarge.lineHeight,
+    },
+    carouselContainer: {
+      flex: 1,
+      maxHeight: theme.device.isTablet ? 500 : 400,
+    },
+    carouselScrollView: {
+      flex: 1,
+    },
+    slideContainer: {
+      width: screenWidth,
+      paddingHorizontal: theme.layout.paddingHorizontal,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    imageContainer: {
+      height: theme.device.isTablet ? 300 : 200,
+      width: '100%',
+      marginBottom: theme.spacing.xl,
+    },
+    slideImage: {
+      width: '100%',
+      height: '100%',
+      borderRadius: 12,
+    },
+    textContainer: {
+      alignItems: 'center',
+      paddingHorizontal: theme.spacing.lg,
+    },
+    slideTitle: {
+      fontFamily: theme.typography.subsectionHeader.fontFamily,
+      fontSize: theme.typography.subsectionHeader.fontSize,
+      color: theme.colors.neutral.darkest,
+      textAlign: 'center',
+      marginBottom: theme.spacing.xs,
+      fontWeight: 'bold',
+    },
+    slideSubtitle: {
+      fontFamily: theme.typography.productName.fontFamily,
+      fontSize: theme.typography.productName.fontSize,
+      color: theme.colors.brand.primary,
+      textAlign: 'center',
+      marginBottom: theme.spacing.sm,
+      fontWeight: '600',
+    },
+    slideDescription: {
+      fontFamily: theme.typography.bodyMedium.fontFamily,
+      fontSize: theme.typography.bodyMedium.fontSize,
+      color: theme.colors.neutral.medium,
+      textAlign: 'center',
+      lineHeight: theme.typography.bodyMedium.lineHeight,
+    },
+    paginationContainer: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingVertical: theme.spacing.lg,
+    },
+    paginationDotContainer: {
+      marginHorizontal: theme.spacing.xs,
+      padding: theme.spacing.xs,
+    },
+    paginationDot: {
+      height: 8,
+      borderRadius: 4,
+    },
+    swipeHintContainer: {
+      alignItems: 'center',
+      paddingBottom: theme.spacing.lg,
+    },
+    swipeHintText: {
+      fontFamily: theme.typography.caption.fontFamily,
+      fontSize: theme.typography.caption.fontSize,
+      color: theme.colors.neutral.medium,
+      fontWeight: '300',
+    },
+    authButtonsContainer: {
+      paddingHorizontal: theme.layout.paddingHorizontal,
+      paddingBottom: theme.spacing.xxl,
+    },
+    signUpButton: {
+      backgroundColor: theme.colors.brand.primary,
+      borderRadius: 8,
+      paddingVertical: theme.spacing.lg,
+      alignItems: 'center',
+      marginBottom: theme.spacing.lg,
+      minHeight: theme.layout.touchTargetMin,
+    },
+    signUpButtonText: {
+      fontFamily: theme.typography.buttonText.fontFamily,
+      fontSize: theme.typography.buttonText.fontSize,
+      color: theme.colors.neutral.lightest,
+      fontWeight: '600',
+    },
+    signInLink: {
+      alignItems: 'center',
+      paddingVertical: theme.spacing.sm,
+    },
+    signInLinkText: {
+      fontFamily: theme.typography.bodyMedium.fontFamily,
+      fontSize: theme.typography.bodyMedium.fontSize,
+      color: theme.colors.brand.primary,
+      fontWeight: '500',
+    },
+  }));
+
   return (
-    <View style={welcomeStyles.container}>
+    <View style={styles.container}>
       {/* Fixed Header */}
-      <View style={welcomeStyles.header}>
-        <Text style={welcomeStyles.appTitle}>Restock</Text>
+      <View style={styles.header}>
+        <Text style={styles.appTitle}>Restock</Text>
       </View>
 
       {/* Fixed Title */}
-      <View style={welcomeStyles.titleContainer}>
-        <Text style={welcomeStyles.mainTitle}>Welcome to Restock</Text>
-        <Text style={welcomeStyles.mainSubtitle}>
+      <View style={styles.titleContainer}>
+        <Text style={styles.mainTitle}>Welcome to Restock</Text>
+        <Text style={styles.mainSubtitle}>
           Streamline your store's restocking process
         </Text>
       </View>
 
       {/* Swipeable Carousel */}
-      <View style={welcomeStyles.carouselContainer}>
+      <View style={styles.carouselContainer}>
         <ScrollView
           ref={scrollViewRef}
           horizontal
@@ -126,24 +268,24 @@ export default function WelcomeScreen() {
           onScroll={handleGestureEvent}
           onMomentumScrollEnd={handleScrollEnd}
           scrollEventThrottle={16}
-          style={welcomeStyles.carouselScrollView}
+          style={styles.carouselScrollView}
         >
           {walkthroughSlides.map((slide) => (
-            <View key={slide.id} style={welcomeStyles.slideContainer}>
-              <View style={welcomeStyles.imageContainer}>
+            <View key={slide.id} style={styles.slideContainer}>
+              <View style={styles.imageContainer}>
                 <Image
                   source={slide.image}
-                  style={welcomeStyles.slideImage}
+                  style={styles.slideImage}
                   resizeMode="contain"
                 />
               </View>
 
-              <View style={welcomeStyles.textContainer}>
-                <Text style={welcomeStyles.slideTitle}>{slide.title}</Text>
-                <Text style={welcomeStyles.slideSubtitle}>
+              <View style={styles.textContainer}>
+                <Text style={styles.slideTitle}>{slide.title}</Text>
+                <Text style={styles.slideSubtitle}>
                   {slide.subtitle}
                 </Text>
-                <Text style={welcomeStyles.slideDescription}>
+                <Text style={styles.slideDescription}>
                   {slide.description}
                 </Text>
               </View>
@@ -153,16 +295,16 @@ export default function WelcomeScreen() {
       </View>
 
       {/* Pagination Dots */}
-      <View style={welcomeStyles.paginationContainer}>
+      <View style={styles.paginationContainer}>
         {walkthroughSlides.map((_, index) => (
           <TouchableOpacity
             key={index}
             onPress={() => goToSlide(index)}
-            style={welcomeStyles.paginationDotContainer}
+            style={styles.paginationDotContainer}
           >
             <Animated.View
               style={[
-                welcomeStyles.paginationDot,
+                styles.paginationDot,
                 {
                   width: paginationAnimations[index].interpolate({
                     inputRange: [0, 1],
@@ -180,24 +322,24 @@ export default function WelcomeScreen() {
       </View>
 
       {/* Swipe Hint */}
-      <View style={welcomeStyles.swipeHintContainer}>
-        <Text style={welcomeStyles.swipeHintText}>Swipe to explore</Text>
+      <View style={styles.swipeHintContainer}>
+        <Text style={styles.swipeHintText}>Swipe to explore</Text>
       </View>
 
       {/* Auth Buttons */}
-      <View style={welcomeStyles.authButtonsContainer}>
+      <View style={styles.authButtonsContainer}>
         <TouchableOpacity
-          style={welcomeStyles.signUpButton}
+          style={styles.signUpButton}
           onPress={handleSignUp}
         >
-          <Text style={welcomeStyles.signUpButtonText}>Sign Up</Text>
+          <Text style={styles.signUpButtonText}>Sign Up</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={welcomeStyles.signInLink}
+          style={styles.signInLink}
           onPress={handleSignIn}
         >
-          <Text style={welcomeStyles.signInLinkText}>
+          <Text style={styles.signInLinkText}>
             Already have an account?
           </Text>
         </TouchableOpacity>

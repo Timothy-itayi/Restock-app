@@ -8,7 +8,9 @@ import { EmailAuthService } from '../../../backend/services/email-auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Linking from 'expo-linking';
 
-import { signInStyles } from '../../../styles/components/sign-in';
+import { useThemedStyles } from '../../styles/useThemedStyles';
+import { StyleSheet } from 'react-native';
+import { ResponsiveContainer } from '../../components/responsive/ResponsiveLayouts';
 import useThemeStore from '../../stores/useThemeStore';
 import { useUnifiedAuth } from '../UnifiedAuthProvider';
 
@@ -280,6 +282,111 @@ export default function SignInScreen() {
     }
   };
 
+  const styles = useThemedStyles((theme) => ({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.neutral.lighter,
+      justifyContent: 'center',
+    },
+    titleContainer: {
+      alignItems: 'center',
+      marginBottom: theme.spacing.xxl,
+    },
+    title: {
+      fontFamily: theme.typography.appTitle.fontFamily,
+      fontSize: theme.typography.appTitle.fontSize,
+      color: theme.colors.neutral.darkest,
+      marginBottom: theme.spacing.sm,
+      textAlign: 'center',
+    },
+    subtitle: {
+      fontFamily: theme.typography.bodyMedium.fontFamily,
+      fontSize: theme.typography.bodyMedium.fontSize,
+      color: theme.colors.neutral.medium,
+      marginBottom: theme.spacing.xxl,
+      textAlign: 'center',
+    },
+    googleButton: {
+      backgroundColor: theme.colors.neutral.lightest,
+      borderWidth: 1,
+      borderColor: theme.colors.neutral.light,
+      borderRadius: 8,
+      paddingVertical: theme.spacing.lg,
+      alignItems: 'center',
+      marginBottom: theme.spacing.lg,
+      minHeight: theme.layout.touchTargetMin,
+    },
+    googleButtonText: {
+      fontFamily: theme.typography.buttonText.fontFamily,
+      fontSize: theme.typography.buttonText.fontSize,
+      color: theme.colors.neutral.darkest,
+      fontWeight: '600',
+    },
+    divider: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginVertical: theme.spacing.lg,
+    },
+    dividerLine: {
+      flex: 1,
+      height: 1,
+      backgroundColor: theme.colors.neutral.light,
+    },
+    dividerText: {
+      fontFamily: theme.typography.bodySmall.fontFamily,
+      fontSize: theme.typography.bodySmall.fontSize,
+      marginHorizontal: theme.spacing.lg,
+      color: theme.colors.neutral.medium,
+    },
+    input: {
+      fontFamily: theme.typography.bodyMedium.fontFamily,
+      fontSize: theme.typography.bodyMedium.fontSize,
+      backgroundColor: theme.colors.neutral.lightest,
+      borderWidth: 1,
+      borderColor: theme.colors.neutral.light,
+      borderRadius: 8,
+      paddingHorizontal: theme.spacing.lg,
+      paddingVertical: theme.spacing.lg,
+      marginBottom: theme.spacing.lg,
+      color: theme.colors.neutral.darkest,
+      minHeight: theme.layout.touchTargetMin + 12,
+    },
+    button: {
+      backgroundColor: theme.colors.brand.primary,
+      borderRadius: 8,
+      paddingVertical: theme.spacing.lg,
+      alignItems: 'center',
+      marginBottom: theme.spacing.lg,
+      minHeight: theme.layout.touchTargetMin,
+    },
+    buttonDisabled: {
+      opacity: 0.6,
+    },
+    buttonText: {
+      fontFamily: theme.typography.buttonText.fontFamily,
+      fontSize: theme.typography.buttonText.fontSize,
+      color: theme.colors.neutral.lightest,
+      fontWeight: '600',
+    },
+    linkContainer: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginTop: theme.spacing.lg,
+    },
+    linkText: {
+      fontFamily: theme.typography.bodyMedium.fontFamily,
+      fontSize: theme.typography.bodyMedium.fontSize,
+      color: theme.colors.brand.primary,
+    },
+    linkTextBold: {
+      fontFamily: theme.typography.productName.fontFamily,
+      fontSize: theme.typography.productName.fontSize,
+      color: theme.colors.brand.primary,
+      fontWeight: '600',
+    },
+  }));
+
   // Show authenticating screen during OAuth completion
   if (isAuthenticating) {
       return (
@@ -294,68 +401,69 @@ export default function SignInScreen() {
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={signInStyles.container}
+          style={styles.container}
         >
-          <View style={signInStyles.titleContainer}>
-            <Text style={signInStyles.title}>Sign In</Text>
-            <Text style={signInStyles.subtitle}>
-              Sign in to continue managing your restock operations
-            </Text>
-          </View>
+          <ResponsiveContainer>
+            <View style={styles.titleContainer}>
+              <Text style={styles.title}>Sign In</Text>
+              <Text style={styles.subtitle}>
+                Sign in to continue managing your restock operations
+              </Text>
+            </View>
 
+            <TouchableOpacity 
+              style={styles.googleButton}
+              onPress={() => handleGoogleSignIn(false)}
+              disabled={googleLoading || emailLoading}
+            >
+              <Text style={styles.googleButtonText}>
+                {googleLoading ? 'Signing in...' : 'Continue with Google'}
+              </Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={signInStyles.googleButton}
-            onPress={() => handleGoogleSignIn(false)}
-            disabled={googleLoading || emailLoading}
-          >
-            <Text style={signInStyles.googleButtonText}>
-              {googleLoading ? 'Signing in...' : 'Continue with Google'}
-            </Text>
-          </TouchableOpacity>
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or</Text>
+              <View style={styles.dividerLine} />
+            </View>
 
-          <View style={signInStyles.divider}>
-            <View style={signInStyles.dividerLine} />
-            <Text style={signInStyles.dividerText}>or</Text>
-            <View style={signInStyles.dividerLine} />
-          </View>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter your email address"
+              placeholderTextColor={theme.neutral.medium}
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
 
-          <TextInput
-            style={signInStyles.input}
-            placeholder="Enter your email address"
-            placeholderTextColor={theme.neutral.medium}
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
+            <TextInput
+              style={styles.input}
+              placeholder="Enter your password"
+              placeholderTextColor={theme.neutral.medium}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={true}
+              autoCapitalize="none"
+            />
 
-          <TextInput
-            style={signInStyles.input}
-            placeholder="Enter your password"
-            placeholderTextColor={theme.neutral.medium}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry={true}
-            autoCapitalize="none"
-          />
+            <TouchableOpacity 
+              style={[styles.button, emailLoading && styles.buttonDisabled]}
+              onPress={onSignInPress}
+              disabled={googleLoading || emailLoading}
+            >
+              <Text style={styles.buttonText}>
+                {emailLoading ? 'Signing in...' : 'Sign In'}
+              </Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={[signInStyles.button, emailLoading && signInStyles.buttonDisabled]}
-            onPress={onSignInPress}
-            disabled={googleLoading || emailLoading}
-          >
-            <Text style={signInStyles.buttonText}>
-              {emailLoading ? 'Signing in...' : 'Sign In'}
-            </Text>
-          </TouchableOpacity>
-
-          <View style={signInStyles.linkContainer}>
-            <Text style={signInStyles.linkText}>Don't have an account? </Text>
-            <Link href="/auth/traditional/sign-up" asChild>
-              <Text style={signInStyles.linkTextBold}>Sign up</Text>
-            </Link>
-          </View>
+            <View style={styles.linkContainer}>
+              <Text style={styles.linkText}>Don't have an account? </Text>
+              <Link href="/auth/traditional/sign-up" asChild>
+                <Text style={styles.linkTextBold}>Sign up</Text>
+              </Link>
+            </View>
+          </ResponsiveContainer>
         </KeyboardAvoidingView>
       </ScrollView>
   );

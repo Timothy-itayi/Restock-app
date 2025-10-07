@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { useDashboardTheme } from '../../../../styles/components/dashboard';
-import { useAppTheme } from '../../../hooks/useResponsiveStyles';
+import { getDashboardStyles } from '../../../../styles/components/dashboard';
+import { useThemedStyles } from '../../../../styles/useThemedStyles';
 import SkeletonBox from '../../../components/skeleton/SkeletonBox';
 
 interface WelcomeSectionProps {
@@ -21,8 +21,8 @@ export const WelcomeSection: React.FC<WelcomeSectionProps> = ({
   retryProfileLoad,
   userId
 }) => {
-  const { styles: dashboardStyles } = useDashboardTheme();
-  const appTheme = useAppTheme();
+  const theme = useThemedStyles((t) => t);
+  const dashboardStyles = getDashboardStyles(theme);
   
   const handleRetry = () => {
     if (userId && retryProfileLoad) {
@@ -34,10 +34,10 @@ export const WelcomeSection: React.FC<WelcomeSectionProps> = ({
   if (profileError && !profileLoading) {
     return (
       <View style={dashboardStyles.welcomeSection}>
-        <Text style={[dashboardStyles.welcomeTitle, { color: appTheme.colors.status.error }]}>
+        <Text style={[dashboardStyles.welcomeTitle, { color: theme.status.error }]}>
           Error loading profile
         </Text>
-        <Text style={[dashboardStyles.welcomeSubtitle, { color: appTheme.colors.neutral.medium }]}>
+        <Text style={[dashboardStyles.welcomeSubtitle, { color: theme.neutral.medium }]}>
           {profileError}
         </Text>
         <TouchableOpacity 
@@ -46,11 +46,11 @@ export const WelcomeSection: React.FC<WelcomeSectionProps> = ({
             marginTop: 12,
             paddingHorizontal: 16,
             paddingVertical: 8,
-            backgroundColor: appTheme.colors.brand.primary,
+            backgroundColor: theme.brand.primary,
             borderRadius: 8,
           }}
         >
-          <Text style={{ color: appTheme.colors.neutral.lightest, fontWeight: '600' }}>Retry</Text>
+          <Text style={{ color: theme.neutral.lightest, fontWeight: '600' }}>Retry</Text>
         </TouchableOpacity>
       </View>
     );
