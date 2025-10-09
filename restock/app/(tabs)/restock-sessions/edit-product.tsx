@@ -2,11 +2,11 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useUnifiedAuth } from '../../auth/UnifiedAuthProvider';
-import { useSessionContext } from './context/SessionContext';
-import { useRepositories } from '../../infrastructure/supabase/SupabaseHooksProvider';
-import { ProductForm } from './components/ProductForm';
-import CustomToast from '../../components/CustomToast';
+import { useUnifiedAuth } from '../../../lib/auth/UnifiedAuthProvider';
+import { useSessionContext } from './_context/SessionContext';
+import { useRepositories } from '../../../lib/infrastructure/_supabase/SupabaseHooksProvider';
+import { ProductForm } from './_components/ProductForm';
+import CustomToast from '../../../lib/components/CustomToast';
 import { useThemedStyles } from '../../../styles/useThemedStyles';
 import { getRestockSessionsStyles } from '../../../styles/components/restock-sessions';
 

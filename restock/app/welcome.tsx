@@ -7,10 +7,12 @@ import {
   ScrollView,
   Dimensions,
   Image,
-  Animated
+  Animated,
+  Alert
 } from 'react-native';
 import { router } from 'expo-router';
 import { welcomeStyles } from '../styles/components/welcome';
+import { clearAllStorage, debugStorage } from '../scripts/clear-storage';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -50,7 +52,10 @@ const walkthroughSlides: WalkthroughSlide[] = [
 ];
 
 export default function WelcomeScreen() {
+  console.log('🎉 [WelcomeScreen] Component rendered');
+  
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [debugTapCount, setDebugTapCount] = useState(0);
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
   const paginationAnimations = useRef(
@@ -83,6 +88,54 @@ export default function WelcomeScreen() {
 
   const handleSignIn = () => {
     router.push('/auth/traditional/sign-in' as any);
+  };
+
+  const handleDebugTap = () => {
+    const newCount = debugTapCount + 1;
+    setDebugTapCount(newCount);
+    
+    if (newCount >= 5) {
+      setDebugTapCount(0);
+      Alert.alert(
+        '🛠️ Debug Menu',
+        'Choose debug action:',
+        [
+          {
+            text: 'View Storage',
+            onPress: async () => {
+              const items = await debugStorage();
+              Alert.alert('Storage Contents', `Found ${items.length} items. Check console for details.`);
+            }
+          },
+          {
+            text: 'Clear All Storage',
+            onPress: () => {
+              Alert.alert(
+                '⚠️ Confirm',
+                'This will clear ALL cached data including auth tokens. Continue?',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Clear',
+                    style: 'destructive',
+                    onPress: async () => {
+                      const result = await clearAllStorage();
+                      Alert.alert(
+                        result.success ? '✅ Success' : '❌ Error',
+                        result.success 
+                          ? `Cleared ${result.keysCleared?.length} items. Please restart the app.`
+                          : `Error: ${result.error}`
+                      );
+                    }
+                  }
+                ]
+              );
+            }
+          },
+          { text: 'Cancel', style: 'cancel' }
+        ]
+      );
+    }
   };
 
   const goToSlide = (index: number) => {
@@ -180,9 +233,13 @@ export default function WelcomeScreen() {
       </View>
 
       {/* Swipe Hint */}
-      <View style={welcomeStyles.swipeHintContainer}>
+      <TouchableOpacity 
+        style={welcomeStyles.swipeHintContainer}
+        onPress={handleDebugTap}
+        activeOpacity={0.9}
+      >
         <Text style={welcomeStyles.swipeHintText}>Swipe to explore</Text>
-      </View>
+      </TouchableOpacity>
 
       {/* Auth Buttons */}
       <View style={welcomeStyles.authButtonsContainer}>

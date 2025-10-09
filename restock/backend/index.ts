@@ -4,13 +4,13 @@
 export { CLERK_PUBLISHABLE_KEY, clerkConfig } from './config/clerk';
 
 // Services
-export { AuthService } from './services/auth';
-export { ClerkSyncService } from './services/clerk-sync';
-export { ProductService } from './services/products';
-export { SupplierService } from './services/suppliers';
-export { SessionService } from './services/sessions';
-export { EmailService } from './services/emails';
-export { UserProfileService } from './services/user-profile';
+export { AuthService } from './_services/auth';
+export { ClerkSyncService } from './_services/clerk-sync';
+export { ProductService } from './_services/products';
+export { SupplierService } from './_services/suppliers';
+export { SessionService } from './_services/sessions';
+export { EmailService } from './_services/emails';
+export { UserProfileService } from './_services/user-profile';
 
 // Types
 export type {

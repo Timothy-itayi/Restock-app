@@ -1,10 +1,10 @@
-import { Ionicons } from "@expo/vector-icons";
-import { Tabs } from "expo-router";
-import { tabBarOptions, tabScreenOptions } from "../../styles/components/tabs";
-import { useSafeTheme } from "../stores/useThemeStore";
-import { UnifiedAuthGuard } from "../components/UnifiedAuthGuard";
-import { SessionProvider } from "./restock-sessions/context/SessionContext";
-import { useMemo } from "react";
+import { Ionicons } from '@expo/vector-icons';
+import { Tabs } from 'expo-router';
+import { tabBarOptions, tabScreenOptions } from '../../styles/components/tabs';
+import { useSafeTheme } from '../../lib/stores/useThemeStore';
+import { UnifiedAuthGuard } from '../../lib/components/UnifiedAuthGuard';
+import { SessionProvider } from './restock-sessions/_context/SessionContext';
+import { useMemo } from 'react';
 
 export default function TabLayout() {
   const { theme } = useSafeTheme();

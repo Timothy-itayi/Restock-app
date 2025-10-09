@@ -1,5 +1,5 @@
 import { StyleSheet } from "react-native";
-import colors, { type AppColors } from '@/app/theme/colors';
+import colors, { type AppColors } from '../../lib/theme/colors';
 
 export const getEmailsStyles = (t: AppColors) => StyleSheet.create({
   container: {

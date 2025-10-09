@@ -4,11 +4,11 @@ import { SafeAreaView, ScrollView, View, Alert, DeviceEventEmitter, TouchableOpa
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useThemedStyles } from '../../../styles/useThemedStyles';
 import { getRestockSessionsStyles } from '../../../styles/components/restock-sessions';
-import { ProductForm } from './components/ProductForm';
-import CustomToast from '../../components/CustomToast';
-import { useSessionContext } from './context/SessionContext';
-import { useRepositories } from '../../infrastructure/supabase/SupabaseHooksProvider';
-import { useUnifiedAuth } from '../../auth/UnifiedAuthProvider';
+import { ProductForm } from './_components/ProductForm';
+import CustomToast from '../../../lib/components/CustomToast';
+import { useSessionContext } from './_context/SessionContext';
+import { useRepositories } from '../../../lib/infrastructure/_supabase/SupabaseHooksProvider';
+import { useUnifiedAuth } from '../../../lib/auth/UnifiedAuthProvider';
 
 export default function AddProductScreen() {
   const params = useLocalSearchParams();

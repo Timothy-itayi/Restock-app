@@ -3,12 +3,12 @@ import { View, Text, TouchableOpacity, TextInput, Alert, ScrollView, KeyboardAvo
 import { router } from 'expo-router';
 import { useUser } from '@clerk/clerk-expo';
 
-import { ClerkClientService } from '../backend/services/clerk-client';
+import { ClerkClientService } from '../backend/_services/clerk-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useUnifiedAuth } from './auth/UnifiedAuthProvider';
+import { useUnifiedAuth } from '../lib/auth/UnifiedAuthProvider';
 import { ssoProfileSetupStyles } from '../styles/components/auth/sso/profile-setup';
-import { ErrorLogger } from '../backend/utils/error-logger';
-import { UserProfileService } from '../backend/services/user-profile';
+import { ErrorLogger } from '../backend/_utils/error-logger';
+import { UserProfileService } from '../backend/_services/user-profile';
 
 export default function SSOProfileSetupScreen() {
   const { user } = useUser();
@@ -153,7 +153,7 @@ export default function SSOProfileSetupScreen() {
         console.log('✅ SSO Profile Setup: Profile creation successful');
         
         // Save session data for returning user detection - ONLY after successful profile completion
-        const { SessionManager } = await import('../backend/services/session-manager');
+        const { SessionManager } = await import('../backend/_services/session-manager');
         await SessionManager.saveUserSession({
           userId: userId || '',
           email: email.toLowerCase().trim(),

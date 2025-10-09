@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, TextInput, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth, useUser } from '@clerk/clerk-expo';
-import { UserProfileService } from '../../../backend/services/user-profile';
-import { SessionManager } from '../../../backend/services/session-manager';
-import { EmailAuthService } from '../../../backend/services/email-auth';
-import { useUnifiedAuth } from "../UnifiedAuthProvider";
-import UnifiedAuthGuard from '../../components/UnifiedAuthGuard';
+import { UserProfileService } from '../../../backend/_services/user-profile';
+import { SessionManager } from '../../../backend/_services/session-manager';
+import { EmailAuthService } from '../../../backend/_services/email-auth';
+import { useUnifiedAuth } from '../../../lib/auth/UnifiedAuthProvider';
+import {UnifiedAuthGuard} from '../../../lib/components/UnifiedAuthGuard';
 import { profileSetupStyles } from '../../../styles/components/auth/traditional/profile-setup';
 
 export default function ProfileSetupScreen() {
@@ -31,22 +31,22 @@ export default function ProfileSetupScreen() {
   // 🔒 CRITICAL: Prevent SSO users from seeing traditional profile setup
   // This prevents the flash of the wrong setup screen
   useEffect(() => {
-    if (isSignedIn && userId && authType?.type === 'google') {
+    if (isSignedIn && userId && authType === 'google') {
       console.log('🚨 TraditionalProfileSetup: SSO user detected, redirecting to SSO setup');
-      router.replace('/sso-profile-setup');
+      router.replace('/sso-profile-setup' as any);
       return;
     }
     
     // Mark that we've determined the auth type and this user should see this screen
-    if (isSignedIn && userId && authType?.type === 'email') {
+    if (isSignedIn && userId && authType === 'email') {
       setAuthTypeDetermined(true);
     }
-  }, [isSignedIn, userId, authType?.type]);
+  }, [isSignedIn, userId, authType]);
 
   // Check if user is already authenticated
   useEffect(() => {
     if (!(isSignedIn && userId)) {
-      router.replace('/welcome');
+      router.replace('/welcome' as any);
     }
   }, [isSignedIn, userId]);
 
@@ -145,7 +145,7 @@ export default function ProfileSetupScreen() {
         
         // Navigate immediately to dashboard
         console.log('🚀 Navigating to dashboard...');
-        router.replace('/(tabs)/dashboard');
+        router.replace('/(tabs)/dashboard' as any);
       }
     } catch (error) {
       // Quiet; user will see alert
@@ -156,7 +156,7 @@ export default function ProfileSetupScreen() {
   };
 
   return (
-    <UnifiedAuthGuard requireAuth={true} requireProfileSetup={false}>
+    <UnifiedAuthGuard>
       <ScrollView contentContainerStyle={profileSetupStyles.scrollViewContent}>
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}

@@ -1,18 +1,18 @@
-import React, { useState, useEffect } from "react";
-import { ScrollView, RefreshControl, View, Text } from "react-native";
-import { getDashboardStyles } from "../../../styles/components/dashboard";
-import { useThemedStyles } from "../../../styles/useThemedStyles";
-import { useUnifiedAuth } from "../../auth/UnifiedAuthProvider";
+import React, { useState, useEffect } from 'react';
+import { ScrollView, RefreshControl, View, Text } from 'react-native';
+import { getDashboardStyles } from '../../../styles/components/dashboard';
+import { useThemedStyles } from '../../../styles/useThemedStyles';
+import { useUnifiedAuth } from '../../../lib/auth/UnifiedAuthProvider';
 
-import { useDashboardData } from "./hooks/useDashboardData";
+import { useDashboardData } from './_hooks/useDashboardData';
 import { 
   WelcomeSection, 
   UnfinishedSessions, 
   FinishedSessions,
   StatsOverviewEnhanced, 
   EmptyState 
-} from './components';
-import useThemeStore from "../../stores/useThemeStore";
+} from './_components';
+import useThemeStore from '../../../lib/stores/useThemeStore';
 
 interface SessionItem {
   id: string;

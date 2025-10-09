@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { getEmailsStyles } from "../../../styles/components/emails";
-import { useThemedStyles } from "../../../styles/useThemedStyles";
-import { useUserProfile, useEmailEditor, EmailDraft, useEmailSessions } from './hooks';
+import { getEmailsStyles } from '../../../styles/components/emails';
+import { useThemedStyles } from '../../../styles/useThemedStyles';
+import { useUserProfile, useEmailEditor, EmailDraft, useEmailSessions } from './_hooks';
 import { 
   EmailCard, 
   EmailEditModal, 
@@ -13,8 +13,8 @@ import {
   SessionTabs,
   SendConfirmationModal,
   EmailDetailModal
-} from './components';
-import useThemeStore from '../../stores/useThemeStore';
+} from './_components';
+import useThemeStore from '../../../lib/stores/useThemeStore';
 
 export default function EmailsScreen() {
   // Use themed styles
@@ -80,7 +80,7 @@ export default function EmailsScreen() {
     const { updatedEmail } = result;
     
     // Update the email in the session
-    const updatedEmails = activeSession.emails.map(email => 
+    const updatedEmails = activeSession.emails.map((email: EmailDraft) => 
       email.id === updatedEmail.id ? updatedEmail : email
     );
 
@@ -157,7 +157,7 @@ export default function EmailsScreen() {
 
   const handleSendEmail = async (emailId: string) => {
     // Find the email to send
-    const emailToSend = activeSession?.emails.find(email => email.id === emailId);
+    const emailToSend = activeSession?.emails.find((email: EmailDraft) => email.id === emailId);
     if (!emailToSend) return { success: false, message: 'Email not found' };
     
     // Set up for individual send confirmation
@@ -186,7 +186,7 @@ export default function EmailsScreen() {
       }
       
       // Show success message
-      const emailName = activeSession?.emails.find(e => e.id === emailId)?.supplierName || 'supplier';
+      const emailName = activeSession?.emails.find((e: EmailDraft) => e.id === emailId)?.supplierName || 'supplier';
       setSuccessMessage(`✅ Email sent successfully to ${emailName}!`);
       setShowSuccessMessage(true);
       
@@ -222,8 +222,8 @@ export default function EmailsScreen() {
         <>
           {/* Session Tabs - hide during sending process and after all emails sent */}
           {emailSessions.length > 1 && 
-           !activeSession.emails.some(e => e.status === 'sending') && 
-           !activeSession.emails.every(e => e.status === 'sent') && (
+           !activeSession.emails.some((e: EmailDraft) => e.status === 'sending') && 
+           !activeSession.emails.every((e: EmailDraft) => e.status === 'sent') && (
             <SessionTabs
               sessions={emailSessions}
               activeSessionId={activeSessionId || ''}
@@ -238,7 +238,7 @@ export default function EmailsScreen() {
           />
 
           {/* Gmail-style Email List - Only this section is scrollable */}
-          {!activeSession.emails.every(e => e.status === 'sent') && (
+          {!activeSession.emails.every((e: EmailDraft) => e.status === 'sent') && (
             <View style={{ paddingHorizontal: 16, marginBottom: 80 }}>
               <Text style={{
                 fontSize: 14,
@@ -269,7 +269,7 @@ export default function EmailsScreen() {
           )}
 
           {/* Success message when all emails are sent */}
-          {activeSession.emails.every(e => e.status === 'sent') && (
+          {activeSession.emails.every((e: EmailDraft) => e.status === 'sent') && (
             <View style={emailsStyles.successContainer}>
               <View style={emailsStyles.successIcon}>
                 <Ionicons name="checkmark" size={32} color={theme.neutral.lightest} />
@@ -300,7 +300,7 @@ export default function EmailsScreen() {
       ) : null}
 
       {/* 🔧 FIXED: Fixed "Send All" button at bottom, above navigation bar */}
-      {!isLoading && !bulkSendCompleted && activeSession && activeSession.emails.length > 0 && !activeSession.emails.every(e => e.status === 'sent') && (
+      {!isLoading && !bulkSendCompleted && activeSession && activeSession.emails.length > 0 && !activeSession.emails.every((e: EmailDraft) => e.status === 'sent') && (
         <View style={{
           position: 'absolute',
           bottom: 0,

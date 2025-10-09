@@ -17,7 +17,7 @@ export default function SignUpScreen() {
       console.log('📡 SSO FLOW: Initiating Clerk SSO flow');
       await AsyncStorage.setItem('oauthProcessing', 'true');
 
-      const redirectUrl = Linking.createURL('/sso-profile-setup', { scheme: 'restock' });
+      const redirectUrl = Linking.createURL('/sso-profile-setup' as any, { scheme: 'restock' });
       const result = await startSSOFlow({
         strategy: 'oauth_google',
         redirectUrl,

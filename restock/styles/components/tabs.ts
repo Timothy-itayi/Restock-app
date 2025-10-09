@@ -1,6 +1,6 @@
 import { StyleSheet } from "react-native";
 import { typography } from "../typography";
-import colors, { type AppColors } from '@/app/theme/colors';
+import colors, { type AppColors } from '../../lib/theme/colors';
 
 // Tabs styling using the unified semantic color system
 export const getTabsStyles = (t: AppColors) => StyleSheet.create({

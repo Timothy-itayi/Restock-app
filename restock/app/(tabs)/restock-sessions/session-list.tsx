@@ -5,14 +5,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 // Auth
-import { useUnifiedAuth } from '../../auth/UnifiedAuthProvider';
+import { useUnifiedAuth } from '../../../lib/auth/UnifiedAuthProvider';
 
 // Hooks
 
-import { useSessionContext } from './context/SessionContext';
+import { useSessionContext } from './_context/SessionContext';
 
 // Components
-import CustomToast from '../../components/CustomToast';
+import CustomToast from '../../../lib/components/CustomToast';
 
 // Styles
 import { useThemedStyles } from '../../../styles/useThemedStyles';

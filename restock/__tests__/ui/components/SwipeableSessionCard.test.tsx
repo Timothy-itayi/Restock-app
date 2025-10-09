@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
-import { SwipeableSessionCard } from '../../../app/(tabs)/dashboard/components/SwipeableSessionCard';
+import { SwipeableSessionCard } from '../../../app/(tabs)/dashboard/_components/SwipeableSessionCard';
 
 // Mock the dependencies
 jest.mock('../../../app/(tabs)/restock-sessions/hooks/useService', () => ({

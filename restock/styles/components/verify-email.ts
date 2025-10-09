@@ -1,6 +1,6 @@
 import { StyleSheet } from 'react-native';
 import { typography } from '../typography';
-import colors from '@/app/theme/colors';
+import colors from '../../lib/theme/colors';
 
 export const verifyEmailStyles = StyleSheet.create({
   container: {
