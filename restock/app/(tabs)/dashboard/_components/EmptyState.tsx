@@ -15,15 +15,15 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   sessionsLoading,
   hasUnfinishedSessions
 }) => {
-  const dashboardStyles = useThemedStyles(getDashboardStyles);
-  const { theme } = useThemeStore();
+  const { styles: dashboardStyles } = useDashboardTheme();
+  const appTheme = useAppTheme();
   if (sessionsLoading || hasUnfinishedSessions) {
     return null;
   }
 
   return (
     <View style={dashboardStyles.emptyState}>
-      <Ionicons name="checkmark-circle" size={48} color={theme.neutral.medium} />
+      <Ionicons name="checkmark-circle" size={48} color={appTheme.colors.neutral.medium} />
       <Text style={dashboardStyles.emptyStateTitle}>All caught up!</Text>
       <Text style={dashboardStyles.emptyStateText}>
         No unfinished restock sessions. Ready to start a new one?

@@ -51,7 +51,8 @@ export const SwipeableSessionCard: React.FC<SwipeableSessionCardProps> = ({
   onSessionTap,
 }) => {
   const { width: SCREEN_WIDTH } = useWindowDimensions();
-  const dashboardStyles = useThemedStyles(getDashboardStyles);
+  const { styles: dashboardStyles } = useDashboardTheme();
+  const appTheme = useAppTheme();
   const { sessionRepository } = useRepositories();
   const [isDeleting, setIsDeleting] = useState(false);
   

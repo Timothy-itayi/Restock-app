@@ -7,24 +7,33 @@ import colors, { type AppColors } from '../../lib/theme/colors';
 export const getDashboardStyles = (t: AppColors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: t.neutral.lightest,
+    backgroundColor: appTheme.colors.neutral.lightest,
+    maxWidth: appTheme.layout.maxContentWidth as any,
+    alignSelf: 'center',
+    width: '100%',
   },
   contentContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 40,
+    paddingHorizontal: appTheme.layout.paddingHorizontal,
+    paddingTop: appTheme.spacing.lg,
+    paddingBottom: appTheme.spacing.xxxl,
+    maxWidth: appTheme.layout.maxContentWidth as any,
+    alignSelf: 'center',
+    width: '100%',
   },
+  // Welcome section with responsive spacing for iPad
   welcomeSection: {
-    marginBottom: 32,
-    paddingTop: 8,
+    marginBottom: appTheme.spacing.xxxl,
+    paddingTop: appTheme.spacing.sm,
   },
   welcomeTitle: {
     fontFamily: fontFamily.satoshi,
-    fontSize: 28,
+    fontSize: appTheme.typography.appTitle,
     fontWeight: '400',
-    color: t.neutral.darkest,
-    lineHeight: 36,
-    marginBottom: 8,
+    color: appTheme.colors.neutral.darkest,
+    lineHeight: appTheme.typography.appTitle * 1.3,
+    marginBottom: appTheme.spacing.sm,
+    // Better scaling for tablet viewing distances
+    letterSpacing: appTheme.device.isTablet ? 0.2 : 0,
   },
   userName: {
     fontFamily: fontFamily.satoshiBold,
@@ -33,7 +42,7 @@ export const getDashboardStyles = (t: AppColors) => StyleSheet.create({
   welcomeSubtitle: {
     fontFamily: fontFamily.satoshi,
     fontSize: 16,
-    color: t.neutral.medium,
+    color: appTheme.colors.neutral.medium,
     lineHeight: 22,
   },
   section: {
@@ -49,69 +58,82 @@ export const getDashboardStyles = (t: AppColors) => StyleSheet.create({
     fontFamily: fontFamily.satoshiBold,
     fontSize: 18,
     fontWeight: '600',
-    color: t.neutral.darkest,
+    color: appTheme.colors.neutral.darkest,
   },
   viewAllButton: {
     paddingVertical: 6,
     paddingHorizontal: 12,
-    backgroundColor: t.neutral.lighter,
+    backgroundColor: appTheme.colors.neutral.lighter,
     borderRadius: 6,
   },
   viewAllText: {
     fontFamily: fontFamily.satoshiMedium,
     fontSize: 14,
-    color: t.neutral.medium,
+    color: appTheme.colors.neutral.medium,
     fontWeight: '500',
   },
-  // Quick Actions - Smaller, more compact design
+  // Enhanced Quick Actions grid - Multi-column layout for iPad
   actionGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-    paddingTop: 16,
+    flexWrap: 'wrap',
+    justifyContent: appTheme.device.isTablet ? 'flex-start' : 'space-between',
+    gap: appTheme.spacing.md,
+    paddingTop: appTheme.spacing.lg,
   },
   actionCard: {
-    backgroundColor: t.neutral.lighter,
-    padding: 16,
+    backgroundColor: appTheme.colors.neutral.lighter,
+    padding: appTheme.spacing.lg,
     borderRadius: 10,
     alignItems: 'center',
-    flex: 1,
     borderWidth: 1,
-    borderColor: t.neutral.light,
+    borderColor: appTheme.colors.neutral.light,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 1,
+    // Responsive card sizing and touch targets for tablet
+    minHeight: appTheme.layout.touchTargetMin,
+    minWidth: appTheme.layout.touchTargetMin,
+    ...(appTheme.device.isTablet ? {
+      width: `${Math.floor(100 / appTheme.layout.actionGridColumns) - 2}%`,
+      marginBottom: appTheme.spacing.md,
+    } : {
+      flex: 1,
+    }),
   },
   actionText: {
-    marginTop: 8,
+    marginTop: appTheme.spacing.sm,
     fontFamily: fontFamily.satoshiMedium,
-    fontSize: 13,
+    fontSize: appTheme.typography.bodySmall,
     fontWeight: '500',
-    color: t.neutral.darkest,
+    color: appTheme.colors.neutral.darkest,
     textAlign: 'center',
+    letterSpacing: appTheme.device.isTablet ? 0.2 : 0,
   },
   actionIcon: {
-    width: 24,
-    height: 24,
+    width: appTheme.device.isTablet ? 28 : 24,
+    height: appTheme.device.isTablet ? 28 : 24,
   },
   actionIconContainer: {
-    width: 36,
-    height: 36,
-    backgroundColor: t.neutral.lightest,
+    width: appTheme.device.isTablet ? 44 : 36,
+    height: appTheme.device.isTablet ? 44 : 36,
+    backgroundColor: appTheme.colors.neutral.lightest,
     borderRadius: 6,
     justifyContent: 'center',
     alignItems: 'center',
+    // Ensure touch target compliance
+    minHeight: appTheme.layout.touchTargetMin,
+    minWidth: appTheme.layout.touchTargetMin,
   },
   // Session Cards
   sessionCard: {
-    backgroundColor: t.neutral.lightest,
+    backgroundColor: appTheme.colors.neutral.lightest,
     borderRadius: 12,
     padding: 20,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: t.neutral.light,
+    borderColor: appTheme.colors.neutral.light,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -131,23 +153,23 @@ export const getDashboardStyles = (t: AppColors) => StyleSheet.create({
     fontFamily: fontFamily.satoshiBold,
     fontSize: 16,
     fontWeight: '600',
-    color: t.neutral.darkest,
+    color: appTheme.colors.neutral.darkest,
     marginBottom: 4,
   },
   sessionSubtitle: {
     fontFamily: fontFamily.satoshi,
     fontSize: 14,
-    color: t.neutral.medium,
+    color: appTheme.colors.neutral.medium,
   },
   continueButton: {
-    backgroundColor: t.brand.primary,
+    backgroundColor: appTheme.colors.brand.primary,
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 6,
   },
   continueButtonText: {
     fontFamily: fontFamily.satoshiBold,
-    color: t.neutral.lightest,
+    color: appTheme.colors.neutral.lightest,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -178,7 +200,7 @@ export const getDashboardStyles = (t: AppColors) => StyleSheet.create({
   chart: {
     flexDirection: 'row',
     height: 8,
-    backgroundColor: t.neutral.lighter,
+    backgroundColor: appTheme.colors.neutral.lighter,
     borderRadius: 4,
     overflow: 'hidden',
   },
@@ -188,7 +210,7 @@ export const getDashboardStyles = (t: AppColors) => StyleSheet.create({
   chartLabel: {
     fontFamily: fontFamily.satoshiLight,
     fontSize: 12,
-    color: t.neutral.medium,
+    color: appTheme.colors.neutral.medium,
     textAlign: 'center',
     marginTop: 6,
   },
@@ -201,7 +223,7 @@ export const getDashboardStyles = (t: AppColors) => StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: t.neutral.lighter,
+    borderBottomColor: appTheme.colors.neutral.lighter,
   },
   breakdownItemHeader: {
     flexDirection: 'row',
@@ -219,7 +241,7 @@ export const getDashboardStyles = (t: AppColors) => StyleSheet.create({
     fontFamily: fontFamily.satoshiMedium,
     fontSize: 14,
     fontWeight: '500',
-    color: t.neutral.darkest,
+    color: appTheme.colors.neutral.darkest,
   },
   breakdownItemStats: {
     alignItems: 'flex-end',
@@ -227,85 +249,98 @@ export const getDashboardStyles = (t: AppColors) => StyleSheet.create({
   breakdownItemPercentage: {
     fontFamily: fontFamily.satoshiLight,
     fontSize: 12,
-    color: t.neutral.medium,
+    color: appTheme.colors.neutral.medium,
     marginBottom: 2,
   },
   breakdownItemCount: {
     fontFamily: fontFamily.satoshiBold,
     fontSize: 13,
     fontWeight: '600',
-    color: t.neutral.medium,
+    color: appTheme.colors.neutral.medium,
   },
-  // Stats Grid
+  // Enhanced Stats Grid - Multi-column responsive layout for iPad
   statsGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-    paddingTop: 16,
+    flexWrap: 'wrap',
+    justifyContent: appTheme.device.isTablet ? 'space-around' : 'space-between',
+    gap: appTheme.spacing.md,
+    paddingTop: appTheme.spacing.lg,
+    maxWidth: appTheme.device.isTablet ? appTheme.layout.maxContentWidth as any : undefined,
   },
   statCard: {
-    backgroundColor: t.neutral.lightest,
-    padding: 20,
+    backgroundColor: appTheme.colors.neutral.lightest,
+    padding: appTheme.spacing.lg,
     borderRadius: 12,
     alignItems: 'center',
-    flex: 1,
     borderWidth: 1,
-    borderColor: t.neutral.light,
+    borderColor: appTheme.colors.neutral.light,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 1,
+    // Responsive card sizing for tablet
+    ...(appTheme.device.isTablet ? {
+      width: `${Math.floor(100 / Math.min(appTheme.layout.columns, 3)) - 2}%`,
+      marginBottom: appTheme.spacing.md,
+      minHeight: 120,
+    } : {
+      flex: 1,
+      minHeight: 80,
+    }),
   },
   statNumber: {
     fontFamily: fontFamily.satoshiBlack,
-    fontSize: 24,
+    fontSize: appTheme.device.isTablet ? appTheme.typography.sectionHeader : 24,
     fontWeight: '700',
-    color: t.neutral.medium,
-    marginBottom: 4,
+    color: appTheme.colors.neutral.medium,
+    marginBottom: appTheme.spacing.xs,
+    letterSpacing: appTheme.device.isTablet ? 0.3 : 0,
   },
   statLabel: {
     fontFamily: fontFamily.satoshiMedium,
-    fontSize: 12,
-    color: t.neutral.medium,
+    fontSize: appTheme.typography.caption,
+    color: appTheme.colors.neutral.medium,
     textAlign: 'center',
     fontWeight: '500',
+    letterSpacing: appTheme.device.isTablet ? 0.2 : 0,
+    lineHeight: appTheme.typography.caption * 1.4,
   },
   // Empty State
   emptyState: {
     alignItems: 'center',
     paddingVertical: 48,
-    backgroundColor: t.neutral.lightest,
+    backgroundColor: appTheme.colors.neutral.lightest,
     borderRadius: 12,
     marginTop: 24,
     borderWidth: 1,
-    borderColor: t.neutral.light,
+    borderColor: appTheme.colors.neutral.light,
   },
   emptyStateTitle: {
     fontFamily: fontFamily.satoshiBold,
     fontSize: 20,
     fontWeight: '600',
-    color: t.neutral.darkest,
+    color: appTheme.colors.neutral.darkest,
     marginTop: 16,
     marginBottom: 8,
   },
   emptyStateText: {
     fontFamily: fontFamily.satoshi,
     fontSize: 16,
-    color: t.neutral.medium,
+    color: appTheme.colors.neutral.medium,
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 22,
   },
   startNewButton: {
-    backgroundColor: t.brand.primary,
+    backgroundColor: appTheme.colors.brand.primary,
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,
   },
   startNewButtonText: {
     fontFamily: fontFamily.satoshiBold,
-    color: t.neutral.lightest,
+    color: appTheme.colors.neutral.lightest,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -316,31 +351,31 @@ export const getDashboardStyles = (t: AppColors) => StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: t.neutral.light,
+    borderBottomColor: appTheme.colors.neutral.light,
     marginBottom: 24,
   },
   title: {
     fontFamily: fontFamily.satoshiBlack,
     fontSize: 28,
     fontWeight: "700",
-    color: t.neutral.darkest,
+    color: appTheme.colors.neutral.darkest,
     marginBottom: 8,
     lineHeight: 34,
   },
   subtitle: {
     fontFamily: fontFamily.satoshi,
     fontSize: 16,
-    color: t.neutral.medium,
+    color: appTheme.colors.neutral.medium,
     textAlign: "center",
     lineHeight: 22,
   },
   card: {
-    backgroundColor: t.neutral.lightest,
+    backgroundColor: appTheme.colors.neutral.lightest,
     borderRadius: 12,
     padding: 20,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: t.neutral.light,
+    borderColor: appTheme.colors.neutral.light,
     shadowColor: "#000000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -351,7 +386,7 @@ export const getDashboardStyles = (t: AppColors) => StyleSheet.create({
     fontFamily: fontFamily.satoshiBold,
     fontSize: 18,
     fontWeight: "600",
-    color: t.neutral.darkest,
+    color: appTheme.colors.neutral.darkest,
     marginBottom: 12,
   },
   statRow: {
@@ -362,17 +397,17 @@ export const getDashboardStyles = (t: AppColors) => StyleSheet.create({
   legacyStatLabel: {
     fontFamily: fontFamily.satoshiMedium,
     fontSize: 14,
-    color: t.neutral.medium,
+    color: appTheme.colors.neutral.medium,
     fontWeight: "500",
   },
   statValue: {
     fontFamily: fontFamily.satoshiBold,
     fontSize: 14,
-    color: t.neutral.darkest,
+    color: appTheme.colors.neutral.darkest,
     fontWeight: "600",
   },
   primaryButton: {
-    backgroundColor: t.brand.primary,
+    backgroundColor: appTheme.colors.brand.primary,
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 20,
@@ -381,14 +416,14 @@ export const getDashboardStyles = (t: AppColors) => StyleSheet.create({
   },
   primaryButtonText: {
     fontFamily: fontFamily.satoshiBold,
-    color: t.neutral.lightest,
+    color: appTheme.colors.neutral.lightest,
     fontSize: 16,
     fontWeight: "600",
   },
   secondaryButton: {
     backgroundColor: "transparent",
     borderWidth: 1.5,
-    borderColor: t.brand.primary,
+    borderColor: appTheme.colors.brand.primary,
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 20,
@@ -397,7 +432,7 @@ export const getDashboardStyles = (t: AppColors) => StyleSheet.create({
   },
   secondaryButtonText: {
     fontFamily: fontFamily.satoshiBold,
-    color: t.brand.primary,
+    color: appTheme.colors.brand.primary,
     fontSize: 16,
     fontWeight: "600",
   },
@@ -408,7 +443,7 @@ export const getDashboardStyles = (t: AppColors) => StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: t.brand.primary,
+    backgroundColor: appTheme.colors.brand.primary,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: "#000000",
@@ -418,7 +453,7 @@ export const getDashboardStyles = (t: AppColors) => StyleSheet.create({
     elevation: 8,
   },
   statusBadge: {
-    backgroundColor: t.neutral.lighter,
+    backgroundColor: appTheme.colors.neutral.lighter,
     paddingVertical: 4,
     paddingHorizontal: 12,
     borderRadius: 20,
@@ -426,11 +461,42 @@ export const getDashboardStyles = (t: AppColors) => StyleSheet.create({
     marginTop: 8,
   },
   statusBadgeText: {
-    color: t.brand.primary,
+    color: appTheme.colors.brand.primary,
     fontSize: 12,
     fontWeight: "600",
   },
 });
+};
 
-// Backward-compatible static export
-export const dashboardStyles = getDashboardStyles(colors);
+
+const fallbackTheme = {
+  colors,
+  device: { deviceType: 'mobile' as const, isTablet: false, isMobile: true, width: 375, height: 667, isLandscape: false },
+  spacing: { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24, xxxl: 32 },
+  typography: { appTitle: 28, sectionHeader: 20, subsectionHeader: 18, productName: 16, buttonText: 16, bodyLarge: 16, bodyMedium: 14, bodySmall: 12, caption: 11 },
+  layout: { maxContentWidth: '100%' as const, paddingHorizontal: 20, columns: 1, actionGridColumns: 2, cardMinWidth: 0, tabBarHeight: 60, touchTargetMin: 44 },
+  patterns: {
+    container: () => ({ flex: 1, maxWidth: '100%', alignSelf: 'center' as const, width: '100%' }),
+    grid: () => ({ flexDirection: 'row' as const, flexWrap: 'wrap' as const, justifyContent: 'space-between' as const }),
+    card: () => ({ flex: 1, minWidth: 0 }),
+    actionGrid: () => ({ flexDirection: 'row' as const, flexWrap: 'wrap' as const, justifyContent: 'space-between' as const, gap: 16 }),
+    touchTarget: () => ({ minHeight: 44, minWidth: 44 })
+  },
+  breakpoints: { mobile: 0, tablet: 768 },
+  getResponsiveValue: <T>(values: Partial<Record<string, T>>, fallback: T): T => fallback,
+};
+
+// Backward-compatible static export (deprecated - use useDashboardTheme instead)
+export const dashboardStyles = getDashboardStyles(fallbackTheme);
+
+
+// Utility hook for dashboard components
+export const useDashboardTheme = () => {
+  const appTheme = useAppTheme();
+  return {
+    styles: getDashboardStyles(appTheme),
+    appTheme,
+  };
+};
+
+// Create a fallback theme for backward compatibility

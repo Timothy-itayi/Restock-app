@@ -4,40 +4,48 @@ import colors, { type AppColors } from '../../lib/theme/colors';
 export const getEmailsStyles = (t: AppColors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: t.neutral.lighter, // Warm paper background like restock sessions
+    backgroundColor: appTheme.colors.neutral.lighter, // Warm paper background like restock sessions
+    maxWidth: appTheme.layout.maxContentWidth as any,
+    alignSelf: 'center',
+    width: '100%',
   },
   header: {
-    backgroundColor: t.neutral.lighter, // Slightly warmer paper
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    backgroundColor: appTheme.colors.neutral.lighter, // Slightly warmer paper
+    paddingHorizontal: appTheme.layout.paddingHorizontal,
+    paddingVertical: appTheme.spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: t.neutral.light, // Light grey border
+    borderBottomColor: appTheme.colors.neutral.light, // Light grey border
+    maxWidth: appTheme.layout.maxContentWidth as any,
+    alignSelf: 'center',
+    width: '100%',
   },
   headerTitle: {
     fontFamily: 'Satoshi-Bold',
-    fontSize: 20,
+    fontSize: appTheme.typography.sectionHeader,
     fontWeight: "600",
-    color: t.neutral.darkest, // Dark text
+    color: appTheme.colors.neutral.darkest, // Dark text
     textAlign: "center",
+    letterSpacing: appTheme.device.isTablet ? 0.3 : 0,
   },
   headerSubtitle: {
     fontFamily: 'Satoshi-Regular',
-    fontSize: 14,
-    color: t.neutral.medium, // Grey text
-    marginTop: 4,
+    fontSize: appTheme.typography.bodyMedium,
+    color: appTheme.colors.neutral.medium, // Grey text
+    marginTop: appTheme.spacing.xs,
     textAlign: "center",
+    letterSpacing: appTheme.device.isTablet ? 0.2 : 0,
   },
   emailSummary: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: t.neutral.lighter, // Slightly warmer paper
+    backgroundColor: appTheme.colors.neutral.lighter, // Slightly warmer paper
     borderBottomWidth: 1,
-    borderBottomColor: t.neutral.light, // Light grey border
+    borderBottomColor: appTheme.colors.neutral.light, // Light grey border
   },
   summaryText: {
     fontFamily: 'Satoshi-Regular',
     fontSize: 14,
-    color: t.neutral.medium, // Grey text
+    color: appTheme.colors.neutral.medium, // Grey text
     textAlign: "center",
   },
   emailList: {
@@ -46,9 +54,9 @@ export const getEmailsStyles = (t: AppColors) => StyleSheet.create({
     paddingTop: 8,
   },
   emailCard: {
-    backgroundColor: t.neutral.lightest,
+    backgroundColor: appTheme.colors.neutral.lightest,
     borderWidth: 1,
-    borderColor: t.neutral.light,
+    borderColor: appTheme.colors.neutral.light,
     borderRadius: 10,
     padding: 14,
     marginBottom: 10,
@@ -75,7 +83,7 @@ export const getEmailsStyles = (t: AppColors) => StyleSheet.create({
     fontFamily: 'Satoshi-Bold',
     fontSize: 16,
     fontWeight: "600",
-    color: t.neutral.darkest,
+    color: appTheme.colors.neutral.darkest,
     marginBottom: 6,
     lineHeight: 22,
     flex: 1,
@@ -83,13 +91,13 @@ export const getEmailsStyles = (t: AppColors) => StyleSheet.create({
   emailSupplier: {
     fontFamily: 'Satoshi-Medium',
     fontSize: 14,
-    color: t.neutral.darkest,
+    color: appTheme.colors.neutral.darkest,
     marginBottom: 4,
   },
   emailPreview: {
     fontFamily: 'Satoshi-Regular',
     fontSize: 14,
-    color: t.neutral.darkest,
+    color: appTheme.colors.neutral.darkest,
     lineHeight: 20,
     marginTop: 8,
   },
@@ -102,35 +110,35 @@ export const getEmailsStyles = (t: AppColors) => StyleSheet.create({
   editButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: t.neutral.lighter,
+    backgroundColor: appTheme.colors.neutral.lighter,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: t.neutral.light,
+    borderColor: appTheme.colors.neutral.light,
     gap: 6,
   },
   editButtonText: {
     fontFamily: 'Satoshi-Medium',
-    color: t.brand.primary,
+    color: appTheme.colors.brand.primary,
     fontSize: 14,
     fontWeight: "500",
   },
   // Edit icon button
   editIconButton: {
-    backgroundColor: t.brand.accent, // Orange for edit
+    backgroundColor: appTheme.colors.brand.accent, // Orange for edit
     width: 32,
     height: 32,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: t.brand.accent,
+    borderColor: appTheme.colors.brand.accent,
     justifyContent: "center",
     alignItems: "center",
   },
   // Notepad divider line
   notepadDivider: {
     height: 1,
-    backgroundColor: t.neutral.light, // Light grey line like notepad paper
+    backgroundColor: appTheme.colors.neutral.light, // Light grey line like notepad paper
     marginVertical: 8,
     marginHorizontal: -8, // Extend slightly beyond padding
   },
@@ -144,27 +152,27 @@ export const getEmailsStyles = (t: AppColors) => StyleSheet.create({
   emailInfoLabel: {
     fontFamily: 'Satoshi-Bold',
     fontSize: 14,
-    color: t.neutral.darkest,
+    color: appTheme.colors.neutral.darkest,
     fontWeight: "600", // Semi-bold for category
   },
   // Email info value
   emailInfoValue: {
     fontFamily: 'Satoshi-Regular',
     fontSize: 14,
-    color: t.neutral.dark, // Dark grey for values
+    color: appTheme.colors.neutral.dark, // Dark grey for values
     fontWeight: "400", // Regular weight for values
   },
   regenerateButton: {
-    backgroundColor: t.neutral.lighter,
+    backgroundColor: appTheme.colors.neutral.lighter,
     borderWidth: 1,
-    borderColor: t.neutral.light,
+    borderColor: appTheme.colors.neutral.light,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 6,
   },
   regenerateButtonText: {
     fontFamily: 'Satoshi-Medium',
-    color: t.neutral.darkest,
+    color: appTheme.colors.neutral.darkest,
     fontSize: 14,
     fontWeight: "500",
   },
@@ -173,47 +181,47 @@ export const getEmailsStyles = (t: AppColors) => StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: t.neutral.light,
+    borderColor: appTheme.colors.neutral.light,
   },
   statusText: {
     fontFamily: 'Satoshi-Medium',
     fontSize: 12,
     fontWeight: "500",
-    color: t.neutral.darkest,
+    color: appTheme.colors.neutral.darkest,
   },
   statusDraft: {
-    backgroundColor: t.neutral.medium, // Grey for draft
+    backgroundColor: appTheme.colors.neutral.medium, // Grey for draft
   },
   statusDraftText: {
-    color: t.neutral.lightest, // White text on grey background
+    color: appTheme.colors.neutral.lightest, // White text on grey background
   },
   statusSending: {
-    backgroundColor: t.brand.accent, // Orange/brown for in-progress
+    backgroundColor: appTheme.colors.brand.accent, // Orange/brown for in-progress
   },
   statusSendingText: {
-    color: t.neutral.lightest, // White text on orange background
+    color: appTheme.colors.neutral.lightest, // White text on orange background
   },
   statusSent: {
-    backgroundColor: t.status.success, // Green for sent
+    backgroundColor: appTheme.colors.status.success, // Green for sent
   },
   statusSentText: {
-    color: t.neutral.lightest, // White text on green background
+    color: appTheme.colors.neutral.lightest, // White text on green background
   },
   statusFailed: {
-    backgroundColor: t.status.error, // Red for failed
+    backgroundColor: appTheme.colors.status.error, // Red for failed
   },
   statusFailedText: {
-    color: t.neutral.lightest, // White text on red background
+    color: appTheme.colors.neutral.lightest, // White text on red background
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: t.state.overlay,
+    backgroundColor: appTheme.colors.state.overlay,
     justifyContent: "center",
     alignItems: "center",
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: t.neutral.lightest,
+    backgroundColor: appTheme.colors.neutral.lightest,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -221,24 +229,24 @@ export const getEmailsStyles = (t: AppColors) => StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: t.neutral.light,
-    backgroundColor: t.neutral.lighter,
+    borderBottomColor: appTheme.colors.neutral.light,
+    backgroundColor: appTheme.colors.neutral.lighter,
   },
   modalTitle: {
     fontFamily: 'Satoshi-Bold',
     fontSize: 18,
     fontWeight: "600",
-    color: t.neutral.darkest,
+    color: appTheme.colors.neutral.darkest,
   },
   modalCancelButton: {
     fontFamily: 'Satoshi-Medium',
     fontSize: 16,
-    color: t.neutral.medium,
+    color: appTheme.colors.neutral.medium,
   },
   modalSaveButton: {
     fontFamily: 'Satoshi-Medium',
     fontSize: 16,
-    color: t.status.info,
+    color: appTheme.colors.status.info,
     fontWeight: "600",
   },
   modalContent: {
@@ -246,23 +254,23 @@ export const getEmailsStyles = (t: AppColors) => StyleSheet.create({
     padding: 16,
   },
   modalSupplierInfo: {
-    backgroundColor: t.neutral.lighter,
+    backgroundColor: appTheme.colors.neutral.lighter,
     padding: 16,
     borderRadius: 8,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: t.neutral.light,
+    borderColor: appTheme.colors.neutral.light,
   },
   modalSupplierName: {
     fontFamily: 'Satoshi-Bold',
     fontSize: 16,
-    color: t.neutral.darkest,
+    color: appTheme.colors.neutral.darkest,
     fontWeight: "600",
   },
   modalSupplierEmail: {
     fontFamily: 'Satoshi-Regular',
     fontSize: 14,
-    color: t.neutral.medium,
+    color: appTheme.colors.neutral.medium,
     marginTop: 4,
   },
   modalInputSection: {
@@ -271,32 +279,32 @@ export const getEmailsStyles = (t: AppColors) => StyleSheet.create({
   modalInputLabel: {
     fontFamily: 'Satoshi-Medium',
     fontSize: 16,
-    color: t.neutral.darkest,
+    color: appTheme.colors.neutral.darkest,
     marginBottom: 8,
     fontWeight: "500",
   },
   modalSubjectInput: {
     fontFamily: 'Satoshi-Regular',
     borderWidth: 1,
-    borderColor: t.neutral.light,
+    borderColor: appTheme.colors.neutral.light,
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 20,
     fontSize: 16,
-    backgroundColor: t.neutral.lightest,
-    color: t.neutral.darkest,
+    backgroundColor: appTheme.colors.neutral.lightest,
+    color: appTheme.colors.neutral.darkest,
     minHeight: 56,
   },
   modalBodyInput: {
     fontFamily: 'Satoshi-Regular',
     borderWidth: 1,
-    borderColor: t.neutral.light,
+    borderColor: appTheme.colors.neutral.light,
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 16,
     fontSize: 16,
-    backgroundColor: t.neutral.lightest,
-    color: t.neutral.darkest,
+    backgroundColor: appTheme.colors.neutral.lightest,
+    color: appTheme.colors.neutral.darkest,
     minHeight: 200,
     textAlignVertical: "top",
   },
@@ -304,64 +312,64 @@ export const getEmailsStyles = (t: AppColors) => StyleSheet.create({
     marginTop: 20,
   },
   modalProductsList: {
-    backgroundColor: t.neutral.lighter,
+    backgroundColor: appTheme.colors.neutral.lighter,
     padding: 16,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: t.neutral.light,
+    borderColor: appTheme.colors.neutral.light,
   },
   modalProductItem: {
     fontFamily: 'Satoshi-Regular',
     fontSize: 14,
-    color: t.neutral.dark,
+    color: appTheme.colors.neutral.dark,
     marginBottom: 4,
   },
   editedBadge: {
-    backgroundColor: t.status.warning + '33',
+    backgroundColor: appTheme.colors.status.warning + '33',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: t.status.warning,
+    borderColor: appTheme.colors.status.warning,
   },
   editedBadgeText: {
     fontFamily: 'Satoshi-Medium',
     fontSize: 12,
-    color: t.neutral.dark,
+    color: appTheme.colors.neutral.dark,
     fontWeight: "500",
   },
   modalInput: {
     fontFamily: 'Satoshi-Regular',
     borderWidth: 1,
-    borderColor: t.neutral.light,
+    borderColor: appTheme.colors.neutral.light,
     borderRadius: 6,
     paddingHorizontal: 16,
     paddingVertical: 20,
     fontSize: 16,
     marginBottom: 16,
-    backgroundColor: t.neutral.lightest,
-    color: t.neutral.darkest,
+    backgroundColor: appTheme.colors.neutral.lightest,
+    color: appTheme.colors.neutral.darkest,
     minHeight: 56,
   },
   modalTextArea: {
     fontFamily: 'Satoshi-Regular',
     borderWidth: 1,
-    borderColor: t.neutral.light,
+    borderColor: appTheme.colors.neutral.light,
     borderRadius: 6,
     paddingHorizontal: 16,
     paddingVertical: 16,
     fontSize: 16,
     height: 200,
     textAlignVertical: "top",
-    backgroundColor: t.neutral.lightest,
-    color: t.neutral.darkest,
+    backgroundColor: appTheme.colors.neutral.lightest,
+    color: appTheme.colors.neutral.darkest,
   },
   modalButtons: {
     flexDirection: "row",
     justifyContent: "flex-end",
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: t.neutral.light,
+    borderTopColor: appTheme.colors.neutral.light,
     gap: 12,
   },
   modalButton: {
@@ -381,48 +389,48 @@ export const getEmailsStyles = (t: AppColors) => StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: t.state.overlay,
+    backgroundColor: appTheme.colors.state.overlay,
     justifyContent: "center",
     alignItems: "center",
   },
   sendingContainer: {
-    backgroundColor: t.neutral.lightest,
+    backgroundColor: appTheme.colors.neutral.lightest,
     borderRadius: 8,
     padding: 24,
     alignItems: "center",
     margin: 20,
     borderWidth: 1,
-    borderColor: t.neutral.light,
+    borderColor: appTheme.colors.neutral.light,
   },
   sendingTitle: {
     fontFamily: 'Satoshi-Bold',
     fontSize: 18,
     fontWeight: "600",
-    color: t.neutral.darkest,
+    color: appTheme.colors.neutral.darkest,
     marginBottom: 16,
   },
   progressBar: {
     width: "100%",
     height: 8,
-    backgroundColor: t.neutral.light,
+    backgroundColor: appTheme.colors.neutral.light,
     borderRadius: 4,
     marginBottom: 16,
     overflow: "hidden",
   },
   progressFill: {
     height: "100%",
-    backgroundColor: t.brand.primary,
+    backgroundColor: appTheme.colors.brand.primary,
     borderRadius: 4,
   },
   progressText: {
     fontFamily: 'Satoshi-Medium',
     fontSize: 14,
-    color: t.brand.primary,
+    color: appTheme.colors.brand.primary,
     textAlign: "center",
   },
   successContainer: {
     flex: 1,
-    backgroundColor: t.neutral.lightest,
+    backgroundColor: appTheme.colors.neutral.lightest,
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
@@ -431,40 +439,40 @@ export const getEmailsStyles = (t: AppColors) => StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: t.status.success,
+    backgroundColor: appTheme.colors.status.success,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: t.neutral.light,
+    borderColor: appTheme.colors.neutral.light,
   },
   successTitle: {
     fontFamily: 'Satoshi-Bold',
     fontSize: 24,
     fontWeight: "600",
-    color: t.neutral.darkest,
+    color: appTheme.colors.neutral.darkest,
     marginBottom: 12,
     textAlign: "center",
   },
   successText: {
     fontFamily: 'Satoshi-Regular',
     fontSize: 16,
-    color: t.neutral.darkest,
+    color: appTheme.colors.neutral.darkest,
     textAlign: "center",
     lineHeight: 24,
     marginBottom: 32,
   },
   doneButton: {
-    backgroundColor: t.neutral.darkest,
+    backgroundColor: appTheme.colors.neutral.darkest,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: t.neutral.darkest,
+    borderColor: appTheme.colors.neutral.darkest,
   },
   doneButtonText: {
     fontFamily: 'Satoshi-Medium',
-    color: t.neutral.lightest,
+    color: appTheme.colors.neutral.lightest,
     fontSize: 16,
     fontWeight: "500",
   },
@@ -477,7 +485,7 @@ export const getEmailsStyles = (t: AppColors) => StyleSheet.create({
   backButtonText: {
     fontFamily: 'Satoshi-Medium',
     fontSize: 16,
-    color: t.neutral.darkest,
+    color: appTheme.colors.neutral.darkest,
     fontWeight: "500",
   },
   // Updated Action Button Styles (smaller, centered)
@@ -488,13 +496,13 @@ export const getEmailsStyles = (t: AppColors) => StyleSheet.create({
   },
   
   actionSendButton: {
-    backgroundColor: t.brand.primary,
+    backgroundColor: appTheme.colors.brand.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
     minWidth: 140,
     alignItems: "center",
-    shadowColor: t.brand.primary,
+    shadowColor: appTheme.colors.brand.primary,
     shadowOffset: {
       width: 0,
       height: 2,
@@ -505,7 +513,7 @@ export const getEmailsStyles = (t: AppColors) => StyleSheet.create({
   },
   
   actionSendButtonDisabled: {
-    backgroundColor: t.neutral.medium,
+    backgroundColor: appTheme.colors.neutral.medium,
     shadowOpacity: 0,
     elevation: 0,
   },
@@ -518,7 +526,7 @@ export const getEmailsStyles = (t: AppColors) => StyleSheet.create({
   
   actionSendButtonText: {
     fontFamily: 'Satoshi-Medium',
-    color: t.neutral.lightest,
+    color: appTheme.colors.neutral.lightest,
     fontSize: 16,
     fontWeight: "600",
   },
@@ -532,7 +540,7 @@ export const getEmailsStyles = (t: AppColors) => StyleSheet.create({
     fontFamily: 'Satoshi-Bold',
     fontSize: 16,
     fontWeight: '600',
-    color: t.neutral.darkest,
+    color: appTheme.colors.neutral.darkest,
     marginBottom: 12,
     paddingHorizontal: 16,
   },
@@ -581,14 +589,14 @@ export const getEmailsStyles = (t: AppColors) => StyleSheet.create({
   sessionTabDate: {
     fontFamily: 'Satoshi-Regular',
     fontSize: 12,
-    color: t.neutral.medium,
+    color: appTheme.colors.neutral.medium,
     marginBottom: 2,
   },
   
   sessionTabInfo: {
     fontFamily: 'Satoshi-Regular',
     fontSize: 11,
-    color: t.neutral.medium,
+    color: appTheme.colors.neutral.medium,
   },
   emptyState: {
     flex: 1,
@@ -599,7 +607,7 @@ export const getEmailsStyles = (t: AppColors) => StyleSheet.create({
   emptyStateText: {
     fontFamily: 'Satoshi-Regular',
     fontSize: 16,
-    color: t.neutral.darkest,
+    color: appTheme.colors.neutral.darkest,
     textAlign: "center",
   },
   // AI Generation Progress Styles
@@ -613,7 +621,7 @@ export const getEmailsStyles = (t: AppColors) => StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: t.neutral.lighter,
+    backgroundColor: appTheme.colors.neutral.lighter,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 24,
@@ -622,14 +630,14 @@ export const getEmailsStyles = (t: AppColors) => StyleSheet.create({
     fontFamily: 'Satoshi-Bold',
     fontSize: 18,
     fontWeight: "600",
-    color: t.neutral.darkest,
+    color: appTheme.colors.neutral.darkest,
     textAlign: "center",
     marginBottom: 8,
   },
   progressSubtitle: {
     fontFamily: 'Satoshi-Regular',
     fontSize: 14,
-    color: t.neutral.medium,
+    color: appTheme.colors.neutral.medium,
     textAlign: "center",
     marginBottom: 24,
   },
@@ -637,7 +645,7 @@ export const getEmailsStyles = (t: AppColors) => StyleSheet.create({
   // Send Confirmation Modal Styles
   confirmationOverlay: {
     flex: 1,
-    backgroundColor: t.state.overlay,
+    backgroundColor: appTheme.colors.state.overlay,
   },
 
   confirmationContainer: {
@@ -648,7 +656,7 @@ export const getEmailsStyles = (t: AppColors) => StyleSheet.create({
   },
 
   confirmationDialog: {
-    backgroundColor: t.neutral.lightest,
+    backgroundColor: appTheme.colors.neutral.lightest,
     borderRadius: 12,
     maxWidth: 400,
     minWidth: 300,
@@ -667,7 +675,7 @@ export const getEmailsStyles = (t: AppColors) => StyleSheet.create({
     paddingTop: 24,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: t.neutral.light,
+    borderBottomColor: appTheme.colors.neutral.light,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -677,7 +685,7 @@ export const getEmailsStyles = (t: AppColors) => StyleSheet.create({
   confirmationTitle: {
     fontFamily: 'Satoshi-Bold',
     fontSize: 18,
-    color: t.neutral.darkest,
+    color: appTheme.colors.neutral.darkest,
     fontWeight: '600',
   },
 
@@ -690,7 +698,7 @@ export const getEmailsStyles = (t: AppColors) => StyleSheet.create({
   confirmationMessage: {
     fontFamily: 'Satoshi-Medium',
     fontSize: 16,
-    color: t.neutral.dark,
+    color: appTheme.colors.neutral.dark,
     lineHeight: 22,
     textAlign: 'center',
     marginBottom: 20,
@@ -698,27 +706,27 @@ export const getEmailsStyles = (t: AppColors) => StyleSheet.create({
   },
 
   confirmationEmailCount: {
-    backgroundColor: t.status.success + '22',
+    backgroundColor: appTheme.colors.status.success + '22',
     borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 24,
     alignItems: 'center',
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: t.status.success,
+    borderColor: appTheme.colors.status.success,
   },
 
   confirmationEmailCountValue: {
     fontSize: 32,
     fontWeight: '700',
-    color: t.status.success,
+    color: appTheme.colors.status.success,
     marginBottom: 4,
   },
 
   confirmationEmailCountLabel: {
     fontFamily: 'Satoshi-Bold',
     fontSize: 12,
-    color: t.status.success,
+    color: appTheme.colors.status.success,
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -727,7 +735,7 @@ export const getEmailsStyles = (t: AppColors) => StyleSheet.create({
   confirmationNote: {
     fontFamily: 'Satoshi-Regular',
     fontSize: 14,
-    color: t.neutral.medium,
+    color: appTheme.colors.neutral.medium,
     textAlign: 'center',
     lineHeight: 18,
   },
@@ -745,15 +753,15 @@ export const getEmailsStyles = (t: AppColors) => StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
-    backgroundColor: t.neutral.lighter,
+    backgroundColor: appTheme.colors.neutral.lighter,
     borderWidth: 1,
-    borderColor: t.neutral.light,
+    borderColor: appTheme.colors.neutral.light,
   },
 
   confirmationCancelButtonText: {
     fontFamily: 'Satoshi-Medium',
     fontSize: 16,
-    color: t.neutral.medium,
+    color: appTheme.colors.neutral.medium,
     fontWeight: '600',
   },
 
@@ -764,15 +772,15 @@ export const getEmailsStyles = (t: AppColors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: t.brand.primary,
+    backgroundColor: appTheme.colors.brand.primary,
     borderWidth: 1,
-    borderColor: t.brand.primary,
+    borderColor: appTheme.colors.brand.primary,
   },
 
   confirmationConfirmButtonText: {
     fontFamily: 'Satoshi-Medium',
     fontSize: 16,
-    color: t.neutral.lightest,
+    color: appTheme.colors.neutral.lightest,
     fontWeight: '600',
   },
 
@@ -780,6 +788,37 @@ export const getEmailsStyles = (t: AppColors) => StyleSheet.create({
     marginRight: 8,
   },
 }); 
+}
 
-// Backward-compatible static export
-export const emailsStyles = getEmailsStyles(colors);
+// Create a fallback theme for backward compatibility
+const fallbackTheme = {
+  colors,
+  device: { deviceType: 'mobile' as const, isTablet: false, isMobile: true, width: 375, height: 667, isLandscape: false },
+  spacing: { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24, xxxl: 32 },
+  typography: { appTitle: 28, sectionHeader: 20, subsectionHeader: 18, productName: 16, buttonText: 16, bodyLarge: 16, bodyMedium: 14, bodySmall: 12, caption: 11 },
+  layout: { maxContentWidth: '100%' as const, paddingHorizontal: 20, columns: 1, actionGridColumns: 2, cardMinWidth: 0, tabBarHeight: 60, touchTargetMin: 44 },
+  patterns: {
+    container: () => ({ flex: 1, maxWidth: '100%', alignSelf: 'center' as const, width: '100%' }),
+    grid: () => ({ flexDirection: 'row' as const, flexWrap: 'wrap' as const, justifyContent: 'space-between' as const }),
+    card: () => ({ flex: 1, minWidth: 0 }),
+    actionGrid: () => ({ flexDirection: 'row' as const, flexWrap: 'wrap' as const, justifyContent: 'space-between' as const }),
+    touchTarget: () => ({ minHeight: 44, minWidth: 44 })
+  },
+  breakpoints: { mobile: 0, tablet: 768 },
+  getResponsiveValue: <T>(values: Partial<Record<string, T>>, fallback: T): T => fallback,
+};
+// Backward-compatible static export (deprecated - use useEmailsTheme instead)
+export const emailsStyles = getEmailsStyles(fallbackTheme);
+
+
+// Utility hook for email components
+export const useEmailsTheme = () => {
+  const appTheme = useAppTheme();
+  return {
+    styles: getEmailsStyles(appTheme),
+    appTheme,
+  };
+};
+
+
+

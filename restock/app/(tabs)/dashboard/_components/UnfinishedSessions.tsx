@@ -28,7 +28,7 @@ export const UnfinishedSessions: React.FC<UnfinishedSessionsProps> = ({
   unfinishedSessions,
   onSessionTap
 }) => {
-  const dashboardStyles = useThemedStyles(getDashboardStyles);
+  const { styles: dashboardStyles } = useDashboardTheme();
   const [sessions, setSessions] = useState<UnfinishedSession[]>(unfinishedSessions);
 
   // Update local state when prop changes
