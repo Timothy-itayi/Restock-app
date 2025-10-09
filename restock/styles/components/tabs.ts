@@ -1,33 +1,10 @@
 import { StyleSheet } from "react-native";
-import { fontFamily } from "../typography";
-import colors, { type AppColors } from '@/app/theme/colors';
-import { useAppTheme } from '@/app/hooks/useResponsiveStyles';
+import { typography } from "../typography";
+import colors, { type AppColors } from '../../lib/theme/colors';
 
-// Enhanced tabs styling with unified responsive design for iPad optimization
-export const getTabsStyles = (appTheme: ReturnType<typeof useAppTheme>) => {
-  // Defensive check for undefined theme with enhanced logging
-  if (!appTheme || !appTheme.layout || !appTheme.colors) {
-    console.warn('⚠️ getTabsStyles: appTheme is undefined, using fallback styles', {
-      hasAppTheme: !!appTheme,
-      hasLayout: !!(appTheme?.layout),
-      hasColors: !!(appTheme?.colors)
-    });
-    return StyleSheet.create({
-      tabBar: { backgroundColor: '#FFFFFF', height: 60 },
-      tabIcon: { width: 24, height: 24 },
-    });
-  }
-  
-  console.log('🎨 Generating Tabs Styles:', {
-    deviceType: appTheme.device.deviceType,
-    isTablet: appTheme.device.isTablet,
-    tabBarHeight: appTheme.layout.tabBarHeight,
-    paddingHorizontal: appTheme.layout.paddingHorizontal,
-    maxContentWidth: appTheme.layout.maxContentWidth
-  });
-  
-  return StyleSheet.create({
-  // Tab bar container styles - Enhanced for iPad with better spacing
+// Tabs styling using the unified semantic color system
+export const getTabsStyles = (t: AppColors) => StyleSheet.create({
+  // Tab bar container styles
   tabBar: {
     backgroundColor: appTheme.colors.neutral.lightest, // Pure white background (paper)
     borderTopWidth: 1,

@@ -1,27 +1,12 @@
-import { Ionicons } from "@expo/vector-icons";
-import { Tabs } from "expo-router";
-import { Dimensions } from "react-native";
-import { UnifiedAuthGuard } from "../components/UnifiedAuthGuard";
-import { SessionProvider } from "./restock-sessions/context/SessionContext";
-import { ErrorBoundaryWrapper } from "../components/ErrorBoundaryWrapper";
-import { useResponsiveStyles, useAppTheme } from "../hooks/useResponsiveStyles";
-import { tabScreenOptions, useTabsTheme } from "../../styles/components/tabs";
-import { useMemo, useEffect } from "react";
-
-// Enhanced responsive detection with comprehensive logging
-const { width, height } = Dimensions.get('window');
-const isLandscape = width > height;
-const deviceType = width < 768 ? 'mobile' : width < 810 ? 'tablet' : 'tabletLarge';
-const isTablet = deviceType !== 'mobile';
-
-console.log('📱 Device Detection:', {
-  width,
-  height,
-  isLandscape,
-  deviceType,
-  isTablet,
-  screenRatio: (width / height).toFixed(2)
-});
+import { Ionicons } from '@expo/vector-icons';
+import { Tabs } from 'expo-router';
+import { getTabBarOptions, tabScreenOptions, useTabsTheme } from '../../styles/components/tabs';
+import { useSafeTheme } from '../../lib/stores/useThemeStore';
+import { UnifiedAuthGuard } from '../../lib/components/UnifiedAuthGuard';
+import { SessionProvider } from './restock-sessions/_context/SessionContext';
+import { useMemo } from 'react';
+import { ErrorBoundaryWrapper } from '../../lib/components/ErrorBoundaryWrapper';
+import { useAppTheme } from '../../lib/hooks/useResponsiveStyles';
 
 export default function TabLayout() {
   return (
@@ -107,34 +92,34 @@ function TabLayoutContent() {
         }
       },
       device: { 
-        isTablet,
-        deviceType,
-        width,
-        height,
-        isLandscape,
-        isMobile: !isTablet
+        isTablet: false,
+        deviceType: 'mobile',
+        width: 0,
+        height: 0,
+        isLandscape: false,
+        isMobile: !false
       },
       typography: { 
-        subsectionHeader: isTablet ? 20 : 18, 
-        caption: isTablet ? 12 : 11,
-        appTitle: isTablet ? 32 : 28,
-        sectionHeader: isTablet ? 24 : 20
+        subsectionHeader: false ? 20 : 18, 
+        caption: false ? 12 : 11,
+        appTitle: false ? 32 : 28,
+        sectionHeader: false ? 24 : 20
       },
       layout: {
-        maxContentWidth: isTablet ? 768 : '100%',
-        paddingHorizontal: isTablet ? 32 : 20,
-        tabBarHeight: isTablet ? 70 : 60,
-        columns: isTablet ? 2 : 1,
+        maxContentWidth: false ? 768 : '100%',
+        paddingHorizontal: false ? 32 : 20,
+        tabBarHeight: false ? 70 : 60,
+        columns: false ? 2 : 1,
         touchTargetMin: 44
       },
       spacing: {
-        xs: isTablet ? 6 : 4,
-        sm: isTablet ? 12 : 8,
-        md: isTablet ? 16 : 12,
-        lg: isTablet ? 20 : 16,
-        xl: isTablet ? 24 : 20,
-        xxl: isTablet ? 32 : 24,
-        xxxl: isTablet ? 40 : 32
+            xs: false ? 6 : 4,
+        sm: false ? 12 : 8,
+        md: false ? 16 : 12,
+        lg: false ? 20 : 16,
+        xl: false ? 24 : 20,
+        xxl: false ? 32 : 24,
+        xxxl: false ? 40 : 32
       }
     };
     
@@ -142,7 +127,7 @@ function TabLayoutContent() {
     tabsTheme = {
       styles: {
         tabBar: { backgroundColor: '#FFFFFF', height: appTheme.layout.tabBarHeight },
-        tabIcon: { width: isTablet ? 32 : 24, height: isTablet ? 32 : 24 }
+        tabIcon: { width: false ? 32 : 24, height: false ? 32 : 24 }
       },
       options: {
         tabBarActiveTintColor: appTheme.colors.neutral.darkest,

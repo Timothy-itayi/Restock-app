@@ -7,25 +7,25 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, DeviceEventEmitter } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useUnifiedAuth } from '../../auth/UnifiedAuthProvider';
+import { useUnifiedAuth } from '../../../lib/auth/UnifiedAuthProvider';
 
 // Hooks
-import { useSessionList } from './hooks/useSessionList';
-import { useSessionContext } from './context/SessionContext';
-import { useServiceHealth } from './hooks/useService';
+import { useSessionList } from './_hooks/useSessionList';
+import { useSessionContext } from './_context/SessionContext';
+import { useServiceHealth } from './_hooks/useService';
 
 // UI Components
-import { SessionHeader } from './components/SessionHeader';
-import { StartSection } from './components/StartSection';
-import { ProductList } from './components/ProductList';
-import { FinishSection } from './components/FinishSection';
-import NameSessionModal from '../../components/NameSessionModal';
-import CustomToast from '../../components/CustomToast';
+import { SessionHeader } from './_components/SessionHeader';
+import { StartSection } from './_components/StartSection';
+import { ProductList } from './_components/ProductList';
+import { FinishSection } from './_components/FinishSection';
+import NameSessionModal from '../../../lib/components/NameSessionModal';
+import CustomToast from '../../../lib/components/CustomToast';
 
 // Styles
 import { useThemedStyles } from '../../../styles/useThemedStyles';
 import { getRestockSessionsStyles } from '../../../styles/components/restock-sessions';
-// import { ClerkDebugger } from '../../components/ClerkDebugger';
+// import { ClerkDebugger } from '../../lib/components/ClerkDebugger';
 
 const RestockSessionsContent: React.FC = () => {
   // ✅ CORRECT: ALL hooks must be called first, unconditionally

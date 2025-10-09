@@ -1,20 +1,7 @@
 import { StyleSheet } from "react-native";
-import colors, { type AppColors } from '@/app/theme/colors';
-import { useAppTheme } from '@/app/hooks/useResponsiveStyles';
+import colors, { type AppColors } from '../../lib/theme/colors';
 
-// Enhanced emails styles with responsive design for iPad optimization
-export const getEmailsStyles = (appTheme: ReturnType<typeof useAppTheme>) => {
-  // Defensive check for undefined theme
-  if (!appTheme || !appTheme.layout || !appTheme.colors) {
-    console.warn('getEmailsStyles: appTheme is undefined, using fallback styles');
-    return StyleSheet.create({
-      container: { flex: 1, backgroundColor: '#F0EEE4' },
-      header: { padding: 20 },
-    });
-  }
-  
-  return StyleSheet.create({
-  // Main container with responsive layout for iPad
+export const getEmailsStyles = (t: AppColors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: appTheme.colors.neutral.lighter, // Warm paper background like restock sessions

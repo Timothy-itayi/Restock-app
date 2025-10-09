@@ -5,8 +5,8 @@ import { router } from 'expo-router';
 import { useSSO } from '@clerk/clerk-expo';
 import * as Linking from 'expo-linking';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useUnifiedAuth } from './UnifiedAuthProvider';
-import { ClerkClientService } from '../../backend/services/clerk-client';
+import { useUnifiedAuth } from '../../lib/auth/UnifiedAuthProvider';
+import { ClerkClientService } from '../../backend/_services/clerk-client';
 import { authIndexStyles } from '../../styles/components/auth-index';
 
 export default function AuthIndexScreen() {
@@ -44,7 +44,7 @@ export default function AuthIndexScreen() {
     
     // Clear any stale session cache before starting OAuth to prevent false profile completion detection
     console.log('🧹 SSO FLOW: Clearing stale session cache before OAuth');
-    const { SessionManager } = await import('../../backend/services/session-manager');
+    const { SessionManager } = await import('../../backend/_services/session-manager');
     await SessionManager.clearUserSession();
     
     await AsyncStorage.setItem('oauthProcessing', 'true');

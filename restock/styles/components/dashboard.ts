@@ -2,61 +2,9 @@
 
 import { StyleSheet } from "react-native";
 import { fontFamily } from "../typography";
-import colors, { type AppColors } from '@/app/theme/colors';
-import { useAppTheme } from '@/app/hooks/useResponsiveStyles';
+import colors, { type AppColors } from '../../lib/theme/colors';
 
-// Enhanced dashboard styles with responsive design for iPad optimization
-export const getDashboardStyles = (appTheme: ReturnType<typeof useAppTheme>) => {
-  // Defensive check for undefined theme
-  if (!appTheme || !appTheme.layout || !appTheme.colors) {
-    console.warn('getDashboardStyles: appTheme is undefined, using fallback styles');
-    return StyleSheet.create({
-      container: { flex: 1, backgroundColor: '#FFFFFF' },
-      contentContainer: { padding: 20 },
-      section: { marginBottom: 24 },
-      sectionHeader: { marginBottom: 16 },
-      sectionTitle: { fontSize: 18, fontWeight: '600', color: '#1A1D20' },
-      welcomeSection: { marginBottom: 24, paddingTop: 8 },
-      welcomeTitle: { fontSize: 28, fontWeight: '400', color: '#1A1D20', lineHeight: 36, marginBottom: 8 },
-      welcomeSubtitle: { fontSize: 16, color: '#6C757D', lineHeight: 22 },
-      userName: { fontWeight: '600' },
-      statsGrid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
-      statCard: { flex: 1, backgroundColor: '#F8F9FA', padding: 16, borderRadius: 8, marginHorizontal: 4, alignItems: 'center' },
-      statNumber: { fontSize: 24, fontWeight: '700', color: '#1A1D20', marginBottom: 4 },
-      statLabel: { fontSize: 12, color: '#6C757D', textAlign: 'center' },
-      sessionCard: { backgroundColor: '#FFFFFF', borderRadius: 8, padding: 16, marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
-      sessionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
-      sessionInfo: { flex: 1, marginRight: 12 },
-      sessionTitle: { fontSize: 16, fontWeight: '600', color: '#1A1D20', marginBottom: 4 },
-      sessionSubtitle: { fontSize: 14, color: '#6C757D' },
-      continueButton: { backgroundColor: '#22C55E', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 6 },
-      continueButtonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
-      breakdownContainer: { marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: '#E1E8ED' },
-      breakdownHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-      breakdownTitle: { fontSize: 12, fontWeight: '600', color: '#6C757D', letterSpacing: 0.5 },
-      breakdownTotal: { fontSize: 12, color: '#6C757D' },
-      chartContainer: { marginBottom: 16 },
-      chart: { flexDirection: 'row', height: 8, borderRadius: 4, overflow: 'hidden', marginBottom: 8 },
-      chartSegment: { height: '100%' },
-      chartLabel: { fontSize: 12, color: '#6C757D', textAlign: 'center' },
-      breakdownList: { gap: 12 },
-      breakdownItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8 },
-      breakdownItemHeader: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-      breakdownItemIcon: { width: 24, height: 24, borderRadius: 12, marginRight: 8, justifyContent: 'center', alignItems: 'center' },
-      breakdownItemName: { fontSize: 14, fontWeight: '500', color: '#1A1D20', flex: 1 },
-      breakdownItemStats: { alignItems: 'flex-end' },
-      breakdownItemPercentage: { fontSize: 12, fontWeight: '600', color: '#1A1D20', marginBottom: 2 },
-      breakdownItemCount: { fontSize: 11, color: '#6C757D' },
-      emptyState: { alignItems: 'center', padding: 40 },
-      emptyStateTitle: { fontSize: 18, fontWeight: '600', color: '#1A1D20', marginTop: 16 },
-      emptyStateText: { fontSize: 14, color: '#6C757D', textAlign: 'center', marginTop: 8 },
-      startNewButton: { backgroundColor: '#22C55E', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8, marginTop: 16 },
-      startNewButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
-    });
-  }
-  
-  return StyleSheet.create({
-  // Main container with responsive layout for iPad
+export const getDashboardStyles = (t: AppColors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: appTheme.colors.neutral.lightest,

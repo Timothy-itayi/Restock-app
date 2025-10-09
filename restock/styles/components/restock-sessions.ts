@@ -1,7 +1,6 @@
 import { StyleSheet } from "react-native";
 import { typography, fontFamily } from "../typography";
-import colors, { type AppColors } from '@/app/theme/colors';
-import { useAppTheme } from '@/app/hooks/useResponsiveStyles';
+import colors, { type AppColors } from '../../lib/theme/colors';
 
 // Notepad Color Palette with semantic button colors
 // Primary: Industrial Grey (#6C757D)

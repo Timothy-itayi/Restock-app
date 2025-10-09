@@ -2,15 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, TextInput, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Link, router } from 'expo-router';
 import { useSignIn, useAuth, useSSO, useClerk } from '@clerk/clerk-expo';
-import { SessionManager } from '../../../backend/services/session-manager';
+import { SessionManager } from '../../../backend/_services/session-manager';
 
-import { EmailAuthService } from '../../../backend/services/email-auth';
+import { EmailAuthService } from '../../../backend/_services/email-auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Linking from 'expo-linking';
 
 import { signInStyles } from '../../../styles/components/sign-in';
-import useThemeStore from '../../stores/useThemeStore';
-import { useUnifiedAuth } from '../UnifiedAuthProvider';
+import useThemeStore from '../../../lib/stores/useThemeStore';
+import { useUnifiedAuth } from '../../../lib/auth/UnifiedAuthProvider';
 
 export default function SignInScreen() {
   const { signIn, setActive, isLoaded } = useSignIn();
@@ -352,7 +352,7 @@ export default function SignInScreen() {
 
           <View style={signInStyles.linkContainer}>
             <Text style={signInStyles.linkText}>Don't have an account? </Text>
-            <Link href="/auth/traditional/sign-up" asChild>
+            <Link href="/auth/traditional/sign-up" asChild={true as any}>
               <Text style={signInStyles.linkTextBold}>Sign up</Text>
             </Link>
           </View>

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {  Text, TouchableOpacity, TextInput, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { useSignUp } from '@clerk/clerk-expo';
-import { UnifiedAuthGuard } from '../../components/UnifiedAuthGuard';
+import { UnifiedAuthGuard } from '../../../lib/components/UnifiedAuthGuard';
 import { verifyEmailStyles } from '../../../styles/components/verify-email';
 
 export default function VerifyEmailScreen() {

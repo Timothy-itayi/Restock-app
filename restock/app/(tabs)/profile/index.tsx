@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { ScrollView, View } from 'react-native';
-import useThemeStore from '../../stores/useThemeStore';
+import useThemeStore from '../../../lib/stores/useThemeStore';
 import { useUser } from '@clerk/clerk-expo';
 
-import SignOutButton from '../../components/SignOutButton';
+import SignOutButton from '../../../lib/components/SignOutButton';
 import { getProfileStyles } from '../../../styles/components/profile';
 import { useThemedStyles } from '../../../styles/useThemedStyles';
-import { ProfileSkeleton } from '../../components/skeleton';
-import { ProfileHeader, ProfileInfo, StorePlanCard, StatsCards, HistorySection } from './components';
-import { useProfileData } from './hooks/useProfileData';
+import { ProfileSkeleton } from '../../../lib/components/skeleton';
+import { ProfileHeader, ProfileInfo, StorePlanCard, StatsCards, HistorySection } from './_components';
+import { useProfileData } from './_hooks/useProfileData';
 
 export default function ProfileScreen() {
   const { user } = useUser();

@@ -1,5 +1,5 @@
-import React from "react";
-import { SupabaseHooksProvider } from "../infrastructure/supabase/SupabaseHooksProvider";
+import React from 'react';
+import { SupabaseHooksProvider } from '../../lib/infrastructure/_supabase/SupabaseHooksProvider';
 
 /**
  * Supabase Provider

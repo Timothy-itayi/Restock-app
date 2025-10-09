@@ -50,7 +50,9 @@
             "./assets/fonts/Satoshi/Satoshi-LightItalic.otf"
           ]
         }
-      ]
+      ],
+      "expo-secure-store",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true
