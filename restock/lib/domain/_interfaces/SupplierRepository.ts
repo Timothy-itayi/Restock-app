@@ -7,24 +7,15 @@
 import { Supplier } from '../_entities/Supplier';
 
 export interface SupplierRepository {
-  /**
-   * Set the current user ID for this repository instance
-   */
-  setUserId(userId: string): void;
+  
 
-  // Basic CRUD operations
-  save(supplier: Supplier): Promise<void>;
-  findById(id: string): Promise<Supplier | null>;
-  findByUserId(): Promise<ReadonlyArray<Supplier>>; // RPC functions handle user isolation
+ // RPC functions handle user isolation
   delete(id: string): Promise<void>;
 
   // Query operations
-  findByEmail(email: string): Promise<Supplier | null>;
-  search(searchTerm: string): Promise<ReadonlyArray<Supplier>>; // RPC functions handle user isolation
+
+// RPC functions handle user isolation
   
-  // Business queries
-  countByUserId(): Promise<number>; // RPC functions handle user isolation
- // RPC functions handle user isolation
 
 
 }

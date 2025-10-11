@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { getRestockSessionsStyles } from '../../../../styles/components/restock-sessions';
-import { useThemedStyles } from '../../../../styles/useThemedStyles';
+import { useSafeTheme } from '../../../../lib/stores/useThemeStore';
 import { useSessionContext } from '../_context/SessionContext';
 import { useUnifiedAuth } from '../../../../lib/auth/UnifiedAuthProvider';
 import { ProfileService } from '../../../auth/_services/profileService';
+import colors, { AppColors } from '../../../../lib/theme/colors';
 
 interface FinishSectionProps {
   session: any | null; // domain session or legacy type
@@ -18,7 +19,8 @@ export const FinishSection: React.FC<FinishSectionProps> = ({
   const router = useRouter();
   const sessionContext = useSessionContext();
   const { userId } = useUnifiedAuth();
-  const restockSessionsStyles = useThemedStyles(getRestockSessionsStyles);
+  const t = useSafeTheme();
+  const restockSessionsStyles = getRestockSessionsStyles(t.theme as AppColors);
   const [isGeneratingEmails, setIsGeneratingEmails] = useState(false);
   const [userProfile, setUserProfile] = useState<{ storeName: string; name: string; email: string }>({
     storeName: 'Your Store',
@@ -118,7 +120,7 @@ export const FinishSection: React.FC<FinishSectionProps> = ({
       >
         {isGeneratingEmails ? (
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <ActivityIndicator size="small" color="white" style={{ marginRight: 8 }} />
+            <ActivityIndicator size="small" color={colors.neutral.lightest} style={{ marginRight: 8 }} />
             <Text style={restockSessionsStyles.bottomFinishButtonText}>
               Generating Emails...
             </Text>

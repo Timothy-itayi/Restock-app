@@ -1,7 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text } from 'react-native';
 import { getDashboardStyles } from '../../../../styles/components/dashboard';
-import { useThemedStyles } from '../../../../styles/useThemedStyles';
+import { useSafeTheme } from '../../../../lib/stores/useThemeStore';
+import colors, { type AppColors } from '../../../../lib/theme/colors';
 import  SkeletonBox  from '../../../../lib/components/skeleton/SkeletonBox';
 import { SwipeableSessionCard } from './SwipeableSessionCard';
 
@@ -28,7 +29,8 @@ export const UnfinishedSessions: React.FC<UnfinishedSessionsProps> = ({
   unfinishedSessions,
   onSessionTap
 }) => {
-  const { styles: dashboardStyles } = useDashboardTheme();
+  const t = useSafeTheme();
+  const dashboardStyles = getDashboardStyles(t.theme as AppColors);
   const [sessions, setSessions] = useState<UnfinishedSession[]>(unfinishedSessions);
 
   // Update local state when prop changes

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { ScrollView, RefreshControl, View, Text } from 'react-native';
 import { getDashboardStyles } from '../../../styles/components/dashboard';
-import { useThemedStyles } from '../../../styles/useThemedStyles';
+
 import { useUnifiedAuth } from '../../../lib/auth/UnifiedAuthProvider';
+import { useSafeTheme } from '@/lib/stores/useThemeStore';
+import colors, { AppColors } from '@/lib/theme/colors';
 
 import { useDashboardData } from './_hooks/useDashboardData';
 import { 
@@ -12,7 +14,7 @@ import {
   StatsOverviewEnhanced, 
   EmptyState 
 } from './_components';
-import useThemeStore from '../../../lib/stores/useThemeStore';
+
 
 interface SessionItem {
   id: string;
@@ -54,8 +56,8 @@ export default function DashboardScreen() {
   } = useUnifiedAuth();
   
   // Use responsive theme system
-  const { styles: dashboardStyles } = useDashboardTheme();
-  const appTheme = useAppTheme();
+  const t = useSafeTheme();
+  const dashboardStyles = getDashboardStyles(t.theme as AppColors);
   
   const { unfinishedSessions, finishedSessions, sessionsLoading, refreshing, onRefresh, trackSessionTap } = useDashboardData();
 
@@ -66,7 +68,7 @@ export default function DashboardScreen() {
   if (isLoadingProfile) {
     return (
       <View style={[dashboardStyles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <Text style={{ fontSize: 18, color: appTheme.colors.neutral.medium }}>Loading your profile...</Text>
+        <Text style={{ fontSize: 18, color: colors.neutral.medium }}>Loading your profile...</Text>
       </View>
     );
   }
@@ -80,7 +82,7 @@ export default function DashboardScreen() {
         <RefreshControl 
           refreshing={refreshing} 
           onRefresh={onRefresh} 
-          colors={[appTheme.colors.neutral.medium]} 
+          colors={[colors.neutral.medium]} 
         />
       }
     >

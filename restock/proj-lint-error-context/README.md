@@ -15,10 +15,10 @@
   - ❌ Missing exported member `healthCheck`
   - ❌ Method signature mismatches (expected 1 arg, got 0)
 
-#### **Integration Tests - Non-existent Services**
+#### **Integration Tests - Service References**
 - `__tests__/integration/FullStackIntegration.test.ts`
-  - ❌ Cannot find `UserContextService` (migrated to Convex)
-  - ❌ Cannot find `SupabaseSessionRepository` (migrated to Convex)
+  - ✅ `UserContextService` now implemented in infrastructure layer
+  - ✅ Repository pattern updated for Clerk + Supabase architecture
 
 #### **UI Test Files**
 - `__tests__/ui/components/SwipeableSessionCard.test.tsx`
@@ -52,7 +52,7 @@
 - `app/(tabs)/restock-sessions/components/SessionWorkflow.tsx`
   - ❌ Wrong import syntax for `Button`, `Card`, `CustomToast`
   - ❌ Should use default imports instead of named exports
-- `app/(tabs)/restock-sessions/components/ConvexTest.tsx`
+- `app/(tabs)/restock-sessions/components/` (test components)
   - ❌ Expected 2 arguments, but got 1
 
 #### **Old Hook Files - Should Be Deleted**
@@ -79,20 +79,14 @@
 
 #### **Store & Context Issues**
 - `app/stores/useProfileStore.ts`
-  - ❌ Cannot find `UserContextService` (migrated to Convex)
+  - ✅ `UserContextService` now implemented in infrastructure layer
   - ❌ Property `store_name` doesn't exist (should be `storeName`)
 - `app/stores/useThemeStore.ts`
   - ❌ Type conflicts between two different theme type definitions
 
-#### **Convex Configuration**
-- `convex.config.ts`
-  - ❌ Cannot find module 'convex/config'
-- `convex/ai.ts`
-  - ❌ Object is possibly 'undefined' (need null checks)
-
 #### **Backend Test Services**
 - `backend/test-services.ts`
-  - ❌ Multiple property access errors on Convex data types
+  - ❌ Multiple property access errors on Supabase data types
   - ❌ Method signature mismatches
   - ❌ References to non-existent properties like `id`, `name`, `email`
 
@@ -122,9 +116,8 @@
 6. **🟠 HIGH**: Fix component import syntax
 7. **🟡 MEDIUM**: Fix backend service property names
 8. **🟡 MEDIUM**: Resolve store type conflicts
-9. **🟡 MEDIUM**: Fix Convex configuration issues
-10. **🟢 LOW**: Delete old context and hook files
-11. **🟢 LOW**: Update testing infrastructure
+9. **🟢 LOW**: Delete old context and hook files
+10. **🟢 LOW**: Update testing infrastructure
 
 ### 🎯 **ESTIMATED EFFORT**
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import { create } from 'zustand';
 import colors, { light, dark } from '../../lib/theme/colors';
+import { Dimensions } from 'react-native';
 
 export type ThemeMode = 'light' | 'dark';
 export type DeviceType = 'mobile' | 'tablet' | 'tabletLarge';
@@ -110,5 +111,4 @@ export const useScreenDimensions = () => {
 };
 
 export default useThemeStore;
-
 

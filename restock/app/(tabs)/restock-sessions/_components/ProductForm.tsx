@@ -2,9 +2,10 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import { useProductForm, incrementQuantity, decrementQuantity } from '../_hooks/useProductForm';
-import { useThemedStyles } from '../../../../styles/useThemedStyles';
+import { useSafeTheme } from '../../../../lib/stores/useThemeStore';
 import { getRestockSessionsStyles } from '../../../../styles/components/restock-sessions';
 import Button from '../../../../lib/components/Button';
+import colors, { AppColors } from '../../../../lib/theme/colors';
 
 interface ProductFormProps {
   onSubmit: (values: any) => void;
@@ -12,11 +13,12 @@ interface ProductFormProps {
   isSubmitting: boolean;
   isDisabled?: boolean;
   isEditMode?: boolean;
-}
+} 
 
 export function ProductForm({ onSubmit, initialValues, isDisabled = false }: ProductFormProps) {
   const { formData, updateField, submitForm, error } = useProductForm(initialValues);
-  const styles = useThemedStyles(getRestockSessionsStyles);
+  const t = useSafeTheme();
+  const styles = getRestockSessionsStyles(t.theme as AppColors);
 
   const handleSubmit = () => {
     submitForm(() => onSubmit({
@@ -101,7 +103,7 @@ export function ProductForm({ onSubmit, initialValues, isDisabled = false }: Pro
 
       {/* Error */}
       {error && (
-        <Text style={{ color: 'red', marginBottom: 8 }}>{error}</Text>
+        <Text style={{ color: colors.status.error, marginBottom: 8 }}>{error}</Text>
       )}
 
       {/* Form Buttons */}

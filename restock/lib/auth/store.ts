@@ -163,7 +163,7 @@ const authStoreCreator = create<AuthStore>()(
         try {
           console.log('📊 AuthStore: Fetching profile for userId:', userId);
           
-          const { UserProfileService } = await import('../../../backend/_services/user-profile');
+          const { UserProfileService } = await import('../../backend/_services/user-profile');
           const result = await UserProfileService.getUserProfileByClerkId(userId);
           
           console.log('📊 AuthStore: Raw result from service:', {

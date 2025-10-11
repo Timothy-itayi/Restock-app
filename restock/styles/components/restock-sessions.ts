@@ -2,26 +2,17 @@ import { StyleSheet } from "react-native";
 import { typography, fontFamily } from "../typography";
 import colors, { type AppColors } from '../../lib/theme/colors';
 
-// Notepad Color Palette with semantic button colors
-// Primary: Industrial Grey (#6C757D)
-// Paper: Warm cream (#FEFDF9, #FDFBF3)
-// Borders: Light grey (#DEE2E6)
-// Text: Dark grey (#212529)
-// Buttons: Green for progress, Yellow/Brown for edit, Red for delete
-
-export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
-  // Main container with notepad background - Responsive for iPad
+export const getRestockSessionsStyles = (t: AppColors) => StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: appTheme.device.isTablet ? 80 : 60,
-    backgroundColor: appTheme.colors.neutral.lighter, // Warm paper background
+    paddingTop: 60,
+    backgroundColor: colors.neutral.lighter,
     overflow: "scroll",
-    maxWidth: appTheme.layout.maxContentWidth as any,
+    maxWidth: '100%',
     alignSelf: 'center',
     width: '100%',
   },
   
-  // Start section for empty state
   startSection: {
     flex: 1,
     justifyContent: "center",
@@ -29,142 +20,121 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
     paddingHorizontal: 20,
     marginTop: 200,
   },
-  
-  // Welcome prompt with instructions
   startPrompt: {
-    fontFamily: 'Satoshi-Bold',
+    fontFamily: fontFamily.satoshiBold,
     fontSize: 24,
     fontWeight: "600",
-    color: appTheme.colors.neutral.darkest,
+    color: colors.neutral.darkest,
     marginBottom: 50,
     textAlign: "center",
   },
-  
-  // Instructions text
   instructions: {
-    fontFamily: 'Satoshi-Regular',
+    fontFamily: fontFamily.satoshi,
     fontSize: 16,
-    color: appTheme.colors.neutral.medium,
+    color: colors.neutral.medium,
     textAlign: "center",
     lineHeight: 24,
     marginBottom: 32,
     paddingHorizontal: 20,
   },
-  
-  // Start button (green for progress)
   startButton: {
-    backgroundColor: appTheme.colors.brand.primary, // Green for progress
+    backgroundColor: colors.brand.primary,
     paddingHorizontal: 32,
     paddingVertical: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: appTheme.colors.brand.primary,
+    borderColor: colors.brand.primary,
   },
-  
   startButtonText: {
-    fontFamily: 'Satoshi-Bold',
-    color: appTheme.colors.neutral.lightest,
+    fontFamily: fontFamily.satoshiBold,
+    color: colors.neutral.lightest,
     fontSize: 18,
     fontWeight: "600",
   },
 
-  // Existing sessions section
   existingSessionsSection: {
     paddingHorizontal: 20,
     paddingVertical: 24,
     alignItems: "center",
   },
-
   sectionTitle: {
-    fontFamily: 'Satoshi-Bold',
+    fontFamily: fontFamily.satoshiBold,
     fontSize: 20,
     fontWeight: "600",
-    color: appTheme.colors.neutral.darkest,
+    color: colors.neutral.darkest,
     marginBottom: 8,
     textAlign: "center",
   },
-
   sectionSubtitle: {
-    fontFamily: 'Satoshi-Regular',
+    fontFamily: fontFamily.satoshi,
     fontSize: 16,
-    color: appTheme.colors.neutral.medium,
+    color: colors.neutral.medium,
     textAlign: "center",
     marginBottom: 24,
   },
-
-  // Existing sessions button
   existingSessionsButton: {
-    backgroundColor: appTheme.colors.neutral.lighter,
+    backgroundColor: colors.neutral.lighter,
     borderWidth: 1,
-    borderColor: appTheme.colors.neutral.light,
+    borderColor: colors.neutral.light,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
     marginBottom: 16,
   },
-
   existingSessionsButtonText: {
-    fontFamily: 'Satoshi-Bold',
-    color: appTheme.colors.neutral.medium,
+    fontFamily: fontFamily.satoshiBold,
+    color: colors.neutral.medium,
     fontSize: 16,
     fontWeight: "600",
   },
 
-  // Session selection styles
   sessionSelectionContainer: {
     flex: 1,
-    backgroundColor: appTheme.colors.neutral.lighter,
+    backgroundColor: colors.neutral.lighter,
     paddingHorizontal: 20,
   },
-
   sessionSelectionHeader: {
     paddingVertical: 24,
     alignItems: "center",
   },
-
   sessionSelectionTitle: {
-    fontFamily: 'Satoshi-Bold',
+    fontFamily: fontFamily.satoshiBold,
     fontSize: 24,
     fontWeight: "600",
-    color: appTheme.colors.neutral.darkest,
+    color: colors.neutral.darkest,
     marginBottom: 8,
     textAlign: "center",
   },
-
   sessionSelectionSubtitle: {
-    fontFamily: 'Satoshi-Regular',
+    fontFamily: fontFamily.satoshi,
     fontSize: 16,
-    color: appTheme.colors.neutral.medium,
+    color: colors.neutral.medium,
     textAlign: "center",
   },
-
-  // Session list - Responsive for iPad multi-column layout
   sessionList: {
     flex: 1,
-    flexDirection: appTheme.device.isTablet ? 'row' : 'column',
-    flexWrap: appTheme.device.isTablet ? 'wrap' : 'nowrap',
-    justifyContent: appTheme.device.isTablet ? 'flex-start' : 'space-between',
-    gap: appTheme.spacing.md,
-    paddingHorizontal: appTheme.layout.paddingHorizontal,
+    flexDirection: 'column',
+    flexWrap: 'nowrap',
+    justifyContent: 'space-between',
+    gap: 16,
+    paddingHorizontal: 20,
   },
-
-  // Session card - Responsive for iPad
   sessionCard: {
-    backgroundColor: appTheme.colors.neutral.lightest,
+    backgroundColor: colors.neutral.lightest,
     borderRadius: 12,
-    padding: appTheme.spacing.lg,
-    marginBottom: appTheme.spacing.lg,
-    marginHorizontal: appTheme.device.isTablet ? 0 : appTheme.layout.paddingHorizontal,
+    padding: 16,
+    marginBottom: 16,
+    marginHorizontal: 20,
     borderWidth: 1,
-    borderColor: appTheme.colors.neutral.light,
+    borderColor: colors.neutral.light,
     shadowColor: "#000000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
-    flex: appTheme.device.isTablet ? 0 : 1,
-    minWidth: appTheme.device.isTablet ? 300 : '100%',
-    maxWidth: appTheme.device.isTablet ? 400 : '100%',
+    flex: 1,
+    minWidth: '100%',
+    maxWidth: '100%',
   },
 
   sessionCardHeader: {
@@ -175,10 +145,10 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
   },
 
   sessionCardTitle: {
-    fontFamily: 'Satoshi-Bold',
+    fontFamily: fontFamily.satoshiBold,
     fontSize: 16,
     fontWeight: "600",
-    color: appTheme.colors.neutral.darkest,
+    color: colors.neutral.darkest,
     flex: 1,
   },
 
@@ -191,9 +161,9 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
   },
 
   sessionCardSubtitle: {
-    fontFamily: 'Satoshi-Regular',
+    fontFamily: fontFamily.satoshi,
     fontSize: 14,
-    color: appTheme.colors.neutral.medium,
+    color: colors.neutral.medium,
     marginBottom: 4,
   },
 
@@ -202,21 +172,21 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
   },
 
   sessionCardSuppliersText: {
-    fontFamily: 'Satoshi-Regular',
+    fontFamily: fontFamily.satoshi,
     fontSize: 12,
-    color: appTheme.colors.neutral.medium,
+    color: colors.neutral.medium,
   },
 
   sessionCardFooter: {
     borderTopWidth: 1,
-    borderTopColor: appTheme.colors.neutral.light,
+    borderTopColor: colors.neutral.light,
     paddingTop: 12,
   },
 
   sessionCardAction: {
-    fontFamily: 'Satoshi-Regular',
+    fontFamily: fontFamily.satoshi,
     fontSize: 12,
-    color: appTheme.colors.brand.primary,
+    color: colors.brand.primary,
     textAlign: "center",
   },
 
@@ -234,7 +204,7 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
   },
 
   newSessionButtonText: {
-    fontFamily: 'Satoshi-Bold',
+    fontFamily: fontFamily.satoshiBold,
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
@@ -244,7 +214,7 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
   // Session container
   sessionContainer: {
     flex: 1,
-    backgroundColor: appTheme.colors.neutral.lighter, // Warm paper background
+    backgroundColor: colors.neutral.lighter, // Warm paper background
   },
   
   // Session header with switcher
@@ -254,9 +224,9 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
     alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: appTheme.colors.neutral.lighter, // Slightly warmer paper
+    backgroundColor: colors.neutral.lighter, // Slightly warmer paper
     borderBottomWidth: 1,
-    borderBottomColor: appTheme.colors.neutral.light, // Light grey border
+    borderBottomColor: colors.neutral.light, // Light grey border
   },
 
   sessionHeaderLeft: {
@@ -264,17 +234,17 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
   },
 
   sessionHeaderTitle: {
-    fontFamily: 'Satoshi-Bold',
+    fontFamily: fontFamily.satoshiBold,
     fontSize: 16,
     fontWeight: "600",
-    color: appTheme.colors.neutral.darkest,
+    color: colors.neutral.darkest,
    
   },
 
   sessionSwitcherButton: {
-    backgroundColor: appTheme.colors.neutral.lighter,
+    backgroundColor: colors.neutral.lighter,
     borderWidth: 1,
-    borderColor: appTheme.colors.neutral.light,
+    borderColor: colors.neutral.light,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
@@ -282,24 +252,24 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
   },
 
   sessionSwitcherText: {
-    fontFamily: 'Satoshi-Regular',
+    fontFamily: fontFamily.satoshi,
     fontSize: 12,
-    color: appTheme.colors.neutral.medium,
+    color: colors.neutral.medium,
   },
   
   // Finish button (green for progress)
   finishButton: {
-    backgroundColor: appTheme.colors.brand.primary, // Green for progress
+    backgroundColor: colors.brand.primary, // Green for progress
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: appTheme.colors.brand.primary,
+    borderColor: colors.brand.primary,
   },
   
   finishButtonText: {
-    fontFamily: 'Satoshi-Bold',
-    color: appTheme.colors.neutral.lightest,
+    fontFamily: fontFamily.satoshiBold,
+    color: colors.neutral.lightest,
     fontSize: 16,
     fontWeight: "600",
   },
@@ -310,15 +280,15 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
   sessionSummary: {
     paddingHorizontal: 20,
     paddingVertical: 12,
-    backgroundColor: appTheme.colors.neutral.lighter, // Warm paper background
+    backgroundColor: colors.neutral.lighter, // Warm paper background
     borderBottomWidth: 1,
-    borderBottomColor: appTheme.colors.neutral.light, // Light grey border
+    borderBottomColor: colors.neutral.light, // Light grey border
   },
   
   summaryText: {
-    fontFamily: 'Satoshi-Regular',
+    fontFamily: fontFamily.satoshi,
     fontSize: 14,
-    color: appTheme.colors.neutral.darkest,
+    color: colors.neutral.darkest,
     textAlign: "center",
   },
   
@@ -326,16 +296,16 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
   addProductSection: {
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: appTheme.colors.neutral.lighter, // Slightly warmer paper
+    backgroundColor: colors.neutral.lighter, // Slightly warmer paper
     borderBottomWidth: 1,
-    borderBottomColor: appTheme.colors.neutral.light, // Light grey border
+    borderBottomColor: colors.neutral.light, // Light grey border
   },
   
   // Instructions for adding products
   addProductInstructions: {
-    fontFamily: 'Satoshi-Italic',
+    fontFamily: fontFamily.satoshiItalic,
     fontSize: 14,
-    color: appTheme.colors.neutral.medium,
+    color: colors.neutral.medium,
     textAlign: "center",
     marginBottom: 16,
     fontStyle: "italic",
@@ -344,7 +314,7 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
   // Divider between instructions and button
   divider: {
     height: 1,
-    backgroundColor: appTheme.colors.neutral.light, // Divider
+    backgroundColor: colors.neutral.light, // Divider
     marginVertical: 0,
   },
   
@@ -352,25 +322,25 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
   addProductButtonSection: {
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: appTheme.colors.neutral.lighter, // Slightly warmer paper
+    backgroundColor: colors.neutral.lighter, // Slightly warmer paper
     alignItems: "flex-end", // Right align the button
   },
   
   // Add Product button (darker green with plus sign)
   addProductButton: {
-    backgroundColor: appTheme.colors.brand.primary, // Brand green
+    backgroundColor: colors.brand.primary, // Brand green
     width: 140,
     height: 90,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: appTheme.colors.brand.primary,
+    borderColor: colors.brand.primary,
     justifyContent: "center",
     alignItems: "center",
   },
   
   addProductButtonText: {
-    fontFamily: 'Satoshi-Bold',
-    color: appTheme.colors.neutral.lightest,
+    fontFamily: fontFamily.satoshiBold,
+    color: colors.neutral.lightest,
     fontSize: 20,
     fontWeight: "600",
   },
@@ -384,22 +354,22 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
   productListHeader: {
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: appTheme.colors.neutral.light,
+    borderBottomColor: colors.neutral.light,
     marginBottom: 16,
   },
 
   productListTitle: {
-    fontFamily: 'Satoshi-Bold',
+    fontFamily: fontFamily.satoshiBold,
     fontSize: 18,
     fontWeight: "600",
-    color: appTheme.colors.neutral.darkest,
+    color: colors.neutral.darkest,
     marginBottom: 4,
   },
 
   productListSubtitle: {
-    fontFamily: 'Satoshi-Regular',
+    fontFamily: fontFamily.satoshi,
     fontSize: 14,
-    color: appTheme.colors.neutral.medium,
+    color: colors.neutral.medium,
   },
 
   // Product list styles
@@ -415,12 +385,12 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
   
   // Product item with notepad aesthetic
   productItem: {
-    backgroundColor: appTheme.colors.neutral.lightest, // Pure white for contrast
+    backgroundColor: colors.neutral.lightest, // Pure white for contrast
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: appTheme.colors.neutral.light, // Light grey border
+    borderColor: colors.neutral.light, // Light grey border
     shadowColor: "#000000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -431,7 +401,7 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
   // Notepad divider line
   notepadDivider: {
     height: 1,
-    backgroundColor: appTheme.colors.neutral.light, // Light grey line like notepad paper
+    backgroundColor: colors.neutral.light, // Light grey line like notepad paper
     marginVertical: 8,
     marginHorizontal: -8, // Extend slightly beyond padding
   },
@@ -447,20 +417,20 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
   
   // Product info label (category)
   productInfoLabel: {
-    fontFamily: 'Satoshi-Bold',
+    fontFamily: fontFamily.satoshiBold,
     fontSize: 14,
   
     lineHeight: 20,
-    color: appTheme.colors.neutral.darkest,
+    color: colors.neutral.darkest,
     fontWeight: "600", // Semi-bold for category
   },
   
   // Product info value
   productInfoValue: {
-    fontFamily: 'Satoshi-Regular',
+    fontFamily: fontFamily.satoshi,
     fontSize: 14,
     paddingLeft: 10,
-    color: appTheme.colors.neutral.dark, // Dark grey for values
+    color: colors.neutral.dark, // Dark grey for values
     fontWeight: "400", // Regular weight for values
   },
   
@@ -481,14 +451,14 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
   // Product name
   productName: {
     ...typography.productName,
-    color: appTheme.colors.neutral.darkest,
+    color: colors.neutral.darkest,
     marginBottom: 4,
   },
   
   // Product quantity
   productQuantity: {
     ...typography.bodySmall,
-    color: appTheme.colors.neutral.darkest,
+    color: colors.neutral.darkest,
     fontWeight: "500",
   },
 
@@ -509,65 +479,65 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
   productDetails: {
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: appTheme.colors.neutral.light,
+    borderTopColor: colors.neutral.light,
   },
 
   // Edit button (yellow/brown for edit)
   editButton: {
-    backgroundColor: appTheme.colors.brand.accent, // Orange for edit
+    backgroundColor: colors.brand.accent, // Orange for edit
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
     marginRight: 8,
     borderWidth: 1,
-    borderColor: appTheme.colors.brand.accent,
+    borderColor: colors.brand.accent,
   },
   
   editButtonText: {
     ...typography.buttonText,
-    color: appTheme.colors.neutral.lightest,
+    color: colors.neutral.lightest,
     fontSize: 12,
     fontWeight: "600",
   },
   
   // Edit icon button
   editIconButton: {
-    backgroundColor: appTheme.colors.brand.accent, // Orange for edit
+    backgroundColor: colors.brand.accent, // Orange for edit
     width: 32,
     height: 32,
     borderRadius: 16,
     marginRight: 8,
     borderWidth: 1,
-    borderColor: appTheme.colors.brand.accent,
+    borderColor: colors.brand.accent,
     justifyContent: "center",
     alignItems: "center",
   },
   
   // Delete button (red for delete)
   deleteButton: {
-    backgroundColor: appTheme.colors.status.error, // Red for delete
+    backgroundColor: colors.status.error, // Red for delete
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: appTheme.colors.status.error,
+    borderColor: colors.status.error,
   },
   
   deleteButtonText: {
     ...typography.buttonText,
-    color: appTheme.colors.neutral.lightest,
+    color: colors.neutral.lightest,
     fontSize: 12,
     fontWeight: "500",
   },
   
   // Delete icon button
   deleteIconButton: {
-    backgroundColor: appTheme.colors.status.error, // Red for delete
+    backgroundColor: colors.status.error, // Red for delete
     width: 32,
     height: 32,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: appTheme.colors.status.error,
+    borderColor: colors.status.error,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -575,14 +545,14 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
   // Product supplier info
   productSupplier: {
     ...typography.bodySmall,
-    color: appTheme.colors.neutral.darkest,
+    color: colors.neutral.darkest,
     marginBottom: 4,
     fontWeight: "600", // Semi-bold for category
   },
   
   productEmail: {
     ...typography.bodySmall,
-    color: appTheme.colors.neutral.dark, // Dark grey for values
+    color: colors.neutral.dark, // Dark grey for values
     fontWeight: "400", // Regular weight for values
   },
   
@@ -590,14 +560,14 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
   EditProductcontainer: {
    
     paddingTop: 1,
-    backgroundColor: appTheme.colors.neutral.lighter, // Warm paper background
+    backgroundColor: colors.neutral.lighter, // Warm paper background
   
   },
   
   // Form section divider for better visual separation
   formSectionDivider: {
     height: 1,
-    backgroundColor: appTheme.colors.neutral.light,
+    backgroundColor: colors.neutral.light,
     marginVertical: 16,
     opacity: 0.3,
   },
@@ -616,7 +586,7 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
     fontSize: 22,
     lineHeight: 28,
     fontWeight: '700' as const,
-    color: appTheme.colors.neutral.darkest,
+    color: colors.neutral.darkest,
     marginBottom: 24,
     textAlign: "center",
   },
@@ -633,40 +603,40 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
     paddingBottom: 5,
     lineHeight: 20,
     fontWeight: '600' as const,
-    color: appTheme.colors.neutral.darkest,
+    color: colors.neutral.darkest,
   
   },
   
   // Text input - Consistent with sign-up form
   textInput: {
     ...typography.bodyMedium,
-    backgroundColor: appTheme.colors.neutral.lightest,
+    backgroundColor: colors.neutral.lightest,
     borderWidth: 1,
-    borderColor: appTheme.colors.neutral.light,
+    borderColor: colors.neutral.light,
     borderRadius: 8,
     paddingHorizontal: 16,
   
     
-    color: appTheme.colors.neutral.darkest,
+    color: colors.neutral.darkest,
     minHeight: 60,
   },
   
   // Text input focus state - Consistent with sign-up form
   textInputFocused: {
-    borderColor: appTheme.colors.brand.primary,
+    borderColor: colors.brand.primary,
     minHeight: 96,
   },
   
   // Quantity input - Consistent with sign-up form
   quantityInput: {
     ...typography.bodyMedium,
-    backgroundColor: appTheme.colors.neutral.lightest,
+    backgroundColor: colors.neutral.lightest,
     borderWidth: 1,
-    borderColor: appTheme.colors.neutral.light,
+    borderColor: colors.neutral.light,
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 20,
-    color: appTheme.colors.neutral.darkest,
+    color: colors.neutral.darkest,
     textAlign: "center",
     width: 120,
     minHeight: 56,
@@ -674,7 +644,7 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
   
   // Quantity input focus state - Consistent with sign-up form
   quantityInputFocused: {
-    borderColor: appTheme.colors.brand.primary,
+    borderColor: colors.brand.primary,
   },
   
   // Quantity container
@@ -691,9 +661,9 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: appTheme.colors.brand.primary, // Primary color for tappable buttons
+    backgroundColor: colors.brand.primary, // Primary color for tappable buttons
     borderWidth: 1,
-    borderColor: appTheme.colors.brand.primary,
+    borderColor: colors.brand.primary,
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#000000",
@@ -706,14 +676,14 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
   quantityButtonText: {
     fontSize: 20,
     fontWeight: "600",
-    color: appTheme.colors.neutral.lightest, // White text on colored button
+    color: colors.neutral.lightest, // White text on colored button
   },
 
   // Quantity display
   quantityDisplay: {
-    backgroundColor: appTheme.colors.neutral.lighter, // Light background to distinguish from buttons
+    backgroundColor: colors.neutral.lighter, // Light background to distinguish from buttons
     borderWidth: 1,
-    borderColor: appTheme.colors.neutral.light,
+    borderColor: colors.neutral.light,
     borderRadius: 12,
     paddingHorizontal: 24,
     paddingVertical: 12,
@@ -725,31 +695,31 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
   quantityText: {
     fontSize: 18,
     fontWeight: "600",
-    color: appTheme.colors.neutral.darkest,
+    color: colors.neutral.darkest,
     textAlign: "center",
   },
   
   // Suggestion item
   suggestionItem: {
-    backgroundColor: appTheme.colors.neutral.lighter, // Very light grey
+    backgroundColor: colors.neutral.lighter, // Very light grey
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 8,
     marginBottom: 4,
     borderWidth: 1,
-    borderColor: appTheme.colors.neutral.light, // Light grey border
+    borderColor: colors.neutral.light, // Light grey border
   },
   
   suggestionText: {
     ...typography.bodySmall,
-    color: appTheme.colors.neutral.darkest,
+    color: colors.neutral.darkest,
   },
   
   // Form buttons - Optimized spacing
   formButtons: {
     flexDirection: "row",
     justifyContent: "center",
-    backgroundColor: appTheme.colors.brand.primary,
+    backgroundColor: colors.brand.primary,
     marginTop: 24,
     marginBottom: 16,
     padding: 20,
@@ -760,9 +730,9 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
   // Cancel button
   cancelButton: {
     flex: 1,
-    backgroundColor: appTheme.colors.neutral.lighter, // Very light grey
+    backgroundColor: colors.neutral.lighter, // Very light grey
     borderWidth: 1,
-    borderColor: appTheme.colors.neutral.light, // Light grey border
+    borderColor: colors.neutral.light, // Light grey border
     borderRadius: 8,
     paddingVertical: 16,
     alignItems: "center",
@@ -771,7 +741,7 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
   // Save button - Consistent with sign-up form
   saveButton: {
     flex: 1,
-    backgroundColor: appTheme.colors.brand.primary,
+    backgroundColor: colors.brand.primary,
     borderRadius: 8,
     padding: 16,
     alignItems: "center",
@@ -784,11 +754,11 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
   },
   
   cancelButtonText: {
-    color: appTheme.colors.neutral.darkest,
+    color: colors.neutral.darkest,
   },
   
   saveButtonText: {
-    color: appTheme.colors.neutral.lightest,
+    color: colors.neutral.lightest,
   },
   
   // Empty state
@@ -806,7 +776,7 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
   
   emptyStateText: {
     ...typography.bodyMedium,
-    color: appTheme.colors.neutral.darkest,
+    color: colors.neutral.darkest,
     textAlign: "center",
     lineHeight: 24,
     marginBottom: 8,
@@ -814,7 +784,7 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
 
   emptyStateSubtext: {
     ...typography.bodySmall,
-    color: appTheme.colors.neutral.light,
+    color: colors.neutral.light,
     textAlign: "center",
     lineHeight: 20,
   },
@@ -831,22 +801,22 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
   
   integratedAddButtonIcon: {
     fontSize: 18,
-    color: appTheme.colors.neutral.medium, // Grey color like the reference
+    color: colors.neutral.medium, // Grey color like the reference
     marginRight: 12,
     fontWeight: "500",
   },
   
   integratedAddButtonText: {
     ...typography.productName,
-    color: appTheme.colors.neutral.medium, // Grey color like the reference
+    color: colors.neutral.medium, // Grey color like the reference
     fontWeight: "500",
   },
   
   // Error message
   errorMessage: {
-    backgroundColor: appTheme.colors.neutral.lighter, // Very light grey
+    backgroundColor: colors.neutral.lighter, // Very light grey
     borderWidth: 1,
-    borderColor: appTheme.colors.status.error, // Red border
+    borderColor: colors.status.error, // Red border
     borderRadius: 8,
     padding: 12,
     marginBottom: 20,
@@ -854,7 +824,7 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
   
   errorText: {
     ...typography.bodySmall,
-    color: appTheme.colors.status.error, // Red text
+    color: colors.status.error, // Red text
     textAlign: "center",
   },
   
@@ -866,7 +836,7 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: appTheme.colors.brand.primary, // Green for progress
+    backgroundColor: colors.brand.primary, // Green for progress
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000000",
@@ -878,7 +848,7 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
   
   // Floating button icon
   floatingButtonIcon: {
-    color: appTheme.colors.neutral.lightest,
+    color: colors.neutral.lightest,
     fontSize: 24,
   },
   
@@ -888,9 +858,9 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: appTheme.colors.neutral.lighter, // Slightly warmer paper
+    backgroundColor: colors.neutral.lighter, // Slightly warmer paper
     borderTopWidth: 1,
-    borderTopColor: appTheme.colors.neutral.light, // Light grey border
+    borderTopColor: colors.neutral.light, // Light grey border
     paddingHorizontal: 20,
     paddingVertical: 16,
     paddingBottom: 34, // Account for safe area
@@ -898,17 +868,17 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
   
   // Bottom finish button
   bottomFinishButton: {
-    backgroundColor: appTheme.colors.brand.primary, // Green for progress
+    backgroundColor: colors.brand.primary, // Green for progress
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: appTheme.colors.brand.primary,
+    borderColor: colors.brand.primary,
   },
   
   bottomFinishButtonText: {
     ...typography.bodyLarge,
-    color: appTheme.colors.neutral.lightest,
+    color: colors.neutral.lightest,
     fontWeight: "600",
   },
 
@@ -918,9 +888,9 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: appTheme.colors.neutral.lighter, // Slightly warmer paper
+    backgroundColor: colors.neutral.lighter, // Slightly warmer paper
     borderTopWidth: 1,
-    borderTopColor: appTheme.colors.neutral.light, // Light grey border
+    borderTopColor: colors.neutral.light, // Light grey border
     paddingHorizontal: 20,
     paddingVertical: 20,
     paddingBottom: 34, // Account for safe area
@@ -934,7 +904,7 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
 
   emailReadyTitle: {
     ...typography.subsectionHeader,
-    color: appTheme.colors.neutral.darkest,
+    color: colors.neutral.darkest,
     fontWeight: "600",
     marginLeft: 8,
   },
@@ -945,7 +915,7 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
 
   emailReadyDescription: {
     ...typography.bodyMedium,
-    color: appTheme.colors.neutral.medium,
+    color: colors.neutral.medium,
     marginBottom: 12,
     lineHeight: 20,
   },
@@ -953,11 +923,11 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
   emailReadyStats: {
     flexDirection: "row",
     justifyContent: "space-around",
-    backgroundColor: appTheme.colors.neutral.lightest,
+    backgroundColor: colors.neutral.lightest,
     borderRadius: 8,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: appTheme.colors.neutral.light,
+    borderColor: colors.neutral.light,
   },
 
   emailReadyStat: {
@@ -966,14 +936,14 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
 
   emailReadyStatNumber: {
     ...typography.sectionHeader,
-    color: appTheme.colors.neutral.darkest,
+    color: colors.neutral.darkest,
     fontWeight: "700",
     marginBottom: 2,
   },
 
   emailReadyStatLabel: {
     ...typography.caption,
-    color: appTheme.colors.neutral.medium,
+    color: colors.neutral.medium,
     fontWeight: "500",
   },
 
@@ -984,30 +954,30 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
 
   emailReadySecondaryButton: {
     flex: 1,
-    backgroundColor: appTheme.colors.neutral.lightest,
+    backgroundColor: colors.neutral.lightest,
     paddingVertical: 14,
     borderRadius: 8,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: appTheme.colors.neutral.light,
+    borderColor: colors.neutral.light,
   },
 
   emailReadySecondaryButtonText: {
     ...typography.bodyMedium,
-    color: appTheme.colors.neutral.medium,
+    color: colors.neutral.medium,
     fontWeight: "600",
   },
 
   emailReadyPrimaryButton: {
     flex: 2,
-    backgroundColor: appTheme.colors.brand.primary, // Green for primary action
+    backgroundColor: colors.brand.primary, // Green for primary action
     paddingVertical: 14,
     borderRadius: 8,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: appTheme.colors.brand.primary,
+    borderColor: colors.brand.primary,
   },
 
   emailReadyButtonIcon: {
@@ -1016,7 +986,7 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
 
   emailReadyPrimaryButtonText: {
     ...typography.bodyMedium,
-    color: appTheme.colors.neutral.lightest,
+    color: colors.neutral.lightest,
     fontWeight: "600",
   },
   
@@ -1056,7 +1026,7 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
     flex: 1,
     ...typography.bodySmall,
     fontWeight: "500",
-    color: appTheme.colors.neutral.lightest,
+    color: colors.neutral.lightest,
   },
   
   notificationClose: {
@@ -1065,48 +1035,48 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
   
   notificationCloseText: {
     ...typography.buttonText,
-    color: appTheme.colors.neutral.lightest,
+    color: colors.neutral.lightest,
     fontWeight: "600",
   },
   
   // Notification type styles
   notificationSuccess: {
-    backgroundColor: appTheme.colors.status.success, // Green for success
+    backgroundColor: colors.status.success, // Green for success
   },
   
   notificationSuccessIcon: {
-    backgroundColor: appTheme.colors.status.success,
+    backgroundColor: colors.status.success,
   },
   
   notificationInfo: {
-    backgroundColor: appTheme.colors.status.info, // Blue for info
+    backgroundColor: colors.status.info, // Blue for info
   },
   
   notificationInfoIcon: {
-    backgroundColor: appTheme.colors.status.info, // Use same family
+    backgroundColor: colors.status.info, // Use same family
   },
   
   notificationWarning: {
-    backgroundColor: appTheme.colors.status.warning, // Amber for warning
+    backgroundColor: colors.status.warning, // Amber for warning
   },
   
   notificationWarningIcon: {
-    backgroundColor: appTheme.colors.status.warning,
+    backgroundColor: colors.status.warning,
   },
   
   notificationError: {
-    backgroundColor: appTheme.colors.status.error, // Red for error
+    backgroundColor: colors.status.error, // Red for error
   },
   
   notificationErrorIcon: {
-    backgroundColor: appTheme.colors.status.error, // Darker red
+    backgroundColor: colors.status.error, // Darker red
   },
   
   // Error handling styles
   errorContainer: {
-    backgroundColor: appTheme.colors.neutral.lighter, // Very light grey
+    backgroundColor: colors.neutral.lighter, // Very light grey
     borderWidth: 1,
-    borderColor: appTheme.colors.status.error, // Red border
+    borderColor: colors.status.error, // Red border
     borderRadius: 12,
     padding: 20,
     margin: 20,
@@ -1116,31 +1086,31 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
   errorTitle: {
     ...typography.bodyLarge,
     fontWeight: "600",
-    color: appTheme.colors.status.error, // Red text
+    color: colors.status.error, // Red text
     marginBottom: 8,
     textAlign: "center",
   },
   
   errorStateMessage: {
     ...typography.bodySmall,
-    color: appTheme.colors.status.error, // Red text
+    color: colors.status.error, // Red text
     textAlign: "center",
     marginBottom: 16,
     lineHeight: 20,
   },
   
   retryButton: {
-    backgroundColor: appTheme.colors.brand.primary, // Green for retry
+    backgroundColor: colors.brand.primary, // Green for retry
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: appTheme.colors.brand.primary,
+    borderColor: colors.brand.primary,
   },
   
   retryButtonText: {
     ...typography.buttonText,
-    color: appTheme.colors.neutral.lightest,
+    color: colors.neutral.lightest,
     fontWeight: "600",
   },
   
@@ -1154,37 +1124,7 @@ export const getRestockSessionsStyles = (appTheme: ReturnType<typeof useAppTheme
   
   loadingText: {
     ...typography.bodyMedium,
-    color: appTheme.colors.neutral.darkest,
+    color: colors.neutral.darkest,
     textAlign: "center",
   },
 });
-
-// Create a fallback theme for backward compatibility
-const fallbackTheme = {
-  colors,
-  device: { deviceType: 'mobile' as const, isTablet: false, isMobile: true, width: 375, height: 667, isLandscape: false },
-  spacing: { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24, xxxl: 32 },
-  typography: { appTitle: 28, sectionHeader: 20, subsectionHeader: 18, productName: 16, buttonText: 16, bodyLarge: 16, bodyMedium: 14, bodySmall: 12, caption: 11 },
-  layout: { maxContentWidth: '100%' as const, paddingHorizontal: 20, columns: 1, actionGridColumns: 2, cardMinWidth: 0, tabBarHeight: 60, touchTargetMin: 44 },
-  patterns: {
-    container: () => ({ flex: 1, maxWidth: '100%', alignSelf: 'center' as const, width: '100%' }),
-    grid: () => ({ flexDirection: 'row' as const, flexWrap: 'wrap' as const, justifyContent: 'space-between' as const }),
-    card: () => ({ flex: 1, minWidth: 0 }),
-    actionGrid: () => ({ flexDirection: 'row' as const, flexWrap: 'wrap' as const, justifyContent: 'space-between' as const }),
-    touchTarget: () => ({ minHeight: 44, minWidth: 44 })
-  },
-  breakpoints: { mobile: 0, tablet: 768 },
-  getResponsiveValue: <T>(values: Partial<Record<string, T>>, fallback: T): T => fallback,
-};
-
-// Backward-compatible static export (deprecated - use useRestockSessionsTheme instead)
-export const restockSessionsStyles = getRestockSessionsStyles(fallbackTheme);
-
-// Utility hook for restock sessions components
-export const useRestockSessionsTheme = () => {
-  const appTheme = useAppTheme();
-  return {
-    styles: getRestockSessionsStyles(appTheme),
-    appTheme,
-  };
-};
