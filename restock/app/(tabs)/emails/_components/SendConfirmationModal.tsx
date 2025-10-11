@@ -9,7 +9,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import useThemeStore from '../../../../lib/stores/useThemeStore';
+import { useSafeTheme } from '../../../../lib/stores/useThemeStore'
 import { typography } from '../../../../styles/typography';
 
 interface SendConfirmationModalProps {

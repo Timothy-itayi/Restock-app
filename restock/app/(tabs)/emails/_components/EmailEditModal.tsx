@@ -1,9 +1,10 @@
 import React from 'react';
 import { Modal, KeyboardAvoidingView, Platform, View, Text, TouchableOpacity, ScrollView, TextInput } from 'react-native';
 import { getEmailsStyles } from '../../../../styles/components/emails';
-import { useThemedStyles } from '../../../../styles/useThemedStyles';
+
 import { EmailDraft } from '../_hooks';
-import useThemeStore from '../../../../lib/stores/useThemeStore';
+import { useSafeTheme } from '../../../../lib/stores/useThemeStore';
+import colors, { AppColors } from '../../../../lib/theme/colors';
 
 interface EmailEditModalProps {
   visible: boolean;
@@ -26,8 +27,8 @@ export function EmailEditModal({
   onSave,
   onCancel
 }: EmailEditModalProps) {
-  const emailsStyles = useThemedStyles(getEmailsStyles);
-  const { theme } = useThemeStore();
+  const t = useSafeTheme();
+  const emailsStyles = getEmailsStyles(t.theme as AppColors);
   return (
     <Modal
       visible={visible}
@@ -38,9 +39,9 @@ export function EmailEditModal({
         style={{ flex: 1 }} 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <View style={[emailsStyles.modalContainer, { backgroundColor: theme.neutral.lightest }]}>
+          <View style={[emailsStyles.modalContainer, { backgroundColor: colors.neutral.lightest }]}>
           {/* Modal Header */}
-          <View style={[emailsStyles.modalHeader, { backgroundColor: theme.neutral.lightest }]}>
+          <View style={[emailsStyles.modalHeader, { backgroundColor: colors.neutral.lightest }]}>
             <TouchableOpacity onPress={onCancel}>
               <Text style={emailsStyles.modalCancelButton}>Cancel</Text>
             </TouchableOpacity>
@@ -52,17 +53,17 @@ export function EmailEditModal({
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={[emailsStyles.modalContent, { backgroundColor: theme.neutral.lightest }]} showsVerticalScrollIndicator={false}>
+          <ScrollView style={[emailsStyles.modalContent, { backgroundColor: colors.neutral.lightest }]} showsVerticalScrollIndicator={false}>
             {/* Supplier Info */}
             {editingEmail && (
-              <View style={[emailsStyles.modalSupplierInfo, { backgroundColor: theme.neutral.lightest }]}>
+              <View style={[emailsStyles.modalSupplierInfo, { backgroundColor: colors.neutral.lightest }]}>
                 <Text style={emailsStyles.modalSupplierName}>To: {editingEmail.supplierName}</Text>
                 <Text style={emailsStyles.modalSupplierEmail}>{editingEmail.supplierEmail}</Text>
               </View>
             )}
 
             {/* Subject Input */}
-            <View style={[emailsStyles.modalInputSection, { backgroundColor: theme.neutral.lightest }]}>
+            <View style={[emailsStyles.modalInputSection, { backgroundColor: colors.neutral.lightest }]}>
               <Text style={emailsStyles.modalInputLabel}>Subject</Text>
               <TextInput
                 style={emailsStyles.modalSubjectInput}
@@ -74,7 +75,7 @@ export function EmailEditModal({
             </View>
 
             {/* Body Input */}
-            <View style={[emailsStyles.modalInputSection, { backgroundColor: theme.neutral.lightest }]}>
+            <View style={[emailsStyles.modalInputSection, { backgroundColor: colors.neutral.lightest }]}>
               <Text style={emailsStyles.modalInputLabel}>Message</Text>
               <TextInput
                 style={emailsStyles.modalBodyInput}
@@ -88,11 +89,11 @@ export function EmailEditModal({
 
             {/* Product List Preview */}
             {editingEmail && (
-              <View style={[emailsStyles.modalProductsSection, { backgroundColor: theme.neutral.lightest }]}>
+              <View style={[emailsStyles.modalProductsSection, { backgroundColor: colors.neutral.lightest }]}>
                 <Text style={emailsStyles.modalInputLabel}>Products in this order</Text>
                 <View style={emailsStyles.modalProductsList}>
                   {editingEmail.products.map((product, index) => (
-                    <Text key={index} style={[emailsStyles.modalProductItem, { color: theme.neutral.darkest }]}>
+                    <Text key={index} style={[emailsStyles.modalProductItem, { color: colors.neutral.darkest }]}>
                       • {product}
                     </Text>
                   ))}

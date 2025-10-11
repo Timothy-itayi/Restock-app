@@ -104,9 +104,11 @@ export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }
     }
   }, [pathname]);
 
-  // Hydration = auth + profile ready
+  // Hydration = auth system ready + profile fetch completed (regardless of whether profile exists)
+  // For authenticated users: we need userId and profile check to be done (!isProfileLoading)
+  // For unauthenticated users: just need auth system to be ready
   const isHydrated =
-    isReady && (!isAuthenticated || (userId && hasValidProfile && !isProfileLoading));
+    isReady && (!isAuthenticated || (userId && !isProfileLoading));
 
   console.log('[AuthRouter] Hydration check:', {
     isHydrated,
@@ -116,7 +118,10 @@ export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }
     hasValidProfile,
     isProfileLoading,
     rawPathname,
-    pathname
+    pathname,
+    explanation: isHydrated 
+      ? '✅ Hydrated - ready to route'
+      : '⏳ Not hydrated - waiting for auth/profile data'
   });
 
   // Determine target route
@@ -140,13 +145,21 @@ export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }
       if (hasValidProfile && userName && storeName) {
         // ✅ Free roam if already inside tab areas (including nested routes)
         if (isInsideTabArea(pathname)) return null;
-        console.log('[AuthRouter] User authenticated, redirecting to main tab area');
+        console.log('[AuthRouter] User authenticated with valid profile, redirecting to main tab area');
 
         // ✅ Fallback to last tab or dashboard
         return lastVisitedTab && ALLOWED_TABS.includes(lastVisitedTab)
           ? lastVisitedTab
           : '/(tabs)/dashboard';
       }
+      
+      // User needs profile setup - if already there, stay put
+      if (pathname === '/sso-profile-setup') {
+        console.log('[AuthRouter] User already on profile setup page, staying put');
+        return null;
+      }
+      
+      console.log('[AuthRouter] User authenticated but no profile, redirecting to profile setup');
       return '/sso-profile-setup';
     }
 

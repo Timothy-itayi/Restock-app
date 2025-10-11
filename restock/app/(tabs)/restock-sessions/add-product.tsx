@@ -2,18 +2,20 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { SafeAreaView, ScrollView, View, Alert, DeviceEventEmitter, TouchableOpacity, Text } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useThemedStyles } from '../../../styles/useThemedStyles';
+import { useSafeTheme } from '../../../lib/stores/useThemeStore';
 import { getRestockSessionsStyles } from '../../../styles/components/restock-sessions';
 import { ProductForm } from './_components/ProductForm';
 import CustomToast from '../../../lib/components/CustomToast';
 import { useSessionContext } from './_context/SessionContext';
 import { useRepositories } from '../../../lib/infrastructure/_supabase/SupabaseHooksProvider';
 import { useUnifiedAuth } from '../../../lib/auth/UnifiedAuthProvider';
+import colors, { AppColors } from '../../../lib/theme/colors';
 
 export default function AddProductScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
-  const styles = useThemedStyles(getRestockSessionsStyles);
+  const t = useSafeTheme();
+  const styles = getRestockSessionsStyles(t.theme as AppColors);
   const { userId } = useUnifiedAuth();
   const { sessionRepository, productRepository, isSupabaseReady } = useRepositories();
   const sessionContext = useSessionContext();
@@ -109,7 +111,7 @@ export default function AddProductScreen() {
       {/* Header */}
       <View style={styles.sessionHeader}>
         <TouchableOpacity style={{ paddingVertical: 8, paddingHorizontal: 12 }} onPress={handleBack}>
-          <Text style={{ fontFamily: 'Satoshi-Regular', fontSize: 16, color: '#6C757D' }}>← Back</Text>
+          <Text style={{ fontFamily: 'Satoshi-Regular', fontSize: 16, color: colors.neutral.medium }}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.sessionHeaderTitle}>
           {sessionContext.currentSession 

@@ -1,7 +1,9 @@
 import React from 'react';
 import { View, Text } from 'react-native';
-import { dashboardStyles } from '../../../../styles/components/dashboard';
+import { getDashboardStyles } from '../../../../styles/components/dashboard';
 import  SkeletonBox  from '../../../../lib/components/skeleton/SkeletonBox';
+import { useSafeTheme } from '../../../../lib/stores/useThemeStore';
+import colors, { type AppColors } from '../../../../lib/theme/colors';
 
 interface Session {
   id: string;
@@ -25,8 +27,9 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
   unfinishedSessions,
   finishedSessions
 }) => {
-  const { styles: dashboardStyles } = useDashboardTheme();
-  const appTheme = useAppTheme();
+  const t = useSafeTheme();
+  const dashboardStyles = getDashboardStyles(t.theme as AppColors);
+
   const allSessions = [...unfinishedSessions, ...finishedSessions];
   const totalProducts = allSessions.reduce((sum, session) => sum + session.uniqueProducts, 0);
   const totalSuppliers = allSessions.reduce((sum, session) => sum + session.uniqueSuppliers, 0);
@@ -78,10 +81,10 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
               marginTop: 8, 
               gap: 16 
             }}>
-              <Text style={{ fontSize: 11, color: appTheme.colors.neutral.medium }}>
+              <Text style={{ fontSize: 11, color:colors.neutral.medium }}>
                 {unfinishedSessions.length} active
               </Text>
-              <Text style={{ fontSize: 11, color: appTheme.colors.neutral.medium }}>
+              <Text style={{ fontSize: 11, color:colors.neutral.medium }}>
                 {finishedSessions.length} completed
               </Text>
             </View>
@@ -91,3 +94,5 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
     </View>
   );
 };
+
+

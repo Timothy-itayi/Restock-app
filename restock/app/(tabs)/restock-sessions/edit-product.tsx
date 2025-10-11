@@ -7,15 +7,17 @@ import { useSessionContext } from './_context/SessionContext';
 import { useRepositories } from '../../../lib/infrastructure/_supabase/SupabaseHooksProvider';
 import { ProductForm } from './_components/ProductForm';
 import CustomToast from '../../../lib/components/CustomToast';
-import { useThemedStyles } from '../../../styles/useThemedStyles';
+import { useSafeTheme } from '../../../lib/stores/useThemeStore';
 import { getRestockSessionsStyles } from '../../../styles/components/restock-sessions';
+import colors, { AppColors } from '../../../lib/theme/colors';
 
 export default function EditProductScreen() {
   const router = useRouter();
   const { userId } = useUnifiedAuth();
   const { sessionRepository, productRepository, isSupabaseReady } = useRepositories();
   const sessionContext = useSessionContext();
-  const restockSessionsStyles = useThemedStyles(getRestockSessionsStyles);
+  const t = useSafeTheme();
+  const restockSessionsStyles = getRestockSessionsStyles(t.theme as AppColors);
 
   const params = useLocalSearchParams();
   const editData = useMemo(() => ({

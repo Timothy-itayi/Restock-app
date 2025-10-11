@@ -10,22 +10,22 @@ export interface ProductRepository {
   /**
    * Set the current user ID for this repository instance
    */
-  setUserId(userId: string): void;
+
 
   // Basic CRUD operations
-  save(product: Product): Promise<void>;
-  findById(id: string): Promise<Product | null>;
-  findByUserId(): Promise<ReadonlyArray<Product>>; // RPC functions handle user isolation
+
+
+// RPC functions handle user isolation
   delete(id: string): Promise<void>;
 
   // Query operations
-  findByName(name: string): Promise<ReadonlyArray<Product>>; // RPC functions handle user isolation
-  search(searchTerm: string): Promise<ReadonlyArray<Product>>; // RPC functions handle user isolation
-  findBySupplierId(supplierId: string): Promise<ReadonlyArray<Product>>; // RPC functions handle user isolation
+ // RPC functions handle user isolation
+// RPC functions handle user isolation
+// RPC functions handle user isolation
   
   // Business queries
-  countByUserId(): Promise<number>; // RPC functions handle user isolation
-  findMostUsed(limit: number): Promise<ReadonlyArray<Product>>; // RPC functions handle user isolation
+// RPC functions handle user isolation
+// RPC functions handle user isolation
 }
 
 export interface ProductRepositoryError extends Error {

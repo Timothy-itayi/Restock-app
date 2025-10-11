@@ -32,51 +32,45 @@ This is a React Native + Expo Router application for managing store restocking o
 
 **Solution**: Digitize the analog restock process with smart suggestions, automatic grouping, and professional email generation.
 
-## 🚀 CONVEX BACKEND ARCHITECTURE
+## 🚀 BACKEND ARCHITECTURE
 
 ### Overview
-The app is built on **Convex**, a real-time, serverless backend platform that provides:
-- **Real-time database** with reactive queries
-- **Serverless functions** for business logic
-- **Built-in authentication** integration with Clerk
-- **Type-safe API** with automatic TypeScript generation
-- **Scalable infrastructure** without server management
+The app is built on **Supabase** with **Clerk** authentication:
+- **PostgreSQL database** with Row Level Security (RLS)
+- **Clean architecture** with repository pattern
+- **JWT authentication** via Clerk integration
+- **Type-safe API** with TypeScript
+- **Scalable cloud infrastructure**
 
-### Convex Integration Components
+### Backend Integration Components
 
-#### 1. Database Schema (`convex/schema.ts`)
-Complete data model with proper relationships:
+#### 1. Database Schema (Supabase PostgreSQL)
+Complete data model with proper relationships and RLS policies:
 ```typescript
 - users: User profiles with Clerk integration
 - products: Restock items with supplier mapping
 - suppliers: Contact information and email addresses  
-- restockSessions: Session lifecycle management
-- restockItems: Products per session with quantities
-- emailsSent: Email tracking and delivery status
-- auditLogs: Action tracking and analytics
+- restock_sessions: Session lifecycle management
+- restock_items: Products per session with quantities
+- emails_sent: Email tracking and delivery status
+- audit_logs: Action tracking and analytics
 ```
 
-#### 2. Convex Functions
-All business logic implemented as Convex functions:
-- **Queries**: Real-time data fetching with reactivity
-- **Mutations**: Data updates with optimistic UI updates  
-- **Actions**: External API integration (AI, email services)
+#### 2. Repository Layer
+All data access implemented with clean architecture:
+- **Repositories**: ClerkSessionRepository, ClerkProductRepository, ClerkSupplierRepository
+- **Services**: UserContextService bridges Clerk auth with Supabase RLS
+- **Mappers**: Data transformation between domain and database models
 
 #### 3. Authentication Flow
-- **Clerk + Convex Integration**: JWT token authentication
-- **ConvexProviderWithClerk**: Automatic token refresh and sync
-- **User Context**: Automatic user scoping for all operations
+- **Clerk + Supabase Integration**: JWT token authentication
+- **User Context Service**: Sets RLS context for database operations
+- **RLS Policies**: Row-level security enforces data isolation per user
 
-#### 4. Real-time Features
-- **Live Data Sync**: UI updates automatically when data changes
-- **Collaborative Sessions**: Multiple users can see updates instantly
-- **Optimistic Updates**: Fast UI responses with automatic rollback
-
-### Migration Benefits
-- **95% reduction** in backend code complexity
-- **Real-time updates** without WebSocket management
-- **Automatic scaling** and performance optimization
-- **Type safety** across client and server
+#### 4. Data Security
+- **Row Level Security**: Database-level access control
+- **JWT Token Validation**: Clerk tokens validated by Supabase
+- **User Context Management**: Handles chicken-and-egg problem during profile creation
 - **Zero server maintenance** required
 
 ## 🔐 UNIFIED AUTHENTICATION SYSTEM
@@ -156,10 +150,10 @@ The UnifiedAuthGuard provides contextual loading screens:
 - **Frontend**: React Native + Expo Router
 - **Language**: TypeScript
 - **Navigation**: File-based routing with tab navigation
-- **Database**: Convex (real-time, serverless)
-- **Backend**: Convex functions with HTTP API client
-- **Authentication**: Clerk + Convex integration with JWT tokens
-- **Storage**: Convex (cloud) + AsyncStorage (local cache)
+- **Database**: Supabase (PostgreSQL with RLS)
+- **Backend**: Supabase with clean architecture service layer
+- **Authentication**: Clerk + Supabase integration with JWT tokens
+- **Storage**: Supabase (cloud) + AsyncStorage (local cache)
 - **Email Service**: Direct Resend API integration
 - **AI Integration**: Groq for email generation
 - **Styling**: Component-specific style files in `styles/` directory
@@ -174,20 +168,20 @@ The UnifiedAuthGuard provides contextual loading screens:
 ## Current State
 - ✅ Complete UI/UX flow (sessions → email generation)
 - ✅ Smart autocomplete and form validation
-- ✅ Real-time data persistence with Convex
+- ✅ Data persistence with Supabase PostgreSQL
 - ✅ Professional email templates with AI generation
 - ✅ Custom notification system
 - ✅ Unified authentication system with comprehensive logging
-- ✅ Production-ready backend integration (Convex, Resend, GROQ AI)
-- ✅ Enterprise-grade security with Clerk + Convex authentication
+- ✅ Production-ready backend integration (Supabase, Resend, GROQ AI)
+- ✅ Enterprise-grade security with Clerk + Supabase RLS
 - ✅ Optimized performance (dashboard stability, auth guard efficiency)
-- ✅ Serverless architecture with real-time updates
+- ✅ Clean architecture with dependency injection
 
-## 🚧 TypeScript Migration Status (Convex → Supabase)
-- ✅ **Repository Pattern Migration**: Updated all hooks to use SupabaseHooksProvider
-- ✅ **Import Path Fixes**: Fixed all Convex import references to use new Supabase repositories
-- ✅ **useRestockSessions Hook**: Fixed dependency array and useCallback issues
-- ✅ **useSessionList Hook**: Updated to use repository pattern, fixed readonly array issues
+## 🏗️ Architecture Status
+- ✅ **Repository Pattern Implementation**: Clean architecture with DI container
+- ✅ **Clerk + Supabase Integration**: JWT token auth with RLS policies
+- ✅ **useRestockSessions Hook**: Repository-based data access
+- ✅ **useSessionList Hook**: Updated to use repository pattern
 - ✅ **useSessionStateManager Hook**: Fixed repository method calls and dependency arrays
 - ✅ **useStoredData Hook**: Updated to use available backend services (ProductService, SupplierService)
 - ✅ **Logger Utility**: Fixed __DEV__ reference issues
@@ -203,14 +197,14 @@ The UnifiedAuthGuard provides contextual loading screens:
 - **Critical Bug Fixes & Performance Optimization**: 
   - **Dashboard Stability**: Fixed "wigging out" and data disappearing on tab changes by consolidating data sources and adding throttling
   - **Auth Guard Optimization**: Reduced excessive effect triggering by 80%+ with memoization and dependency optimization
-  - **Data Consistency**: Eliminated race conditions between SecureDataService and SessionService
+  - **Data Consistency**: Eliminated race conditions between data services and session management
   - **User Experience**: Smooth tab navigation without data flashing or loading issues
 
-- **Database & Architecture Migration**:
-  - **Convex Migration**: Complete migration from Supabase to Convex for real-time, serverless backend
-  - **Authentication Integration**: Seamless Clerk + Convex JWT token authentication
-  - **Real-time Updates**: Reactive queries and live data synchronization
-  - **Serverless Architecture**: All backend operations now run on Convex functions
+- **Database & Architecture**:
+  - **Supabase PostgreSQL**: Production database with Row Level Security
+  - **Authentication Integration**: Seamless Clerk + Supabase JWT token authentication
+  - **Clean Architecture**: Repository pattern with dependency injection
+  - **User Context Service**: Bridges Clerk auth with Supabase RLS policies
 
 - **Smart Reminders & AI Replay**: Proactive, personalized repeat-order nudges based on session history.
   - **Dashboard banner**: "You usually reorder dairy every 7–10 days. Repeat last mix?"
@@ -223,23 +217,22 @@ The UnifiedAuthGuard provides contextual loading screens:
 - **AI Feedback Loop**: Capture edits/ratings on generated emails and learn per-supplier preferences (tone, brevity, urgency, custom instructions).
 - **Supplier Preferences Integration**: Feed preferences and `supplierHistory` into `backend/services/ai/email-generator.ts` for improved prompts.
 - **Follow-up Automations**: One-tap, context-aware follow-ups for unacknowledged orders (concise, polite ETA requests).
-- **Data Migration**: ✅ **COMPLETED** - All data operations migrated to Convex with real-time synchronization
 
-## Database Schema (Convex Implementation)
-- **Users**: ✅ User profiles with Clerk integration and store information
-- **Products**: ✅ User's restock items with default quantities and supplier mapping
-- **Suppliers**: ✅ Contact information and email addresses for ordering
-- **Restock Sessions**: ✅ Session lifecycle management with status tracking
-- **Restock Items**: ✅ Products and quantities per session with supplier linkage
-- **Emails Sent**: ✅ Comprehensive email tracking and delivery status
-- **Audit Logs**: ✅ Action tracking for debugging and analytics
+## Database Schema (Supabase PostgreSQL)
+- **Users**: User profiles with Clerk integration and store information
+- **Products**: User's restock items with default quantities and supplier mapping
+- **Suppliers**: Contact information and email addresses for ordering
+- **Restock Sessions**: Session lifecycle management with status tracking
+- **Restock Items**: Products and quantities per session with supplier linkage
+- **Emails Sent**: Email tracking and delivery status
+- **Audit Logs**: Action tracking for debugging and analytics
 
 ## Next Priorities
 1. ✅ ~~SendGrid email service integration~~ - **COMPLETED**: Resend integration deployed
 2. ✅ ~~OpenAI GPT for AI-powered email generation~~ - **COMPLETED**: GROQ AI integration deployed  
-3. ✅ ~~Database implementation~~ - **COMPLETED**: Convex real-time database with authentication
-4. ✅ ~~Data migration from AsyncStorage~~ - **COMPLETED**: All operations migrated to Convex
-5. Environment cleanup (remove legacy Supabase references)
+3. ✅ ~~Database implementation~~ - **COMPLETED**: Supabase PostgreSQL with RLS
+4. ✅ ~~Clean Architecture~~ - **COMPLETED**: Repository pattern with DI container
+5. Implement Supabase queries in repository layer
 6. AI feedback loop and supplier preferences
 7. Dashboard analytics and reporting
 8. Enhanced real-time notifications and updates
@@ -271,7 +264,7 @@ The UnifiedAuthGuard provides contextual loading screens:
 - User taps "New Restock"
 - Adds multiple products and their quantities
 - Each item gets mapped to a supplier (auto or manual)
-- Session is saved to Convex with real-time updates
+- Session is saved to Supabase database
 **Outcome**: A restock session is prepared and ready for AI email generation
 
 ### 🤖 4. AI Email Generation Flow
@@ -289,7 +282,7 @@ The UnifiedAuthGuard provides contextual loading screens:
 **Trigger**: User confirms and taps "Send All".
 **Steps**:
 - App sends each email via Resend API (1 per supplier)
-- Tracks success/failure per email in Convex
+- Tracks success/failure per email in Supabase
 - Shows confirmation or retry options
 **Outcome**: Suppliers receive grouped emails for their relevant products
 
@@ -298,9 +291,9 @@ The UnifiedAuthGuard provides contextual loading screens:
 **Steps**:
 - User logs products + suppliers as normal
 - Data is cached locally with AsyncStorage
-- On reconnect, Convex automatically synchronizes data
-- Real-time updates resume when connection is restored
-**Outcome**: Seamless logging even when offline; automatic sync with real-time updates
+- On reconnect, Supabase synchronizes data
+- Connection is restored and data is persisted
+**Outcome**: Seamless logging even when offline; sync on reconnect
 
 ### 📂 7. History & Reuse Flow
 **Trigger**: User wants to view or repeat a past restock.

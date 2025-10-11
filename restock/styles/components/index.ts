@@ -1,8 +1,8 @@
 // Export all component styles
-export { dashboardStyles, getDashboardStyles } from './dashboard';
-export { emailsStyles, getEmailsStyles } from './emails';
-export { restockSessionsStyles } from './restock-sessions';
-export { tabsStyles } from './tabs';
+export {  getDashboardStyles } from './dashboard';
+export{ getEmailsStyles } from './emails';
+export { getRestockSessionsStyles } from './restock-sessions';
+export { getTabsStyles } from './tabs';
 export { welcomeStyles } from './welcome';
     export { profileSetupStyles } from './auth/traditional/profile-setup';
 export { ssoProfileSetupStyles } from './auth/sso/profile-setup';
