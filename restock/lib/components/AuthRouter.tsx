@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, ActivityIndicator, Text } from 'react-native';
 import { router, usePathname } from 'expo-router';
-import { useUnifiedAuth } from '../../lib/auth/UnifiedAuthProvider';
+import { useUnifiedAuth } from '../auth/UnifiedAuthProvider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const PERSIST_KEY = 'lastAuthRoute';

@@ -4,7 +4,7 @@ import { useAuth } from '@clerk/clerk-expo';
 import { router } from 'expo-router';
 import { SessionManager } from '../../backend/_services/session-manager';
 import { ClerkClientService } from '../../backend/_services/clerk-client';
-import { useUnifiedAuth } from '../../lib/auth/UnifiedAuthProvider';
+import { useUnifiedAuth } from '../auth/UnifiedAuthProvider';
 import { signOutButtonStyles } from '../../styles/components/sign-out-button';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 

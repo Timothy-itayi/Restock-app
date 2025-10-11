@@ -1,7 +1,7 @@
 // app/hooks/useAuthGuardState.ts
 import { useEffect, useState, useMemo } from 'react';
 import { useSegments } from 'expo-router';
-import { useAuthState, useAuthType } from '../../lib/auth/store';
+import { useAuthState, useAuthType } from '../auth/store';
 
 import { SessionManager } from '../../backend/_services/session-manager';
 

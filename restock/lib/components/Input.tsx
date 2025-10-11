@@ -1,6 +1,6 @@
 import React, { forwardRef } from 'react';
 import { TextInput, Text, View, TextInputProps, TextStyle } from 'react-native';
-import  theme  from '../../lib/theme/colors';
+import  theme  from '../theme/colors';
 
 interface InputProps extends Omit<TextInputProps, 'style'> {
   label?: string;

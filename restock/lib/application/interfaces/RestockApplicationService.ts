@@ -5,8 +5,8 @@
  * Coordinates multiple use cases and provides a clean API for the UI layer
  */
 
-import { EmailDraft } from '@/app/_domain';
-import { RestockSession } from '../../lib/domain/_entities/RestockSession';
+import { EmailDraft } from '../../domain/_services/RestockSessionDomainService';
+import { RestockSession } from '../../domain/_entities/RestockSession';
 
 // Command/Query types
 export interface CreateSessionCommand {

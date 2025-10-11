@@ -4,13 +4,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SessionManager, UserSession } from '../../backend/_services/session-manager';
 import { useAuth } from '@clerk/clerk-expo';
 import { authStore } from './store';
-import { RepositoryContext, RepositoryContextValue } from '../../lib/infrastructure/_di/RepositoryContext';
+import { RepositoryContext, RepositoryContextValue } from '../infrastructure/_di/RepositoryContext';
 import { SupabaseUserRepository } from '../../backend/_infrastructure/repositories/SupabaseUserRepository';
 import { SupabaseSessionRepository } from '../../backend/_infrastructure/repositories/SupabaseSessionRepository';
 import { SupabaseProductRepository } from '../../backend/_infrastructure/repositories/SupabaseProductRepository';
 import { SupabaseSupplierRepository } from '../../backend/_infrastructure/repositories/SupabaseSupplierRepository';
 import { SupabaseEmailRepository } from '../../backend/_infrastructure/repositories/SupabaseEmailRepository';
-import { registerServices, clearUserScope } from '../../lib/infrastructure/_di/ServiceRegistry';
+import { registerServices, clearUserScope } from '../infrastructure/_di/ServiceRegistry';
 import { setClerkTokenGetter } from '../../backend/_config/supabase';
 
 interface UnifiedAuthState {

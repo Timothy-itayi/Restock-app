@@ -1,11 +1,13 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { emailsStyles } from '../../../styles/components/emails';
+import { getEmailsStyles } from '../../../styles/components/emails';
 import useThemeStore from '../../stores/useThemeStore';
 import SkeletonBox from './SkeletonBox';
+import colors, { AppColors } from '../../theme/colors';
 
 export default function EmailsSkeleton() {
   const { theme, mode } = useThemeStore();
+  const emailsStyles = getEmailsStyles(theme as AppColors);
   return (
     <View style={[emailsStyles.container, styles.container, { backgroundColor: mode === 'dark' ? theme.neutral.lightest : '#f8f9fa' }]}>
       {/* Email Summary */}

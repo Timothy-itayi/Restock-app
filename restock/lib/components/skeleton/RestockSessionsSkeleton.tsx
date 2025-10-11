@@ -1,9 +1,14 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { restockSessionsStyles } from '../../../styles/components/restock-sessions';
+import { getRestockSessionsStyles } from '../../../styles/components/restock-sessions';
 import SkeletonBox from './SkeletonBox';
+import { useSafeTheme } from '../../stores/useThemeStore';
+import colors, { AppColors } from '../../theme/colors';
 
 export default function RestockSessionsSkeleton() {
+  const t = useSafeTheme();
+  const theme = t.theme as AppColors;
+  const restockSessionsStyles = getRestockSessionsStyles(theme as AppColors);
   return (
     <View style={[restockSessionsStyles.container, styles.container]}>
       {/* Session Header Skeleton */}

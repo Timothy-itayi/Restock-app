@@ -10,15 +10,15 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useUnifiedAuth } from '../../../lib/auth/UnifiedAuthProvider';
 
 // Hooks
-import { useSessionList } from './_hooks/useSessionList';
-import { useSessionContext } from './_context/SessionContext';
-import { useServiceHealth } from './_hooks/useService';
+import { useSessionList } from '../../../lib/hooks/restock-sessions/useSessionList';
+import { useSessionContext } from '../../../lib/contexts/restock-sessions/SessionContext';
+import { useServiceHealth } from '../../../lib/hooks/restock-sessions/useService';
 
 // UI Components
-import { SessionHeader } from './_components/SessionHeader';
-import { StartSection } from './_components/StartSection';
-import { ProductList } from './_components/ProductList';
-import { FinishSection } from './_components/FinishSection';
+import { SessionHeader } from '../../../lib/components/restock-sessions/SessionHeader';
+import { StartSection } from '../../../lib/components/restock-sessions/StartSection';
+import { ProductList } from '../../../lib/components/restock-sessions/ProductList';
+import { FinishSection } from '../../../lib/components/restock-sessions/FinishSection';
 import NameSessionModal from '../../../lib/components/NameSessionModal';
 import CustomToast from '../../../lib/components/CustomToast';
 

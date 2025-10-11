@@ -9,7 +9,7 @@ import { useUnifiedAuth } from '../../../lib/auth/UnifiedAuthProvider';
 
 // Hooks
 
-import { useSessionContext } from './_context/SessionContext';
+import { useSessionContext } from '../../../lib/contexts/restock-sessions/SessionContext';
 
 // Components
 import CustomToast from '../../../lib/components/CustomToast';

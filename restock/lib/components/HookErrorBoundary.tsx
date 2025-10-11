@@ -1,7 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import useThemeStore from '../../lib/stores/useThemeStore';
+import useThemeStore from '../stores/useThemeStore';
 
 interface Props {
   children: ReactNode;
