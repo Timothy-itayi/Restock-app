@@ -4,7 +4,7 @@ import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { getEmailsStyles } from '../../../styles/components/emails';
 import { useThemedStyles } from '../../../styles/useThemedStyles';
-import { useUserProfile, useEmailEditor, EmailDraft, useEmailSessions } from './_hooks';
+import { useUserProfile, useEmailEditor, EmailDraft, useEmailSessions } from '../../../lib/hooks/emails';
 import { 
   EmailCard, 
   EmailEditModal, 
@@ -13,7 +13,7 @@ import {
   SessionTabs,
   SendConfirmationModal,
   EmailDetailModal
-} from './_components';
+} from '../../../lib/components/emails';
 import useThemeStore from '../../../lib/stores/useThemeStore';
 
 export default function EmailsScreen() {

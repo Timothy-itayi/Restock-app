@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { typography } from '../../styles/typography';
-import useThemeStore from '../../lib/stores/useThemeStore';
+import useThemeStore from '../stores/useThemeStore';
 
 interface FileUploadModalProps {
   visible: boolean;

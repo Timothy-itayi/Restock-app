@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, ActivityIndicator, Text } from 'react-native';
-import { useUnifiedAuth } from '../../lib/auth/UnifiedAuthProvider';
+import { useUnifiedAuth } from '../auth/UnifiedAuthProvider';
 
 export const UnifiedAuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, userId, hasValidProfile, isLoading, isProfileLoading } = useUnifiedAuth();

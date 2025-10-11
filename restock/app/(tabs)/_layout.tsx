@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import {  tabScreenOptions, tabBarOptions } from '../../styles/components/tabs';
 import { UnifiedAuthGuard } from '../../lib/components/UnifiedAuthGuard';
-import { SessionProvider } from './restock-sessions/_context/SessionContext';
+import { SessionProvider } from '../../lib/contexts/restock-sessions/SessionContext';
 import { ErrorBoundaryWrapper } from '../../lib/components/ErrorBoundaryWrapper';
 
 export default function TabLayout() {

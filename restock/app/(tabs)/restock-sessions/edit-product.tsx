@@ -3,9 +3,9 @@ import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } fr
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useUnifiedAuth } from '../../../lib/auth/UnifiedAuthProvider';
-import { useSessionContext } from './_context/SessionContext';
+import { useSessionContext } from '../../../lib/contexts/restock-sessions/SessionContext';
 import { useRepositories } from '../../../lib/infrastructure/_supabase/SupabaseHooksProvider';
-import { ProductForm } from './_components/ProductForm';
+import { ProductForm } from '../../../lib/components/restock-sessions/ProductForm';
 import CustomToast from '../../../lib/components/CustomToast';
 import { useSafeTheme } from '../../../lib/stores/useThemeStore';
 import { getRestockSessionsStyles } from '../../../styles/components/restock-sessions';

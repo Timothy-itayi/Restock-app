@@ -1,5 +1,5 @@
-import { supabase } from '../config/supabase';
-import type { User, InsertUser, UpdateUser } from '../types/database';
+import { supabase } from '../_config/supabase';
+import type { User, InsertUser, UpdateUser } from '../_types/database';
 
 export class ClerkSyncService {
   /**

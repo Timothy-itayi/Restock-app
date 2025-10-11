@@ -6,14 +6,14 @@ import { useUnifiedAuth } from '../../../lib/auth/UnifiedAuthProvider';
 import { useSafeTheme } from '../../../lib/stores/useThemeStore';
 import colors, { AppColors } from '../../../lib/theme/colors';
 
-import { useDashboardData } from './_hooks/useDashboardData';
+import { useDashboardData } from '../../../lib/hooks/dashboard/useDashboardData';
 import { 
   WelcomeSection, 
   UnfinishedSessions, 
   FinishedSessions,
   StatsOverviewEnhanced, 
   EmptyState 
-} from './_components';
+} from '../../../lib/components/dashboard';
 
 
 interface SessionItem {

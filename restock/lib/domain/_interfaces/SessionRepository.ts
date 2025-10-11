@@ -14,7 +14,7 @@ export interface SessionRepository {
   setUserId(userId: string): void;
 
   // Basic CRUD operations
-
+  findCompletedByUserId(userId: string): Promise<RestockSession[]>;
   delete(id: string): Promise<void>;
 
 

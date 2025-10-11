@@ -1,8 +1,10 @@
 import React from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 
-import { dashboardStyles } from '../../../styles/components/dashboard';
+import { getDashboardStyles } from '../../../styles/components/dashboard';
 import SkeletonBox from './SkeletonBox';
+import { useSafeTheme } from '../../stores/useThemeStore';
+import colors, { AppColors } from '../../theme/colors';
 
 interface DashboardSkeletonProps {
   showWelcomeSection?: boolean;
@@ -13,6 +15,8 @@ export default function DashboardSkeleton({
   showWelcomeSection = true, 
   showSessionsSection = true 
 }: DashboardSkeletonProps) {
+  const t = useSafeTheme();
+  const dashboardStyles = getDashboardStyles(t.theme as AppColors);
   return (
     <ScrollView 
       style={dashboardStyles.container} 

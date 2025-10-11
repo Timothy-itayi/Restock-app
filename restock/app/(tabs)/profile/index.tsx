@@ -7,8 +7,8 @@ import SignOutButton from '../../../lib/components/SignOutButton';
 import { getProfileStyles } from '../../../styles/components/profile';
 import { useThemedStyles } from '../../../styles/useThemedStyles';
 import { ProfileSkeleton } from '../../../lib/components/skeleton';
-import { ProfileHeader, ProfileInfo, StorePlanCard, StatsCards, HistorySection } from './_components';
-import { useProfileData } from './_hooks/useProfileData';
+import { ProfileHeader, ProfileInfo, StorePlanCard, StatsCards, HistorySection } from '../../../lib/components/profile';
+import { useProfileData } from '../../../lib/hooks/profile/useProfileData';
 
 export default function ProfileScreen() {
   const { user } = useUser();

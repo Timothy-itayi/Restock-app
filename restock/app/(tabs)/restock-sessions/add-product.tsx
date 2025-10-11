@@ -4,9 +4,9 @@ import { SafeAreaView, ScrollView, View, Alert, DeviceEventEmitter, TouchableOpa
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeTheme } from '../../../lib/stores/useThemeStore';
 import { getRestockSessionsStyles } from '../../../styles/components/restock-sessions';
-import { ProductForm } from './_components/ProductForm';
+import { ProductForm } from '../../../lib/components/restock-sessions/ProductForm';
 import CustomToast from '../../../lib/components/CustomToast';
-import { useSessionContext } from './_context/SessionContext';
+import { useSessionContext } from '../../../lib/contexts/restock-sessions/SessionContext';
 import { useRepositories } from '../../../lib/infrastructure/_supabase/SupabaseHooksProvider';
 import { useUnifiedAuth } from '../../../lib/auth/UnifiedAuthProvider';
 import colors, { AppColors } from '../../../lib/theme/colors';

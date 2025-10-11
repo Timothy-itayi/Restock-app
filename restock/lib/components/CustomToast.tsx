@@ -6,7 +6,7 @@ import {
     View
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import  theme  from '../../lib/theme/colors';
+import  theme  from '../theme/colors';
 
 interface ToastAction {
   label: string;

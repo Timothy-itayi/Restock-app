@@ -8,7 +8,7 @@
 // import { DIContainer } from '../_di/Container';
 // import { registerServices, initializeServices } from '../_di/ServiceRegistry';
 // import type { UserContextService } from '../_services/ClerkAuthService';
-// import type { RestockApplicationService } from '../../lib/application/interfaces/RestockApplicationService';
+// import type { RestockApplicationService } from '../application/interfaces/RestockApplicationService';
 
 // export class UserContextTestHelper {
 //   private static isInitialized = false;

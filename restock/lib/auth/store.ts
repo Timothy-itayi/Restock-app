@@ -7,7 +7,7 @@ import {
   INITIAL_AUTH_STATE,
   authReducer 
 } from './state';
-import { authLogger } from '../../lib/logging/_logger';
+import { authLogger } from '../logging/_logger';
 
 interface AuthStore extends AuthState {
   // Actions
