@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeTheme } from '../../../../lib/stores/useThemeStore'
 import { typography } from '../../../../styles/typography';
+import colors, { AppColors } from '../../../../lib/theme/colors';
 
 interface SendConfirmationModalProps {
   visible: boolean;
@@ -29,8 +30,8 @@ export const SendConfirmationModal: React.FC<SendConfirmationModalProps> = ({
   isIndividualSend = false,
   supplierName = '',
 }) => {
-  const { theme } = useThemeStore();
-  const styles = createStyles(theme);
+  const t = useSafeTheme();
+  const styles = createStyles(t.theme as AppColors);
   return (
     <Modal
       visible={visible}
@@ -43,7 +44,7 @@ export const SendConfirmationModal: React.FC<SendConfirmationModalProps> = ({
           <View style={styles.dialog}>
             {/* Header */}
             <View style={styles.header}>
-              <Ionicons name="mail" size={24} color={theme.brand.primary} />
+                <Ionicons name="mail" size={24} color={colors.brand.primary} />
               <Text style={styles.title}>{isIndividualSend ? 'Send Email' : 'Send All Emails'}</Text>
             </View>
 

@@ -14,14 +14,12 @@ export interface SessionRepository {
   setUserId(userId: string): void;
 
   // Basic CRUD operations
-  save(session: RestockSession): Promise<void>;
-  findById(id: string): Promise<RestockSession | null>;
-  findByUserId(): Promise<ReadonlyArray<RestockSession>>; // RPC functions handle user isolation
+
   delete(id: string): Promise<void>;
-  remove(id: string): Promise<void>; // Alias for delete for backward compatibility
+
 
   // Session management operations (used by UI components)
-  create(session: Omit<RestockSession, 'id'>): Promise<string>;
+  create(session: Omit<RestockSession, 'id'>): Promise<RestockSession>;
   addItem(sessionId: string, item: any): Promise<void>;
   removeItem(itemId: string): Promise<void>; // RPC functions handle user isolation
   updateName(sessionId: string, name: string): Promise<void>;
@@ -35,14 +33,9 @@ export interface SessionRepository {
   }): Promise<void>;
   markAsSent(sessionId: string): Promise<{ success: boolean; error?: string }>;
 
-  // Query operations
-  findUnfinishedByUserId(): Promise<ReadonlyArray<RestockSession>>; // RPC functions handle user isolation
-  findCompletedByUserId(): Promise<ReadonlyArray<RestockSession>>; // RPC functions handle user isolation
-  findByStatus(status: string): Promise<ReadonlyArray<RestockSession>>; // RPC functions handle user isolation
+
   
-  // Business queries
-  countByUserId(): Promise<number>; // RPC functions handle user isolation
-  findRecentByUserId(limit: number): Promise<ReadonlyArray<RestockSession>>; // RPC functions handle user isolation
+// RPC functions handle user isolation
 }
 
 export interface SessionRepositoryError extends Error {

@@ -11,9 +11,17 @@ import { UserContextService } from '../_services/UserContextService';
     
 export class ClerkSessionRepository implements SessionRepository {
   private userContextService: UserContextService;
+  private userId?: string;
 
   constructor(userContextService: UserContextService) {
     this.userContextService = userContextService;
+  }
+
+  /**
+   * Set the current user ID for this repository instance
+   */
+  setUserId(userId: string): void {
+    this.userId = userId;
   }
 
   /**
@@ -69,10 +77,13 @@ export class ClerkSessionRepository implements SessionRepository {
       console.log('[ClerkSessionRepository] Creating session for user:', userId, session);
       
       // TODO: Implement Supabase insert for session
-      const newSession: RestockSession = {
-        ...session,
-        id: `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-      };
+      const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const newSession = RestockSession.create({
+        id: sessionId,
+        userId,
+        name: session.name,
+        createdAt: new Date()
+      });
 
       return newSession;
     } catch (error) {
@@ -179,5 +190,74 @@ export class ClerkSessionRepository implements SessionRepository {
       console.error('[ClerkSessionRepository] Error getting completed sessions:', error);
       throw error;
     }
+  }
+
+  // Interface compliance methods - TODO: Implement proper Supabase integration
+  async save(session: RestockSession): Promise<void> {
+    throw new Error('Save method not implemented yet');
+  }
+
+  async findById(id: string): Promise<RestockSession | null> {
+    return this.getById(id);
+  }
+
+  async findByUserId(): Promise<ReadonlyArray<RestockSession>> {
+    return this.getAll();
+  }
+
+  async remove(id: string): Promise<void> {
+    return this.delete(id);
+  }
+
+  async addItem(sessionId: string, item: any): Promise<void> {
+    throw new Error('Add item method not implemented yet');
+  }
+
+  async removeItem(itemId: string): Promise<void> {
+    throw new Error('Remove item method not implemented yet');
+  }
+
+  async updateName(sessionId: string, name: string): Promise<void> {
+    throw new Error('Update name method not implemented yet');
+  }
+
+  async updateStatus(sessionId: string, status: string): Promise<void> {
+    throw new Error('Update status method not implemented yet');
+  }
+
+  async updateRestockItem(itemId: string, updates: {
+    productName?: string;
+    quantity?: number;
+    supplierName?: string;
+    supplierEmail?: string;
+    notes?: string;
+  }): Promise<void> {
+    throw new Error('Update restock item method not implemented yet');
+  }
+
+  async markAsSent(sessionId: string): Promise<{ success: boolean; error?: string }> {
+    throw new Error('Mark as sent method not implemented yet');
+  }
+
+  async findUnfinishedByUserId(): Promise<ReadonlyArray<RestockSession>> {
+    return this.getActive();
+  }
+
+  async findCompletedByUserId(): Promise<ReadonlyArray<RestockSession>> {
+    return this.getCompleted();
+  }
+
+  async findByStatus(status: string): Promise<ReadonlyArray<RestockSession>> {
+    return this.getByStatus(status);
+  }
+
+  async countByUserId(): Promise<number> {
+    const sessions = await this.getAll();
+    return sessions.length;
+  }
+
+  async findRecentByUserId(limit: number): Promise<ReadonlyArray<RestockSession>> {
+    const sessions = await this.getAll();
+    return sessions.slice(0, limit);
   }
 }

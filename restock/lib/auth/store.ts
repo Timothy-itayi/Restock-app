@@ -175,9 +175,9 @@ const authStoreCreator = create<AuthStore>()(
             dataKeys: result.data ? Object.keys(result.data) : 'no data'
           });
           
-          if (result.data) {
-            const name = result.data.name || 'there';
-            const store = result.data.store_name || '';
+          if (result.data && typeof result.data === 'object') {
+            const name = (result.data as any).name || 'there';
+            const store = (result.data as any).store_name || '';
             
             console.log('📊 AuthStore: Profile fetched successfully', { name, store });
             state.setProfileData(name, store);

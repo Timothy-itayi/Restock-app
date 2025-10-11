@@ -69,12 +69,16 @@ export class ClerkSupplierRepository implements SupplierRepository {
       console.log('[ClerkSupplierRepository] Creating supplier for user:', userId, supplier);
       
       // TODO: Implement Supabase insert for supplier
-      const newSupplier: Supplier = {
-        ...supplier,
-        toValue: supplier.toValue(),
-        createdAt: new Date(),
-        id: `supplier_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-      };
+      const supplierId = `supplier_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const newSupplier = Supplier.create({
+        id: supplierId,
+        userId,
+        name: supplier.name,
+        email: supplier.email,
+        phone: supplier.phone,
+        notes: supplier.notes,
+        createdAt: new Date()
+      });
 
       return newSupplier;
     } catch (error) {

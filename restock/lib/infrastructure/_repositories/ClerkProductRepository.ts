@@ -66,11 +66,15 @@ export class ClerkProductRepository implements ProductRepository {
       console.log('[ClerkProductRepository] Creating product for user:', userId, product);
       
       // TODO: Implement Supabase insert for product
-      const newProduct: Product = {
-          ...product,
-          id: `product_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          value: undefined as any
-      };
+      const productId = `product_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const newProduct = Product.create({
+        id: productId,
+        userId,
+        name: product.name,
+        defaultQuantity: product.defaultQuantity,
+        defaultSupplierId: product.defaultSupplierId,
+        createdAt: new Date()
+      });
 
       return newProduct;
     } catch (error) {

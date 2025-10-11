@@ -3,8 +3,8 @@ import { ScrollView, RefreshControl, View, Text } from 'react-native';
 import { getDashboardStyles } from '../../../styles/components/dashboard';
 
 import { useUnifiedAuth } from '../../../lib/auth/UnifiedAuthProvider';
-import { useSafeTheme } from '@/lib/stores/useThemeStore';
-import colors, { AppColors } from '@/lib/theme/colors';
+import { useSafeTheme } from '../../../lib/stores/useThemeStore';
+import colors, { AppColors } from '../../../lib/theme/colors';
 
 import { useDashboardData } from './_hooks/useDashboardData';
 import { 
