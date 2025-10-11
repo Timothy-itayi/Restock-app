@@ -77,11 +77,12 @@ export const useStoredData = () => {
         });
         setStoredProducts([]); // Set empty array instead of null
       } else {
+        const products = (productsResult.data as unknown as any[]) || [];
         Logger.success('Products loaded successfully', { 
-          count: productsResult.data?.length || 0,
-          products: productsResult.data?.map((p: any) => ({ id: p.id, name: p.name }))
+          count: products.length,
+          products: products.map((p: any) => ({ id: p.id, name: p.name }))
         });
-        setStoredProducts(productsResult.data || []);
+        setStoredProducts(products);
       }
       
       // Handle suppliers result
@@ -95,9 +96,10 @@ export const useStoredData = () => {
         });
         setStoredSuppliers([]); // Set empty array instead of null
       } else {
+        const suppliers = (suppliersResult.data as unknown as any[]) || [];
         Logger.success('Suppliers loaded successfully', { 
-          count: suppliersResult.data?.length || 0,
-          suppliers: suppliersResult.data?.map((s: any) => ({ 
+          count: suppliers.length,
+          suppliers: suppliers.map((s: any) => ({ 
             id: s.id, 
             name: s.name,
             email: s.email // Add email to logging
@@ -105,7 +107,7 @@ export const useStoredData = () => {
         });
         
         // Validate that suppliers have emails
-        const suppliersWithoutEmails = suppliersResult.data?.filter((s: any) => !s.email || s.email.trim() === '') || [];
+        const suppliersWithoutEmails = suppliers.filter((s: any) => !s.email || s.email.trim() === '');
         if (suppliersWithoutEmails.length > 0) {
           Logger.warning('Found suppliers without emails', { 
             count: suppliersWithoutEmails.length,
@@ -113,7 +115,7 @@ export const useStoredData = () => {
           });
         }
         
-        setStoredSuppliers(suppliersResult.data || []);
+        setStoredSuppliers(suppliers);
       }
     } catch (error) {
       Logger.error('Unexpected error loading stored data', error, { userId });

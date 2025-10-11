@@ -17,7 +17,7 @@ export function setClerkTokenGetter(fn: () => Promise<string | null>) {
 }
 
 // Default Supabase client
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+export const supabase: SupabaseClient<Database> = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
@@ -126,5 +126,5 @@ export const registerClerkUser = async (
 };
 
 // Export types for use in other files
-export type { Database } from '../types/database';
-export type { User, Product, Supplier, RestockSession, RestockItem, EmailSent, AuditLog } from '../types/database';
+export type { Database } from '../_types/database';
+export type { User, Product, Supplier, RestockSession, RestockItem, EmailSent, AuditLog } from '../_types/database';
