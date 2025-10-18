@@ -9,7 +9,9 @@ import {
   RestockSession, 
   RestockSessionDomainService,
   SessionRepository 
-} from '../../_domain';
+} from '../../domain/_services/RestockSessionDomainService';
+
+
 
 export interface CreateRestockSessionCommand {
   readonly name?: string;
