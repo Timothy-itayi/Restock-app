@@ -66,11 +66,11 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
-    "@testing-library/react-hooks": "^8.0.1",
     "@testing-library/react-native": "^13.2.2",
     "@types/jest": "29.5.14",
     "@types/node": "^24.7.1",
     "@types/react": "~19.1.10",
+    "eas-cli": "^16.23.1",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
     "jest": "^29.7.0",
