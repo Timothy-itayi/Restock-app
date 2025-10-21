@@ -53,7 +53,7 @@ export default function AuthIndexScreen() {
       console.log('📡 SSO FLOW: Initiating Clerk SSO flow');
       const result = await startSSOFlow({
         strategy: 'oauth_google',
-        redirectUrl: Linking.createURL('/sso-profile-setup', { scheme: 'restock' }),
+        redirectUrl: Linking.createURL('/oauth-native-callback', { scheme: 'restock' }),
       });
 
       console.log('📋 SSO FLOW: Clerk SSO result:', {

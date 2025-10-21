@@ -89,6 +89,7 @@ export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }
   } = authState;
 
   const [lastVisitedTab, setLastVisitedTab] = useState<string | null>(null);
+  const [hydrationTimeoutReached, setHydrationTimeoutReached] = useState(false);
 
   // Load last visited tab once
   useEffect(() => {
@@ -104,11 +105,27 @@ export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }
     }
   }, [pathname]);
 
+  // Fail-safe: after a short timeout, allow UI to render even if profile is still loading
+  useEffect(() => {
+    // Only start timeout once auth system is ready
+    if (!isReady) return;
+    let timer: any;
+    if (!hydrationTimeoutReached) {
+      timer = setTimeout(() => {
+        setHydrationTimeoutReached(true);
+        console.log('[AuthRouter] ⏱️ Hydration timeout reached – allowing UI render');
+      }, 1500);
+    }
+    return () => { if (timer) clearTimeout(timer); };
+  }, [isReady, hydrationTimeoutReached]);
+
   // Hydration = auth system ready + profile fetch completed (regardless of whether profile exists)
   // For authenticated users: we need userId and profile check to be done (!isProfileLoading)
   // For unauthenticated users: just need auth system to be ready
   const isHydrated =
     isReady && (!isAuthenticated || (userId && !isProfileLoading));
+  const isHydratedOrTimedOut =
+    isReady && (!isAuthenticated || !!userId) && (hydrationTimeoutReached || !isProfileLoading);
 
   console.log('[AuthRouter] Hydration check:', {
     isHydrated,
@@ -128,6 +145,7 @@ export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }
   const determineTargetRoute = useCallback((): string | null => {
     console.log('[AuthRouter] determineTargetRoute called:', {
       isHydrated,
+      isHydratedOrTimedOut,
       isAuthenticated,
       userId: !!userId,
       hasValidProfile,
@@ -136,7 +154,7 @@ export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }
       pathname
     });
     
-    if (!isHydrated) {
+    if (!isHydrated && !isHydratedOrTimedOut) {
       console.log('[AuthRouter] Not hydrated yet, returning null');
       return null;
     }
@@ -152,15 +170,34 @@ export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }
           ? lastVisitedTab
           : '/(tabs)/dashboard';
       }
-      
-      // User needs profile setup - if already there, stay put
-      if (pathname === '/sso-profile-setup') {
-        console.log('[AuthRouter] User already on profile setup page, staying put');
-        return null;
+
+      // Profile not confirmed valid yet
+      // Only force redirect to setup if profile loading is finished and invalid
+      if (!isProfileLoading && !hasValidProfile) {
+        if (pathname === '/sso-profile-setup') {
+          console.log('[AuthRouter] User already on profile setup page, staying put');
+          return null;
+        }
+        console.log('[AuthRouter] User authenticated but no valid profile after load, redirecting to profile setup');
+        return '/sso-profile-setup';
       }
-      
-      console.log('[AuthRouter] User authenticated but no profile, redirecting to profile setup');
-      return '/sso-profile-setup';
+
+      // If we timed out waiting for profile, allow user into app (tabs) and continue loading in background
+      if (isHydratedOrTimedOut) {
+        if (isInsideTabArea(pathname)) return null;
+        return lastVisitedTab && ALLOWED_TABS.includes(lastVisitedTab)
+          ? lastVisitedTab
+          : '/(tabs)/dashboard';
+      }
+
+      // Otherwise, keep waiting
+      return null;
+    }
+
+    // Handle native OAuth callback and unknown roots
+    if (pathname === '/' || pathname === '/oauth-native-callback') {
+      // Let AuthRouter decide based on auth/profile state
+      return '/welcome';
     }
 
     if (pathname?.startsWith('/welcome') || pathname?.includes('/auth')) {

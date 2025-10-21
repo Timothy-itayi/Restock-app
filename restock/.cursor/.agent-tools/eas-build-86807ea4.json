@@ -1,0 +1,47 @@
+{
+  "id": "86807ea4-19fa-4867-898d-0f65e7d5c1b6",
+  "status": "ERRORED",
+  "platform": "IOS",
+  "error": {
+    "errorCode": "UNKNOWN_ERROR",
+    "message": "Unknown error. See logs of the Install dependencies build phase for more information."
+  },
+  "artifacts": {
+    "xcodeBuildLogsUrl": "https://job-logs.eascdn.net/production-xcode-logs/86807ea4-19fa-4867-898d-0f65e7d5c1b6?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=www-production%40exponentjs.iam.gserviceaccount.com%2F20251018%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20251018T041815Z&X-Goog-Expires=900&X-Goog-SignedHeaders=host&X-Goog-Signature=07e2ccf0466ad3b3acc32345880093a3d1c41c97a23c70e21be1a30153bbd694232418e54e1c55e8c9a6c0cfc691499d5d526145acfb222abb64a28b9d89c6301b526ef7f7699bca6fe71313dbe0be9fad4eb8534361c0ef1b3d97f2ff926bb0df7ba9f739d0e01a890b07d80f94f3cf5a3f001036e5bd72da0b1b63bcc4c54642e511d8a1c7cb300ed7d55101b43ef2a49467bc5d97f2626868405b0635b703ff0654c9aaf4cfa2bace5e7f43e42c67a65cc246da16feb5cafdaa5c61da3eee7773312c0ee9260df71425b33aecd5dcf747df5dbed286917550241d48ffa5fc1f1db82535e637184e04fc4281c7e6c76dbd2cb30dfc82082307b86c59223485"
+  },
+  "fingerprint": {
+    "id": "b8d888f7-58d2-4af4-98ee-675092606810",
+    "hash": "414ce20fc2f39796565d567cff1466cc348d3393"
+  },
+  "initiatingActor": {
+    "id": "8c4b30db-bcd3-4350-beea-751a4d7dd5ae",
+    "displayName": "timothy-itayi"
+  },
+  "project": {
+    "id": "0641bf2c-7f00-4f4f-b5a2-7552036f4fda",
+    "name": "restock",
+    "slug": "restock",
+    "ownerAccount": {
+      "id": "d68d52c8-6f37-4c3c-bc82-5f3bf2f0fb0f",
+      "name": "timothy-itayi"
+    }
+  },
+  "distribution": "STORE",
+  "buildProfile": "production",
+  "sdkVersion": "54.0.0",
+  "appVersion": "1.0.0",
+  "appBuildVersion": "1",
+  "gitCommitHash": "68a402ef9867338e458789ec7417c010dcef7810",
+  "gitCommitMessage": "prepare prod for build",
+  "priority": "NORMAL_PLUS",
+  "createdAt": "2025-10-18T04:11:11.618Z",
+  "updatedAt": "2025-10-18T04:12:13.033Z",
+  "completedAt": "2025-10-18T04:12:10.389Z",
+  "expirationDate": "2025-11-17T04:11:11.680Z",
+  "isForIosSimulator": false,
+  "metrics": {
+    "buildWaitTime": 221,
+    "buildQueueTime": 44379,
+    "buildDuration": 9996
+  }
+}

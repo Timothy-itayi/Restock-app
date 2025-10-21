@@ -1,12 +1,28 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Database } from '../_types/database';
 
-// Supabase configuration
+// Supabase configuration (do NOT throw at import time)
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
+const isConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables');
+export const isSupabaseConfigured = (): boolean => isConfigured;
+
+// Create a safe proxy that throws only when used, not at import time
+function createUnavailableSupabaseProxy(reason: string): SupabaseClient<Database> {
+  const handler: ProxyHandler<any> = {
+    get: (_target, prop) => {
+      throw new Error(
+        `Supabase is not configured (${reason}). Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY.`
+      );
+    },
+    apply: () => {
+      throw new Error(
+        `Supabase is not configured (${reason}). Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY.`
+      );
+    },
+  };
+  return new Proxy({}, handler) as unknown as SupabaseClient<Database>;
 }
 
 // Create a function to get the current Clerk token
@@ -17,21 +33,28 @@ export function setClerkTokenGetter(fn: () => Promise<string | null>) {
 }
 
 // Default Supabase client
-export const supabase: SupabaseClient<Database> = createClient<Database>(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false,
-  },
-  realtime: {
-    params: {
-      eventsPerSecond: 10,
-    },
-  },
-});
+export const supabase: SupabaseClient<Database> = isConfigured
+  ? createClient<Database>(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: false,
+      },
+      realtime: {
+        params: {
+          eventsPerSecond: 10,
+        },
+      },
+    })
+  : createUnavailableSupabaseProxy('missing environment variables');
 
 // Create authenticated client using Clerk's official Supabase integration
 export async function supabaseWithAuth() {
+  if (!isConfigured) {
+    console.warn('[supabase] Called supabaseWithAuth without configuration');
+    return createUnavailableSupabaseProxy('missing environment variables');
+  }
+
   if (getClerkTokenFn) {
     try {
       const token = await getClerkTokenFn();
@@ -72,7 +95,14 @@ export async function supabaseWithAuth() {
 }
 
 // Factory function to create authenticated Supabase client with Clerk session
-export const createAuthenticatedSupabaseClient = async (getToken: () => Promise<string | null>): Promise<SupabaseClient<Database>> => {
+export const createAuthenticatedSupabaseClient = async (
+  getToken: () => Promise<string | null>
+): Promise<SupabaseClient<Database>> => {
+  if (!isConfigured) {
+    console.warn('[supabase] Called createAuthenticatedSupabaseClient without configuration');
+    return createUnavailableSupabaseProxy('missing environment variables');
+  }
+
   const token = await getToken();
   
   if (!token) {
@@ -112,7 +142,7 @@ export const registerClerkUser = async (
       p_email: email,
       p_name: name || null,
       p_store_name: storeName || null
-    });
+    } as any);
 
     if (error) {
       throw new Error(`Failed to register user: ${error.message}`);

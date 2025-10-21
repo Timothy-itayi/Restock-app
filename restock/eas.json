@@ -1,18 +1,37 @@
 {
   "cli": {
-    "version": ">= 16.20.4",
+    "version": ">=16.24.1",
     "appVersionSource": "remote"
   },
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "channel": "development",
+      "node": "24.4.1"
+    },
+    "dev-simulator": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "channel": "development",
+      "node": "24.4.1",
+      "ios": {
+        "simulator": true
+      }
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "channel": "preview",
+      "node": "24.4.1"
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "distribution": "store",
+      "channel": "production",
+      "node": "24.4.1",
+      "env": {
+        "NPM_CONFIG_OMIT": "dev"
+      }
     }
   },
   "submit": {

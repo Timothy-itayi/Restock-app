@@ -207,9 +207,9 @@
 - [x] Implement rate limiting
 
 ### 🚀 Priority 6: Production Readiness
-- [ ] Environment configuration for production
+- [x] Environment configuration for production (Clerk frontend domain + EAS secrets)
 - [ ] Build optimization and app store preparation
-- [ ] Documentation updates
+- [x] Documentation updates (README deployment milestone)
 - [ ] Final testing and quality assurance
 - [ ] Performance optimization (memory usage, image optimization)
 
@@ -338,6 +338,12 @@
 - [x] **Session Loading Working**: Successfully loading active sessions from database
 - [x] **Domain Validation Fixed**: No more "User ID is required" errors
 - [x] **Database Relationships Working**: Proper foreign key constraints and data flow
+
+### 🚀 Deployment Milestone (Oct 21, 2025)
+- [x] EAS production build and first TestFlight submission
+- [x] OAuth redirect standardized to `restock://oauth-native-callback`
+- [x] Clerk frontend domain configured (`clerk.restockapp.cc`) and verified via Cloudflare
+- [x] EAS production secrets set (Clerk publishable key, issuer domain, Supabase URL + anon key)
 
 ### 🏆 Previous Major Milestones
 - [x] Added `loadAllSessions` call on component mount

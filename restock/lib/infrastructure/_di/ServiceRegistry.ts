@@ -1,6 +1,7 @@
 // ServiceRegistry.ts
 import { DIContainer } from './Container';
-import { IdGeneratorService, GroqEmailAdapter } from '../index';
+import { IdGeneratorService } from '../_services/IdGeneratorService';
+import { GroqEmailAdapter } from '../_adapters/GroqEmailAdapter';
 import type {
   SupabaseUserRepository,
   SupabaseSessionRepository,

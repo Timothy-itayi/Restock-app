@@ -228,8 +228,8 @@ export default function SignInScreen() {
       // Use Clerk's useSSO hook for native OAuth flow
       const result = await startSSOFlow({
         strategy: 'oauth_google',
-        // Let UnifiedAuthProvider handle the routing - redirect to root
-        redirectUrl: Linking.createURL('/', { scheme: 'restock' }),
+        // Use native OAuth callback to avoid restock:/// unmatched route
+        redirectUrl: Linking.createURL('/oauth-native-callback', { scheme: 'restock' }),
       });
       
       console.log('Google OAuth sign in result:', result);

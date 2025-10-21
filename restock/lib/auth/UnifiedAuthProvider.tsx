@@ -426,10 +426,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
           }
         });
         
-        // Register services first
-        registerServices(contextState.userId);
-        
-        // Then create repository instances
+        // Create repository instances
         const repos: RepositoryContextValue = {
           userRepository: new SupabaseUserRepository(),
           sessionRepository: new SupabaseSessionRepository(contextState.userId),
@@ -466,6 +463,13 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
         setRepositories(repos);
         setRepositoriesSetup(true); // Mark as setup to prevent re-running
         console.log("[UnifiedAuth] ✅ Repositories ready for user", contextState.userId);
+
+        // Optionally register in DI here with fully configured repos
+        try {
+          registerServices(contextState.userId, repos as any);
+        } catch (e) {
+          console.warn('[UnifiedAuth] ⚠️ Failed to register services in DI', e);
+        }
       } catch (e) {
         console.error("[UnifiedAuth] ❌ Failed to setup repositories", e);
       }

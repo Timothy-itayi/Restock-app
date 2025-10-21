@@ -1,3 +1,4 @@
+import 'react-native-gesture-handler';
 import React, { useState, useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { View, Text, ActivityIndicator } from 'react-native';
@@ -19,6 +20,18 @@ SplashScreen.preventAutoHideAsync().catch(err => {
   console.error('❌ [RootLayout] Failed to prevent splash auto-hide:', err);
 });
 
+// Debug: confirm module loading and ensure splash eventually hides
+console.log('🧭 [RootLayout] Module loaded - setting splash failsafe');
+let __splashFailsafeTimer: any;
+try {
+  __splashFailsafeTimer = setTimeout(() => {
+    console.log('🧭 [RootLayout] Splash failsafe firing - forcing hide');
+    SplashScreen.hideAsync().catch(e => console.error('❌ [RootLayout] Failsafe hide error:', e));
+  }, 5000);
+} catch (e) {
+  // ignore
+}
+
 const createTokenCache = () => ({
   getToken: async (key: string) => {
     try { return await AsyncStorage.getItem(key); } 
@@ -32,6 +45,8 @@ const createTokenCache = () => ({
 
 export default function RootLayout() {
   console.log('🏗️ [RootLayout] Component function called');
+  // Marker to confirm this function executed
+  (global as any).__ROOT_LAYOUT_CALLED__ = true;
   
   const [loaded, setLoaded] = useState(false);
   const [showFirstRunSplash, setShowFirstRunSplash] = useState(false);
@@ -70,6 +85,12 @@ export default function RootLayout() {
           .catch(err => console.error('❌ [RootLayout] Failed to hide splash:', err));
       }, 500);
       
+      // Clear the module-level failsafe if present
+      if (__splashFailsafeTimer) {
+        try { clearTimeout(__splashFailsafeTimer); } catch {}
+        __splashFailsafeTimer = null as any;
+      }
+
       return () => clearTimeout(hideTimer);
     }
   }, [loaded]);
@@ -80,9 +101,16 @@ export default function RootLayout() {
     setShowFirstRunSplash(false); 
   }, []);
 
-  // Deep link handling
+  // Deep link handling with safe fallback
   useEffect(() => {
-    const handleDeepLink = async ({ url }: { url: string }) => console.log('RootLayout: Deep link received:', url);
+    const handleDeepLink = async ({ url }: { url: string }) => {
+      try {
+        console.log('RootLayout: Deep link received:', url);
+        // No-op; AuthRouter will handle redirects after hydration
+      } catch (e) {
+        console.warn('RootLayout: Deep link handling error', e);
+      }
+    };
     const subscription = Linking.addEventListener('url', handleDeepLink);
     Linking.getInitialURL().then((url) => { if (url) handleDeepLink({ url }); });
     return () => subscription.remove();
@@ -120,6 +148,21 @@ export default function RootLayout() {
   }
 
   console.log('🏗️ [RootLayout] Rendering root layout, about to render providers');
+
+  const hasClerkConfig = !!CLERK_PUBLISHABLE_KEY;
+  if (!hasClerkConfig) {
+    console.warn('⚠️ [RootLayout] Missing Clerk key - rendering minimal router to avoid blank screen');
+    return (
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="auth" options={{ headerShown: false }} />
+          <Stack.Screen name="sso-profile-setup" options={{ headerShown: false }} />
+          <Stack.Screen name="welcome" options={{ headerShown: false }} />
+        </Stack>
+      </GestureHandlerRootView>
+    );
+  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

@@ -10,7 +10,7 @@ import {
   SessionRepository,
   SessionNotFoundError,
   type EmailDraft
-} from '../../_domain';
+} from '../../domain/_entities/RestockSession';
 
 export interface GenerateEmailsCommand {
   readonly sessionId: string;

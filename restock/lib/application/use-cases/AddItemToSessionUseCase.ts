@@ -14,7 +14,7 @@ import {
   SessionNotFoundError,
   AddItemRequest,
   AddItemResult
-} from '../../_domain';
+} from '../../domain/_services/RestockSessionDomainService';
 
 export interface AddItemToSessionCommand {
   readonly sessionId: string;
