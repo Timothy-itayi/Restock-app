@@ -197,6 +197,23 @@ This architectural evolution represents a significant investment in code quality
 - Dashboard Loading: Resolved infinite loops and stuck skeleton UI
 - Session Loading: Successfully loading active sessions from database
 
+### Deployment Milestone — Oct 21, 2025
+- EAS production build completed (runtimeVersion = appVersion)
+- First TestFlight build submitted from production profile
+- OAuth redirect standardized to `restock://oauth-native-callback`
+- Clerk frontend domain configured and verified (issuer host: `clerk.restockapp.cc`)
+- EAS project secrets updated for production:
+  - `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY`
+  - `EXPO_PUBLIC_CLERK_JWT_ISSUER_DOMAIN=clerk.restockapp.cc`
+  - `EXPO_PUBLIC_SUPABASE_URL`
+  - `EXPO_PUBLIC_SUPABASE_ANON_KEY`
+  
+Quick deploy commands:
+```bash
+eas build --platform ios --profile production
+eas submit --platform ios --profile production
+```
+
 **Email Delivery System**
 - Resend integration for actual email sending
 - Email delivery tracking and status updates

@@ -101,9 +101,16 @@ export default function RootLayout() {
     setShowFirstRunSplash(false); 
   }, []);
 
-  // Deep link handling
+  // Deep link handling with safe fallback
   useEffect(() => {
-    const handleDeepLink = async ({ url }: { url: string }) => console.log('RootLayout: Deep link received:', url);
+    const handleDeepLink = async ({ url }: { url: string }) => {
+      try {
+        console.log('RootLayout: Deep link received:', url);
+        // No-op; AuthRouter will handle redirects after hydration
+      } catch (e) {
+        console.warn('RootLayout: Deep link handling error', e);
+      }
+    };
     const subscription = Linking.addEventListener('url', handleDeepLink);
     Linking.getInitialURL().then((url) => { if (url) handleDeepLink({ url }); });
     return () => subscription.remove();

@@ -94,8 +94,8 @@ export default function WelcomeBackScreen() {
       // Use Clerk's useSSO hook for native OAuth flow
       const result = await startSSOFlow({
         strategy: 'oauth_google',
-        // Route exists at app root: app/sso-profile-setup.tsx
-        redirectUrl: Linking.createURL('/sso-profile-setup', { scheme: 'restock' }),
+        // Use native OAuth callback; AuthRouter will handle post-auth routing
+        redirectUrl: Linking.createURL('/oauth-native-callback', { scheme: 'restock' }),
       });
       
       console.log('Google OAuth sign in result:', result);

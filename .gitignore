@@ -13,3 +13,5 @@
 # SQL migration and setup files
 *.sql
 restock/**/*.sql
+.DS_Store
+restock/*.tar.gz
