@@ -1,8 +1,10 @@
 import React from 'react';
+import { traceRender } from '../utils/renderTrace';
 import { View, ActivityIndicator, Text } from 'react-native';
 import { useUnifiedAuth } from '../auth/UnifiedAuthProvider';
 
 export const UnifiedAuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  traceRender('UnifiedAuthGuard', {});
   const { isAuthenticated, userId, hasValidProfile, isLoading, isProfileLoading } = useUnifiedAuth();
 
   // Show loader until profile is ready

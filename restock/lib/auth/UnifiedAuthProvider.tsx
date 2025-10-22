@@ -1,5 +1,6 @@
 // app/auth/UnifiedAuthProvider.tsx
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { traceRender } from '../utils/renderTrace';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SessionManager, UserSession } from '../../backend/_services/session-manager';
 import { useAuth } from '@clerk/clerk-expo';
@@ -47,6 +48,7 @@ export const useUnifiedAuth = () => {
 };
 
 export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  traceRender('UnifiedAuthProvider', {});
   // ✅ CORRECT: Call useAuth at component level
   const { isLoaded, isSignedIn, userId: clerkUserId, getToken } = useAuth();
   
@@ -83,6 +85,9 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   // Add state to track if repositories are already set up
   const [repositoriesSetup, setRepositoriesSetup] = useState(false);
+
+  // Cache key for fast-path routing on reloads
+  const LAST_KNOWN_PROFILE_KEY = 'auth:lastKnownProfile';
 
   // Function to update both local state and store imperatively
   const updateAuthState = useCallback(async () => {
@@ -486,6 +491,29 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       setRepositoriesSetup(false); // Reset setup flag
     }
   }, [contextState.isAuthenticated, contextState.userId, contextState.hasValidProfile, getToken, repositoriesSetup]);
+
+  // Persist a last-known-good profile snapshot for fast-path routing on reloads
+  useEffect(() => {
+    const persistSnapshot = async () => {
+      try {
+        if (contextState.isAuthenticated && contextState.userId && contextState.hasValidProfile) {
+          const snapshot = {
+            userId: contextState.userId,
+            userName: contextState.userName,
+            storeName: contextState.storeName,
+            ts: Date.now(),
+          };
+          await AsyncStorage.setItem(LAST_KNOWN_PROFILE_KEY, JSON.stringify(snapshot));
+        } else if (!contextState.isAuthenticated) {
+          // Clear on sign-out to avoid wrong fast-path for a different user
+          await AsyncStorage.removeItem(LAST_KNOWN_PROFILE_KEY);
+        }
+      } catch (e) {
+        console.warn('[UnifiedAuth] Failed to persist last-known profile snapshot', e);
+      }
+    };
+    persistSnapshot();
+  }, [contextState.isAuthenticated, contextState.userId, contextState.hasValidProfile, contextState.userName, contextState.storeName]);
 
   // Actions for context
   const triggerAuthCheck = useCallback(async () => {

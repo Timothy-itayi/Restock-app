@@ -1,5 +1,6 @@
 // SupabaseHooksProvider.tsx
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { traceRender } from '../../utils/renderTrace';
 import { useUnifiedAuth } from '../../auth/UnifiedAuthProvider';
 
 import { SupabaseUserRepository } from '../../../backend/_infrastructure/repositories/SupabaseUserRepository';
@@ -44,6 +45,7 @@ export const useRepositories = (): RepositoryContextType & { isSupabaseReady: bo
 };
 
 export const SupabaseHooksProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  traceRender('SupabaseHooksProvider', {});
   console.log('[SupabaseHP] 🔄 SupabaseHooksProvider rendered');
   const { userId, isAuthenticated, getClerkSupabaseToken } = useUnifiedAuth();
   const [repos, setRepos] = useState<RepositoryContextType | null>(null);
