@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, TextInput, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, Alert, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { useUser } from '@clerk/clerk-expo';
 
@@ -19,6 +19,84 @@ export default function SSOProfileSetupScreen() {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [hasUserEditedName, setHasUserEditedName] = useState(false);
+  const [hasExistingSnapshot, setHasExistingSnapshot] = useState(false);
+  const [snapshotName, setSnapshotName] = useState<string | undefined>(undefined);
+
+  const LAST_KNOWN_PROFILE_KEY = 'auth:lastKnownProfile';
+
+  // Initial mount diagnostics
+  useEffect(() => {
+    console.log('[SSOSetup][Init]', {
+      isAuthenticated,
+      hasUser: !!user,
+      userId,
+      isProfileLoading,
+      isProfileSetupComplete,
+      userName,
+      storeName,
+    });
+  }, []);
+
+  // Strict short-circuit: if we have a last-known-good snapshot for this user, treat as existing
+  useEffect(() => {
+    let cancelled = false;
+    const readSnapshot = async () => {
+      try {
+        if (!userId) {
+          console.log('[SSOSetup][Snapshot] Skipping read - no userId yet');
+          return;
+        }
+        console.log('[SSOSetup][Snapshot] Reading AsyncStorage for key', LAST_KNOWN_PROFILE_KEY);
+        const json = await AsyncStorage.getItem(LAST_KNOWN_PROFILE_KEY);
+        if (!json) {
+          console.log('[SSOSetup][Snapshot] No snapshot found');
+          return;
+        }
+        const parsed = JSON.parse(json);
+        if (parsed?.userId === userId) {
+          if (!cancelled) {
+            setHasExistingSnapshot(true);
+            setSnapshotName(parsed.userName);
+            console.log('[SSOSetup][Snapshot] Found last-known profile for user, enabling strict bypass', {
+              userId,
+              snapshotName: parsed.userName,
+            });
+          }
+        } else {
+          console.log('[SSOSetup][Snapshot] Snapshot user mismatch', {
+            snapshotUserId: parsed?.userId,
+            currentUserId: userId,
+          });
+        }
+      } catch {}
+    };
+    readSnapshot();
+    return () => { cancelled = true; };
+  }, [userId]);
+
+  // When snapshot is present, immediately navigate to dashboard once authenticated
+  useEffect(() => {
+    if (isAuthenticated && userId && hasExistingSnapshot) {
+      console.log('[SSOSetup][Bypass] Navigating to dashboard due to snapshot', {
+        userId,
+        snapshotName: snapshotName || userName,
+      });
+      // Small delay to yield a frame with the overlay before navigating
+      const t = setTimeout(() => router.replace('/(tabs)/dashboard' as any), 50);
+      return () => clearTimeout(t);
+    }
+  }, [isAuthenticated, userId, hasExistingSnapshot]);
+
+  // Log overlay mount condition changes
+  useEffect(() => {
+    console.log('[SSOSetup][OverlayState]', {
+      willShowOverlay: hasExistingSnapshot && !!isAuthenticated && !!userId,
+      hasExistingSnapshot,
+      isAuthenticated,
+      hasUserId: !!userId,
+      snapshotName: snapshotName || userName,
+    });
+  }, [hasExistingSnapshot, isAuthenticated, userId, snapshotName, userName]);
 
   // 🔒 CRITICAL: Prevent users who already have complete profiles from seeing setup
   useEffect(() => {
@@ -203,6 +281,8 @@ export default function SSOProfileSetupScreen() {
       setLoading(false);
     }
   };
+
+  // Overlay removed; rely on AuthRouter overlay and direct bypass navigation
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={ssoProfileSetupStyles.container}>

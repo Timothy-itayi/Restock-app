@@ -3,6 +3,13 @@ import 'react-native-gesture-handler';
 
 // Early boot diagnostics
 try {
+  // Better stack traces in development
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  require('source-map-support/register');
+} catch {}
+
+// Early boot diagnostics
+try {
   // eslint-disable-next-line no-undef
   if (global && global.ErrorUtils && typeof global.ErrorUtils.setGlobalHandler === 'function') {
     // eslint-disable-next-line no-undef

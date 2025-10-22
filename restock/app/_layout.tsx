@@ -1,7 +1,7 @@
 import 'react-native-gesture-handler';
 import React, { useState, useEffect } from 'react';
 import { Stack } from 'expo-router';
-import { View, Text, ActivityIndicator } from 'react-native';
+import { View, Text, ActivityIndicator, DeviceEventEmitter } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ClerkProvider } from '@clerk/clerk-expo';
 
@@ -14,6 +14,7 @@ import { CLERK_PUBLISHABLE_KEY } from '../backend/_config/clerk';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Linking from 'expo-linking';
+import { traceRender } from '../lib/utils/renderTrace';
 
 // Keep splash screen visible
 SplashScreen.preventAutoHideAsync().catch(err => {
@@ -44,11 +45,13 @@ const createTokenCache = () => ({
 });
 
 export default function RootLayout() {
+  traceRender('RootLayout', {});
   console.log('🏗️ [RootLayout] Component function called');
   // Marker to confirm this function executed
   (global as any).__ROOT_LAYOUT_CALLED__ = true;
   
   const [loaded, setLoaded] = useState(false);
+  const [appReady, setAppReady] = useState(false);
   const [showFirstRunSplash, setShowFirstRunSplash] = useState(false);
   const [initError, setInitError] = useState<Error | null>(null);
 
@@ -73,27 +76,38 @@ export default function RootLayout() {
     init();
   }, []);
 
-  // Hide splash screen when loaded
+  // Hide splash screen when loaded AND the app has rendered its first meaningful frame
   useEffect(() => { 
-    console.log('🏗️ [RootLayout] loaded changed to:', loaded);
-    if (loaded) {
-      console.log('🏗️ [RootLayout] Hiding splash screen...');
-      // Add timeout to ensure splash hides even if there's an issue
-      const hideTimer = setTimeout(() => {
-        SplashScreen.hideAsync()
-          .then(() => console.log('✅ [RootLayout] Splash screen hidden'))
-          .catch(err => console.error('❌ [RootLayout] Failed to hide splash:', err));
-      }, 500);
-      
+    traceRender('RootLayout/useEffect-loaded-appReady', { loaded, appReady });
+    console.log('🏗️ [RootLayout] loaded/appReady changed:', { loaded, appReady });
+    if (loaded && appReady) {
+      console.log('🏗️ [RootLayout] Hiding splash screen after appReady...');
+      const hide = async () => {
+        try {
+          await SplashScreen.hideAsync();
+          console.log('✅ [RootLayout] Splash screen hidden');
+        } catch (err) {
+          console.error('❌ [RootLayout] Failed to hide splash:', err);
+        }
+      };
+      hide();
+
       // Clear the module-level failsafe if present
       if (__splashFailsafeTimer) {
         try { clearTimeout(__splashFailsafeTimer); } catch {}
         __splashFailsafeTimer = null as any;
       }
-
-      return () => clearTimeout(hideTimer);
     }
-  }, [loaded]);
+  }, [loaded, appReady]);
+
+  // Listen for the first-frame readiness signal from the UI tree
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener('app:ready', () => {
+      console.log('🟢 [RootLayout] Received app:ready event');
+      setAppReady(true);
+    });
+    return () => sub.remove();
+  }, []);
 
   // Reset first run splash
   useEffect(() => { 
@@ -165,7 +179,7 @@ export default function RootLayout() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#fafafa' }}>
       <ErrorBoundary onError={(error, errorInfo) => {
         console.error('🚨 [RootLayout] Caught error in app:', error, errorInfo);
       }}>

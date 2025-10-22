@@ -4,8 +4,10 @@ import {  tabScreenOptions, tabBarOptions } from '../../styles/components/tabs';
 import { UnifiedAuthGuard } from '../../lib/components/UnifiedAuthGuard';
 import { SessionProvider } from '../../lib/contexts/restock-sessions/SessionContext';
 import { ErrorBoundaryWrapper } from '../../lib/components/ErrorBoundaryWrapper';
+import { traceRender } from '../../lib/utils/renderTrace';
 
 export default function TabLayout() {
+  traceRender('TabLayout', {});
   return (
     <ErrorBoundaryWrapper>
       <TabLayoutContent />
