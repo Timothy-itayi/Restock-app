@@ -428,7 +428,27 @@ export function useEmailSessions(userProfile: UserProfile) {
       console.log('✅ [EmailSessions] Email sent successfully!');
       console.log('✅ [EmailSessions] Message ID:', result.messageId);
 
-      // 🔧 Email tracking is now handled by the Edge Function
+      // 🔧 Also persist an email_sent record via repository (RPC insert_email_sent)
+      try {
+        if (emailRepository && authReady && isAuthenticated && userId) {
+          console.log('🗄️ [EmailSessions] Persisting email_sent record via repository...');
+          await emailRepository.create({
+            sessionId,
+            supplierEmail: email.supplierEmail,
+            supplierName: email.supplierName,
+            emailContent: email.body,
+            deliveryStatus: 'pending',
+            sentVia: 'resend',
+            status: 'sent',
+            sentAt: new Date().toISOString(),
+            trackingId: result.messageId,
+          });
+        } else {
+          console.warn('⚠️ [EmailSessions] Skipping email_sent record persist - repo/auth not ready');
+        }
+      } catch (persistError) {
+        console.error('❌ [EmailSessions] Failed to persist email_sent record:', persistError);
+      }
 
       // Email sent successfully - mark as sent
       const finalStatus = 'sent' as const;
@@ -667,25 +687,28 @@ export function useEmailSessions(userProfile: UserProfile) {
         console.warn('⚠️ [EmailSessions] No sessionRepository available to mark session as sent');
       }
 
-      // 🔧 Create email records in database for tracking
+      // 🔧 Create email records in database for tracking (use results with trackingId)
       if (emailRepository && authReady && isAuthenticated && userId) {
-        console.log('🔍 [EmailSessions] Creating email records in database for tracking...');
-        
-        for (const email of current.emails) {
+        console.log('🔍 [EmailSessions] Creating email_sent records via RPC for successful sends...');
+
+        for (const r of successfulEmails) {
+          const sentEmail = current.emails.find(e => e.id === r.emailId);
+          if (!sentEmail) continue;
           try {
             const emailRecordId = await emailRepository.create({
               sessionId: activeSessionId,
-              supplierEmail: email.supplierEmail,
-              supplierName: email.supplierName,
-              emailContent: email.body,
+              supplierEmail: sentEmail.supplierEmail,
+              supplierName: sentEmail.supplierName,
+              emailContent: sentEmail.body,
               deliveryStatus: 'pending',
               sentVia: 'resend',
               status: 'sent',
-              sentAt: new Date().toISOString()
+              sentAt: new Date().toISOString(),
+              trackingId: r.result?.messageId,
             });
-            console.log(`✅ [EmailSessions] Email record created for ${email.supplierName}:`, emailRecordId);
+            console.log(`✅ [EmailSessions] Email record created for ${sentEmail.supplierName}:`, emailRecordId);
           } catch (error) {
-            console.error(`❌ [EmailSessions] Failed to create email record for ${email.supplierName}:`, error);
+            console.error(`❌ [EmailSessions] Failed to create email record for ${sentEmail.supplierName}:`, error);
             // Don't fail the session completion if email record creation fails
           }
         }
