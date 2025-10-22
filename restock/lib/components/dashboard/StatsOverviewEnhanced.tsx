@@ -27,7 +27,7 @@ const DonutChart: React.FC<{
   activeCount: number;
   finishedCount: number;
   size: number;
-  appTheme: any;
+  appTheme: AppColors;
 }> = ({ activeCount, finishedCount, size, appTheme }) => {
   const total = activeCount + finishedCount;
   if (total === 0) return null;
@@ -52,7 +52,7 @@ const DonutChart: React.FC<{
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke={appTheme.colors.neutral.light}
+          stroke={appTheme.neutral.light}
           strokeWidth={strokeWidth}
           fill="transparent"
         />
@@ -63,7 +63,7 @@ const DonutChart: React.FC<{
             cx={size / 2}
             cy={size / 2}
             r={radius}
-            stroke={appTheme.colors.status.info}
+            stroke={appTheme.status.info}
             strokeWidth={strokeWidth}
             fill="transparent"
             strokeDasharray={`${activeStroke - gap} ${circumference - activeStroke + gap}`}
@@ -79,7 +79,7 @@ const DonutChart: React.FC<{
             cx={size / 2}
             cy={size / 2}
             r={radius}
-            stroke={appTheme.colors.status.success}
+            stroke={appTheme.status.success}
             strokeWidth={strokeWidth}
             fill="transparent"
             strokeDasharray={`${finishedStroke - gap} ${circumference - finishedStroke + gap}`}
@@ -96,7 +96,7 @@ const DonutChart: React.FC<{
           textAnchor="middle"
           fontSize="20"
           fontWeight="600"
-          fill={appTheme.colors.neutral.darkest}
+          fill={appTheme.neutral.darkest}
         >
           {total}
         </SvgText>
@@ -105,7 +105,7 @@ const DonutChart: React.FC<{
           y={size / 2 + 12}
           textAnchor="middle"
           fontSize="12"
-          fill={appTheme.colors.neutral.medium}
+          fill={appTheme.neutral.medium}
         >
           Sessions
         </SvgText>
@@ -166,7 +166,7 @@ export const StatsOverviewEnhanced: React.FC<StatsOverviewEnhancedProps> = ({
               activeCount={unfinishedSessions.length}
               finishedCount={finishedSessions.length}
               size={120}
-              appTheme={colors}
+              appTheme={t.theme as AppColors}
             />
             
             {/* Legend */}

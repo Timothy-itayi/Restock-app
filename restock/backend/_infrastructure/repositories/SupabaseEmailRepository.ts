@@ -95,32 +95,41 @@ export class SupabaseEmailRepository implements EmailRepository {
    */
   async create(request: CreateEmailRequest): Promise<string> {
     const client = await this.getAuthenticatedClient();
-    const { data, error } = await client.rpc('insert_email', {
+    const { data, error } = await client.rpc('insert_email_sent', {
+      p_delivery_status: request.deliveryStatus || 'pending',
+      p_sent_via: request.sentVia || 'resend',
+      p_tracking_id: request.trackingId || null,
+      p_resend_webhook_data: request.resendWebhookData || null,
       p_session_id: request.sessionId,
-      p_supplier_name: request.supplierName,
-      p_supplier_email: request.supplierEmail,
-      p_subject: 'Restock Order', // Default subject
-      p_body: request.emailContent,
-      p_status: request.status || 'sent'
+      p_supplier_id: request.supplierId || null,
+      p_email_content: request.emailContent,
+      p_sent_at: request.sentAt || new Date().toISOString(),
+      p_status: request.status || 'sent',
+      p_error_message: request.errorMessage || null
     });
 
     if (error) {
       throw new Error(`Failed to create email record: ${error.message}`);
     }
 
-    // Return the created email ID
-    return data?.id || '';
+    // RPC commonly returns an array; normalize to ID
+    const created = Array.isArray(data) ? data[0] : data;
+    return created?.id || '';
   }
 
   async saveEmail(emailData: any): Promise<void> {
     const client = await this.getAuthenticatedClient();
-    const { error } = await client.rpc('insert_email', {
+    const { error } = await client.rpc('insert_email_sent', {
+      p_delivery_status: emailData.deliveryStatus || 'pending',
+      p_sent_via: emailData.sentVia || 'resend',
+      p_tracking_id: emailData.trackingId || null,
+      p_resend_webhook_data: emailData.resendWebhookData || null,
       p_session_id: emailData.sessionId,
-      p_supplier_name: emailData.supplierName,
-      p_supplier_email: emailData.supplierEmail,
-      p_subject: emailData.subject,
-      p_body: emailData.body,
-      p_status: emailData.status
+      p_supplier_id: emailData.supplierId || null,
+      p_email_content: emailData.body || emailData.emailContent,
+      p_sent_at: emailData.sentAt || new Date().toISOString(),
+      p_status: emailData.status || 'sent',
+      p_error_message: emailData.errorMessage || null
     });
 
     if (error) {
@@ -130,7 +139,7 @@ export class SupabaseEmailRepository implements EmailRepository {
 
   async updateEmailStatus(emailId: string, status: string): Promise<void> {
     const client = await this.getAuthenticatedClient();
-    const { error } = await client.rpc('update_email_status', {
+    const { error } = await client.rpc('update_email_sent', {
       p_id: emailId,
       p_status: status
     });

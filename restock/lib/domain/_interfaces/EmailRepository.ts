@@ -47,4 +47,6 @@ export interface EmailRepository {
    * Create an email record
    */
   create(request: CreateEmailRequest): Promise<string>;
+
+
 }
