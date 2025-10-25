@@ -1,5 +1,5 @@
-import { GeneratedEmail, EmailContext } from './types';
 import { supabase } from '../../_config/supabase';
+import { EmailContext, GeneratedEmail } from './types';
 
 export class GroqEmailClient {
   private isInitialized = false;
@@ -110,6 +110,8 @@ private generateFallbackEmail(context: EmailContext, maxLength: number = 300): G
   const intro = this.getPersonalizedIntroHTML(context);
   const urgencyNote = this.getUrgencyNoteHTML(context.urgencyLevel);
   const closing = this.getPersonalizedClosingHTML(context);
+  const preheader = `Purchase order from ${context.storeName} for ${context.products.length} item(s)`;
+  const logoUrl = process.env.EXPO_PUBLIC_EMAIL_LOGO_URL || 'https://restockapp.email/logo.png';
   
   // Create professional HTML email body
   const body = `
@@ -119,15 +121,20 @@ private generateFallbackEmail(context: EmailContext, maxLength: number = 300): G
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Restock Order from ${context.storeName}</title>
+  <style>
+    .preheader { display: none!important; visibility: hidden; opacity: 0; color: transparent; height: 0; width: 0; overflow: hidden; }
+  </style>
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
+  <div class="preheader">${preheader}</div>
   
   <div style="background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow: hidden;">
     
     <!-- Header -->
     <div style="background: linear-gradient(135deg, #6B7F6B 0%, #A7B9A7 100%); padding: 30px 20px; text-align: center;">
-      <h1 style="color: white; font-size: 24px; font-weight: 600; margin: 0;">Restock App</h1>
-      <p style="color: white; margin: 10px 0 0 0; opacity: 0.9;">Professional Store Management</p>
+      <img src="${logoUrl}" alt="Restock App" width="56" height="56" style="display:block;margin:0 auto 8px auto;border-radius:12px; border: 1px solid rgba(255,255,255,0.6);">
+      <h1 style="color: white; font-size: 22px; font-weight: 600; margin: 0;">Restock App</h1>
+      <p style="color: white; margin: 6px 0 0 0; opacity: 0.9;">Professional Store Management</p>
     </div>
     
     <!-- Email Routing Info -->

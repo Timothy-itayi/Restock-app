@@ -31,6 +31,13 @@ export default function RestockSessionsLayout() {
           headerShown: false,
         }}
       />
+      <Stack.Screen
+        name="upload-catalog"
+        options={{
+          title: 'Upload Catalog',
+          headerShown: false,
+        }}
+      />
     </Stack>
   );
 }

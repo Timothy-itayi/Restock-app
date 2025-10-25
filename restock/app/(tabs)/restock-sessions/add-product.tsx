@@ -1,15 +1,15 @@
 // screens/AddProductScreen.tsx
-import React, { useState, useCallback, useEffect } from 'react';
-import { SafeAreaView, ScrollView, View, Alert, DeviceEventEmitter, TouchableOpacity, Text } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useSafeTheme } from '../../../lib/stores/useThemeStore';
-import { getRestockSessionsStyles } from '../../../styles/components/restock-sessions';
-import { ProductForm } from '../../../lib/components/restock-sessions/ProductForm';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Alert, DeviceEventEmitter, SafeAreaView, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { useUnifiedAuth } from '../../../lib/auth/UnifiedAuthProvider';
 import CustomToast from '../../../lib/components/CustomToast';
+import { ProductForm } from '../../../lib/components/restock-sessions/ProductForm';
 import { useSessionContext } from '../../../lib/contexts/restock-sessions/SessionContext';
 import { useRepositories } from '../../../lib/infrastructure/_supabase/SupabaseHooksProvider';
-import { useUnifiedAuth } from '../../../lib/auth/UnifiedAuthProvider';
+import { useSafeTheme } from '../../../lib/stores/useThemeStore';
 import colors, { AppColors } from '../../../lib/theme/colors';
+import { getRestockSessionsStyles } from '../../../styles/components/restock-sessions';
 
 export default function AddProductScreen() {
   const params = useLocalSearchParams();

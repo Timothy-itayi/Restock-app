@@ -1,18 +1,17 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, {
   createContext,
-  useContext,
-  useState,
-  useCallback,
-  useEffect,
   ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
   useMemo,
-  useRef,
+  useState
 } from 'react';
 import { DeviceEventEmitter } from 'react-native';
-import { RestockSession, SessionStatus } from '../../domain/_entities/RestockSession';
 import { useUnifiedAuth } from '../../auth/UnifiedAuthProvider';
+import { RestockSession, SessionStatus } from '../../domain/_entities/RestockSession';
 import { useRepositories } from '../../infrastructure/_supabase/SupabaseHooksProvider';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface SessionContextState {
   currentSession: RestockSession | null;
@@ -180,12 +179,15 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
       } else {
         const error = `Session not found: ${sessionId}`;
         console.warn('⚠️ SessionContext:', error);
-        throw new Error(error);
+        // Gracefully handle missing sessions: clear pending state and prune stale entry
+        setPendingSessionId(null);
+        setAvailableSessions(prev => prev.filter((s: RestockSession) => s.toValue().id !== sessionId));
+        return; // Do not throw – prevents noisy error screens during races
       }
     } catch (err) {
       console.error('❌ SessionContext: Error loading session by ID', err);
-      // Re-throw the error so the calling component can handle it
-      throw err;
+      // Swallow in favor of logging; callers should be resilient to no-op loads
+      return;
     } finally {
       setIsSessionLoading(false);
       setIsLoadingSpecificSession(false);
@@ -342,6 +344,15 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
     }
 
     try {
+      // Guard: prevent rapid double submissions per session-product-supplier tuple
+      const lockKey = `restock:add:${currentSession.toValue().id}:${params.productName}:${params.supplierEmail}`;
+      const existing = await AsyncStorage.getItem(lockKey);
+      if (existing) {
+        console.log('⛔ SessionContext: Duplicate add suppressed by lock', lockKey);
+        return { success: true };
+      }
+      await AsyncStorage.setItem(lockKey, '1');
+
       // Add the product to the session - remove loading state to speed up
       await sessionRepository.addItem(currentSession.toValue().id, {
         productId: `temp_${Date.now()}`,
@@ -354,9 +365,16 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
       });
 
       console.log('✅ SessionContext: Product added successfully');
+      // Release the lock shortly after success (keep tiny window to absorb retries)
+      setTimeout(() => AsyncStorage.removeItem(lockKey).catch(() => {}), 1000);
       return { success: true };
     } catch (err) {
       console.error('❌ SessionContext: Error adding product', err);
+      // Always release lock on failure so user can retry
+      try {
+        const lockKey = `restock:add:${currentSession.toValue().id}:${params.productName}:${params.supplierEmail}`;
+        await AsyncStorage.removeItem(lockKey);
+      } catch {}
       return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
     }
   }, [isSupabaseReady, sessionRepository, currentSession]);

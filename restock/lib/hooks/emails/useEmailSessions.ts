@@ -1,11 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
-import { DeviceEventEmitter } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRepositories } from '../../infrastructure/_supabase/SupabaseHooksProvider';
-import { useSessionContext } from '../../contexts/restock-sessions/SessionContext';
+import { useCallback, useEffect, useState } from 'react';
+import { DeviceEventEmitter } from 'react-native';
 import { useUnifiedAuth } from '../../auth/UnifiedAuthProvider';
-import { UserProfile } from './useUserProfile';
+import { useSessionContext } from '../../contexts/restock-sessions/SessionContext';
+import { useRepositories } from '../../infrastructure/_supabase/SupabaseHooksProvider';
+import { defaultEmailHeaders, formatFromDisplay, htmlToPlainText } from '../../utils/email';
 import { EmailDraft, EmailSession } from './useEmailSession';
+import { UserProfile } from './useUserProfile';
 
 
 const STORAGE_KEY = 'emailSessions';
@@ -350,8 +351,11 @@ export function useEmailSessions(userProfile: UserProfile) {
         to: email.supplierEmail,
         subject: email.subject,
         html: email.body,
-        from: 'orders@restockapp.email',     // your domain, authenticated
-        reply_to: userProfile.email,         // the user's actual email
+        text: htmlToPlainText(email.body || ''),
+        from: formatFromDisplay(),
+        reply_to: userProfile.email,
+        replyTo: userProfile.email,
+        headers: defaultEmailHeaders(`https://restockapp.email/unsubscribe/${sessionId}`),
       };
 
       console.log('📧 [EmailSessions] Request body:', requestBody);
@@ -608,8 +612,11 @@ export function useEmailSessions(userProfile: UserProfile) {
             to: email.supplierEmail,
             subject: email.subject,
             html: email.body,
-            from: 'orders@restockapp.email',     // your domain, authenticated
-            reply_to: userProfile.email,         // the user's actual email
+            text: htmlToPlainText(email.body || ''),
+            from: formatFromDisplay(),
+            reply_to: userProfile.email,
+            replyTo: userProfile.email,
+            headers: defaultEmailHeaders(`https://restockapp.email/unsubscribe/${activeSessionId}`),
           };
 
           console.log(`📧 [EmailSessions] Email ${index + 1} request body:`, requestBody);

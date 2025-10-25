@@ -1,10 +1,10 @@
 // components/ProductForm.tsx
 import React from 'react';
-import { View, Text, TextInput, TouchableOpacity } from 'react-native';
-import { useProductForm, incrementQuantity, decrementQuantity } from '../../hooks/restock-sessions/useProductForm';
-import { useSafeTheme } from '../../stores/useThemeStore';
+import { Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { getRestockSessionsStyles } from '../../../styles/components/restock-sessions';
 import Button from '../../components/Button';
+import { decrementQuantity, incrementQuantity, useProductForm } from '../../hooks/restock-sessions/useProductForm';
+import { useSafeTheme } from '../../stores/useThemeStore';
 import colors, { AppColors } from '../../theme/colors';
 
 interface ProductFormProps {
@@ -15,12 +15,13 @@ interface ProductFormProps {
   isEditMode?: boolean;
 } 
 
-export function ProductForm({ onSubmit, initialValues, isDisabled = false }: ProductFormProps) {
+export function ProductForm({ onSubmit, initialValues, isDisabled = false, isSubmitting }: ProductFormProps) {
   const { formData, updateField, submitForm, error } = useProductForm(initialValues);
   const t = useSafeTheme();
   const styles = getRestockSessionsStyles(t.theme as AppColors);
 
   const handleSubmit = () => {
+    if (isSubmitting || isDisabled) return; // guard against double-taps
     submitForm(() => onSubmit({
       productName: formData.productName.trim(),
       quantity: Number(formData.quantity),
@@ -111,7 +112,8 @@ export function ProductForm({ onSubmit, initialValues, isDisabled = false }: Pro
         <Button
           title="Submit"
           onPress={handleSubmit}
-          disabled={isDisabled}
+          disabled={isDisabled || isSubmitting}
+          loading={isSubmitting}
         />
       </View>
     </View>

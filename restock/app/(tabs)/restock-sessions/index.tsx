@@ -4,27 +4,27 @@
  * Handles dynamic route/query params safely and guards hooks
  */
 
-import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, DeviceEventEmitter } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, DeviceEventEmitter, Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useUnifiedAuth } from '../../../lib/auth/UnifiedAuthProvider';
 
 // Hooks
-import { useSessionList } from '../../../lib/hooks/restock-sessions/useSessionList';
 import { useSessionContext } from '../../../lib/contexts/restock-sessions/SessionContext';
 import { useServiceHealth } from '../../../lib/hooks/restock-sessions/useService';
+import { useSessionList } from '../../../lib/hooks/restock-sessions/useSessionList';
 
 // UI Components
+import CustomToast from '../../../lib/components/CustomToast';
+import NameSessionModal from '../../../lib/components/NameSessionModal';
+import { FinishSection } from '../../../lib/components/restock-sessions/FinishSection';
+import { ProductList } from '../../../lib/components/restock-sessions/ProductList';
 import { SessionHeader } from '../../../lib/components/restock-sessions/SessionHeader';
 import { StartSection } from '../../../lib/components/restock-sessions/StartSection';
-import { ProductList } from '../../../lib/components/restock-sessions/ProductList';
-import { FinishSection } from '../../../lib/components/restock-sessions/FinishSection';
-import NameSessionModal from '../../../lib/components/NameSessionModal';
-import CustomToast from '../../../lib/components/CustomToast';
 
 // Styles
-import { useThemedStyles } from '../../../styles/useThemedStyles';
 import { getRestockSessionsStyles } from '../../../styles/components/restock-sessions';
+import { useThemedStyles } from '../../../styles/useThemedStyles';
 // import { ClerkDebugger } from '../../lib/components/ClerkDebugger';
 
 const RestockSessionsContent: React.FC = () => {
@@ -123,6 +123,7 @@ const RestockSessionsContent: React.FC = () => {
   const [showNameModal, setShowNameModal] = useState(false);
   const [sessionNameInput, setSessionNameInput] = useState('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [showStartChoiceModal, setShowStartChoiceModal] = useState(false);
 
   // ✅ CORRECT: Remove the old useEffect for safeParams since we're using useMemo now
   
@@ -217,6 +218,9 @@ const RestockSessionsContent: React.FC = () => {
     sessionNameInputRef.current = sessionNameInput;
   }, [sessionNameInput]);
 
+  // Track recently deleted session to avoid immediate auto-load races
+  const lastDeletedRef = useRef<{ id: string; ts: number } | null>(null);
+
   // --- NAME SESSION ---
   const handleNameSession = useCallback(async () => {
     const trimmedName = sessionNameInputRef.current.trim();
@@ -233,7 +237,7 @@ const RestockSessionsContent: React.FC = () => {
         setShowNameModal(false);
         setSessionNameInput('');
       } else {
-        // Create the session immediately before navigating
+        // Create the session immediately
         const createResult = await sessionContextRef.current.startNewSession(trimmedName);
         if (!createResult.success) {
           setToastMessage('Failed to create session');
@@ -242,15 +246,8 @@ const RestockSessionsContent: React.FC = () => {
 
         setShowNameModal(false);
         setSessionNameInput('');
-
-        const { router } = await import('expo-router');
-
-        // Navigate to add-product screen (session is now active)
-        try {
-          await router.push('/(tabs)/restock-sessions/add-product' as any);
-        } catch (error) {
-          router.push('add-product' as any);
-        }
+        // Show choice modal to continue with Add Product or Upload Catalog
+        setShowStartChoiceModal(true);
       }
     } catch (error) {
       setToastMessage('An error occurred while processing the session');
@@ -361,6 +358,12 @@ const RestockSessionsContent: React.FC = () => {
     if (hasActiveSessions && !sessionContext.currentSession && !isLoading) {
       const firstActiveSession = sessionList.sessions.find(session => session.status !== 'sent');
       
+      // Skip auto-load if it matches the one we just deleted in the last 1.5s
+      if (lastDeletedRef.current && firstActiveSession && lastDeletedRef.current.id === firstActiveSession.id && (Date.now() - lastDeletedRef.current.ts) < 1500) {
+        console.log('⏭️ Skipping auto-activate for recently deleted session');
+        return;
+      }
+
       if (firstActiveSession && firstActiveSession.status !== 'sent') {
         console.log('🔄 Auto-activating first active session:', firstActiveSession.id);
         sessionContext.loadExistingSession(firstActiveSession.id);
@@ -391,6 +394,8 @@ useEffect(() => {
       console.log('🔄 Main screen: Current session deleted, clearing state');
       sessionContext.clearCurrentSession();
     }
+    // Record deletion to avoid eager auto-loads for a short window
+    lastDeletedRef.current = { id: sessionId, ts: Date.now() };
     // Always refresh available sessions to update switch button
     sessionContext.loadAvailableSessions();
     // Also refresh the session list to reflect the deletion
@@ -493,7 +498,8 @@ useEffect(() => {
         {shouldShowActiveSession && activeSession && (
           <>
             <View style={restockSessionsStyles.addProductSection}>
-              <TouchableOpacity style={restockSessionsStyles.addProductButton} onPress={async () => {
+              <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+              <TouchableOpacity style={[restockSessionsStyles.addProductButton, { flex: 1 }]} onPress={async () => {
                 const { router } = await import('expo-router');
                 const sessionData = activeSession.toValue();
                 console.log('🚀 Add Product button: Navigating to add-product with session:', sessionData.id);
@@ -522,6 +528,35 @@ useEffect(() => {
               }}>
                 <Text style={restockSessionsStyles.addProductButtonText}>+ Add Product</Text>
               </TouchableOpacity>
+              <TouchableOpacity style={[restockSessionsStyles.addProductButton, { flex: 1}]} onPress={async () => {
+                const { router } = await import('expo-router');
+                const sessionData = activeSession.toValue();
+                console.log('📄 Add Document button: Navigating to upload-catalog with session:', sessionData.id);
+
+                try {
+                  await router.push({
+                    pathname: '/(tabs)/restock-sessions/upload-catalog' as any,
+                    params: {
+                      sessionId: sessionData.id,
+                      sessionName: sessionData.name,
+                      isExistingSession: 'true'
+                    }
+                  });
+                } catch (error) {
+                  console.error('❌ Upload Catalog navigation error:', error);
+                  router.push({
+                    pathname: 'upload-catalog' as any,
+                    params: {
+                      sessionId: sessionData.id,
+                      sessionName: sessionData.name,
+                      isExistingSession: 'true'
+                    }
+                  });
+                }
+              }}>
+                <Text style={restockSessionsStyles.addProductButtonText}>+ Upload Document</Text>
+              </TouchableOpacity>
+              </View>
             </View>
 
             <ProductList
@@ -616,6 +651,61 @@ useEffect(() => {
           type="info"
         />
       )}
+
+      {/* Post-Create Choice Modal */}
+      <Modal
+        visible={showStartChoiceModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowStartChoiceModal(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ width: '85%', maxWidth: 420, borderRadius: 16, backgroundColor: '#fff', padding: 20 }}>
+            <Text style={{ fontSize: 18, fontWeight: '600', marginBottom: 12, textAlign: 'center' }}>
+              How would you like to start?
+            </Text>
+            <Text style={{ fontSize: 14, color: '#555', marginBottom: 16, textAlign: 'center' }}>
+              Your session is created. Choose to add a product manually or upload a catalog.
+            </Text>
+            <View style={{ gap: 12 }}>
+              <TouchableOpacity
+                style={{ paddingVertical: 12, borderRadius: 10, backgroundColor: '#111' }}
+                onPress={async () => {
+                  setShowStartChoiceModal(false);
+                  const { router } = await import('expo-router');
+                  try {
+                    await router.push('/(tabs)/restock-sessions/add-product' as any);
+                  } catch (error) {
+                    router.push('add-product' as any);
+                  }
+                }}
+              >
+                <Text style={{ color: '#fff', textAlign: 'center', fontWeight: '600' }}>Add Product</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{ paddingVertical: 12, borderRadius: 10, backgroundColor: '#6B7F6B' }}
+                onPress={async () => {
+                  setShowStartChoiceModal(false);
+                  const { router } = await import('expo-router');
+                  try {
+                    await router.push('/(tabs)/restock-sessions/upload-catalog' as any);
+                  } catch (error) {
+                    router.push('upload' as any);
+                  }
+                }}
+              >
+                <Text style={{ color: '#fff', textAlign: 'center', fontWeight: '600' }}>Upload Catalog</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{ paddingVertical: 10, borderRadius: 10, backgroundColor: '#f0f0f0' }}
+                onPress={() => setShowStartChoiceModal(false)}
+              >
+                <Text style={{ color: '#333', textAlign: 'center' }}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };

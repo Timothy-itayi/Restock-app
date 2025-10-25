@@ -1,18 +1,18 @@
 import React from 'react';
 import {
-  Modal,
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
   Dimensions,
-  SafeAreaView,
-  TextInput,
   KeyboardAvoidingView,
+  Modal,
   Platform,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { typography } from '../../styles/typography';
-import useThemeStore from '../stores/useThemeStore';
+import colors, { AppColors } from '../theme/colors';
 
 interface NameSessionModalProps {
   visible: boolean;
@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     flex: 1,
-    paddingVertical: 14,
+    paddingVertical: 4,
     borderRadius: 8,
     alignItems: 'center',
     backgroundColor: '#F8F9FA',
@@ -161,6 +161,7 @@ const styles = StyleSheet.create({
     ...typography.bodyMedium,
     color: '#6C757D',
     fontWeight: '600',
+    textAlign: 'center',
   },
   confirmButton: {
     flex: 1,
@@ -168,9 +169,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#22C55E',
+    backgroundColor: colors.brand.primary as AppColors['brand']['primary'] as string    ,
     borderWidth: 1,
-    borderColor: '#22C55E',
+    borderColor: colors.brand.primary as AppColors['brand']['primary'] as string,
   },
   confirmButtonText: {
     ...typography.bodyMedium,

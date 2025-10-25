@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
-import { DeviceEventEmitter } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { UserProfile } from './useUserProfile';
-import { useRepositories } from '../../infrastructure/_supabase/SupabaseHooksProvider';
+import { useCallback, useEffect, useState } from 'react';
+import { DeviceEventEmitter } from 'react-native';
 import { useUnifiedAuth } from '../../auth/UnifiedAuthProvider';
+import { useRepositories } from '../../infrastructure/_supabase/SupabaseHooksProvider';
+import { defaultEmailHeaders, formatFromDisplay, htmlToPlainText } from '../../utils/email';
+import { UserProfile } from './useUserProfile';
 
 
 
@@ -219,17 +220,12 @@ export function useEmailSession(userProfile: UserProfile) {
           const requestBody = {
             to: email.supplierEmail,
             subject: email.subject,
-            html: email.htmlBody || email.body,  // Use HTML if available
-            text: email.body,                    // Always include plain text
-            from: 'orders@restockapp.email',
-            reply_to: userProfile.email,        // the user's actual email
-
-            // Add proper headers for deliverability
-            headers: {
-              'X-Mailer': 'The Restock App',
-              'X-Priority': '3',
-              'X-MSMail-Priority': 'Normal'
-            }
+            html: email.htmlBody || email.body,
+            text: htmlToPlainText(email.htmlBody || email.body || ''),
+            from: formatFromDisplay(),
+            reply_to: userProfile.email,
+            replyTo: userProfile.email,
+            headers: defaultEmailHeaders(`https://restockapp.email/unsubscribe/${emailSession.id}`)
           };
 
           console.log(`📧 [EmailSession] Email ${index + 1} request body:`, requestBody);
