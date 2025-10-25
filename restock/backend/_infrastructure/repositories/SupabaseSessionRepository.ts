@@ -1,8 +1,8 @@
-import { supabase } from '../../_config/supabase';
 import { RestockSession } from '../../../lib/domain/_entities/RestockSession';
 import { SessionRepository } from '../../../lib/domain/_interfaces/SessionRepository';
 import { SessionMapper } from '../../../lib/infrastructure/_repositories/_mappers/SessionMapper';
-import type { RestockSession as DbRestockSession, RestockItem as DbRestockItem } from '../../_types/database';
+import { supabase } from '../../_config/supabase';
+import type { RestockSession as DbRestockSession } from '../../_types/database';
 
 export class SupabaseSessionRepository implements SessionRepository {
   private userId: string | null = null;
@@ -274,7 +274,12 @@ export class SupabaseSessionRepository implements SessionRepository {
     });
 
     if (error) {
-      throw new Error(`Failed to add item to session: ${error.message}`);
+      // Convert unique violation into a no-op success so rapid double taps don't break flow
+      const message = String(error.message || '').toLowerCase();
+      const isUnique = message.includes('duplicate key value') || message.includes('unique constraint');
+      if (!isUnique) {
+        throw new Error(`Failed to add item to session: ${error.message}`);
+      }
     }
   }
 

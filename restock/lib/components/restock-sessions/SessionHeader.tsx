@@ -1,11 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { formatDate, formatProductCount } from '../../utils/restock-sessions/formatters';
-import { getSessionColorTheme } from '../../utils/restock-sessions/colorUtils';
 import { getRestockSessionsStyles } from '../../../styles/components/restock-sessions';
 import { useThemedStyles } from '../../../styles/useThemedStyles';
-import { FileUploadModal } from '../../components/FileUploadModal';
+import { getSessionColorTheme } from '../../utils/restock-sessions/colorUtils';
+import { formatDate, formatProductCount } from '../../utils/restock-sessions/formatters';
 
 interface SessionHeaderProps {
   currentSession: any | null; // Accept domain session or legacy type
@@ -19,7 +17,6 @@ export const SessionHeader: React.FC<SessionHeaderProps> = ({
   onShowSessionSelection
 }) => {
   const restockSessionsStyles = useThemedStyles(getRestockSessionsStyles);
-  const [showFileUploadModal, setShowFileUploadModal] = useState(false);
   
   const sessionId = currentSession && typeof currentSession.toValue === 'function' 
     ? currentSession.toValue().id 
@@ -34,14 +31,6 @@ export const SessionHeader: React.FC<SessionHeaderProps> = ({
   const productsCount = currentSession && typeof currentSession.toValue === 'function'
     ? (Array.isArray(currentSession.toValue().items) ? currentSession.toValue().items.length : 0)
     : (Array.isArray(currentSession?.products) ? currentSession.products.length : 0);
-
-  const handleUploadFile = () => {
-    setShowFileUploadModal(false);
-    // TODO: Implement file upload logic
-    console.log('Upload file functionality to be implemented');
-  };
-
-
 
   return (
     <>
@@ -67,23 +56,7 @@ export const SessionHeader: React.FC<SessionHeaderProps> = ({
                 formatDate(createdAt || new Date())}
             </Text>
             
-            {/* Catalog Upload Icon */}
-            <TouchableOpacity
-              style={{
-                padding: 6,
-                borderRadius: 6,
-                backgroundColor: 'rgba(107, 127, 107, 0.1)',
-                marginLeft: 8,
-              }}
-              onPress={() => setShowFileUploadModal(true)}
-              activeOpacity={0.7}
-            >
-              <Ionicons 
-                name="document" 
-                size={32} 
-                color="#6B7F6B" 
-              />
-            </TouchableOpacity>
+            {/* Upload Catalog access removed from header by request */}
           </View>
           
           {allSessionsCount > 0 && (
@@ -116,13 +89,6 @@ export const SessionHeader: React.FC<SessionHeaderProps> = ({
         </Text>
       </View>
 
-      {/* File Upload Modal */}
-      <FileUploadModal
-        visible={showFileUploadModal}
-        onClose={() => setShowFileUploadModal(false)}
-        onUploadFile={handleUploadFile}
-    
-      />
     </>
   );
 };

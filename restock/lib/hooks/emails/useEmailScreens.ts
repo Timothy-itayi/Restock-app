@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DeviceEventEmitter } from 'react-native';
 import { useUnifiedAuth } from '../../auth/UnifiedAuthProvider';
 import { useRepositories } from '../../infrastructure/_supabase/SupabaseHooksProvider';
+import { defaultEmailHeaders, formatFromDisplay, htmlToPlainText } from '../../utils/email';
 import type { EmailDraft } from './useEmailSession';
 import { useUserProfile } from './useUserProfile';
 
@@ -126,8 +127,11 @@ export function useEmailScreens() {
         to: emailToSend.supplierEmail,
         subject: emailToSend.subject,
         html: emailToSend.body,
-        from: 'orders@restockapp.email',     // your domain, authenticated
-        reply_to: userProfile.userProfile.email,         // the user's actual email
+        text: htmlToPlainText(emailToSend.body || ''),
+        from: formatFromDisplay(),
+        reply_to: userProfile.userProfile.email,
+        replyTo: userProfile.userProfile.email,
+        headers: defaultEmailHeaders(`https://restockapp.email/unsubscribe/${activeSessionId}`),
       };
       
       console.log('📧 [EmailScreens] Sending request to:', emailUrl);
@@ -247,8 +251,11 @@ export function useEmailScreens() {
             to: email.supplierEmail,
             subject: email.subject,
             html: email.body,
-            from: 'orders@restockapp.email',     // your domain, authenticated
-            reply_to: userProfile.userProfile.email,         // the user's actual email
+            text: htmlToPlainText(email.body || ''),
+            from: formatFromDisplay(),
+            reply_to: userProfile.userProfile.email,
+            replyTo: userProfile.userProfile.email,
+            headers: defaultEmailHeaders(`https://restockapp.email/unsubscribe/${activeSessionId}`),
           };
           
           console.log(`📧 [EmailScreens] Email ${index + 1} request body:`, requestBody);

@@ -1,6 +1,6 @@
-import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import React from 'react';
+import { Text, View } from 'react-native';
 import { getDashboardStyles } from '../../../styles/components/dashboard';
 import { useSafeTheme } from '../../stores/useThemeStore';
 import colors, { AppColors } from '../../theme/colors';
@@ -89,27 +89,8 @@ export const FinishedSessions: React.FC<FinishedSessionsProps> = ({
                 {formatDate(session.createdAt)} • {session.totalItems} items • {session.uniqueSuppliers} suppliers
               </Text>
             </View>
-            
-            <TouchableOpacity
-              style={{
-                backgroundColor: colors.status.success,
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                borderRadius: 6
-              }}
-              onPress={() => {
-                // TODO: Navigate to session details or email history
-                console.log('Revisit session:', session.id);
-              }}
-            >
-              <Text style={{
-                color: colors.neutral.lightest,
-                fontSize: 12,
-                fontWeight: '500'
-              }}>
-                Revisit
-              </Text>
-            </TouchableOpacity>
+         
+        
           </View>
         );
       })}

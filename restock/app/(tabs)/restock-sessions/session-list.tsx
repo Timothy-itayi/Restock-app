@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Auth
 import { useUnifiedAuth } from '../../../lib/auth/UnifiedAuthProvider';
@@ -15,8 +15,8 @@ import { useSessionContext } from '../../../lib/contexts/restock-sessions/Sessio
 import CustomToast from '../../../lib/components/CustomToast';
 
 // Styles
-import { useThemedStyles } from '../../../styles/useThemedStyles';
 import { getRestockSessionsStyles } from '../../../styles/components/restock-sessions';
+import { useThemedStyles } from '../../../styles/useThemedStyles';
 
 const SessionListScreen: React.FC = () => {
   const router = useRouter();
@@ -133,7 +133,7 @@ const SessionListScreen: React.FC = () => {
               </Text>
             </View>
 
-            <ScrollView style={restockSessionsStyles.sessionList}>
+            <View style={restockSessionsStyles.sessionList}>
               {sessionContext.availableSessions.map((session, index) => {
                 const id = session.toValue?.().id || session.id;
                 const name = session.toValue?.().name || session.name;
@@ -178,7 +178,7 @@ const SessionListScreen: React.FC = () => {
                   </TouchableOpacity>
                 );
               })}
-            </ScrollView>
+            </View>
           </View>
         )}
 

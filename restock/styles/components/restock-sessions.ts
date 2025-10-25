@@ -1,6 +1,6 @@
 import { StyleSheet } from "react-native";
-import { typography, fontFamily } from "../typography";
 import colors, { type AppColors } from '../../lib/theme/colors';
+import { fontFamily, typography } from "../typography";
 
 export const getRestockSessionsStyles = (t: AppColors) => StyleSheet.create({
   container: {
@@ -329,8 +329,8 @@ export const getRestockSessionsStyles = (t: AppColors) => StyleSheet.create({
   // Add Product button (darker green with plus sign)
   addProductButton: {
     backgroundColor: colors.brand.primary, // Brand green
-    width: 140,
-    height: 90,
+    width: 100,
+    height: 50,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: colors.brand.primary,
@@ -341,7 +341,7 @@ export const getRestockSessionsStyles = (t: AppColors) => StyleSheet.create({
   addProductButtonText: {
     fontFamily: fontFamily.satoshiBold,
     color: colors.neutral.lightest,
-    fontSize: 20,
+    fontSize: 12,
     fontWeight: "600",
   },
   
