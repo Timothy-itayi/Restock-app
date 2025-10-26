@@ -1,19 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { ScrollView, RefreshControl, View, Text } from 'react-native';
+import React from 'react';
+import { RefreshControl, ScrollView, Text, View } from 'react-native';
 import { getDashboardStyles } from '../../../styles/components/dashboard';
 
 import { useUnifiedAuth } from '../../../lib/auth/UnifiedAuthProvider';
 import { useSafeTheme } from '../../../lib/stores/useThemeStore';
 import colors, { AppColors } from '../../../lib/theme/colors';
 
-import { useDashboardData } from '../../../lib/hooks/dashboard/useDashboardData';
-import { 
-  WelcomeSection, 
-  UnfinishedSessions, 
-  FinishedSessions,
-  StatsOverviewEnhanced, 
-  EmptyState 
+import {
+    EmptyState,
+    StatsOverviewEnhanced,
+    UnfinishedSessions,
+    WelcomeSection
 } from '../../../lib/components/dashboard';
+import { useDashboardData } from '../../../lib/hooks/dashboard/useDashboardData';
 
 
 interface SessionItem {
@@ -108,10 +107,7 @@ export default function DashboardScreen() {
         onSessionTap={trackSessionTap}
       />
 
-      <FinishedSessions 
-        sessionsLoading={sessionsLoading} 
-        finishedSessions={finishedSessions}
-      />
+      {/* Finished sessions list removed; use StatsOverviewEnhanced (color wheel) as sole entry to finished */}
       
       <EmptyState 
         sessionsLoading={sessionsLoading} 
