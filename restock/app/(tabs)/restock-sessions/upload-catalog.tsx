@@ -3,6 +3,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, SafeAreaView, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSessionContext } from '../../../lib/contexts/restock-sessions/SessionContext';
+import colors from '../../../lib/theme/colors';
+import { getUploadCatalogStyles } from '../../../styles/components/upload-catalog';
 
 type ParsedItem = { id: string; supplierName: string; productName: string; confidence?: number };
 
@@ -11,6 +13,7 @@ export default function UploadScreen() {
   const params = useLocalSearchParams() as { sessionId?: string; sessionName?: string };
   const { currentSession } = useSessionContext();
   const sessionReady = useMemo(() => !!currentSession, [currentSession]);
+  const styles = useMemo(() => getUploadCatalogStyles(colors), []);
 
   // UI state scaffold
   const [step, setStep] = useState<'intro' | 'select' | 'parsing' | 'curate' | 'emails'>('intro');
@@ -129,13 +132,7 @@ export default function UploadScreen() {
   const neutral600 = '#4b5563';
 
   // --- Reusable styles ---
-  const card = {
-    backgroundColor: neutral0,
-    borderWidth: 1,
-    borderColor: neutral200,
-    borderRadius: 12,
-    padding: 12
-  } as const;
+  const card = styles.formCard;
   const chip = (active: boolean) => ({
     paddingVertical: 6,
     paddingHorizontal: 10,
@@ -152,17 +149,17 @@ export default function UploadScreen() {
   const thinDivider = <View style={{ height: 1, backgroundColor: neutral200, marginVertical: 8 }} />;
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-      <View style={{ flex: 1, padding: 16, backgroundColor: neutral50 }}>
+    <SafeAreaView style={styles.sessionContainer}>
+      <View style={{ flex: 1, padding: 16 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', marginBottom: 8 }}>
           <TouchableOpacity onPress={() => router.back()}>
             <Text style={{ fontFamily: 'Satoshi-Regular', fontSize: 16, color: '#6C757D' }}>← Back</Text>
           </TouchableOpacity>
         </View>
-        <Text style={{ fontSize: 22, fontWeight: '700', textAlign: 'center', marginBottom: 4 }}>
+        <Text style={styles.sessionSelectionTitle}>
           Upload Catalog
         </Text>
-        <Text style={{ textAlign: 'center', color: '#666', marginBottom: 12 }}>
+        <Text style={styles.sectionSubtitle}>
           {params.sessionName ? `Session: ${params.sessionName}` : currentSession?.toValue?.().name || 'Current Session'}
         </Text>
 
@@ -185,14 +182,14 @@ export default function UploadScreen() {
               onChangeText={setNumFiles}
               keyboardType="number-pad"
               placeholder="e.g., 2"
-              style={{ borderWidth: 1, borderColor: neutral200, borderRadius: 10, padding: 12, backgroundColor: neutral0 }}
+              style={styles.textInput}
             />
             <TouchableOpacity
               onPress={onChooseFiles}
               disabled={!sessionReady}
-              style={button(!!sessionReady, true)}
+              style={[styles.saveButton, !sessionReady && { opacity: 0.6 }]}
             >
-              <Text style={{ color: '#fff', textAlign: 'center', fontWeight: '600' }}>Choose Files</Text>
+              <Text style={styles.saveButtonText}>Choose Files</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -213,15 +210,15 @@ export default function UploadScreen() {
             />
             <TouchableOpacity
               onPress={onStartParse}
-              style={button(true, false)}
+              style={styles.saveButton}
             >
-              <Text style={{ color: '#fff', textAlign: 'center', fontWeight: '600' }}>Parse with AI</Text>
+              <Text style={styles.saveButtonText}>Parse with AI</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setStep('intro')}
-              style={{ padding: 10, backgroundColor: neutral100, borderRadius: 10, borderWidth: 1, borderColor: neutral200 }}
+              style={styles.cancelButton}
             >
-              <Text style={{ color: '#333', textAlign: 'center' }}>Back</Text>
+              <Text style={[styles.buttonText, styles.cancelButtonText]}>Back</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -242,48 +239,54 @@ export default function UploadScreen() {
             <Text style={{ color: '#555' }}>
               Use search and supplier filters to curate your list. Only selected items will be imported.
             </Text>
-            <View style={[card, { gap: 10 }] }>
-              <TextInput
-                value={search}
-                onChangeText={setSearch}
-                placeholder="Search supplier or product"
-                style={{ borderWidth: 1, borderColor: neutral200, borderRadius: 10, padding: 12, backgroundColor: neutral0 }}
-              />
-              {thinDivider}
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingVertical: 2 }}>
-                {['All', ...uniqueSuppliers].map((s, idx) => (
+            <View style={[card, styles.filterCard]}>
+              <View style={styles.searchRow}>
+                <TextInput
+                  value={search}
+                  onChangeText={setSearch}
+                  placeholder="Search supplier or product"
+                  style={styles.searchInputSmall}
+                />
+                <View style={styles.searchActions}>
                   <TouchableOpacity
-                    key={s}
-                    onPress={() => setSupplierFilter(s)}
-                    style={[chip(supplierFilter === s), { marginRight: idx === uniqueSuppliers.length ? 0 : 8 }]}
+                    accessibilityLabel="Select all visible"
+                    onPress={() => {
+                      const next: Record<string, boolean> = { ...selectedMap };
+                      visibleItems.forEach(i => { next[i.id] = true; });
+                      setSelectedMap(next);
+                    }}
+                    style={styles.iconButtonSmall}
                   >
-                    <Text style={{ color: supplierFilter === s ? '#fff' : '#333' }}>{s}</Text>
+                    <Ionicons name="checkmark-done-outline" size={18} color="#334155" />
                   </TouchableOpacity>
-                ))}
+                  <TouchableOpacity
+                    accessibilityLabel="Clear all selections"
+                    onPress={() => setSelectedMap({})}
+                    style={styles.iconButtonSmall}
+                  >
+                    <Ionicons name="trash-outline" size={18} color="#334155" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillRow}>
+                {['All', ...uniqueSuppliers].map((s) => {
+                  const isActive = supplierFilter === s;
+                  return (
+                    <TouchableOpacity
+                      key={s}
+                      onPress={() => setSupplierFilter(s)}
+                      style={[styles.pill, isActive && styles.pillActive]}
+                    >
+                      <Text style={[styles.pillText, isActive && styles.pillTextActive]}>{s}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </ScrollView>
             </View>
-            <View style={{ flexDirection: 'row', gap: 10 }}>
-              <TouchableOpacity
-                onPress={() => {
-                  const next: Record<string, boolean> = { ...selectedMap };
-                  visibleItems.forEach(i => { next[i.id] = true; });
-                  setSelectedMap(next);
-                }}
-                style={button(true, false)}
-              >
-                <Text style={{ color: '#fff' }}>Select All Visible</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setSelectedMap({})}
-                style={{ padding: 10, backgroundColor: neutral100, borderRadius: 10, borderWidth: 1, borderColor: neutral200 }}
-              >
-                <Text style={{ color: '#333' }}>Clear All</Text>
-              </TouchableOpacity>
+            <View style={styles.productListHeader}>
+              <Text style={styles.productListTitle}>Products</Text>
             </View>
-            <View style={[card, { paddingVertical: 8, paddingHorizontal: 12 }] }>
-              <Text style={{ color: neutral600, fontWeight: '700' }}>Products</Text>
-            </View>
-            <View style={[card, { padding: 0, flex: 1 }] }>
+            <View style={styles.productListContainer}>
               <FlatList
                 data={visibleItems}
                 keyExtractor={(i) => i.id}
@@ -292,15 +295,17 @@ export default function UploadScreen() {
                   return (
                     <TouchableOpacity
                       onPress={() => setSelectedMap(prev => ({ ...prev, [item.id]: !checked }))}
-                      style={{ paddingVertical: 12, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: neutral200, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: checked ? '#f9fafb' : neutral0 }}
+                      style={[styles.productItem, { backgroundColor: checked ? '#f9fafb' : neutral0 }]}
                     >
-                      <View style={{ flex: 1, paddingRight: 12 }}>
-                        <Text style={{ fontWeight: '700', color: neutral600 }}>{item.supplierName}</Text>
-                        <Text style={{ color: '#333', marginTop: 2 }}>• {item.productName}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <View style={{ flex: 1, paddingRight: 12 }}>
+                          <Text style={{ fontWeight: '700', color: neutral600 }}>{item.supplierName}</Text>
+                          <Text style={{ color: '#333', marginTop: 2 }}>• {item.productName}</Text>
+                        </View>
+                        <View style={{ width: 22, height: 22, borderRadius: 4, borderWidth: 1, borderColor: neutral400, alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent' }}>
+                          {checked && <Ionicons name="checkmark" size={16} color="#111" />}
+                        </View>
                       </View>
-                  <View style={{ width: 22, height: 22, borderRadius: 4, borderWidth: 1, borderColor: neutral400, alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent' }}>
-                    {checked && <Ionicons name="checkmark" size={16} color="#111" />}
-                  </View>
                     </TouchableOpacity>
                   );
                 }}
@@ -309,15 +314,9 @@ export default function UploadScreen() {
             <TouchableOpacity
               disabled={!canContinueToEmails}
               onPress={() => setStep('emails')}
-              style={button(canContinueToEmails, true)}
+              style={[styles.saveButton, !canContinueToEmails && { opacity: 0.6 }]}
             >
-              <Text style={{ color: '#fff', textAlign: 'center', fontWeight: '600' }}>Continue to Emails ({selectedCount} selected)</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setStep('select')}
-              style={{ padding: 10, backgroundColor: neutral100, borderRadius: 10, borderWidth: 1, borderColor: neutral200 }}
-            >
-              <Text style={{ color: '#333', textAlign: 'center' }}>Back</Text>
+              <Text style={styles.saveButtonText}>Continue to Emails ({selectedCount} selected)</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -329,7 +328,7 @@ export default function UploadScreen() {
             <Text style={{ color: '#555' }}>
               Enter each supplier's email for the items you selected. We only store names and emails.
             </Text>
-            <View style={[card, { padding: 0 }] }>
+            <View style={card}>
               <FlatList
               data={suppliersFromSelection}
               keyExtractor={(s) => s}
@@ -342,7 +341,7 @@ export default function UploadScreen() {
                     keyboardType="email-address"
                     value={supplierEmails[supplier] || ''}
                     onChangeText={(v) => setSupplierEmails(prev => ({ ...prev, [supplier]: v }))}
-                    style={{ borderWidth: 1, borderColor: neutral200, borderRadius: 10, padding: 12, marginTop: 8, backgroundColor: neutral0 }}
+                    style={[styles.textInput, { marginTop: 8 }]}
                   />
                   {items.filter(i => selectedMap[i.id] && i.supplierName === supplier).map((i, idx) => (
                     <Text key={supplier + idx} style={{ marginTop: 6, color: '#333' }}>• {i.productName}</Text>
@@ -355,15 +354,15 @@ export default function UploadScreen() {
                     <TouchableOpacity
                       disabled={!canConfirm || isBusy}
                       onPress={onConfirmImport}
-                      style={button(canConfirm && !isBusy, true)}
+                      style={[styles.saveButton, (!canConfirm || isBusy) && { opacity: 0.6 }]}
                     >
-                      <Text style={{ color: '#fff', textAlign: 'center', fontWeight: '600' }}>Confirm Import</Text>
+                      <Text style={styles.saveButtonText}>Confirm Import</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => setStep('curate')}
-                      style={{ padding: 10, backgroundColor: neutral100, borderRadius: 10, borderWidth: 1, borderColor: neutral200 }}
+                      style={styles.cancelButton}
                     >
-                      <Text style={{ color: '#333', textAlign: 'center' }}>Back</Text>
+                      <Text style={[styles.buttonText, styles.cancelButtonText]}>Back</Text>
                     </TouchableOpacity>
                   </View>
                 }
