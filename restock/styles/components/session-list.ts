@@ -99,6 +99,37 @@ export const getSessionListStyles = (t: AppColors) => StyleSheet.create({
     paddingVertical: 24,
     alignItems: "center",
   },
+  createHeaderSection: {
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+    alignItems: 'center',
+    width: '100%',
+  },
+  createHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    maxWidth: 720,
+  },
+  createHeaderText: {
+    fontFamily: fontFamily.satoshi,
+    fontSize: 14,
+    color: colors.neutral.medium,
+  },
+  createHeaderButton: {
+    backgroundColor: colors.brand.primary,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.brand.primary,
+  },
+  createHeaderButtonText: {
+    fontFamily: fontFamily.satoshiBold,
+    color: '#FFFFFF',
+    fontSize: 14,
+  },
   sessionSelectionTitle: {
     fontFamily: fontFamily.satoshiBold,
     fontSize: 24,
