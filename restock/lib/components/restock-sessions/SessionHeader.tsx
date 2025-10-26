@@ -43,7 +43,7 @@ export const SessionHeader: React.FC<SessionHeaderProps> = ({
           backgroundColor: sessionColor.light
         }
       ]}>
-        <View style={restockSessionsStyles.sessionHeaderLeft}>
+        <View style={{ flexDirection: 'row-reverse', alignItems: 'center', flex: 1 }}>
           <View style={[restockSessionsStyles.sessionCardTitle, { flexDirection: 'row', alignItems: 'center', flex: 1 }]}>
             {sessionColor && (
               <View style={[
@@ -51,12 +51,12 @@ export const SessionHeader: React.FC<SessionHeaderProps> = ({
                 { backgroundColor: sessionColor.primary }
               ]} />
             )}
-            <Text style={[restockSessionsStyles.sessionHeaderTitle, { fontSize: 14, flex: 1 }]}>
+            <Text style={[restockSessionsStyles.sessionHeaderTitle, ]}>
               {(currentName ? currentName + ' • ' : 'Session • ') +
                 formatDate(createdAt || new Date())}
             </Text>
             
-            {/* Upload Catalog access removed from header by request */}
+      
           </View>
           
           {allSessionsCount > 0 && (

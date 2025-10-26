@@ -15,7 +15,7 @@ interface ProductFormProps {
   isEditMode?: boolean;
 } 
 
-export function ProductForm({ onSubmit, initialValues, isDisabled = false, isSubmitting }: ProductFormProps) {
+export function ProductForm({ onSubmit, initialValues, isDisabled = false, isSubmitting, isEditMode = false }: ProductFormProps) {
   const { formData, updateField, submitForm, error } = useProductForm(initialValues);
   const t = useSafeTheme();
   const styles = getRestockSessionsStyles(t.theme as AppColors);
@@ -33,16 +33,17 @@ export function ProductForm({ onSubmit, initialValues, isDisabled = false, isSub
 
   return (
     <View style={styles.formCard}>
-      <Text style={styles.formTitle}>Add Product</Text>
+      <Text style={styles.formTitle}>{isEditMode ? 'Edit Product' : 'Add Product'}</Text>
 
       {/* Product Name */}
       <View style={styles.inputGroup}>
         <Text style={styles.inputLabel}>Product Name</Text>
         <TextInput
           value={formData.productName}
-          onChangeText={val => updateField('productName', val)}
+          onChangeText={val => { if (!(isDisabled || isSubmitting)) updateField('productName', val); }}
           placeholder="Product Name"
           style={styles.textInput}
+          editable={!(isDisabled || isSubmitting)}
         />
       </View>
 
@@ -50,16 +51,17 @@ export function ProductForm({ onSubmit, initialValues, isDisabled = false, isSub
       <View style={styles.inputGroup}>
         <Text style={styles.inputLabel}>Quantity</Text>
         <View style={styles.quantityContainer}>
-          <TouchableOpacity style={styles.quantityButton} onPress={() => updateField('quantity', decrementQuantity(formData.quantity))}>
+          <TouchableOpacity style={styles.quantityButton} disabled={isDisabled || isSubmitting} onPress={() => updateField('quantity', decrementQuantity(formData.quantity))}>
             <Text style={styles.quantityButtonText}>-</Text>
           </TouchableOpacity>
           <TextInput
             value={formData.quantity}
-            onChangeText={val => updateField('quantity', val)}
+            onChangeText={val => { if (!(isDisabled || isSubmitting)) updateField('quantity', val); }}
             keyboardType="numeric"
             style={styles.quantityInput}
+            editable={!(isDisabled || isSubmitting)}
           />
-          <TouchableOpacity style={styles.quantityButton} onPress={() => updateField('quantity', incrementQuantity(formData.quantity))}>
+          <TouchableOpacity style={styles.quantityButton} disabled={isDisabled || isSubmitting} onPress={() => updateField('quantity', incrementQuantity(formData.quantity))}>
             <Text style={styles.quantityButtonText}>+</Text>
           </TouchableOpacity>
         </View>
@@ -70,9 +72,10 @@ export function ProductForm({ onSubmit, initialValues, isDisabled = false, isSub
         <Text style={styles.inputLabel}>Supplier Name</Text>
         <TextInput
           value={formData.supplierName}
-          onChangeText={val => updateField('supplierName', val)}
+          onChangeText={val => { if (!(isDisabled || isSubmitting)) updateField('supplierName', val); }}
           placeholder="Supplier Name"
           style={styles.textInput}
+          editable={!(isDisabled || isSubmitting)}
         />
       </View>
 
@@ -81,11 +84,12 @@ export function ProductForm({ onSubmit, initialValues, isDisabled = false, isSub
         <Text style={styles.inputLabel}>Supplier Email</Text>
         <TextInput
           value={formData.supplierEmail}
-          onChangeText={val => updateField('supplierEmail', val)}
+          onChangeText={val => { if (!(isDisabled || isSubmitting)) updateField('supplierEmail', val); }}
           placeholder="supplier@example.com"
           keyboardType="email-address"
           autoCapitalize="none"
           style={styles.textInput}
+          editable={!(isDisabled || isSubmitting)}
         />
       </View>
 
@@ -94,11 +98,12 @@ export function ProductForm({ onSubmit, initialValues, isDisabled = false, isSub
         <Text style={styles.inputLabel}>Notes (Optional)</Text>
         <TextInput
           value={formData.notes}
-          onChangeText={val => updateField('notes', val)}
+          onChangeText={val => { if (!(isDisabled || isSubmitting)) updateField('notes', val); }}
           placeholder="Additional notes..."
           multiline
           numberOfLines={3}
           style={styles.textInput}
+          editable={!(isDisabled || isSubmitting)}
         />
       </View>
 

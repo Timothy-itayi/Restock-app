@@ -13,9 +13,11 @@ import { useSessionContext } from '../../../lib/contexts/restock-sessions/Sessio
 
 // Components
 import CustomToast from '../../../lib/components/CustomToast';
+import NameSessionModal from '../../../lib/components/NameSessionModal';
 
 // Styles
 import { getRestockSessionsStyles } from '../../../styles/components/restock-sessions';
+import { getSessionListStyles } from '../../../styles/components/session-list';
 import { useThemedStyles } from '../../../styles/useThemedStyles';
 
 const SessionListScreen: React.FC = () => {
@@ -23,8 +25,12 @@ const SessionListScreen: React.FC = () => {
   const { userId } = useUnifiedAuth();
   const sessionContext = useSessionContext();
   const restockSessionsStyles = useThemedStyles(getRestockSessionsStyles);
+  const sessionListStyles = useThemedStyles(getSessionListStyles);
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newSessionName, setNewSessionName] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
 
   // 🔍 NEW: Memoize handlers to prevent unnecessary re-renders
   const handleSelectSession = useCallback(async (sessionId: string) => {
@@ -70,12 +76,31 @@ const SessionListScreen: React.FC = () => {
   }, [sessionContext.deleteSession]);
 
   const handleCreateNewSession = useCallback(() => {
-    // Navigate back to main restock sessions tab with flag to start new session
-    router.push({
-      pathname: '/(tabs)/restock-sessions' as any,
-      params: { createNewSession: 'true' }
-    });
-  }, [router]);
+    setShowCreateModal(true);
+  }, []);
+
+  const confirmCreateSession = useCallback(async () => {
+    if (isCreating) return;
+    try {
+      setIsCreating(true);
+      const name = newSessionName.trim() || `Restock Session ${new Date().toLocaleDateString()}`;
+      const result = await sessionContext.startNewSession(name);
+      if (result.success) {
+        // Ensure the new session appears in the list for future visits
+        await sessionContext.loadAvailableSessions();
+        setShowCreateModal(false);
+        setNewSessionName('');
+        // Stay on session list; user can choose the new session without redirect
+        setToastMessage('Session created');
+      } else {
+        setToastMessage(result.error || 'Failed to create session');
+      }
+    } catch (err) {
+      setToastMessage('An error occurred while creating the session');
+    } finally {
+      setIsCreating(false);
+    }
+  }, [isCreating, newSessionName, sessionContext.startNewSession, sessionContext.loadAvailableSessions, router]);
 
   // 🔍 NEW: Memoize formatDate helper to prevent unnecessary re-renders
   const formatDate = useCallback((date: Date) => {
@@ -108,32 +133,32 @@ const SessionListScreen: React.FC = () => {
   }, [userId, sessionContext.isSupabaseReady]); // Removed loadAvailableSessions dependency
 
   return (
-    <SafeAreaView style={restockSessionsStyles.container}>
+    <SafeAreaView style={sessionListStyles.container}>
       {/* Header */}
-      <View style={restockSessionsStyles.sessionHeader}>
+      <View style={sessionListStyles.sessionHeader}>
         <TouchableOpacity 
-          style={{ paddingVertical: 8, paddingHorizontal: 12 }} 
+         
           onPress={() => router.back()}
         >
           <Text style={{ fontFamily: 'Satoshi-Regular', fontSize: 16, color: '#6C757D' }}>← Back</Text>
         </TouchableOpacity>
-        <Text style={restockSessionsStyles.sessionHeaderTitle}>Choose a Session</Text>
+        <Text style={sessionListStyles.sessionHeaderTitle}>Choose a Session</Text>
         <View style={{ width: 60 }} />
       </View>
 
       {/* Content */}
-      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+      <ScrollView style={{ flex: 0 }} showsVerticalScrollIndicator={false}>
         {/* Sessions List */}
         {Array.isArray(sessionContext.availableSessions) && sessionContext.availableSessions.length > 0 && (
-          <View style={restockSessionsStyles.sessionSelectionContainer}>
-            <View style={restockSessionsStyles.sessionSelectionHeader}>
-              <Text style={restockSessionsStyles.sessionSelectionTitle}>Your Sessions</Text>
-              <Text style={restockSessionsStyles.sessionSelectionSubtitle}>
+          <View style={sessionListStyles.sessionSelectionContainer}>
+            <View style={sessionListStyles.sessionSelectionHeader}>
+              <Text style={sessionListStyles.sessionSelectionTitle}>Your Sessions</Text>
+              <Text style={sessionListStyles.sessionSelectionSubtitle}>
                 You have {sessionContext.availableSessions.length} unfinished session{sessionContext.availableSessions.length !== 1 ? 's' : ''}
               </Text>
             </View>
 
-            <View style={restockSessionsStyles.sessionList}>
+            <View style={sessionListStyles.sessionList}>
               {sessionContext.availableSessions.map((session, index) => {
                 const id = session.toValue?.().id || session.id;
                 const name = session.toValue?.().name || session.name;
@@ -143,15 +168,15 @@ const SessionListScreen: React.FC = () => {
                 return (
                   <TouchableOpacity
                     key={id}
-                    style={restockSessionsStyles.sessionCard}
+                    style={sessionListStyles.sessionCard}
                     onPress={() => handleSelectSession(id)}
                   >
-                    <View style={restockSessionsStyles.sessionCardHeader}>
-                      <Text style={restockSessionsStyles.sessionCardTitle}>
+                    <View style={sessionListStyles.sessionCardHeader}>
+                      <Text style={sessionListStyles.sessionCardTitle}>
                         {name ? `${name} • ` : `Session #${index + 1} • `}{formatDate(createdAt)}
                       </Text>
                       <TouchableOpacity
-                        style={restockSessionsStyles.sessionDeleteButton}
+                        style={sessionListStyles.sessionDeleteButton}
                         onPress={() => handleDeleteSession(id)}
                       >
                         <Ionicons name="trash" size={16} color="#EF4444" />
@@ -159,21 +184,21 @@ const SessionListScreen: React.FC = () => {
                     </View>
 
                     <View style={restockSessionsStyles.sessionCardContent}>
-                      <Text style={restockSessionsStyles.sessionCardSubtitle}>
+                      <Text style={sessionListStyles.sessionCardSubtitle}>
                         {products.length} products • {getTotalQuantity(session)} total quantity
                       </Text>
 
                       {products.length > 0 && (
-                        <View style={restockSessionsStyles.sessionCardSuppliers}>
-                          <Text style={restockSessionsStyles.sessionCardSuppliersText}>
+                        <View style={sessionListStyles.sessionCardSuppliers}>
+                          <Text style={sessionListStyles.sessionCardSuppliersText}>
                             {getSupplierCount(session)} suppliers
                           </Text>
                         </View>
                       )}
                     </View>
 
-                    <View style={restockSessionsStyles.sessionCardFooter}>
-                      <Text style={restockSessionsStyles.sessionCardAction}>Tap to continue</Text>
+                    <View style={sessionListStyles.sessionCardFooter}>
+                      <Text style={sessionListStyles.sessionCardAction}>Tap to continue</Text>
                     </View>
                   </TouchableOpacity>
                 );
@@ -184,31 +209,44 @@ const SessionListScreen: React.FC = () => {
 
         {/* Empty State */}
         {(!Array.isArray(sessionContext.availableSessions) || sessionContext.availableSessions.length === 0) && (
-          <View style={restockSessionsStyles.existingSessionsSection}>
-            <Text style={restockSessionsStyles.sectionTitle}>No Sessions Found</Text>
-            <Text style={restockSessionsStyles.sectionSubtitle}>
+          <View style={sessionListStyles.existingSessionsSection}>
+            <Text style={sessionListStyles.sectionTitle}>No Sessions Found</Text>
+            <Text style={sessionListStyles.sectionSubtitle}>
               You don't have any unfinished sessions yet.
             </Text>
           </View>
         )}
 
         {/* Create New Session Section */}
-        <View style={restockSessionsStyles.sessionSelectionContainer}>
-          <View style={restockSessionsStyles.sessionSelectionHeader}>
-            <Text style={restockSessionsStyles.sessionSelectionTitle}>Start Fresh</Text>
-            <Text style={restockSessionsStyles.sessionSelectionSubtitle}>
+        <View style={sessionListStyles.sessionSelectionContainer}>
+          <View style={sessionListStyles.sessionSelectionHeader}>
+            <Text style={sessionListStyles.sessionSelectionTitle}>Start Fresh</Text>
+            <Text style={sessionListStyles.sessionSelectionSubtitle}>
               Create a new restocking session
             </Text>
           </View>
 
           <TouchableOpacity
-            style={restockSessionsStyles.newSessionButton}
+            style={sessionListStyles.newSessionButton}
             onPress={handleCreateNewSession}
           >
-            <Text style={restockSessionsStyles.newSessionButtonText}>Create New Session</Text>
+            <Text style={sessionListStyles.newSessionButtonText}>Create New Session</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Create New Session Modal (shared component) */}
+      {showCreateModal && (
+        <NameSessionModal
+          visible={showCreateModal}
+          title="Name Your Session"
+          message="Give this restock session a helpful name. You can change it later."
+          inputValue={newSessionName}
+          onChangeInput={setNewSessionName}
+          onConfirm={confirmCreateSession}
+          onCancel={() => { if (!isCreating) setShowCreateModal(false); }}
+        />
+      )}
 
       {/* Toast */}
       {toastMessage && (

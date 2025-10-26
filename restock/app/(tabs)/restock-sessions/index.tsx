@@ -6,7 +6,7 @@
 
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, DeviceEventEmitter, Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, DeviceEventEmitter, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useUnifiedAuth } from '../../../lib/auth/UnifiedAuthProvider';
 
 // Hooks
@@ -315,23 +315,8 @@ const RestockSessionsContent: React.FC = () => {
   const isCreatingSession = sessionContext.isStartingNewSession;
   const creatingSessionName = sessionContext.sessionName || '';
 
-  // 🔧 FIXED: Get the first active session if no current session is set
-  const activeSession = useMemo(() => {
-    if (sessionContext.currentSession) {
-      return sessionContext.currentSession;
-    }
-    
-    // If no current session but we have active sessions, use the first one
-    if (hasActiveSessions && Array.isArray(sessionList.sessions) && sessionList.sessions.length > 0) {
-      const firstSession = sessionList.sessions[0];
-      // Only return sessions that are not finished (status !== 'sent')
-      if (firstSession && firstSession.status !== 'sent') {
-        return firstSession;
-      }
-    }
-    
-    return null;
-  }, [sessionContext.currentSession, hasActiveSessions, sessionList.sessions]);
+  // Always render from the explicitly selected/current session
+  const activeSession = useMemo(() => sessionContext.currentSession, [sessionContext.currentSession]);
 
   // 🔧 FIXED: Update hasActiveSession to use the computed activeSession
   const shouldShowActiveSession = activeSession !== null;
@@ -352,24 +337,7 @@ const RestockSessionsContent: React.FC = () => {
     currentSessionId: sessionContext.currentSession && typeof sessionContext.currentSession.toValue === 'function' ? sessionContext.currentSession.toValue().id : null
   });
 
-  // 🔧 NEW: Auto-activate first active session when products are added
-  useEffect(() => {
-    // If we have active sessions but no current session, automatically activate the first one
-    if (hasActiveSessions && !sessionContext.currentSession && !isLoading) {
-      const firstActiveSession = sessionList.sessions.find(session => session.status !== 'sent');
-      
-      // Skip auto-load if it matches the one we just deleted in the last 1.5s
-      if (lastDeletedRef.current && firstActiveSession && lastDeletedRef.current.id === firstActiveSession.id && (Date.now() - lastDeletedRef.current.ts) < 1500) {
-        console.log('⏭️ Skipping auto-activate for recently deleted session');
-        return;
-      }
-
-      if (firstActiveSession && firstActiveSession.status !== 'sent') {
-        console.log('🔄 Auto-activating first active session:', firstActiveSession.id);
-        sessionContext.loadExistingSession(firstActiveSession.id);
-      }
-    }
-  }, [hasActiveSessions, sessionContext.currentSession, isLoading, sessionList.sessions, sessionContext.loadExistingSession]);
+  // Removed auto-activate fallback to prevent showing items from a previous session
 
  
 // Listen for product additions and refresh active session
@@ -652,60 +620,7 @@ useEffect(() => {
         />
       )}
 
-      {/* Post-Create Choice Modal */}
-      <Modal
-        visible={showStartChoiceModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowStartChoiceModal(false)}
-      >
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
-          <View style={{ width: '85%', maxWidth: 420, borderRadius: 16, backgroundColor: '#fff', padding: 20 }}>
-            <Text style={{ fontSize: 18, fontWeight: '600', marginBottom: 12, textAlign: 'center' }}>
-              How would you like to start?
-            </Text>
-            <Text style={{ fontSize: 14, color: '#555', marginBottom: 16, textAlign: 'center' }}>
-              Your session is created. Choose to add a product manually or upload a catalog.
-            </Text>
-            <View style={{ gap: 12 }}>
-              <TouchableOpacity
-                style={{ paddingVertical: 12, borderRadius: 10, backgroundColor: '#111' }}
-                onPress={async () => {
-                  setShowStartChoiceModal(false);
-                  const { router } = await import('expo-router');
-                  try {
-                    await router.push('/(tabs)/restock-sessions/add-product' as any);
-                  } catch (error) {
-                    router.push('add-product' as any);
-                  }
-                }}
-              >
-                <Text style={{ color: '#fff', textAlign: 'center', fontWeight: '600' }}>Add Product</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={{ paddingVertical: 12, borderRadius: 10, backgroundColor: '#6B7F6B' }}
-                onPress={async () => {
-                  setShowStartChoiceModal(false);
-                  const { router } = await import('expo-router');
-                  try {
-                    await router.push('/(tabs)/restock-sessions/upload-catalog' as any);
-                  } catch (error) {
-                    router.push('upload' as any);
-                  }
-                }}
-              >
-                <Text style={{ color: '#fff', textAlign: 'center', fontWeight: '600' }}>Upload Catalog</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={{ paddingVertical: 10, borderRadius: 10, backgroundColor: '#f0f0f0' }}
-                onPress={() => setShowStartChoiceModal(false)}
-              >
-                <Text style={{ color: '#333', textAlign: 'center' }}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+    
     </View>
   );
 };
