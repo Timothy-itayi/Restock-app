@@ -146,6 +146,16 @@ const SessionListScreen: React.FC = () => {
         <View style={{ width: 60 }} />
       </View>
 
+      {/* Create New Session quick action under header */}
+      <View style={sessionListStyles.createHeaderSection}>
+        <View style={sessionListStyles.createHeaderRow}>
+          <Text style={sessionListStyles.createHeaderText}>Start a new restock session</Text>
+          <TouchableOpacity style={sessionListStyles.createHeaderButton} onPress={handleCreateNewSession}>
+            <Text style={sessionListStyles.createHeaderButtonText}>Create New Session</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
       {/* Content */}
       <ScrollView style={{ flex: 0 }} showsVerticalScrollIndicator={false}>
         {/* Sessions List */}
@@ -217,22 +227,7 @@ const SessionListScreen: React.FC = () => {
           </View>
         )}
 
-        {/* Create New Session Section */}
-        <View style={sessionListStyles.sessionSelectionContainer}>
-          <View style={sessionListStyles.sessionSelectionHeader}>
-            <Text style={sessionListStyles.sessionSelectionTitle}>Start Fresh</Text>
-            <Text style={sessionListStyles.sessionSelectionSubtitle}>
-              Create a new restocking session
-            </Text>
-          </View>
-
-          <TouchableOpacity
-            style={sessionListStyles.newSessionButton}
-            onPress={handleCreateNewSession}
-          >
-            <Text style={sessionListStyles.newSessionButtonText}>Create New Session</Text>
-          </TouchableOpacity>
-        </View>
+       
       </ScrollView>
 
       {/* Create New Session Modal (shared component) */}

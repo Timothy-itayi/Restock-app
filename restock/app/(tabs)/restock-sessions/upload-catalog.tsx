@@ -154,6 +154,11 @@ export default function UploadScreen() {
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <View style={{ flex: 1, padding: 16, backgroundColor: neutral50 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', marginBottom: 8 }}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Text style={{ fontFamily: 'Satoshi-Regular', fontSize: 16, color: '#6C757D' }}>← Back</Text>
+          </TouchableOpacity>
+        </View>
         <Text style={{ fontSize: 22, fontWeight: '700', textAlign: 'center', marginBottom: 4 }}>
           Upload Catalog
         </Text>

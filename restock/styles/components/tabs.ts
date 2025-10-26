@@ -1,13 +1,13 @@
 import { StyleSheet } from "react-native";
-import typography, { fontFamily } from "../typography";
 import colors, { type AppColors } from '../../lib/theme/colors';
+import typography, { fontFamily } from "../typography";
 
 export const getTabsStyles = (t: AppColors) => StyleSheet.create({
   tabBar: {
     backgroundColor: colors.neutral.lightest,
     borderTopWidth: 1,
     borderTopColor: colors.neutral.light,
-    height: 70,
+    height: 80,
     paddingBottom: 50,
     paddingTop: 8,
     width: '100%',

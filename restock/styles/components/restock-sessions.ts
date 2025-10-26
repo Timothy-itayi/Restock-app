@@ -301,8 +301,8 @@ export const getRestockSessionsStyles = (t: AppColors) => StyleSheet.create({
   
   // Add product section (simplified)
   addProductSection: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 5,
     backgroundColor: colors.neutral.lighter, // Slightly warmer paper
     borderBottomWidth: 1,
     borderBottomColor: colors.neutral.light, // Light grey border
@@ -314,7 +314,7 @@ export const getRestockSessionsStyles = (t: AppColors) => StyleSheet.create({
     fontSize: 14,
     color: colors.neutral.medium,
     textAlign: "center",
-    marginBottom: 16,
+    marginBottom: 10,
     fontStyle: "italic",
   },
   
@@ -325,20 +325,14 @@ export const getRestockSessionsStyles = (t: AppColors) => StyleSheet.create({
     marginVertical: 0,
   },
   
-  // Add Product button section
-  addProductButtonSection: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: colors.neutral.lighter, // Slightly warmer paper
-    alignItems: "flex-end", // Right align the button
-  },
-  
+
   // Add Product button (darker green with plus sign)
   addProductButton: {
+    padding: 10,
     backgroundColor: colors.brand.primary, // Brand green
-    width: 100,
-    height: 50,
-    borderRadius: 20,
+    width: 30,
+    height: 38,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.brand.primary,
     justifyContent: "center",
@@ -359,7 +353,7 @@ export const getRestockSessionsStyles = (t: AppColors) => StyleSheet.create({
   },
 
   productListHeader: {
-    paddingVertical: 2,
+    paddingVertical: 5,
     borderBottomWidth: 1,
     borderBottomColor: colors.neutral.light,
     marginBottom: 16,
@@ -370,7 +364,7 @@ export const getRestockSessionsStyles = (t: AppColors) => StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
     color: colors.neutral.darkest,
-    marginBottom: 12,
+    marginBottom: 7,
   },
 
   productListSubtitle: {
