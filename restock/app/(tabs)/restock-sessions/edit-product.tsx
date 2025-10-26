@@ -1,15 +1,15 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useUnifiedAuth } from '../../../lib/auth/UnifiedAuthProvider';
+import CustomToast from '../../../lib/components/CustomToast';
+import { ProductForm } from '../../../lib/components/restock-sessions/ProductForm';
 import { useSessionContext } from '../../../lib/contexts/restock-sessions/SessionContext';
 import { useRepositories } from '../../../lib/infrastructure/_supabase/SupabaseHooksProvider';
-import { ProductForm } from '../../../lib/components/restock-sessions/ProductForm';
-import CustomToast from '../../../lib/components/CustomToast';
 import { useSafeTheme } from '../../../lib/stores/useThemeStore';
+import { AppColors } from '../../../lib/theme/colors';
 import { getRestockSessionsStyles } from '../../../styles/components/restock-sessions';
-import colors, { AppColors } from '../../../lib/theme/colors';
 
 export default function EditProductScreen() {
   const router = useRouter();
@@ -75,8 +75,12 @@ export default function EditProductScreen() {
     setIsSubmitting(true);
     try {
       const result = await sessionContext.editProduct(editData.editProductId, values);
-      setToastMessage(result.success ? 'Product updated successfully' : `Failed: ${result.error}`);
-      if (result.success) setTimeout(() => router.back(), 1500);
+      if (result.success) {
+        // Navigate back immediately to avoid showing stale content
+        router.back();
+        return;
+      }
+      setToastMessage(`Failed: ${result.error}`);
     } catch (err) {
       setToastMessage('Error updating product');
     } finally { setIsSubmitting(false); }
@@ -89,7 +93,7 @@ export default function EditProductScreen() {
     ]);
   }, [router]);
 
-  if (isInitializing || sessionContext.isSessionLoading) return (
+  if (isInitializing || (sessionContext.isSessionLoading && !isSubmitting)) return (
     <SafeAreaView style={[restockSessionsStyles.container, { justifyContent: 'center', alignItems: 'center' }]}>
       <ActivityIndicator size="large" />
       <Text>Loading product...</Text>
@@ -120,6 +124,13 @@ export default function EditProductScreen() {
 
         />
       </ScrollView>
+
+      {isSubmitting && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.25)', justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" />
+          <Text style={{ marginTop: 8 }}>Saving changes…</Text>
+        </View>
+      )}
 
       {toastMessage && <CustomToast visible message={toastMessage} onDismiss={() => setToastMessage(null)} />}
     </SafeAreaView>

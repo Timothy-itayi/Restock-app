@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { ScrollView, Text, TouchableOpacity, View, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import React, { useState } from 'react';
+import { Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { getRestockSessionsStyles } from '../../../styles/components/restock-sessions';
 import { useThemedStyles } from '../../../styles/useThemedStyles';
 

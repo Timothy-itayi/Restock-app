@@ -2,10 +2,10 @@ import { StyleSheet } from "react-native";
 import colors, { type AppColors } from '../../lib/theme/colors';
 import { fontFamily, typography } from "../typography";
 
-export const getRestockSessionsStyles = (t: AppColors) => StyleSheet.create({
+export const getSessionListStyles = (t: AppColors) => StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 60,
+    paddingTop: 20,
     backgroundColor: colors.neutral.lighter,
     overflow: "scroll",
     maxWidth: '100%',
@@ -91,7 +91,9 @@ export const getRestockSessionsStyles = (t: AppColors) => StyleSheet.create({
   sessionSelectionContainer: {
     flex: 1,
     backgroundColor: colors.neutral.lighter,
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
+  
+    alignItems: "center",
   },
   sessionSelectionHeader: {
     paddingVertical: 24,
@@ -195,12 +197,12 @@ export const getRestockSessionsStyles = (t: AppColors) => StyleSheet.create({
   },
 
   newSessionButton: {
-    backgroundColor: "#22C55E",
+    backgroundColor: colors.brand.primary,
     paddingHorizontal: 24,
     paddingVertical: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#22C55E",
+    borderColor: colors.brand.primary,
   },
 
   newSessionButtonText: {
@@ -223,45 +225,38 @@ export const getRestockSessionsStyles = (t: AppColors) => StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingVertical: 6,
+    paddingVertical: 10,
     backgroundColor: colors.neutral.lighter, // Slightly warmer paper
     borderBottomWidth: 1,
     borderBottomColor: colors.neutral.light, // Light grey border
   },
 
-
-  // To place the session title on the right and the session switcher on the left,
-  // update the alignment instructions for both styles:
+  sessionHeaderLeft: {
+    flex: 1,
+  },
 
   sessionHeaderTitle: {
     fontFamily: fontFamily.satoshiBold,
     fontSize: 16,
     fontWeight: "600",
     color: colors.neutral.darkest,
-    textAlign: "right",
-    alignSelf: "center",           // Center vertically within the row
-    marginRight: 0,
-    marginLeft: 8,
+   
   },
 
   sessionSwitcherButton: {
-    backgroundColor: colors.status.warning,
+    backgroundColor: colors.neutral.lighter,
     borderWidth: 1,
-    borderColor: colors.status.warning,
-    paddingHorizontal: 18,         // Make button wider
-    paddingVertical: 8,            // Make button taller
-    borderRadius: 7,
-    fontStyle: "italic",
-    alignSelf: "flex-start",           // Keep button vertically centered
-    marginLeft: 0,                 // Push to left if necessary
-    marginRight: 8,                // Small space to right from rest
-    minWidth: 56,                  // Ensure minimum width for large label
+    borderColor: colors.neutral.light,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    alignSelf: "flex-start",
   },
 
   sessionSwitcherText: {
     fontFamily: fontFamily.satoshi,
     fontSize: 12,
-    color: colors.neutral.lightest,
+    color: colors.neutral.medium,
   },
   
   // Finish button (green for progress)
@@ -355,11 +350,11 @@ export const getRestockSessionsStyles = (t: AppColors) => StyleSheet.create({
   // Product list container and header
   productListContainer: {
     flex: 1,
-    paddingHorizontal: 10,
+    paddingHorizontal: 20,
   },
 
   productListHeader: {
-    paddingVertical: 2,
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: colors.neutral.light,
     marginBottom: 16,
@@ -370,7 +365,7 @@ export const getRestockSessionsStyles = (t: AppColors) => StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
     color: colors.neutral.darkest,
-    marginBottom: 12,
+    marginBottom: 4,
   },
 
   productListSubtitle: {
@@ -382,13 +377,12 @@ export const getRestockSessionsStyles = (t: AppColors) => StyleSheet.create({
   // Product list styles
   productList: {
     flex: 1,
-    paddingVertical: 10,
   },
   
   // Product list content container
   productListContent: {
-    paddingBottom: 100, // Reduce extra space for accessibility but keep some
-    flexGrow: 1, // Only grow as needed; don't fill unused space when list is small
+    paddingBottom: 120, // Extra space to ensure Add Product button is accessible
+    flexGrow: 1, // Allow content to grow and enable scrolling
   },
   
   // Product item with notepad aesthetic
