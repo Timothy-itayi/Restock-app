@@ -1,18 +1,18 @@
 // app/auth/UnifiedAuthProvider.tsx
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { traceRender } from '../utils/renderTrace';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { SessionManager, UserSession } from '../../backend/_services/session-manager';
 import { useAuth } from '@clerk/clerk-expo';
-import { authStore } from './store';
-import { RepositoryContext, RepositoryContextValue } from '../infrastructure/_di/RepositoryContext';
-import { SupabaseUserRepository } from '../../backend/_infrastructure/repositories/SupabaseUserRepository';
-import { SupabaseSessionRepository } from '../../backend/_infrastructure/repositories/SupabaseSessionRepository';
-import { SupabaseProductRepository } from '../../backend/_infrastructure/repositories/SupabaseProductRepository';
-import { SupabaseSupplierRepository } from '../../backend/_infrastructure/repositories/SupabaseSupplierRepository';
-import { SupabaseEmailRepository } from '../../backend/_infrastructure/repositories/SupabaseEmailRepository';
-import { registerServices, clearUserScope } from '../infrastructure/_di/ServiceRegistry';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { setClerkTokenGetter } from '../../backend/_config/supabase';
+import { SupabaseEmailRepository } from '../../backend/_infrastructure/repositories/SupabaseEmailRepository';
+import { SupabaseProductRepository } from '../../backend/_infrastructure/repositories/SupabaseProductRepository';
+import { SupabaseSessionRepository } from '../../backend/_infrastructure/repositories/SupabaseSessionRepository';
+import { SupabaseSupplierRepository } from '../../backend/_infrastructure/repositories/SupabaseSupplierRepository';
+import { SupabaseUserRepository } from '../../backend/_infrastructure/repositories/SupabaseUserRepository';
+import { SessionManager, UserSession } from '../../backend/_services/session-manager';
+import { RepositoryContext, RepositoryContextValue } from '../infrastructure/_di/RepositoryContext';
+import { clearUserScope, registerServices } from '../infrastructure/_di/ServiceRegistry';
+import { traceRender } from '../utils/renderTrace';
+import { authStore } from './store';
 
 interface UnifiedAuthState {
   isReady: boolean;
@@ -380,6 +380,26 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       updateAuthState();
     }
   }, [isLoaded, isSignedIn, clerkUserId, updateAuthState]);
+
+  // Fast-path readiness fallback for production: if Clerk isn't loaded promptly,
+  // allow the unauthenticated UI (welcome/auth) to render instead of blocking.
+  useEffect(() => {
+    if (!isLoaded) {
+      const t = setTimeout(() => {
+        setContextState(prev => {
+          if (prev.isReady) return prev;
+          console.log('⏩ [UnifiedAuth] Fallback: marking context ready (unauthenticated)');
+          return {
+            ...prev,
+            isReady: true,
+            isLoading: false,
+            isAuthenticated: false,
+          };
+        });
+      }, 200);
+      return () => clearTimeout(t);
+    }
+  }, [isLoaded]);
 
   // Add this useEffect after your existing useEffect hooks
   useEffect(() => {

@@ -1,10 +1,10 @@
 // AuthRouter.tsx
-import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { View, ActivityIndicator, Text, AppState, DeviceEventEmitter } from 'react-native';
-import { traceRender } from '../utils/renderTrace';
-import { router, usePathname } from 'expo-router';
-import { useUnifiedAuth } from '../auth/UnifiedAuthProvider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router, usePathname } from 'expo-router';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, AppState, DeviceEventEmitter, Text, View } from 'react-native';
+import { useUnifiedAuth } from '../auth/UnifiedAuthProvider';
+import { traceRender } from '../utils/renderTrace';
 
 const PERSIST_KEY = 'lastAuthRoute';
 const LAST_KNOWN_PROFILE_KEY = 'auth:lastKnownProfile';
@@ -90,6 +90,7 @@ export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }
     hasValidProfile,
     isProfileLoading,
   } = authState;
+  const { authType } = (authState as any);
 
   const [lastVisitedTab, setLastVisitedTab] = useState<string | null>(null);
   const [hydrationTimeoutReached, setHydrationTimeoutReached] = useState(false);
@@ -282,12 +283,13 @@ export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }
       // and we're not in the stability window after hydration timeout
       // Do NOT redirect to setup if we have a snapshot (existing user) – wait for profile fetch result
       if (!routeLockActive && !isProfileLoading && !hasValidProfile && !fastPathProfile?.userId) {
-        if (pathname === '/sso-profile-setup') {
+        const setupRoute = authType === 'google' ? '/sso-profile-setup' : '/auth/traditional/profile-setup';
+        if (pathname === setupRoute) {
           console.log('[AuthRouter] User already on profile setup page, staying put');
           return null;
         }
         console.log('[AuthRouter] User authenticated but no valid profile after load, redirecting to profile setup');
-        return '/sso-profile-setup';
+        return setupRoute;
       }
 
       // Stronger fast-path: if we have a snapshot or are within the stability window, prefer tabs over setup
@@ -318,13 +320,13 @@ export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }
     }
 
     if (pathname?.startsWith('/welcome') || pathname?.includes('/auth')) {
-      console.log('[AuthRouter] Already on welcome/auth route, staying put:', pathname);
-      return pathname;
+      return null; // stay on current auth route without replacing
     }
+    
     
     console.log('[AuthRouter] Not authenticated and not on welcome/auth, redirecting to /welcome');
     return '/welcome';
-  }, [isHydrated, isAuthenticated, userId, hasValidProfile, userName, storeName, lastVisitedTab, pathname]);
+  }, [isHydrated, isAuthenticated, userId, hasValidProfile, userName, storeName, lastVisitedTab, pathname, authType]);
 
   const targetRoute = determineTargetRoute();
 
@@ -368,27 +370,9 @@ export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }
     }
   }, [targetRoute, pathname]);
 
-  // Always render children once hydrated
+  // Avoid showing any loading fallback in production; keep current route rendering
   if (!isHydrated) {
-    console.log('[AuthRouter] Not hydrated, showing loading screen');
-    // Fast-path: if we have a last-known-good profile snapshot and no definitive auth yet,
-    // render a personalized loading and skip showing welcome/setup by keeping current route in tabs
-    const hasSnapshot = !!fastPathProfile?.userId;
-    const isExistingUser = (!!isAuthenticated && !!userId) || hasSnapshot;
-    const displayName = (userName && userName.trim().length > 0 ? userName : undefined) || fastPathProfile?.userName;
-    const loadingText = isExistingUser
-      ? `Loading your account${displayName ? `, ${displayName}` : '...'}`
-      : 'Loading...';
-
-    const content = (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
-        <ActivityIndicator size="large" color="#6B7F6B" />
-        <Text style={{ marginTop: 16, fontSize: 16, color: '#666', textAlign: 'center' }}>
-          {loadingText}
-        </Text>
-      </View>
-    );
-    return content;
+    return <>{children}</>;
   }
 
   console.log('[AuthRouter] Hydrated, rendering children');
@@ -396,26 +380,6 @@ export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }
   return (
     <>
       {children}
-      {shouldShowStabilizationOverlay && (
-        <View
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: '#fff',
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}
-          pointerEvents="auto"
-        >
-          <ActivityIndicator size="large" color="#6B7F6B" />
-          <Text style={{ marginTop: 16, fontSize: 16, color: '#666', textAlign: 'center' }}>
-            {`Welcome back${overlayName ? `, ${overlayName}` : ''}. Preparing your dashboard...`}
-          </Text>
-        </View>
-      )}
     </>
   );
 };

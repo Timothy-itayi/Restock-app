@@ -2,8 +2,8 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Database } from '../_types/database';
 
 // Supabase configuration (do NOT throw at import time)
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabaseUrl = process.env.SUPABASE_URL || process.env.EXPO_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';;
 const isConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
 export const isSupabaseConfigured = (): boolean => isConfigured;
@@ -13,12 +13,12 @@ function createUnavailableSupabaseProxy(reason: string): SupabaseClient<Database
   const handler: ProxyHandler<any> = {
     get: (_target, prop) => {
       throw new Error(
-        `Supabase is not configured (${reason}). Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY.`
+        `Supabase is not configured (${reason}). Set SUPABASE_URL and SUPABASE_ANON_KEY.`
       );
     },
     apply: () => {
       throw new Error(
-        `Supabase is not configured (${reason}). Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY.`
+        `Supabase is not configured (${reason}). Set SUPABASE_URL and SUPABASE_ANON_KEY.`
       );
     },
   };
@@ -156,5 +156,5 @@ export const registerClerkUser = async (
 };
 
 // Export types for use in other files
-export type { Database } from '../_types/database';
-export type { User, Product, Supplier, RestockSession, RestockItem, EmailSent, AuditLog } from '../_types/database';
+export type { AuditLog, Database, EmailSent, Product, RestockItem, RestockSession, Supplier, User } from '../_types/database';
+

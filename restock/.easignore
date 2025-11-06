@@ -1,0 +1,41 @@
+# Exclude heavy, non-source content from EAS upload to speed up compression
+
+# Dependencies (installed on the builder)
+node_modules/
+
+# iOS build artifacts and Pods
+ios/build/
+ios/DerivedData/
+ios/*.xcarchive
+ios/Pods/
+ios/Pods 2/
+Pods/
+Pods 2/
+
+# Android build artifacts
+android/build/
+android/app/build/
+android/**/build/
+android/app 2/
+
+# Coverage and reports
+coverage/
+coverage-final.json
+coverage/lcov-report/
+lcov-report/
+lcov.info
+
+# Local archives and logs
+build-*.tar.gz
+*.log
+
+# Expo/temporary files
+.expo/
+.expo-shared/
+dist/
+.tmp/
+
+# VCS and OS files
+.git/
+.DS_Store
+

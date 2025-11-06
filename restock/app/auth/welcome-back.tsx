@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Alert, ScrollView, KeyboardAvoidingView, Platform, TextInput } from 'react-native';
-import { router } from 'expo-router';
-import { useSignIn, useAuth, useSSO } from '@clerk/clerk-expo';
-import { SessionManager } from '../../backend/_services/session-manager';
-import { EmailAuthService } from '../../backend/_services/email-auth';
+import { useAuth, useSignIn, useSSO } from '@clerk/clerk-expo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Linking from 'expo-linking';
+import { router } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { EmailAuthService } from '../../backend/_services/email-auth';
+import { SessionManager } from '../../backend/_services/session-manager';
+import { useUnifiedAuth } from '../../lib/auth/UnifiedAuthProvider';
 import { UnifiedAuthGuard } from '../../lib/components/UnifiedAuthGuard';
 import { welcomeBackStyles } from '../../styles/components/welcome-back';
-import { useUnifiedAuth } from '../../lib/auth/UnifiedAuthProvider';
 
 export default function WelcomeBackScreen() {
   const { signIn, setActive, isLoaded } = useSignIn();

@@ -1,8 +1,7 @@
-import { supabase } from '../../_config/supabase';
 import { Supplier } from '../../../lib/domain/_entities/Supplier';
 import { SupplierRepository } from '../../../lib/domain/_interfaces/SupplierRepository';
 import { SupplierMapper } from '../../../lib/infrastructure/_repositories/_mappers/SupplierMapper';
-import type { Supplier as DbSupplier } from '../../_types/database';
+import { supabase } from '../../_config/supabase';
 
 export class SupabaseSupplierRepository implements SupplierRepository {
   private userId: string | null = null;
@@ -61,8 +60,8 @@ export class SupabaseSupplierRepository implements SupplierRepository {
 
       // Create new authenticated client
       const { createClient } = await import('@supabase/supabase-js');
-      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
-      const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
+      const supabaseUrl = process.env.SUPABASE_URL || process.env.EXPO_PUBLIC_SUPABASE_URL || '';
+      const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
 
       const client = createClient(supabaseUrl, supabaseAnonKey, {
         global: {

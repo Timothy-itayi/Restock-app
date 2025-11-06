@@ -1,7 +1,7 @@
-import { supabase } from '../../_config/supabase';
 import { Product } from '../../../lib/domain/_entities/Product';
 import { ProductRepository } from '../../../lib/domain/_interfaces/ProductRepository';
 import { ProductMapper } from '../../../lib/infrastructure/_repositories/_mappers/ProductMapper';
+import { supabase } from '../../_config/supabase';
 
 
 export class SupabaseProductRepository implements ProductRepository {
@@ -61,8 +61,8 @@ export class SupabaseProductRepository implements ProductRepository {
 
       // Create new authenticated client
       const { createClient } = await import('@supabase/supabase-js');
-      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
-      const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
+      const supabaseUrl = process.env.SUPABASE_URL || process.env.EXPO_PUBLIC_SUPABASE_URL || '';
+      const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
 
       const client = createClient(supabaseUrl, supabaseAnonKey, {
         global: {
