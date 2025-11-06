@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { Text, View } from 'react-native';
 import Svg, { Circle, Text as SvgText } from 'react-native-svg';
 import { getDashboardStyles } from '../../../styles/components/dashboard';
-import SkeletonBox  from '../../components/skeleton/SkeletonBox';
+import SkeletonBox from '../../components/skeleton/SkeletonBox';
 import { useSafeTheme } from '../../stores/useThemeStore';
 import colors, { AppColors } from '../../theme/colors';
 
@@ -57,13 +57,13 @@ const DonutChart: React.FC<{
           fill="transparent"
         />
         
-        {/* Active sessions segment */}
+        {/* Active sessions segment (orange) */}
         {activeCount > 0 && (
           <Circle
             cx={size / 2}
             cy={size / 2}
             r={radius}
-            stroke={appTheme.status.info}
+            stroke={appTheme.status.warning}
             strokeWidth={strokeWidth}
             fill="transparent"
             strokeDasharray={`${activeStroke - gap} ${circumference - activeStroke + gap}`}
@@ -126,6 +126,43 @@ export const StatsOverviewEnhanced: React.FC<StatsOverviewEnhancedProps> = ({
   const totalProducts = allSessions.reduce((sum, session) => sum + session.uniqueProducts, 0);
   const totalSuppliers = allSessions.reduce((sum, session) => sum + session.uniqueSuppliers, 0);
 
+  // Build a small, deterministic color palette for varied product chips
+  const palette = [
+    '#F59E0B', // amber
+    '#10B981', // emerald
+    '#3B82F6', // blue
+    '#EC4899', // pink
+    '#8B5CF6', // violet
+    '#F97316', // orange
+    '#22C55E', // green
+    '#E11D48', // rose
+  ];
+
+  const colorForString = (s: string) => {
+    let hash = 0;
+    for (let i = 0; i < s.length; i++) hash = (hash * 31 + s.charCodeAt(i)) | 0;
+    const idx = Math.abs(hash) % palette.length;
+    return palette[idx];
+  };
+
+  // Extract a small set of unfinished product names to visualize with varied colors
+  const topUnfinishedProductNames: string[] = (() => {
+    try {
+      const names: string[] = [];
+      unfinishedSessions.forEach(s => {
+        if (Array.isArray(s.items)) {
+          s.items.slice(0, 5).forEach((it: any) => {
+            const n = (it?.name || it?.productName || '').toString().trim();
+            if (n && !names.includes(n)) names.push(n);
+          });
+        }
+      });
+      return names.slice(0, 8);
+    } catch {
+      return [];
+    }
+  })();
+
   return (
     <View style={dashboardStyles.section}>
       <Text style={dashboardStyles.sectionTitle}>Overview</Text>
@@ -181,7 +218,7 @@ export const StatsOverviewEnhanced: React.FC<StatsOverviewEnhancedProps> = ({
                   width: 12,
                   height: 12,
                   borderRadius: 6,
-                  backgroundColor: colors.status.info,
+                  backgroundColor: colors.status.warning,
                   marginRight: 6
                 }} />
                 <Text style={{ fontSize: 12, color: colors.neutral.medium }}>

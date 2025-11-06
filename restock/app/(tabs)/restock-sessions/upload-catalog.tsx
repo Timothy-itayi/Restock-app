@@ -1,12 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, SafeAreaView, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+
 import { useSessionContext } from '../../../lib/contexts/restock-sessions/SessionContext';
 import colors from '../../../lib/theme/colors';
 import { getUploadCatalogStyles } from '../../../styles/components/upload-catalog';
 
 type ParsedItem = { id: string; supplierName: string; productName: string; confidence?: number };
+type SimpleFile = { name: string; uri?: string };
 
 export default function UploadScreen() {
   const router = useRouter();
@@ -18,7 +20,7 @@ export default function UploadScreen() {
   // UI state scaffold
   const [step, setStep] = useState<'intro' | 'select' | 'parsing' | 'curate' | 'emails'>('intro');
   const [numFiles, setNumFiles] = useState('2');
-  const [selectedFiles, setSelectedFiles] = useState<string[]>([]); // placeholders for file names/uris
+  const [selectedFiles, setSelectedFiles] = useState<SimpleFile[]>([]);
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [items, setItems] = useState<ParsedItem[]>([]);
@@ -44,12 +46,14 @@ export default function UploadScreen() {
 
   const selectedCount = useMemo(() => Object.values(selectedMap).filter(Boolean).length, [selectedMap]);
 
-  const onChooseFiles = () => {
-    // TODO: Integrate file picker (expo-document-picker) and push names/uris into selectedFiles
-    // For now, mock files to let us progress through the flow.
-    const count = Math.max(1, Math.min(10, Number(numFiles) || 1));
-    const mocks = Array.from({ length: count }, (_, i) => `Placeholder-File-${i + 1}.pdf`);
-    setSelectedFiles(mocks);
+  const onChooseFiles = async () => {
+    if (!sessionReady) return;
+    const max = Math.max(1, Math.min(10, Number(numFiles) || 1));
+    const chosen: SimpleFile[] = Array.from({ length: max }, (_, i) => ({
+      name: `Catalog_${i + 1}.pdf`,
+      uri: undefined
+    }));
+    setSelectedFiles(chosen);
     setStep('select');
   };
 
@@ -201,10 +205,10 @@ export default function UploadScreen() {
             {thinDivider}
             <FlatList
               data={selectedFiles}
-              keyExtractor={(f, i) => f + i}
+              keyExtractor={(f, i) => (f.uri || f.name) + i}
               renderItem={({ item }) => (
                 <View style={{ paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: neutral200 }}>
-                  <Text style={{ color: '#333' }}>• {item}</Text>
+                  <Text style={{ color: '#333' }}>• {item.name}</Text>
                 </View>
               )}
             />

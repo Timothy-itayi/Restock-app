@@ -1,19 +1,19 @@
-import 'react-native-gesture-handler';
-import React, { useState, useEffect } from 'react';
-import { Stack } from 'expo-router';
-import { View, Text, ActivityIndicator, DeviceEventEmitter } from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ClerkProvider } from '@clerk/clerk-expo';
+import { Stack } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, DeviceEventEmitter, Text, View } from 'react-native';
+import 'react-native-gesture-handler';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Linking from 'expo-linking';
+import * as SplashScreen from 'expo-splash-screen';
+import { CLERK_PUBLISHABLE_KEY } from '../backend/_config/clerk';
 import { UnifiedAuthProvider } from '../lib/auth/UnifiedAuthProvider';
-import { SupabaseHooksProvider } from '../lib/infrastructure/_supabase/SupabaseHooksProvider';
-import { BaseLoadingScreen } from '../lib/components/loading/BaseLoadingScreen';
 import { AuthRouter } from '../lib/components/AuthRouter';
 import { ErrorBoundary } from '../lib/components/ErrorBoundary';
-import { CLERK_PUBLISHABLE_KEY } from '../backend/_config/clerk';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as SplashScreen from 'expo-splash-screen';
-import * as Linking from 'expo-linking';
+import { BaseLoadingScreen } from '../lib/components/loading/BaseLoadingScreen';
+import { SupabaseHooksProvider } from '../lib/infrastructure/_supabase/SupabaseHooksProvider';
 import { traceRender } from '../lib/utils/renderTrace';
 
 // Keep splash screen visible
@@ -128,6 +128,36 @@ export default function RootLayout() {
     const subscription = Linking.addEventListener('url', handleDeepLink);
     Linking.getInitialURL().then((url) => { if (url) handleDeepLink({ url }); });
     return () => subscription.remove();
+  }, []);
+
+  // Prefetch common routes to avoid default lazy fallback text ("Loading...") in production
+  useEffect(() => {
+    const prefetch = async () => {
+      try {
+        await Promise.all([
+          import('./welcome'),
+          import('./(tabs)/_layout'),
+          import('./(tabs)/dashboard'),
+          import('./(tabs)/dashboard/index'),
+          import('./(tabs)/restock-sessions/_layout'),
+          import('./(tabs)/restock-sessions/index'),
+          import('./(tabs)/restock-sessions/add-product').catch(() => undefined),
+          import('./(tabs)/restock-sessions/edit-product').catch(() => undefined),
+          import('./(tabs)/restock-sessions/session-list').catch(() => undefined),
+          import('./(tabs)/restock-sessions/upload-catalog').catch(() => undefined),
+          import('./auth/_layout').catch(() => undefined),
+          import('./auth/traditional/sign-in').catch(() => undefined),
+          import('./sso-profile-setup').catch(() => undefined),
+          import('./auth/traditional/verify-email').catch(() => undefined),
+          import('./auth/traditional/profile-setup').catch(() => undefined),
+          import('./auth/traditional/sign-up').catch(() => undefined),
+        ]);
+        console.log('🧭 [RootLayout] Route prefetch complete');
+      } catch (e) {
+        console.log('🧭 [RootLayout] Route prefetch partial', e);
+      }
+    };
+    prefetch();
   }, []);
 
   console.log('🏗️ [RootLayout] About to check loaded state, loaded =', loaded);

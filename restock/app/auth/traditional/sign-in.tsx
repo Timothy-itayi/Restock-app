@@ -59,8 +59,8 @@ export default function SignInScreen() {
     
     // If user is authenticated but profile incomplete, redirect to profile setup
     if (unifiedIsAuthenticated && unifiedUserId && !isProfileLoading && !hasValidProfile) {
-      console.log('🚀 SignInScreen: User authenticated but profile incomplete, redirecting to setup');
-      router.replace('/sso-profile-setup' as any);
+      console.log('🚀 SignInScreen: User authenticated but profile incomplete, redirecting to traditional setup');
+      router.replace('/auth/traditional/profile-setup' as any);
       return;
     }
     

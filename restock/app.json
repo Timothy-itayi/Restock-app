@@ -29,6 +29,7 @@
       "favicon": "./assets/restock-icon.png"
     },
     "plugins": [
+      "expo-document-picker",
       "expo-router",
       [
         "expo-splash-screen",

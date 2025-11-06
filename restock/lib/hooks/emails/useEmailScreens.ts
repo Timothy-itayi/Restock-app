@@ -19,9 +19,9 @@ export interface EmailSessionView {
 
 // Helper function to get email URL safely
 const getEmailFunctionUrl = (): string => {
-  const url = process.env.EXPO_PUBLIC_SUPABASE_SEND_EMAIL_URL;
+  const url = process.env.SUPABASE_SEND_EMAIL_URL;
   if (!url) {
-    console.error('❌ EXPO_PUBLIC_SUPABASE_SEND_EMAIL_URL is not configured in environment variables');
+    console.error('❌ SUPABASE_SEND_EMAIL_URL is not configured in environment variables');
 
     throw new Error('Email service not configured. Please check your environment variables.');
   }

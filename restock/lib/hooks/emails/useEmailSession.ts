@@ -199,8 +199,8 @@ export function useEmailSession(userProfile: UserProfile) {
       // 🔧 FIXED: Use Supabase anon key for Edge Function authentication
       console.log('🔑 [EmailSession] Using Supabase anon key for email sending...');
 
-      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_SEND_EMAIL_URL;
-      const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+      const supabaseUrl = process.env.SUPABASE_SEND_EMAIL_URL;
+      const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 
       if (!supabaseUrl || !supabaseAnonKey) {
         console.error('❌ [EmailSession] Missing Supabase environment variables');

@@ -8,13 +8,13 @@
       "developmentClient": true,
       "distribution": "internal",
       "channel": "development",
-      "node": "24.4.1"
+      "node": "20.19.5"
     },
     "dev-simulator": {
       "developmentClient": true,
       "distribution": "internal",
       "channel": "development",
-      "node": "24.4.1",
+      "node": "20.19.5",
       "ios": {
         "simulator": true
       }
@@ -22,13 +22,13 @@
     "preview": {
       "distribution": "internal",
       "channel": "preview",
-      "node": "24.4.1"
+      "node": "20.19.5"
     },
     "production": {
       "autoIncrement": true,
       "distribution": "store",
       "channel": "production",
-      "node": "24.4.1",
+      "node": "20.19.5",
       "env": {
         "NPM_CONFIG_OMIT": "dev"
       }

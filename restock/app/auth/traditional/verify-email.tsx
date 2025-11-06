@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
-import {  Text, TouchableOpacity, TextInput, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
-import { router } from 'expo-router';
 import { useSignUp } from '@clerk/clerk-expo';
+import { router } from 'expo-router';
+import React, { useState } from 'react';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity } from 'react-native';
+import { EmailAuthService } from '../../../backend/_services/email-auth';
+import { SessionManager } from '../../../backend/_services/session-manager';
 import { UnifiedAuthGuard } from '../../../lib/components/UnifiedAuthGuard';
 import { verifyEmailStyles } from '../../../styles/components/verify-email';
+
 
 export default function VerifyEmailScreen() {
   const { signUp, setActive, isLoaded } = useSignUp();
@@ -31,7 +34,14 @@ export default function VerifyEmailScreen() {
       if (result.status === 'complete') {
         console.log('Email verification successful');
         await setActive({ session: result.createdSessionId });
-        
+        await SessionManager.saveUserSession({
+          userId: result.createdSessionId || '',
+          email: '', // optional: fill if you captured it in state/params
+          wasSignedIn: true,
+          lastSignIn: Date.now(),
+          lastAuthMethod: 'email',
+        });
+        await EmailAuthService.clearTraditionalAuthFlags();
         // Let UnifiedAuthProvider handle the navigation based on the newTraditionalSignUp flag
         console.log('✅ VerifyEmail: Session activated, letting UnifiedAuthProvider handle navigation');
         Alert.alert(

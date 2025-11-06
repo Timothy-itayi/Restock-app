@@ -626,9 +626,7 @@ useEffect(() => {
 };
 
 const RestockSessionsScreen: React.FC = () => (
-  <React.Suspense fallback={<Text>Loading...</Text>}>
-    <RestockSessionsContent />
-  </React.Suspense>
+  <RestockSessionsContent />
 );
 
 export default RestockSessionsScreen;
