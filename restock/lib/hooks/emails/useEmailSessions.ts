@@ -333,8 +333,8 @@ export function useEmailSessions(userProfile: UserProfile) {
       // 🔧 FIXED: Use Supabase anon key for Edge Function authentication
       console.log('🔑 [EmailSessions] Using Supabase anon key for email sending...');
 
-      const supabaseUrl = process.env.SUPABASE_SEND_EMAIL_URL;
-      const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_SEND_EMAIL_URL;
+      const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
       if (!supabaseUrl || !supabaseAnonKey) {
         console.error('❌ [EmailSessions] Missing Supabase environment variables');
@@ -590,8 +590,8 @@ export function useEmailSessions(userProfile: UserProfile) {
       console.log('📧 [EmailSessions] Sending all emails via Resend API...');
 
       // Get email service configuration
-      const emailUrl = process.env.SUPABASE_SEND_EMAIL_URL;
-      const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+      const emailUrl = process.env.EXPO_PUBLIC_SUPABASE_SEND_EMAIL_URL;
+      const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
       if (!emailUrl || !supabaseAnonKey) {
         console.error('❌ [EmailSessions] Missing email service environment variables for bulk send');
