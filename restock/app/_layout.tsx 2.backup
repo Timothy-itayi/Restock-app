@@ -8,54 +8,33 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Linking from 'expo-linking';
 import * as SplashScreen from 'expo-splash-screen';
+import { CLERK_PUBLISHABLE_KEY } from '../backend/_config/clerk';
 import { UnifiedAuthProvider } from '../lib/auth/UnifiedAuthProvider';
 import { AuthRouter } from '../lib/components/AuthRouter';
 import { ErrorBoundary } from '../lib/components/ErrorBoundary';
 import { BaseLoadingScreen } from '../lib/components/loading/BaseLoadingScreen';
 import { SupabaseHooksProvider } from '../lib/infrastructure/_supabase/SupabaseHooksProvider';
 import { traceRender } from '../lib/utils/renderTrace';
-
 export const unstable_settings = { initialRouteName: 'welcome' };
 
-// ---- Environment variables (direct, Metro-safe references)
-const EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
-const EXPO_PUBLIC_CLERK_JWT_ISSUER_DOMAIN = process.env.EXPO_PUBLIC_CLERK_JWT_ISSUER_DOMAIN;
-const EXPO_PUBLIC_SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
-const EXPO_PUBLIC_SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+// Environment variable validation
+const REQUIRED_ENV_VARS = [
+  'EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY',
+  'EXPO_PUBLIC_CLERK_JWT_ISSUER_DOMAIN',
+  'EXPO_PUBLIC_SUPABASE_URL',      
+  'EXPO_PUBLIC_SUPABASE_ANON_KEY'
+] as const;
 
-
-// ---- Validate environment
-function validateEnvironment() {
-  const requiredVars = {
-    EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY,
-    EXPO_PUBLIC_CLERK_JWT_ISSUER_DOMAIN,
-    EXPO_PUBLIC_SUPABASE_URL,
-    EXPO_PUBLIC_SUPABASE_ANON_KEY,
-  };
-
-  const missing = Object.entries(requiredVars)
-    .filter(([_, value]) => !value)
-    .map(([key]) => key);
-
-  console.log('🔍 [ENV DEBUG] Validation results:');
-  Object.entries(requiredVars).forEach(([key, value]) =>
-    console.log(`  - ${key}: ${value ? '✅ set' : '❌ missing'}`)
-  );
-
-  if (missing.length > 0) {
-    console.error('❌ [ENV DEBUG] Missing environment variables:', missing.join(', '));
-  } else {
-    console.log('✅ [ENV DEBUG] All required environment variables are set');
-  }
-
+function validateEnvironment(): { isValid: boolean; missing: string[] } {
+  const missing = REQUIRED_ENV_VARS.filter(key => !process.env[key]);
   return { isValid: missing.length === 0, missing };
 }
-
-// ---- Splash handling
+// Keep splash screen visible
 SplashScreen.preventAutoHideAsync().catch(err => {
   console.error('❌ [RootLayout] Failed to prevent splash auto-hide:', err);
 });
 
+// Debug: confirm module loading and ensure splash eventually hides
 console.log('🧭 [RootLayout] Module loaded - setting splash failsafe');
 let __splashFailsafeTimer: any;
 try {
@@ -63,63 +42,80 @@ try {
     console.log('🧭 [RootLayout] Splash failsafe firing - forcing hide');
     SplashScreen.hideAsync().catch(e => console.error('❌ [RootLayout] Failsafe hide error:', e));
   }, 5000);
-} catch {}
+} catch (e) {
+  // ignore
+}
 
-// ---- Token cache
 const createTokenCache = () => ({
   getToken: async (key: string) => {
-    try {
-      return await AsyncStorage.getItem(key);
-    } catch {
-      return null;
-    }
+    try { return await AsyncStorage.getItem(key); } 
+    catch { return null; }
   },
   saveToken: async (key: string, token: string) => {
-    try {
-      await AsyncStorage.setItem(key, token);
-    } catch {}
+    try { await AsyncStorage.setItem(key, token); } 
+    catch {}
   },
 });
 
 export default function RootLayout() {
   traceRender('RootLayout', {});
-  console.log('🏗️ [RootLayout] Component initialized');
-
+  console.log('🏗️ [RootLayout] Component function called');
+  // Marker to confirm this function executed
+  (global as any).__ROOT_LAYOUT_CALLED__ = true;
+  
   const [loaded, setLoaded] = useState(false);
   const [appReady, setAppReady] = useState(false);
   const [showFirstRunSplash, setShowFirstRunSplash] = useState(false);
   const [initError, setInitError] = useState<Error | null>(null);
 
-  // ---- Validate env on mount
+  console.log('🏗️ [RootLayout] State initialized, loaded =', loaded);
+
+  // Validate environment variables on mount
   useEffect(() => {
     const { isValid, missing } = validateEnvironment();
     if (!isValid) {
-      const message = `Missing environment variables:\n${missing.join('\n')}`;
-      if (__DEV__ || EXPO_PUBLIC_ENABLE_AUTH_DEBUG === 'true') {
-        Alert.alert('⚠️ Configuration Error', message, [{ text: 'OK' }]);
+      const errorMsg = `Missing environment variables: ${missing.join(', ')}`;
+      console.error('❌ [RootLayout] Environment validation failed:', errorMsg);
+      
+      // Show alert in non-production or if debug enabled
+      if (__DEV__ || process.env.EXPO_PUBLIC_ENABLE_AUTH_DEBUG === 'true') {
+        Alert.alert(
+          '⚠️ Configuration Error',
+          `Missing required environment variables:\n\n${missing.join('\n')}\n\nCheck EAS secrets or .env file.`,
+          [{ text: 'OK' }]
+        );
       }
+    } else {
+      console.log('✅ [RootLayout] All required environment variables present');
     }
   }, []);
 
-  // ---- Initialize app
-  useEffect(() => {
+  // Initialize app
+  useEffect(() => { 
+    console.log('🏗️ [RootLayout] Initializing app...');
     const init = async () => {
       try {
+        // Add a small delay to ensure everything is ready
         await new Promise(resolve => setTimeout(resolve, 100));
+        console.log('🏗️ [RootLayout] Setting loaded to true');
         setLoaded(true);
       } catch (error: any) {
         console.error('❌ [RootLayout] Initialization error:', error);
         setInitError(error);
+        // Still set loaded to true to show error UI
         setLoaded(true);
       }
     };
     init();
   }, []);
 
-  // ---- Hide splash screen when ready
-  useEffect(() => {
+  // Hide splash screen when loaded AND the app has rendered its first meaningful frame
+  useEffect(() => { 
+    traceRender('RootLayout/useEffect-loaded-appReady', { loaded, appReady });
+    console.log('🏗️ [RootLayout] loaded/appReady changed:', { loaded, appReady });
     if (loaded && appReady) {
-      const hideSplash = async () => {
+      console.log('🏗️ [RootLayout] Hiding splash screen after appReady...');
+      const hide = async () => {
         try {
           await SplashScreen.hideAsync();
           console.log('✅ [RootLayout] Splash screen hidden');
@@ -127,34 +123,49 @@ export default function RootLayout() {
           console.error('❌ [RootLayout] Failed to hide splash:', err);
         }
       };
-      hideSplash();
-      if (__splashFailsafeTimer) clearTimeout(__splashFailsafeTimer);
+      hide();
+
+      // Clear the module-level failsafe if present
+      if (__splashFailsafeTimer) {
+        try { clearTimeout(__splashFailsafeTimer); } catch {}
+        __splashFailsafeTimer = null as any;
+      }
     }
   }, [loaded, appReady]);
 
-  // ---- App ready event
+  // Listen for the first-frame readiness signal from the UI tree
   useEffect(() => {
     const sub = DeviceEventEmitter.addListener('app:ready', () => {
-      console.log('🟢 [RootLayout] app:ready event');
+      console.log('🟢 [RootLayout] Received app:ready event');
       setAppReady(true);
     });
     return () => sub.remove();
   }, []);
 
-  // ---- Deep link handling
-  useEffect(() => {
-    const handleDeepLink = ({ url }: { url: string }) =>
-      console.log('🔗 [RootLayout] Deep link received:', url);
-    const sub = Linking.addEventListener('url', handleDeepLink);
-    Linking.getInitialURL().then(url => {
-      if (url) handleDeepLink({ url });
-    });
-    return () => sub.remove();
+  // Reset first run splash
+  useEffect(() => { 
+    console.log('🏗️ [RootLayout] Setting showFirstRunSplash to false');
+    setShowFirstRunSplash(false); 
   }, []);
 
-  // ---- Prefetch routes
+  // Deep link handling with safe fallback
   useEffect(() => {
-    (async () => {
+    const handleDeepLink = async ({ url }: { url: string }) => {
+      try {
+        console.log('RootLayout: Deep link received:', url);
+        // No-op; AuthRouter will handle redirects after hydration
+      } catch (e) {
+        console.warn('RootLayout: Deep link handling error', e);
+      }
+    };
+    const subscription = Linking.addEventListener('url', handleDeepLink);
+    Linking.getInitialURL().then((url) => { if (url) handleDeepLink({ url }); });
+    return () => subscription.remove();
+  }, []);
+
+  // Prefetch common routes to avoid default lazy fallback text ("Loading...") in production
+  useEffect(() => {
+    const prefetch = async () => {
       try {
         await Promise.all([
           import('./welcome'),
@@ -169,20 +180,24 @@ export default function RootLayout() {
           import('./(tabs)/restock-sessions/upload-catalog').catch(() => undefined),
           import('./auth/_layout').catch(() => undefined),
           import('./auth/traditional/sign-in').catch(() => undefined),
-          import('./auth/traditional/sign-up').catch(() => undefined),
+          import('./sso-profile-setup').catch(() => undefined),
           import('./auth/traditional/verify-email').catch(() => undefined),
           import('./auth/traditional/profile-setup').catch(() => undefined),
-          import('./sso-profile-setup').catch(() => undefined),
+          import('./auth/traditional/sign-up').catch(() => undefined),
         ]);
-        console.log('🧭 [RootLayout] Prefetch complete');
+        console.log('🧭 [RootLayout] Route prefetch complete');
       } catch (e) {
-        console.warn('🧭 [RootLayout] Prefetch partial:', e);
+        console.log('🧭 [RootLayout] Route prefetch partial', e);
       }
-    })();
+    };
+    prefetch();
   }, []);
 
-  // ---- Loading state
+  console.log('🏗️ [RootLayout] About to check loaded state, loaded =', loaded);
+  
+  // Show loading state
   if (!loaded) {
+    console.log('🏗️ [RootLayout] Not loaded yet, showing loading...');
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
         <ActivityIndicator size="large" color="#6B7F6B" />
@@ -191,12 +206,17 @@ export default function RootLayout() {
     );
   }
 
-  // ---- Error state
+  // Show error state if initialization failed
   if (initError) {
+    console.error('🏗️ [RootLayout] Showing error state:', initError);
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff', padding: 20 }}>
-        <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#DC3545', marginBottom: 12 }}>Initialization Error</Text>
-        <Text style={{ fontSize: 14, color: '#666', textAlign: 'center' }}>{initError.message}</Text>
+        <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#DC3545', marginBottom: 12 }}>
+          Initialization Error
+        </Text>
+        <Text style={{ fontSize: 14, color: '#666', textAlign: 'center' }}>
+          {initError.message}
+        </Text>
         <Text style={{ fontSize: 12, color: '#999', marginTop: 20, textAlign: 'center' }}>
           Please restart the app. If the problem persists, try clearing the app data.
         </Text>
@@ -204,9 +224,11 @@ export default function RootLayout() {
     );
   }
 
-  // ---- Missing Clerk key fallback
-  if (!EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY) {
-    console.warn('⚠️ [RootLayout] Missing Clerk key - rendering minimal router');
+  console.log('🏗️ [RootLayout] Rendering root layout, about to render providers');
+
+  const hasClerkConfig = !!CLERK_PUBLISHABLE_KEY;
+  if (!hasClerkConfig) {
+    console.warn('⚠️ [RootLayout] Missing Clerk key - rendering minimal router to avoid blank screen');
     return (
       <GestureHandlerRootView style={{ flex: 1 }}>
         <Stack>
@@ -219,14 +241,17 @@ export default function RootLayout() {
     );
   }
 
-  // ---- Main layout
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#fafafa' }}>
-      <ErrorBoundary onError={(error, errorInfo) => console.error('🚨 [RootLayout] Error:', error, errorInfo)}>
-        <ClerkProvider publishableKey={EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY} tokenCache={createTokenCache()}>
+      <ErrorBoundary onError={(error, errorInfo) => {
+        console.error('🚨 [RootLayout] Caught error in app:', error, errorInfo);
+      }}>
+        <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} tokenCache={createTokenCache()}>
           <UnifiedAuthProvider>
             <SupabaseHooksProvider>
-              <ErrorBoundary onError={(error, errorInfo) => console.error('🚨 [AuthRouter] Error:', error, errorInfo)}>
+              <ErrorBoundary onError={(error, errorInfo) => {
+                console.error('🚨 [AuthRouter Boundary] Caught error:', error, errorInfo);
+              }}>
                 <AuthRouter>
                   {showFirstRunSplash ? (
                     <BaseLoadingScreen
