@@ -8,7 +8,8 @@
       "developmentClient": true,
       "distribution": "internal",
       "channel": "development",
-      "node": "20.19.5"
+      "node": "20.19.5",
+      "environment": "development"
     },
     "dev-simulator": {
       "developmentClient": true,
@@ -17,12 +18,26 @@
       "node": "20.19.5",
       "ios": {
         "simulator": true
-      }
+      },
+      "environment": "development"
     },
     "preview": {
-      "distribution": "internal",
+      "distribution": "store",
       "channel": "preview",
-      "node": "20.19.5"
+      "node": "20.19.5",
+      "environment": "preview"
+    },
+    "preview-debug": {
+      "extends": "preview",
+      "developmentClient": false,
+    "distribution": "store",
+      "channel": "preview",
+      "node": "20.19.5",
+      "environment": "preview",
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_ENABLE_AUTH_DEBUG": "true"
+      }
     },
     "production": {
       "autoIncrement": true,
@@ -31,7 +46,8 @@
       "node": "20.19.5",
       "env": {
         "NPM_CONFIG_OMIT": "dev"
-      }
+      },
+      "environment": "production"
     }
   },
   "submit": {
