@@ -18,15 +18,29 @@ import { traceRender } from '../lib/utils/renderTrace';
 export const unstable_settings = { initialRouteName: 'welcome' };
 
 // Environment variable validation
-const REQUIRED_ENV_VARS = [
-  'EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY',
-  'EXPO_PUBLIC_CLERK_JWT_ISSUER_DOMAIN',
-  'EXPO_PUBLIC_SUPABASE_URL',      
-  'EXPO_PUBLIC_SUPABASE_ANON_KEY'
-] as const;
-
 function validateEnvironment(): { isValid: boolean; missing: string[] } {
-  const missing = REQUIRED_ENV_VARS.filter(key => !process.env[key]);
+  console.log('🔍 [ENV DEBUG] Checking environment variables...');
+  console.log('🔍 [ENV DEBUG] All EXPO_PUBLIC env keys:', Object.keys(process.env).filter(k => k.includes('EXPO_PUBLIC')));
+  
+  // Access env vars directly (not via dynamic key lookup) for Metro bundler compatibility
+  const envVars = {
+    EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY: process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY,
+    EXPO_PUBLIC_CLERK_JWT_ISSUER_DOMAIN: process.env.EXPO_PUBLIC_CLERK_JWT_ISSUER_DOMAIN,
+    EXPO_PUBLIC_SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
+    EXPO_PUBLIC_SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+  };
+  
+  console.log('🔍 [ENV DEBUG] Individual checks:');
+  console.log('  - CLERK_PUBLISHABLE_KEY:', envVars.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ? '✅ set' : '❌ missing');
+  console.log('  - CLERK_JWT_ISSUER_DOMAIN:', envVars.EXPO_PUBLIC_CLERK_JWT_ISSUER_DOMAIN ? '✅ set' : '❌ missing');
+  console.log('  - SUPABASE_URL:', envVars.EXPO_PUBLIC_SUPABASE_URL ? '✅ set' : '❌ missing');
+  console.log('  - SUPABASE_ANON_KEY:', envVars.EXPO_PUBLIC_SUPABASE_ANON_KEY ? '✅ set' : '❌ missing');
+  
+  const missing = Object.entries(envVars)
+    .filter(([key, value]) => !value)
+    .map(([key]) => key);
+    
+  console.log('🔍 [ENV DEBUG] Missing vars:', missing.length > 0 ? missing : 'none');
   return { isValid: missing.length === 0, missing };
 }
 // Keep splash screen visible
