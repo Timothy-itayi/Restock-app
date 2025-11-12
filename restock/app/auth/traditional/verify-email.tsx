@@ -11,6 +11,7 @@ export default function VerifyEmailScreen() {
   const { signUp, setActive, isLoaded } = useSignUp();
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
+  console.warn('[RESTOCK_PAGE] VerifyEmailScreen rendered');
 
   const handleVerifyEmail = async () => {
     if (!code.trim()) {

@@ -40,15 +40,15 @@ function validateEnvironment() {
     .filter(([_, value]) => !value)
     .map(([key]) => key);
 
-  console.log('🔍 [ENV DEBUG] Validation results:');
+  console.warn('[RESTOCK_ENV] Validation results');
   Object.entries(requiredVars).forEach(([key, value]) =>
-    console.log(`  - ${key}: ${value ? '✅ set' : '❌ missing'}`)
+    console.warn(`[RESTOCK_ENV] ${key} => ${value ? 'SET' : 'MISSING'}`)
   );
 
   if (missing.length > 0) {
-    console.error('❌ [ENV DEBUG] Missing environment variables:', missing.join(', '));
+    console.error('[RESTOCK_ENV] Missing environment variables:', missing.join(', '));
   } else {
-    console.log('✅ [ENV DEBUG] All required environment variables are set');
+    console.warn('[RESTOCK_ENV] All required environment variables are set');
   }
 
   return { isValid: missing.length === 0, missing };
@@ -86,7 +86,7 @@ const createTokenCache = () => ({
 
 export default function RootLayout() {
   traceRender('RootLayout', {});
-  console.log('🏗️ [RootLayout] Component initialized');
+  console.warn('[RESTOCK_PAGE] RootLayout rendered');
 
   const [loaded, setLoaded] = useState(false);
   const [appReady, setAppReady] = useState(false);

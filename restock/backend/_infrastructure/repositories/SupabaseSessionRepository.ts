@@ -387,7 +387,7 @@ async updateRestockItem(itemId: string, updates: {
     return this.delete(id);
   }
 
-  async create(session: Omit<RestockSession, 'id'>): Promise<string> {
+  async create(session: Omit<RestockSession, 'id'>): Promise<RestockSession> {
     try {
       const client = await this.getAuthenticatedClient();
       const { data, error } = await client.rpc('insert_restock_session', {
@@ -426,7 +426,7 @@ async updateRestockItem(itemId: string, updates: {
     }
   }
 
-  async findCompletedByUserId(): Promise<ReadonlyArray<RestockSession>> {
+  async findCompletedByUserId( userId: string): Promise<RestockSession[]> {
     try {
       const client = await this.getAuthenticatedClient();
       const { data: sessions, error: sessionsError } = await client.rpc('get_restock_sessions');

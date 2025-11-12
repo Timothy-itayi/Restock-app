@@ -11,6 +11,7 @@ import { ClerkClientService } from '../../../backend/_services/clerk-client';
 export default function SignUpScreen() {
   const { signUp, isLoaded } = useSignUp();
   const { startSSOFlow } = useSSO();
+  console.warn('[RESTOCK_PAGE] SignUpScreen rendered');
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -22,7 +23,7 @@ export default function SignUpScreen() {
     if (!isLoaded || googleLoading || emailLoading) return;
     setGoogleLoading(true);
     try {
-      console.log('📡 SSO FLOW: Initiating Clerk SSO flow');
+      console.warn('[RESTOCK_AUTH] Starting Google sign-up flow');
       await AsyncStorage.setItem('oauthProcessing', 'true');
 
       const redirectUrl = Linking.createURL('/oauth-native-callback' as any, { scheme: 'restock' });
@@ -33,17 +34,17 @@ export default function SignUpScreen() {
 
       if (result.createdSessionId && result.setActive) {
         await result.setActive({ session: result.createdSessionId });
-        console.log('✅ SSO FLOW: Session activated');
+        console.warn('[RESTOCK_AUTH] Google sign-up session activated');
         await ClerkClientService.setSSOSignUpFlags();
         await AsyncStorage.removeItem('oauthProcessing');
         router.replace('/sso-profile-setup' as any);
       } else {
-        console.log('❌ SSO FLOW: No session created', result);
+        console.warn('[RESTOCK_AUTH] Google sign-up returned without session', result);
         await AsyncStorage.removeItem('oauthProcessing');
         Alert.alert('Sign in failed', 'No session created. Please try again.');
       }
     } catch (err) {
-      console.error('❌ SSO FLOW ERROR:', err);
+      console.error('[RESTOCK_AUTH] Google sign-up error:', err);
       await AsyncStorage.removeItem('oauthProcessing');
       Alert.alert('Error', 'Failed to sign up with Google. Please try again.');
     } finally {
@@ -80,13 +81,13 @@ export default function SignUpScreen() {
       // Mark this as a new traditional sign-up to isolate from SSO routing
       await EmailAuthService.setTraditionalSignUpFlags();
 
-      console.log('🚀 TRADITIONAL SIGN-UP: Creating Clerk user');
+      console.warn('[RESTOCK_AUTH] Creating traditional Clerk user');
       await signUp.create({
         emailAddress: email.trim().toLowerCase(),
         password,
       });
 
-      console.log('📧 TRADITIONAL SIGN-UP: Preparing email verification');
+      console.warn('[RESTOCK_AUTH] Preparing email verification');
       await signUp.prepareEmailAddressVerification({
         strategy: 'email_code',
       });
@@ -97,7 +98,7 @@ export default function SignUpScreen() {
         [{ text: 'OK', onPress: () => router.push('/auth/traditional/verify-email' as any) }],
       );
     } catch (err: any) {
-      console.error('❌ TRADITIONAL SIGN-UP ERROR:', err);
+      console.error('[RESTOCK_AUTH] Traditional sign-up error:', err);
       const message = err?.errors?.[0]?.message || err?.message || 'Failed to create account. Please try again.';
       Alert.alert('Sign up failed', message);
     } finally {

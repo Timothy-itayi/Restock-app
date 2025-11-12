@@ -7,11 +7,11 @@ import { Alert, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, Tou
 import { EmailAuthService } from '../../backend/_services/email-auth';
 import { SessionManager } from '../../backend/_services/session-manager';
 import { useUnifiedAuth } from '../../lib/auth/UnifiedAuthProvider';
-import { UnifiedAuthGuard } from '../../lib/components/UnifiedAuthGuard';
 import { welcomeBackStyles } from '../../styles/components/welcome-back';
 
 export default function WelcomeBackScreen() {
   const { signIn, setActive, isLoaded } = useSignIn();
+  console.warn('[RESTOCK_PAGE] WelcomeBackScreen rendered');
   
   // CRITICAL: Always call useAuth unconditionally first
   const rawAuth = useAuth();
@@ -192,7 +192,6 @@ export default function WelcomeBackScreen() {
   };
 
   return (
-    <UnifiedAuthGuard requireNoAuth={true}>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -356,6 +355,5 @@ export default function WelcomeBackScreen() {
           </TouchableOpacity>
         </KeyboardAvoidingView>
       </ScrollView>
-    </UnifiedAuthGuard>
   );
 } 

@@ -47,7 +47,7 @@ function isInsideTabArea(path: string | null | undefined): boolean {
 
 export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   traceRender('AuthRouter', {});
-  console.log('[AuthRouter] 🚀 Component rendering started');
+  console.warn('[RESTOCK_ROUTE] AuthRouter render started');
   
   // Defensive pathname handling
   let rawPathname: string | null = '/';
@@ -62,7 +62,7 @@ export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }
   }
   
   const pathname = normalizePath(rawPathname); // ✅ always work with normalized paths
-  console.log('[AuthRouter] 📍 Normalized pathname:', pathname);
+  console.warn('[RESTOCK_ROUTE] Current pathname:', pathname);
 
   let authState;
   try {
@@ -330,7 +330,7 @@ export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }
 
   const targetRoute = determineTargetRoute();
 
-  console.log('[AuthRouter] Target route determined:', {
+  console.warn('[RESTOCK_ROUTE] Decision', {
     targetRoute,
     currentPathname: pathname,
     willRedirect: targetRoute && pathname !== targetRoute

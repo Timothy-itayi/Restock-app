@@ -1,7 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import {  tabScreenOptions, tabBarOptions } from '../../styles/components/tabs';
-import { UnifiedAuthGuard } from '../../lib/components/UnifiedAuthGuard';
 import { SessionProvider } from '../../lib/contexts/restock-sessions/SessionContext';
 import { ErrorBoundaryWrapper } from '../../lib/components/ErrorBoundaryWrapper';
 import { traceRender } from '../../lib/utils/renderTrace';
@@ -17,7 +16,6 @@ export default function TabLayout() {
 
 function TabLayoutContent() {
   return (
-    <UnifiedAuthGuard requireAuth>
       <SessionProvider>
         <Tabs screenOptions={tabBarOptions}>
           <Tabs.Screen
@@ -62,6 +60,5 @@ function TabLayoutContent() {
           />
         </Tabs>
       </SessionProvider>
-    </UnifiedAuthGuard>
   );
 }

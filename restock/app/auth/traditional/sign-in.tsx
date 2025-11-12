@@ -16,6 +16,7 @@ export default function SignInScreen() {
   const { signIn, setActive, isLoaded } = useSignIn();
     // CRITICAL: Always call useAuth unconditionally first
     const rawAuth = useAuth();
+    console.warn('[RESTOCK_PAGE] SignInScreen rendered');
   
     // Then safely extract values
     const isSignedIn = (rawAuth && typeof rawAuth === 'object' && typeof rawAuth.isSignedIn === 'boolean') 
@@ -40,9 +41,9 @@ export default function SignInScreen() {
 
   // Debug navigation arrival and check for existing authentication
   useEffect(() => {
-    console.log('🔘 SignInScreen: Component mounted, user arrived at sign-in page');
+    console.warn('[RESTOCK_PAGE] SignInScreen mounted');
     
-    console.log('🔍 SignInScreen: Checking existing auth state', {
+    console.warn('[RESTOCK_ROUTE] SignInScreen auth state check', {
       isAuthenticated: unifiedIsAuthenticated,
       userId: unifiedUserId,
       isProfileSetupComplete,
@@ -52,19 +53,19 @@ export default function SignInScreen() {
     
     // If user is already authenticated and has complete profile, redirect to dashboard
     if (unifiedIsAuthenticated && unifiedUserId && !isProfileLoading && isProfileSetupComplete && hasValidProfile) {
-      console.log('🚀 SignInScreen: User already authenticated with complete profile, redirecting to dashboard');
+      console.warn('[RESTOCK_ROUTE] Redirecting authenticated user with profile to dashboard');
       router.replace('/(tabs)/dashboard' as any);
       return;
     }
     
     // If user is authenticated but profile incomplete, redirect to profile setup
     if (unifiedIsAuthenticated && unifiedUserId && !isProfileLoading && !hasValidProfile) {
-      console.log('🚀 SignInScreen: User authenticated but profile incomplete, redirecting to traditional setup');
+      console.warn('[RESTOCK_ROUTE] Redirecting authenticated user to traditional setup');
       router.replace('/auth/traditional/profile-setup' as any);
       return;
     }
     
-    console.log('✅ SignInScreen: User not authenticated or profile loading, staying on sign-in page');
+    console.warn('[RESTOCK_ROUTE] Staying on sign-in page');
     
     return () => {
       console.log('🔘 SignInScreen: Component unmounting');
@@ -123,7 +124,7 @@ export default function SignInScreen() {
         Alert.alert('Error', 'No cached session found. Please sign in normally.');
       }
     } catch (error) {
-      console.error('Error with returning user sign-in:', error);
+      console.error('[RESTOCK_AUTH] Returning user sign-in error:', error);
       Alert.alert('Error', 'Failed to sign in as returning user. Please try the normal sign-in process.');
     } finally {
       setGoogleLoading(false);
@@ -131,51 +132,51 @@ export default function SignInScreen() {
   };
 
   const onSignInPress = async () => {
-    console.log('👤 USER ACTION: Email Sign In button clicked', { email: email.slice(0, 3) + '***' });
+      console.warn('[RESTOCK_AUTH] Email sign-in button pressed', { email: email.slice(0, 3) + '***' });
 
     if (!email.trim()) {
-      console.log('❌ VALIDATION: Email validation failed - empty email');
+      console.warn('[RESTOCK_AUTH] Email validation failed - empty');
       Alert.alert('Error', 'Please enter your email address');
       return;
     }
 
     if (!password.trim()) {
-      console.log('❌ VALIDATION: Password validation failed - empty password');
+      console.warn('[RESTOCK_AUTH] Password validation failed - empty');
       Alert.alert('Error', 'Please enter your password');
       return;
     }
 
     if (!isLoaded) {
-      console.log('⚠️  EMAIL FLOW: Clerk not loaded, aborting sign in');
+      console.warn('[RESTOCK_AUTH] Clerk not loaded; aborting email sign-in');
       return;
     }
 
-    console.log('🚀 EMAIL FLOW: Starting traditional email/password sign in');
+    console.warn('[RESTOCK_AUTH] Starting traditional email/password sign in');
     setEmailLoading(true);
     try {
-      console.log('📧 EMAIL FLOW: Creating Clerk sign in session');
+      console.warn('[RESTOCK_AUTH] Creating Clerk sign-in session');
       
       const result = await signIn.create({
         identifier: email,
         password: password,
       });
 
-      console.log('📋 EMAIL FLOW: Clerk sign in result:', {
+      console.warn('[RESTOCK_AUTH] Clerk sign-in result', {
         status: result.status,
         hasSession: !!result.createdSessionId,
         factors: result.supportedFirstFactors?.map(f => f.strategy) || []
       });
 
       // Use the dedicated EmailAuthService to handle the authentication flow
-      console.log('🔧 EMAIL FLOW: Delegating to EmailAuthService for completion');
+      console.warn('[RESTOCK_AUTH] Delegating to EmailAuthService for completion');
       await EmailAuthService.handleEmailSignIn(result as any, email, () => {
-        console.log('📧 EMAIL FLOW: Auth check triggered by EmailAuthService');
+        console.warn('[RESTOCK_AUTH] Auth check triggered by EmailAuthService');
       }, setActive);
       
-      console.log('✅ EMAIL FLOW: Email sign in completed successfully');
+      console.warn('[RESTOCK_AUTH] Email sign-in completed');
       
     } catch (err: any) {
-      console.error('❌ EMAIL FLOW: Sign in error:', {
+      console.error('[RESTOCK_AUTH] Email sign-in error:', {
         message: err.message,
         errors: err.errors?.map((e: any) => ({ code: e.code, message: e.message })) || [],
         fullError: err
@@ -183,27 +184,27 @@ export default function SignInScreen() {
       Alert.alert('Error', err.errors?.[0]?.message || 'Failed to sign in');
     } finally {
       setEmailLoading(false);
-      console.log('🔄 EMAIL FLOW: Email sign in process completed');
+      console.warn('[RESTOCK_AUTH] Email sign-in process completed');
     }
   };
 
   const handleGoogleSignIn = async (isReturningUserFlow = false) => {
-    console.log('👤 USER ACTION: Google Sign In button clicked (traditional auth screen)', { 
+    console.warn('[RESTOCK_AUTH] Google sign-in button clicked (traditional auth screen)', { 
       isReturningUserFlow 
     });
     
     // 🔒 CRITICAL: Check if user is already authenticated before attempting OAuth
     if (unifiedIsAuthenticated && unifiedUserId) {
-      console.log('⚠️  GOOGLE FLOW: User already authenticated, preventing OAuth attempt to avoid "Session already exists" error');
+      console.warn('[RESTOCK_AUTH] User already authenticated; skipping OAuth attempt');
       
       if (!isProfileLoading && hasValidProfile && isProfileSetupComplete) {
-        console.log('🚀 GOOGLE FLOW: Redirecting already-authenticated user with complete profile to dashboard');
+        console.warn('[RESTOCK_ROUTE] Redirecting authenticated user with complete profile to dashboard');
         router.replace('/(tabs)/dashboard' as any);
       } else if (!isProfileLoading && !hasValidProfile) {
-        console.log('🚀 GOOGLE FLOW: Redirecting already-authenticated user without profile to setup');
+        console.warn('[RESTOCK_ROUTE] Redirecting authenticated user without profile to setup');
         router.replace('/sso-profile-setup' as any);
       } else {
-        console.log('⏳ GOOGLE FLOW: User authenticated but profile loading, staying on sign-in page');
+        console.warn('[RESTOCK_ROUTE] Authenticated user but profile loading; staying on sign-in page');
       }
       return;
     }
@@ -213,13 +214,11 @@ export default function SignInScreen() {
       return;
     }
 
-    console.log('🚀 GOOGLE FLOW: Starting Google OAuth for sign in');
+    console.warn('[RESTOCK_AUTH] Starting Google OAuth for sign in');
     setGoogleLoading(true);
     try {
-      console.log('📡 GOOGLE FLOW: Initiating Google SSO flow from sign-in screen');
-      
-      // Clear any stale session cache before starting OAuth to prevent false profile completion detection
-      console.log('🧹 GOOGLE FLOW: Clearing stale session cache before OAuth');
+      console.warn('[RESTOCK_AUTH] Initiating Google SSO flow from sign-in screen');
+      console.warn('[RESTOCK_AUTH] Clearing stale session cache before OAuth');
       await SessionManager.clearUserSession();
       
       // Set OAuth processing flag before starting the flow
@@ -232,10 +231,10 @@ export default function SignInScreen() {
         redirectUrl: Linking.createURL('/oauth-native-callback', { scheme: 'restock' }),
       });
       
-      console.log('Google OAuth sign in result:', result);
+      console.warn('[RESTOCK_AUTH] Google OAuth sign-in result', result);
       
       if (result.authSessionResult?.type === 'success') {
-        console.log('Google OAuth sign in successful');
+        console.warn('[RESTOCK_AUTH] Google OAuth sign-in successful');
         
         // Transition to authenticating state
         setIsAuthenticating(true);
@@ -243,15 +242,13 @@ export default function SignInScreen() {
         
         // Set the created session as active - this is crucial for OAuth completion
         if (result.createdSessionId) {
-          console.log('🔧 Setting created session as active:', result.createdSessionId);
+          console.warn('[RESTOCK_AUTH] Setting created session as active', result.createdSessionId);
           await setActive({ session: result.createdSessionId });
-          console.log('✅ Session set as active successfully');
+          console.warn('[RESTOCK_AUTH] Session set as active successfully');
           
           // Log auth state immediately after setActive to track timing
-          console.log('📊 Auth state immediately after setActive:', { isLoaded, isSignedIn });
-          
-          // OAuth was successful and session is set - trust this result
-          console.log('✅ OAuth completion successful - activating session and refreshing auth state');
+          console.warn('[RESTOCK_AUTH] Auth state immediately after setActive', { isLoaded, isSignedIn });
+          console.warn('[RESTOCK_AUTH] OAuth completion successful - session active');
           await AsyncStorage.setItem('justCompletedSSO', 'true');
           await AsyncStorage.removeItem('oauthProcessing');
           
@@ -263,12 +260,10 @@ export default function SignInScreen() {
           
           // NOTE: Session data will be saved only AFTER successful profile setup completion
           // This prevents stale cache with incomplete profile data
-          console.log('📝 OAUTH FLOW: Session data will be saved after profile setup completes');
-          
-          // Let the auth layout handle navigation automatically
-          console.log('🔄 Waiting for auth layout to handle automatic redirect...');
+          console.warn('[RESTOCK_AUTH] Session data will be saved after profile setup completes');
+          console.warn('[RESTOCK_AUTH] Waiting for auth layout redirect');
         } else {
-          console.log('❌ OAuth successful but no session ID created');
+          console.warn('[RESTOCK_AUTH] OAuth successful but no session ID created');
           Alert.alert('Authentication Error', 'Failed to complete authentication. Please try again.');
         }
       }

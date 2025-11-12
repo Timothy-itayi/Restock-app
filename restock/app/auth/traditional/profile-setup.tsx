@@ -12,6 +12,7 @@ export default function ProfileSetupScreen() {
   // CRITICAL: Always call useAuth unconditionally first
   const rawAuth = useAuth();
   const { user } = useUser();
+  console.warn('[RESTOCK_PAGE] ProfileSetupScreen rendered');
   
   // Then safely extract values
   const isSignedIn = (rawAuth && typeof rawAuth === 'object' && typeof rawAuth.isLoaded === 'boolean') 
