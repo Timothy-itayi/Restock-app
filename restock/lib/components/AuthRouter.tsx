@@ -249,28 +249,29 @@ export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }
 
   // Determine target route
   const determineTargetRoute = useCallback((): string | null => {
-    console.log('[AuthRouter] determineTargetRoute called:', {
+    console.warn('[RESTOCK_ROUTE] determineTargetRoute', {
+      pathname,
       isHydrated,
       isHydratedOrTimedOut,
       isAuthenticated,
       userId: !!userId,
       hasValidProfile,
-      userName: !!userName,
-      storeName: !!storeName,
-      pathname
+      isProfileLoading,
+      fastPathProfileUser: fastPathProfile?.userId,
+      lastVisitedTab
     });
     const routeLockActive = Date.now() < routeLockUntilRef.current;
     
     if (!isHydrated && !isHydratedOrTimedOut) {
-      console.log('[AuthRouter] Not hydrated yet, returning null');
       return null;
     }
 
-    if (isAuthenticated && userId) {
+    const hasAuthenticatedUser = isAuthenticated && !!userId;
+
+    if (hasAuthenticatedUser) {
       if (hasValidProfile && userName && storeName) {
         // ✅ Free roam if already inside tab areas (including nested routes)
         if (isInsideTabArea(pathname)) return null;
-        console.log('[AuthRouter] User authenticated with valid profile, redirecting to main tab area');
 
         // ✅ Fallback to last tab or dashboard
         return lastVisitedTab && ALLOWED_TABS.includes(lastVisitedTab)
@@ -285,10 +286,8 @@ export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }
       if (!routeLockActive && !isProfileLoading && !hasValidProfile && !fastPathProfile?.userId) {
         const setupRoute = authType === 'google' ? '/sso-profile-setup' : '/auth/traditional/profile-setup';
         if (pathname === setupRoute) {
-          console.log('[AuthRouter] User already on profile setup page, staying put');
           return null;
         }
-        console.log('[AuthRouter] User authenticated but no valid profile after load, redirecting to profile setup');
         return setupRoute;
       }
 
@@ -305,35 +304,29 @@ export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }
     }
 
     // Unauthenticated branch
-    // If we have a snapshot or are within the stability window, prefer tabs over welcome to avoid flicker/blank frame
-    if (fastPathProfile?.userId || routeLockActive) {
-      if (isInsideTabArea(pathname)) return null;
-      return lastVisitedTab && ALLOWED_TABS.includes(lastVisitedTab)
-        ? lastVisitedTab
-        : '/(tabs)/dashboard';
-    }
+    // If we have a snapshot or stability lock but user is not authenticated, ignore fast-path
 
   // Handle native OAuth callback and unknown roots
   if (pathname === '/' || pathname === '/oauth-native-callback') {
-      // Let AuthRouter decide based on auth/profile state
     return '/welcome';
     }
 
     if (pathname?.startsWith('/welcome') || pathname?.includes('/auth')) {
-      return null; // stay on current auth route without replacing
+      return null;
     }
     
     
-    console.log('[AuthRouter] Not authenticated and not on welcome/auth, redirecting to /welcome');
     return '/welcome';
-  }, [isHydrated, isAuthenticated, userId, hasValidProfile, userName, storeName, lastVisitedTab, pathname, authType]);
+  }, [isHydrated, isAuthenticated, userId, hasValidProfile, userName, storeName, lastVisitedTab, pathname, authType, fastPathProfile, isProfileLoading, isHydratedOrTimedOut]);
 
   const targetRoute = determineTargetRoute();
 
   console.warn('[RESTOCK_ROUTE] Decision', {
     targetRoute,
     currentPathname: pathname,
-    willRedirect: targetRoute && pathname !== targetRoute
+    willRedirect: targetRoute && pathname !== targetRoute,
+    isAuthenticated,
+    userId: !!userId
   });
 
   // Redirect when route is wrong

@@ -65,4 +65,17 @@ export class SessionManager {
       console.error('❌ SessionManager: Error clearing returning user data:', e);
     }
   }
+
+  static async initializeStartupCleanup(): Promise<void> {
+    try {
+      const session = await this.getUserSession();
+      const returningFlag = await AsyncStorage.getItem(this.RETURNING_USER_KEY);
+      if (!session && returningFlag === 'true') {
+        console.warn('[RESTOCK_START] Clearing stale returning-user flags');
+        await this.clearReturningUserData();
+      }
+    } catch (e) {
+      console.error('[RESTOCK_START] Failed to initialize session cleanup:', e);
+    }
+  }
 }

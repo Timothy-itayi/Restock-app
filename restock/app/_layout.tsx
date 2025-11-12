@@ -15,6 +15,9 @@ import { ErrorBoundary } from '../lib/components/ErrorBoundary';
 import { BaseLoadingScreen } from '../lib/components/loading/BaseLoadingScreen';
 import { SupabaseHooksProvider } from '../lib/infrastructure/_supabase/SupabaseHooksProvider';
 import { traceRender } from '../lib/utils/renderTrace';
+import { SessionManager } from '../backend/_services/session-manager';
+
+console.warn('[RESTOCK_START] App bootstrap begin');
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -95,24 +98,24 @@ export default function RootLayout() {
 
   // ---- Validate env on mount
 // ---- Validate env on mount
-useEffect(() => {
-  const { isValid, missing } = validateEnvironment();
-  if (!isValid) {
-    const message = `Missing environment variables: ${missing.join(', ')}`;
-    
-    // Use console.warn to ensure it appears in Mac Console logs
-    console.warn('🚨 [RESTOCK_ENV_ERROR]', message);
-    console.warn('🚨 [RESTOCK_ENV_ERROR] Required vars:', missing);
-    
-    // Only show alert in development
-    if (__DEV__) {
-      Alert.alert('⚠️ Configuration Error', message, [{ text: 'OK' }]);
+  useEffect(() => {
+    SessionManager.initializeStartupCleanup?.().catch(err =>
+      console.error('[RESTOCK_START] Startup cleanup failed', err)
+    );
+    const { isValid, missing } = validateEnvironment();
+    if (!isValid) {
+      const message = `Missing environment variables: ${missing.join(', ')}`;
+
+      console.warn('🚨 [RESTOCK_ENV_ERROR]', message);
+      console.warn('🚨 [RESTOCK_ENV_ERROR] Required vars:', missing);
+
+      if (__DEV__) {
+        Alert.alert('⚠️ Configuration Error', message, [{ text: 'OK' }]);
+      }
+    } else {
+      console.warn('✅ [RESTOCK_ENV_SUCCESS] All environment variables configured');
     }
-  } else {
-    // Success log also uses warn to appear in native logs
-    console.warn('✅ [RESTOCK_ENV_SUCCESS] All environment variables configured');
-  }
-}, []);
+  }, []);
   // ---- Initialize app
   useEffect(() => {
     const init = async () => {

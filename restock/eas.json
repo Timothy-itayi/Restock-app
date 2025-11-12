@@ -9,7 +9,8 @@
       "distribution": "internal",
       "channel": "development",
       "node": "20.19.5",
-      "environment": "development"
+      "environment": "development",
+      "resourceClass": "large"
     },
     "dev-simulator": {
       "developmentClient": true,
@@ -19,24 +20,28 @@
       "ios": {
         "simulator": true
       },
-      "environment": "development"
+      "environment": "development",
+      "resourceClass": "large"
     },
     "preview": {
       "distribution": "store",
       "channel": "preview",
       "node": "20.19.5",
-      "environment": "preview"
+      "environment": "preview",
+      "resourceClass": "large"
     },
     "preview-debug": {
       "extends": "preview",
       "developmentClient": false,
-    "distribution": "store",
+      "distribution": "store",
       "channel": "preview",
       "node": "20.19.5",
       "environment": "preview",
       "autoIncrement": true,
+      "resourceClass": "large",
       "env": {
-        "EXPO_PUBLIC_ENABLE_AUTH_DEBUG": "true"
+        "EXPO_PUBLIC_ENABLE_AUTH_DEBUG": "true",
+        "EXPO_NO_MINIFY": "true"
       }
     },
     "production": {
@@ -44,10 +49,11 @@
       "distribution": "store",
       "channel": "production",
       "node": "20.19.5",
+      "environment": "production",
+      "resourceClass": "large",
       "env": {
         "NPM_CONFIG_OMIT": "dev"
-      },
-      "environment": "production"
+      }
     }
   },
   "submit": {
