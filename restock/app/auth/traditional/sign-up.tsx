@@ -6,6 +6,7 @@ import React, { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { EmailAuthService } from '../../../backend/_services/email-auth';
 import { signUpStyles } from '../../../styles/components/sign-up';
+import { ClerkClientService } from '../../../backend/_services/clerk-client';
 
 export default function SignUpScreen() {
   const { signUp, isLoaded } = useSignUp();
@@ -18,7 +19,8 @@ export default function SignUpScreen() {
   const [googleLoading, setGoogleLoading] = useState(false);
 
   const handleGoogleSignUp = async () => {
-    if (!isLoaded) return;
+    if (!isLoaded || googleLoading || emailLoading) return;
+    setGoogleLoading(true);
     try {
       console.log('📡 SSO FLOW: Initiating Clerk SSO flow');
       await AsyncStorage.setItem('oauthProcessing', 'true');
@@ -32,6 +34,7 @@ export default function SignUpScreen() {
       if (result.createdSessionId && result.setActive) {
         await result.setActive({ session: result.createdSessionId });
         console.log('✅ SSO FLOW: Session activated');
+        await ClerkClientService.setSSOSignUpFlags();
         await AsyncStorage.removeItem('oauthProcessing');
         router.replace('/sso-profile-setup' as any);
       } else {
@@ -43,6 +46,8 @@ export default function SignUpScreen() {
       console.error('❌ SSO FLOW ERROR:', err);
       await AsyncStorage.removeItem('oauthProcessing');
       Alert.alert('Error', 'Failed to sign up with Google. Please try again.');
+    } finally {
+      setGoogleLoading(false);
     }
   };
 

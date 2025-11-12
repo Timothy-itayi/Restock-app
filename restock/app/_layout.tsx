@@ -8,12 +8,15 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Linking from 'expo-linking';
 import * as SplashScreen from 'expo-splash-screen';
+import * as WebBrowser from 'expo-web-browser';
 import { UnifiedAuthProvider } from '../lib/auth/UnifiedAuthProvider';
 import { AuthRouter } from '../lib/components/AuthRouter';
 import { ErrorBoundary } from '../lib/components/ErrorBoundary';
 import { BaseLoadingScreen } from '../lib/components/loading/BaseLoadingScreen';
 import { SupabaseHooksProvider } from '../lib/infrastructure/_supabase/SupabaseHooksProvider';
 import { traceRender } from '../lib/utils/renderTrace';
+
+WebBrowser.maybeCompleteAuthSession();
 
 export const unstable_settings = { initialRouteName: 'welcome' };
 

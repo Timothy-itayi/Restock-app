@@ -17,7 +17,7 @@ export default function TabLayout() {
 
 function TabLayoutContent() {
   return (
-    <UnifiedAuthGuard>
+    <UnifiedAuthGuard requireAuth>
       <SessionProvider>
         <Tabs screenOptions={tabBarOptions}>
           <Tabs.Screen
