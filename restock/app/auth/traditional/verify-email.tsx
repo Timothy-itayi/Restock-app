@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity } from 'react-native';
 import { EmailAuthService } from '../../../backend/_services/email-auth';
 import { SessionManager } from '../../../backend/_services/session-manager';
-import { UnifiedAuthGuard } from '../../../lib/components/UnifiedAuthGuard';
 import { verifyEmailStyles } from '../../../styles/components/verify-email';
 
 
@@ -70,45 +69,43 @@ export default function VerifyEmailScreen() {
   };
 
   return (
-    <UnifiedAuthGuard >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
-      >
-        <ScrollView contentContainerStyle={verifyEmailStyles.container}>
-          <Text style={verifyEmailStyles.title}>Verify your email</Text>
-          <Text style={verifyEmailStyles.subtitle}>
-            We've sent a verification code to your email address
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{ flex: 1 }}
+    >
+      <ScrollView contentContainerStyle={verifyEmailStyles.container}>
+        <Text style={verifyEmailStyles.title}>Verify your email</Text>
+        <Text style={verifyEmailStyles.subtitle}>
+          We've sent a verification code to your email address
+        </Text>
+        
+        <TextInput
+          style={verifyEmailStyles.input}
+          value={code}
+          placeholder="Enter your verification code"
+          placeholderTextColor="#666666"
+          onChangeText={(code) => setCode(code)}
+          keyboardType="number-pad"
+          autoCapitalize="none"
+        />
+        
+        <TouchableOpacity 
+          style={[verifyEmailStyles.button, loading && verifyEmailStyles.buttonDisabled]}
+          onPress={handleVerifyEmail}
+          disabled={loading}
+        >
+          <Text style={verifyEmailStyles.buttonText}>
+            {loading ? 'Verifying...' : 'Verify Email'}
           </Text>
-          
-          <TextInput
-            style={verifyEmailStyles.input}
-            value={code}
-            placeholder="Enter your verification code"
-            placeholderTextColor="#666666"
-            onChangeText={(code) => setCode(code)}
-            keyboardType="number-pad"
-            autoCapitalize="none"
-          />
-          
-          <TouchableOpacity 
-            style={[verifyEmailStyles.button, loading && verifyEmailStyles.buttonDisabled]}
-            onPress={handleVerifyEmail}
-            disabled={loading}
-          >
-            <Text style={verifyEmailStyles.buttonText}>
-              {loading ? 'Verifying...' : 'Verify Email'}
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={verifyEmailStyles.backButton}
-            onPress={() => router.back()}
-          >
-            <Text style={verifyEmailStyles.backButtonText}>Back</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </UnifiedAuthGuard>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={verifyEmailStyles.backButton}
+          onPress={() => router.back()}
+        >
+          <Text style={verifyEmailStyles.backButtonText}>Back</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 } 

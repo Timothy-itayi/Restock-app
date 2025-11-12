@@ -6,7 +6,6 @@ import { UserProfileService } from '../../../backend/_services/user-profile';
 import { SessionManager } from '../../../backend/_services/session-manager';
 import { EmailAuthService } from '../../../backend/_services/email-auth';
 import { useUnifiedAuth } from '../../../lib/auth/UnifiedAuthProvider';
-import {UnifiedAuthGuard} from '../../../lib/components/UnifiedAuthGuard';
 import { profileSetupStyles } from '../../../styles/components/auth/traditional/profile-setup';
 
 export default function ProfileSetupScreen() {
@@ -156,54 +155,52 @@ export default function ProfileSetupScreen() {
   };
 
   return (
-    <UnifiedAuthGuard>
-      <ScrollView contentContainerStyle={profileSetupStyles.scrollViewContent}>
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={profileSetupStyles.container}
-        >
-          <View style={profileSetupStyles.content}>
-            <Text style={profileSetupStyles.title}>Complete Your Profile</Text>
-            <Text style={profileSetupStyles.subtitle}>
-              Tell us a bit about yourself and your store to get started
-            </Text>
+    <ScrollView contentContainerStyle={profileSetupStyles.scrollViewContent}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={profileSetupStyles.container}
+      >
+        <View style={profileSetupStyles.content}>
+          <Text style={profileSetupStyles.title}>Complete Your Profile</Text>
+          <Text style={profileSetupStyles.subtitle}>
+            Tell us a bit about yourself and your store to get started
+          </Text>
+          
+          <View style={profileSetupStyles.formSection}>
+            <Text style={profileSetupStyles.sectionTitle}>Personal Information</Text>
             
-            <View style={profileSetupStyles.formSection}>
-              <Text style={profileSetupStyles.sectionTitle}>Personal Information</Text>
-              
-              <TextInput
-                style={profileSetupStyles.input}
-                placeholder="Enter your first name"
-                placeholderTextColor="#666666"
-                value={name}
-                onChangeText={setName}
-                autoCapitalize="words"
-              />
-              
-              <Text style={profileSetupStyles.sectionTitle}>Store Information</Text>
-              
-              <TextInput
-                style={profileSetupStyles.input}
-                placeholder="Enter your store name"
-                placeholderTextColor="#666666"
-                value={storeName}
-                onChangeText={setStoreName}
-                autoCapitalize="words"
-              />
-              
-              <TouchableOpacity 
-                style={[profileSetupStyles.button, loading && profileSetupStyles.buttonDisabled]}
-                onPress={handleCreateProfile}
-                disabled={loading}
-              >
-                <Text style={profileSetupStyles.buttonText}>
-                  {loading ? 'Creating Profile...' : 'Complete Setup'}
-                </Text>
-              </TouchableOpacity>
-            </View>
+            <TextInput
+              style={profileSetupStyles.input}
+              placeholder="Enter your first name"
+              placeholderTextColor="#666666"
+              value={name}
+              onChangeText={setName}
+              autoCapitalize="words"
+            />
+            
+            <Text style={profileSetupStyles.sectionTitle}>Store Information</Text>
+            
+            <TextInput
+              style={profileSetupStyles.input}
+              placeholder="Enter your store name"
+              placeholderTextColor="#666666"
+              value={storeName}
+              onChangeText={setStoreName}
+              autoCapitalize="words"
+            />
+            
+            <TouchableOpacity 
+              style={[profileSetupStyles.button, loading && profileSetupStyles.buttonDisabled]}
+              onPress={handleCreateProfile}
+              disabled={loading}
+            >
+              <Text style={profileSetupStyles.buttonText}>
+                {loading ? 'Creating Profile...' : 'Complete Setup'}
+              </Text>
+            </TouchableOpacity>
           </View>
-        </KeyboardAvoidingView>
-      </ScrollView>
-    </UnifiedAuthGuard>
+        </View>
+      </KeyboardAvoidingView>
+    </ScrollView>
   );
 } 
