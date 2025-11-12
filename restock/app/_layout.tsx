@@ -91,16 +91,25 @@ export default function RootLayout() {
   const [initError, setInitError] = useState<Error | null>(null);
 
   // ---- Validate env on mount
-  useEffect(() => {
-    const { isValid, missing } = validateEnvironment();
-    if (!isValid) {
-      const message = `Missing environment variables:\n${missing.join('\n')}`;
-      if (__DEV__ || EXPO_PUBLIC_ENABLE_AUTH_DEBUG === 'true') {
-        Alert.alert('⚠️ Configuration Error', message, [{ text: 'OK' }]);
-      }
+// ---- Validate env on mount
+useEffect(() => {
+  const { isValid, missing } = validateEnvironment();
+  if (!isValid) {
+    const message = `Missing environment variables: ${missing.join(', ')}`;
+    
+    // Use console.warn to ensure it appears in Mac Console logs
+    console.warn('🚨 [RESTOCK_ENV_ERROR]', message);
+    console.warn('🚨 [RESTOCK_ENV_ERROR] Required vars:', missing);
+    
+    // Only show alert in development
+    if (__DEV__) {
+      Alert.alert('⚠️ Configuration Error', message, [{ text: 'OK' }]);
     }
-  }, []);
-
+  } else {
+    // Success log also uses warn to appear in native logs
+    console.warn('✅ [RESTOCK_ENV_SUCCESS] All environment variables configured');
+  }
+}, []);
   // ---- Initialize app
   useEffect(() => {
     const init = async () => {

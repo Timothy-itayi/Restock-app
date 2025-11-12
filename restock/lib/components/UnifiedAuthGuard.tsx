@@ -10,9 +10,9 @@ export const UnifiedAuthGuard: React.FC<{ children: React.ReactNode }> = ({ chil
   // Show loader until profile is ready
   if (!isAuthenticated || !userId || hasValidProfile === undefined || isLoading || isProfileLoading) {
     return (
-      <View className="flex-1 justify-center items-center bg-white">
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
         <ActivityIndicator size="large" color="#000" />
-        <Text className="mt-2 text-gray-600">Loading...</Text>
+        <Text style={{ marginTop: 8, color: '#4B5563' }}>Loading...</Text>
       </View>
     );
   }
