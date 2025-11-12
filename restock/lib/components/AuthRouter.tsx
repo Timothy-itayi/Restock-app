@@ -97,7 +97,7 @@ export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }
   // Lock routing to prevent rapid redirects (e.g., tabs ↔ setup) during initial hydration
   const routeLockUntilRef = useRef<number>(0);
   const lastReplacedRouteRef = useRef<string | null>(null);
-  const [fastPathProfile, setFastPathProfile] = useState<{ userId: string; userName?: string; storeName?: string } | null>(null);
+  // const [fastPathProfile, setFastPathProfile] = useState<{ userId: string; userName?: string; storeName?: string } | null>(null);
   const appReadyEmittedRef = useRef(false);
 
   // Load last visited tab once
@@ -111,9 +111,9 @@ export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }
         if (!json) return;
         try {
           const parsed = JSON.parse(json);
-          if (parsed?.userId) {
-            setFastPathProfile({ userId: parsed.userId, userName: parsed.userName, storeName: parsed.storeName });
-          }
+        // if (parsed?.userId) {
+        //   setFastPathProfile({ userId: parsed.userId, userName: parsed.userName, storeName: parsed.storeName });
+        // }
         } catch {}
       })
       .catch(() => {});
@@ -129,9 +129,9 @@ export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }
             if (!json) return;
             try {
               const parsed = JSON.parse(json);
-              if (parsed?.userId) {
-                setFastPathProfile({ userId: parsed.userId, userName: parsed.userName, storeName: parsed.storeName });
-              }
+              // if (parsed?.userId) {
+              //   setFastPathProfile({ userId: parsed.userId, userName: parsed.userName, storeName: parsed.storeName });
+              // }
             } catch {}
           })
           .catch(() => {});
@@ -195,10 +195,10 @@ export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }
 
   // Compute stabilization overlay state EARLY to keep hook order stable across renders
   const overlayRouteLockActive = Date.now() < routeLockUntilRef.current;
-  const isExistingUserForOverlay = (!!isAuthenticated && !!userId) || !!fastPathProfile?.userId;
-  const overlayName = (userName && userName.trim().length > 0 ? userName : undefined) || fastPathProfile?.userName;
+  const isExistingUserForOverlay = !!isAuthenticated && !!userId;
+  const overlayName = (userName && userName.trim().length > 0 ? userName : undefined) || undefined;
   const shouldShowStabilizationOverlay =
-    isExistingUserForOverlay && (overlayRouteLockActive || !!fastPathProfile?.userId) && (isProfileLoading || !hasValidProfile);
+    isExistingUserForOverlay && overlayRouteLockActive && (isProfileLoading || !hasValidProfile);
 
   // Force-tabs logic: during stability window or when we have a snapshot for an existing user,
   // don't render children (which could include welcome/setup). Instead, immediately navigate to tabs
@@ -207,7 +207,7 @@ export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }
     lastVisitedTab && ALLOWED_TABS.includes(lastVisitedTab)
       ? lastVisitedTab
       : '/(tabs)/dashboard';
-  const shouldForceTabs = isExistingUserForOverlay && (overlayRouteLockActive || !!fastPathProfile?.userId);
+  const shouldForceTabs = isExistingUserForOverlay && overlayRouteLockActive;
 
   // Debug: log overlay lifecycle transitions (must always mount to preserve hook order)
   const lastOverlayStateRef = useRef<boolean | null>(null);
@@ -217,7 +217,7 @@ export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }
         showing: shouldShowStabilizationOverlay,
         isExistingUser: isExistingUserForOverlay,
         overlayRouteLockActive,
-        hasSnapshot: !!fastPathProfile?.userId,
+        hasSnapshot: false,
         isProfileLoading,
         hasValidProfile,
         name: overlayName,
@@ -229,7 +229,6 @@ export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }
     shouldShowStabilizationOverlay,
     isExistingUserForOverlay,
     overlayRouteLockActive,
-    fastPathProfile,
     isProfileLoading,
     hasValidProfile,
     overlayName,
@@ -239,10 +238,10 @@ export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }
   // Always log overlay state each render to trace when it would display
   console.log('[AuthRouter][OverlayState]', {
     lock: Date.now() < routeLockUntilRef.current,
-    hasSnapshot: !!fastPathProfile?.userId,
+    hasSnapshot: false,
     isProfileLoading,
     hasValidProfile,
-    isExistingUser: (!!isAuthenticated && !!userId) || !!fastPathProfile?.userId,
+    isExistingUser: (!!isAuthenticated && !!userId),
     shouldShow: shouldShowStabilizationOverlay,
     pathname,
   });
@@ -257,7 +256,7 @@ export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }
       userId: !!userId,
       hasValidProfile,
       isProfileLoading,
-      fastPathProfileUser: fastPathProfile?.userId,
+    fastPathProfileUser: null,
       lastVisitedTab
     });
     const routeLockActive = Date.now() < routeLockUntilRef.current;
@@ -283,7 +282,7 @@ export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }
       // Only force redirect to setup if profile loading is finished and invalid,
       // and we're not in the stability window after hydration timeout
       // Do NOT redirect to setup if we have a snapshot (existing user) – wait for profile fetch result
-      if (!routeLockActive && !isProfileLoading && !hasValidProfile && !fastPathProfile?.userId) {
+    if (!routeLockActive && !isProfileLoading && !hasValidProfile) {
         const setupRoute = authType === 'google' ? '/sso-profile-setup' : '/auth/traditional/profile-setup';
         if (pathname === setupRoute) {
           return null;
@@ -292,7 +291,7 @@ export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }
       }
 
       // Stronger fast-path: if we have a snapshot or are within the stability window, prefer tabs over setup
-      if (isHydratedOrTimedOut || routeLockActive || fastPathProfile?.userId) {
+    if (isHydratedOrTimedOut || routeLockActive) {
         if (isInsideTabArea(pathname)) return null;
         return lastVisitedTab && ALLOWED_TABS.includes(lastVisitedTab)
           ? lastVisitedTab
@@ -304,7 +303,7 @@ export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }
     }
 
     // Unauthenticated branch
-    // If we have a snapshot or stability lock but user is not authenticated, ignore fast-path
+    // Fast-path disabled while unauthenticated
 
   // Handle native OAuth callback and unknown roots
   if (pathname === '/' || pathname === '/oauth-native-callback') {
@@ -317,7 +316,7 @@ export const AuthRouter: React.FC<{ children: React.ReactNode }> = ({ children }
     
     
     return '/welcome';
-  }, [isHydrated, isAuthenticated, userId, hasValidProfile, userName, storeName, lastVisitedTab, pathname, authType, fastPathProfile, isProfileLoading, isHydratedOrTimedOut]);
+  }, [isHydrated, isAuthenticated, userId, hasValidProfile, userName, storeName, lastVisitedTab, pathname, authType, isProfileLoading, isHydratedOrTimedOut]);
 
   const targetRoute = determineTargetRoute();
 
