@@ -41,7 +41,8 @@
       "resourceClass": "large",
       "env": {
         "EXPO_PUBLIC_ENABLE_AUTH_DEBUG": "true",
-        "EXPO_NO_MINIFY": "true"
+        "EXPO_NO_MINIFY": "true",
+        "EAS_SKIP_AUTO_FINGERPRINT": "1"
       }
     },
     "production": {
@@ -52,7 +53,8 @@
       "environment": "production",
       "resourceClass": "large",
       "env": {
-        "NPM_CONFIG_OMIT": "dev"
+        "NPM_CONFIG_OMIT": "dev",
+        "EAS_SKIP_AUTO_FINGERPRINT": "1"
       }
     }
   },
