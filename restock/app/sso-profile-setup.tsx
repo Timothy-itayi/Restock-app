@@ -9,8 +9,10 @@ import { useUnifiedAuth } from '../lib/auth/UnifiedAuthProvider';
 import { ssoProfileSetupStyles } from '../styles/components/auth/sso/profile-setup';
 import { ErrorLogger } from '../backend/_utils/error-logger';
 import { UserProfileService } from '../backend/_services/user-profile';
+import { nativeLog } from '../lib/utils/nativeLog';
 
 export default function SSOProfileSetupScreen() {
+  nativeLog('SSOProfileSetupScreen rendered');
   const { user } = useUser();
   const { isAuthenticated, userId, isProfileSetupComplete, userName, storeName, isProfileLoading, markNewUserReady, triggerAuthCheck } = useUnifiedAuth();
 
@@ -24,9 +26,12 @@ export default function SSOProfileSetupScreen() {
 
   const LAST_KNOWN_PROFILE_KEY = 'auth:lastKnownProfile';
 
+  const logSSO = (msg: string, data?: Record<string, any>) =>
+    nativeLog(data ? `${msg} ${JSON.stringify(data)}` : msg);
+
   // Initial mount diagnostics
   useEffect(() => {
-    console.log('[SSOSetup][Init]', {
+    logSSO('[SSOSetup] Init', {
       isAuthenticated,
       hasUser: !!user,
       userId,
@@ -43,13 +48,13 @@ export default function SSOProfileSetupScreen() {
     const readSnapshot = async () => {
       try {
         if (!userId) {
-          console.log('[SSOSetup][Snapshot] Skipping read - no userId yet');
+          logSSO('[SSOSetup] Snapshot skip - no userId');
           return;
         }
-        console.log('[SSOSetup][Snapshot] Reading AsyncStorage for key', LAST_KNOWN_PROFILE_KEY);
+        logSSO('[SSOSetup] Reading snapshot');
         const json = await AsyncStorage.getItem(LAST_KNOWN_PROFILE_KEY);
         if (!json) {
-          console.log('[SSOSetup][Snapshot] No snapshot found');
+          logSSO('[SSOSetup] No snapshot found');
           return;
         }
         const parsed = JSON.parse(json);
@@ -57,13 +62,10 @@ export default function SSOProfileSetupScreen() {
           if (!cancelled) {
             setHasExistingSnapshot(true);
             setSnapshotName(parsed.userName);
-            console.log('[SSOSetup][Snapshot] Found last-known profile for user, enabling strict bypass', {
-              userId,
-              snapshotName: parsed.userName,
-            });
+            logSSO('[SSOSetup] Snapshot found', { userId, snapshotName: parsed.userName });
           }
         } else {
-          console.log('[SSOSetup][Snapshot] Snapshot user mismatch', {
+          logSSO('[SSOSetup] Snapshot user mismatch', {
             snapshotUserId: parsed?.userId,
             currentUserId: userId,
           });
@@ -77,10 +79,7 @@ export default function SSOProfileSetupScreen() {
   // When snapshot is present, immediately navigate to dashboard once authenticated
   useEffect(() => {
     if (isAuthenticated && userId && hasExistingSnapshot) {
-      console.log('[SSOSetup][Bypass] Navigating to dashboard due to snapshot', {
-        userId,
-        snapshotName: snapshotName || userName,
-      });
+      logSSO('[SSOSetup] Snapshot bypass -> dashboard', { userId, snapshotName: snapshotName || userName });
       // Small delay to yield a frame with the overlay before navigating
       const t = setTimeout(() => router.replace('/(tabs)/dashboard' as any), 50);
       return () => clearTimeout(t);
@@ -89,7 +88,7 @@ export default function SSOProfileSetupScreen() {
 
   // Log overlay mount condition changes
   useEffect(() => {
-    console.log('[SSOSetup][OverlayState]', {
+    logSSO('[SSOSetup] Overlay state', {
       willShowOverlay: hasExistingSnapshot && !!isAuthenticated && !!userId,
       hasExistingSnapshot,
       isAuthenticated,
@@ -104,20 +103,20 @@ export default function SSOProfileSetupScreen() {
     const hasValidProfileData = userName && userName !== '' && userName !== 'there' && storeName && storeName !== '';
     
     if (isAuthenticated && !isProfileLoading && isProfileSetupComplete && hasValidProfileData) {
-      console.log('🚨 SSOProfileSetup: Profile already complete, redirecting to dashboard', {
+      logSSO('[SSOSetup] Profile already complete -> dashboard', {
         userName,
         storeName,
         isProfileSetupComplete,
-        hasValidProfileData
+        hasValidProfileData,
       });
       router.push('/(tabs)/dashboard' as any);
       return;
     } else if (isAuthenticated && !isProfileLoading && !hasValidProfileData) {
-      console.log('📝 SSOProfileSetup: User authenticated but no valid profile, staying on setup screen', {
+      logSSO('[SSOSetup] Authenticated but profile incomplete; staying on setup', {
         userName,
         storeName,
         isProfileSetupComplete,
-        hasValidProfileData
+        hasValidProfileData,
       });
     }
   }, [isAuthenticated, isProfileSetupComplete, isProfileLoading, userName, storeName]);
@@ -127,7 +126,7 @@ export default function SSOProfileSetupScreen() {
     if (isAuthenticated && !isProfileLoading && isProfileSetupComplete && !loading) {
       const hasValidProfileData = userName && userName !== '' && userName !== 'there' && storeName && storeName !== '';
       if (hasValidProfileData) {
-        console.log('🔄 SSOProfileSetup: Profile completion detected during session, navigating to dashboard');
+        logSSO('[SSOSetup] Profile completion detected -> dashboard');
         // Small delay to ensure all state updates have propagated
         setTimeout(() => {
           router.replace('/(tabs)/dashboard' as any);
@@ -139,7 +138,7 @@ export default function SSOProfileSetupScreen() {
   // 🔒 CRITICAL: Redirect unauthenticated users
   useEffect(() => {
     if (!isAuthenticated) {
-      console.log('🚨 SSOProfileSetup: User not authenticated, redirecting to welcome');
+      logSSO('[SSOSetup] Not authenticated -> welcome');
       router.push('/welcome' as any);
       return;
     }
@@ -228,7 +227,7 @@ export default function SSOProfileSetupScreen() {
       );
   
       if (result.data) {
-        console.log('✅ SSO Profile Setup: Profile creation successful');
+        logSSO('[SSOSetup] Profile creation successful');
         
         // Save session data for returning user detection - ONLY after successful profile completion
         const { SessionManager } = await import('../backend/_services/session-manager');
@@ -240,10 +239,10 @@ export default function SSOProfileSetupScreen() {
           lastSignIn: Date.now(),
           lastAuthMethod: 'google',
         });
-        console.log('📝 SSO Profile Setup: Session data saved after successful profile completion');
+        logSSO('[SSOSetup] Session data saved after profile completion');
         
         // 🔒 CRITICAL: Refresh auth state with new profile data before navigation
-        console.log('🔄 SSO Profile Setup: Refreshing auth state with new profile data');
+        logSSO('[SSOSetup] Refreshing auth state with new profile data');
         
         // Update auth context with new profile data immediately
         await markNewUserReady({
@@ -253,12 +252,12 @@ export default function SSOProfileSetupScreen() {
         
         // Trigger auth state refresh to sync with database
         await triggerAuthCheck();
-        console.log('✅ SSO Profile Setup: Auth state refreshed with new profile data');
+        logSSO('[SSOSetup] Auth state refreshed with new profile data');
         
         await ClerkClientService.clearSSOSignUpFlags();
         
         // Profile creation successful - navigate to dashboard
-        console.log('🚀 SSO Profile Setup: Navigating to dashboard with complete profile');
+        logSSO('[SSOSetup] Navigating to dashboard with complete profile');
         router.replace('/(tabs)/dashboard' as any);
       } else {
         const message = (result.error as any)?.message || 'Failed to create profile. Please try again.';

@@ -15,9 +15,10 @@ import { ErrorBoundary } from '../lib/components/ErrorBoundary';
 import { BaseLoadingScreen } from '../lib/components/loading/BaseLoadingScreen';
 import { SupabaseHooksProvider } from '../lib/infrastructure/_supabase/SupabaseHooksProvider';
 import { traceRender } from '../lib/utils/renderTrace';
+import { nativeLog } from '../lib/utils/nativeLog';
 import { SessionManager } from '../backend/_services/session-manager';
 
-console.warn('[RESTOCK_START] App bootstrap begin');
+nativeLog('App bootstrap begin');
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -89,7 +90,7 @@ const createTokenCache = () => ({
 
 export default function RootLayout() {
   traceRender('RootLayout', {});
-  console.warn('[RESTOCK_PAGE] RootLayout rendered');
+  nativeLog('RootLayout rendered');
 
   const [loaded, setLoaded] = useState(false);
   const [appReady, setAppReady] = useState(false);
@@ -99,21 +100,21 @@ export default function RootLayout() {
   // ---- Validate env on mount
 // ---- Validate env on mount
   useEffect(() => {
-    SessionManager.initializeStartupCleanup?.().catch(err =>
-      console.error('[RESTOCK_START] Startup cleanup failed', err)
-    );
+    SessionManager.initializeStartupCleanup?.().catch(err => {
+      nativeLog(`Startup cleanup failed: ${err?.message ?? err}`);
+    });
     const { isValid, missing } = validateEnvironment();
     if (!isValid) {
       const message = `Missing environment variables: ${missing.join(', ')}`;
 
-      console.warn('🚨 [RESTOCK_ENV_ERROR]', message);
-      console.warn('🚨 [RESTOCK_ENV_ERROR] Required vars:', missing);
+      nativeLog(`ENV ERROR: ${message}`);
+      nativeLog(`ENV missing: ${missing.join(', ')}`);
 
       if (__DEV__) {
         Alert.alert('⚠️ Configuration Error', message, [{ text: 'OK' }]);
       }
     } else {
-      console.warn('✅ [RESTOCK_ENV_SUCCESS] All environment variables configured');
+      nativeLog('ENV SUCCESS: All environment variables configured');
     }
   }, []);
   // ---- Initialize app

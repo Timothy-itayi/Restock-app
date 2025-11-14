@@ -13,6 +13,7 @@ import {
 import { router } from 'expo-router';
 import { welcomeStyles } from '../styles/components/welcome';
 import { clearAllStorage, debugStorage } from '../scripts/clear-storage';
+import { nativeLog } from '../lib/utils/nativeLog';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -52,7 +53,7 @@ const walkthroughSlides: WalkthroughSlide[] = [
 ];
 
 export default function WelcomeScreen() {
-  console.log('🎉 [WelcomeScreen] Component rendered');
+  nativeLog('WelcomeScreen rendered');
   
   const [currentSlide, setCurrentSlide] = useState(0);
   const [debugTapCount, setDebugTapCount] = useState(0);
