@@ -11,6 +11,7 @@ import {
   Alert
 } from 'react-native';
 import { router } from 'expo-router';
+import { useAuth } from '@clerk/clerk-expo';
 import { welcomeStyles } from '../styles/components/welcome';
 import { clearAllStorage, debugStorage } from '../scripts/clear-storage';
 import { nativeLog } from '../lib/utils/nativeLog';
@@ -54,7 +55,8 @@ const walkthroughSlides: WalkthroughSlide[] = [
 
 export default function WelcomeScreen() {
   nativeLog('WelcomeScreen rendered');
-  
+
+  const { isLoaded } = useAuth();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [debugTapCount, setDebugTapCount] = useState(0);
   const scrollX = useRef(new Animated.Value(0)).current;
@@ -62,6 +64,15 @@ export default function WelcomeScreen() {
   const paginationAnimations = useRef(
     walkthroughSlides.map(() => new Animated.Value(0))
   ).current;
+
+  // Log Clerk loading state for diagnostics
+  React.useEffect(() => {
+    const startTime = Date.now();
+    nativeLog(`WelcomeScreen: Clerk isLoaded=${isLoaded}, elapsed=${Date.now() - startTime}ms`);
+    if (isLoaded) {
+      nativeLog(`✅ Clerk loaded on WelcomeScreen, auth buttons are now active`);
+    }
+  }, [isLoaded]);
 
   const handleGestureEvent = Animated.event(
     [{ nativeEvent: { contentOffset: { x: scrollX } } }],
@@ -84,10 +95,30 @@ export default function WelcomeScreen() {
   };
 
   const handleSignUp = () => {
+    if (!isLoaded) {
+      nativeLog('❌ Sign-up button pressed but Clerk not loaded yet');
+      Alert.alert(
+        'Please Wait',
+        'Authentication system is still initializing. Please wait a moment and try again.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    nativeLog('✅ Sign-up button pressed, navigating to sign-up screen');
     router.push('/auth/traditional/sign-up' as any);
   };
 
   const handleSignIn = () => {
+    if (!isLoaded) {
+      nativeLog('❌ Sign-in button pressed but Clerk not loaded yet');
+      Alert.alert(
+        'Please Wait',
+        'Authentication system is still initializing. Please wait a moment and try again.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    nativeLog('✅ Sign-in button pressed, navigating to sign-in screen');
     router.push('/auth/traditional/sign-in' as any);
   };
 
@@ -245,18 +276,28 @@ export default function WelcomeScreen() {
       {/* Auth Buttons */}
       <View style={welcomeStyles.authButtonsContainer}>
         <TouchableOpacity
-          style={welcomeStyles.signUpButton}
+          style={[
+            welcomeStyles.signUpButton,
+            !isLoaded && { opacity: 0.5 }
+          ]}
           onPress={handleSignUp}
+          disabled={!isLoaded}
         >
-          <Text style={welcomeStyles.signUpButtonText}>Sign Up</Text>
+          <Text style={welcomeStyles.signUpButtonText}>
+            {!isLoaded ? 'Initializing...' : 'Sign Up'}
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={welcomeStyles.signInLink}
+          style={[
+            welcomeStyles.signInLink,
+            !isLoaded && { opacity: 0.5 }
+          ]}
           onPress={handleSignIn}
+          disabled={!isLoaded}
         >
           <Text style={welcomeStyles.signInLinkText}>
-            Already have an account?
+            {!isLoaded ? 'Please wait...' : 'Already have an account?'}
           </Text>
         </TouchableOpacity>
       </View>

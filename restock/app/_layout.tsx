@@ -88,14 +88,20 @@ const createTokenCache = () => ({
   },
 });
 
+// Track app bootstrap timing for Clerk initialization diagnostics
+const APP_START_TIME = Date.now();
+
 export default function RootLayout() {
   traceRender('RootLayout', {});
-  nativeLog('RootLayout rendered');
+  const renderTime = Date.now();
+  const elapsedSinceStart = renderTime - APP_START_TIME;
+  nativeLog(`RootLayout rendered (${elapsedSinceStart}ms since app start)`);
 
   const [loaded, setLoaded] = useState(false);
   const [appReady, setAppReady] = useState(false);
   const [showFirstRunSplash, setShowFirstRunSplash] = useState(false);
   const [initError, setInitError] = useState<Error | null>(null);
+  const [clerkInitTime, setClerkInitTime] = useState<number | null>(null);
 
   // ---- Validate env on mount
 // ---- Validate env on mount
@@ -234,6 +240,18 @@ export default function RootLayout() {
       </GestureHandlerRootView>
     );
   }
+
+  // ---- Log Clerk Provider initialization timing
+  React.useEffect(() => {
+    if (!clerkInitTime) {
+      const now = Date.now();
+      const elapsed = now - APP_START_TIME;
+      setClerkInitTime(now);
+      nativeLog(`🔐 ClerkProvider initializing... (${elapsed}ms since app start)`);
+      console.log(`🔐 [RootLayout] ClerkProvider initializing... (${elapsed}ms since app start)`);
+      console.log(`🔐 [RootLayout] Clerk Key: ${EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ? 'SET (length: ' + EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY.length + ')' : 'MISSING'}`);
+    }
+  }, []);
 
   // ---- Main layout
   return (

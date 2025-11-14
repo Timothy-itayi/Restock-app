@@ -20,7 +20,21 @@ export default function SignUpScreen() {
   const [googleLoading, setGoogleLoading] = useState(false);
 
   const handleGoogleSignUp = async () => {
-    if (!isLoaded || googleLoading || emailLoading) return;
+    if (!isLoaded) {
+      const now = Date.now();
+      console.warn('[RESTOCK_AUTH] ❌ Google sign-up BLOCKED - Clerk not loaded yet', {
+        timestamp: now,
+        isLoaded: false,
+        message: 'This is likely causing the auth flow issue in TestFlight'
+      });
+      Alert.alert(
+        'Please Wait',
+        'Authentication system is still initializing. Please wait a moment and try again.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    if (googleLoading || emailLoading) return;
     setGoogleLoading(true);
     try {
       console.warn('[RESTOCK_AUTH] Starting Google sign-up flow');
@@ -73,7 +87,20 @@ export default function SignUpScreen() {
   };
 
   const handleEmailSignUp = async () => {
-    if (!isLoaded) return;
+    if (!isLoaded) {
+      const now = Date.now();
+      console.warn('[RESTOCK_AUTH] ❌ Email sign-up BLOCKED - Clerk not loaded yet', {
+        timestamp: now,
+        isLoaded: false,
+        message: 'This is likely causing the auth flow issue in TestFlight'
+      });
+      Alert.alert(
+        'Please Wait',
+        'Authentication system is still initializing. Please wait a moment and try again.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
     if (!validate()) return;
 
     setEmailLoading(true);
@@ -118,12 +145,15 @@ export default function SignUpScreen() {
         </View>
 
         <TouchableOpacity
-          style={signUpStyles.googleButton}
+          style={[
+            signUpStyles.googleButton,
+            (!isLoaded || googleLoading || emailLoading) && { opacity: 0.5 }
+          ]}
           onPress={handleGoogleSignUp}
-          disabled={googleLoading || emailLoading}
+          disabled={!isLoaded || googleLoading || emailLoading}
         >
           <Text style={signUpStyles.googleButtonText}>
-            {googleLoading ? 'Signing up...' : 'Continue with Google'}
+            {!isLoaded ? 'Initializing...' : googleLoading ? 'Signing up...' : 'Continue with Google'}
           </Text>
         </TouchableOpacity>
 
@@ -164,12 +194,15 @@ export default function SignUpScreen() {
         />
 
         <TouchableOpacity
-          style={[signUpStyles.button, emailLoading && signUpStyles.buttonDisabled]}
+          style={[
+            signUpStyles.button,
+            (!isLoaded || emailLoading || googleLoading) && signUpStyles.buttonDisabled
+          ]}
           onPress={handleEmailSignUp}
-          disabled={googleLoading || emailLoading}
+          disabled={!isLoaded || googleLoading || emailLoading}
         >
           <Text style={signUpStyles.buttonText}>
-            {emailLoading ? 'Creating account...' : 'Create account'}
+            {!isLoaded ? 'Initializing...' : emailLoading ? 'Creating account...' : 'Create account'}
           </Text>
         </TouchableOpacity>
 

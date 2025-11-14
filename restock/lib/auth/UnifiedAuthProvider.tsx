@@ -383,12 +383,21 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   // Fast-path readiness fallback for production: if Clerk isn't loaded promptly,
   // allow the unauthenticated UI (welcome/auth) to render instead of blocking.
+  // INCREASED TIMEOUT: 200ms → 2000ms to give Clerk time to load in production builds
   useEffect(() => {
     if (!isLoaded) {
+      const startTime = Date.now();
+      console.log('⏳ [UnifiedAuth] Clerk not loaded yet, starting 2000ms timeout...');
+
       const t = setTimeout(() => {
+        const elapsed = Date.now() - startTime;
         setContextState(prev => {
-          if (prev.isReady) return prev;
-          console.log('⏩ [UnifiedAuth] Fallback: marking context ready (unauthenticated)');
+          if (prev.isReady) {
+            console.log('⏩ [UnifiedAuth] Fallback timeout fired but context already ready (elapsed: ' + elapsed + 'ms)');
+            return prev;
+          }
+          console.warn('⚠️ [UnifiedAuth] Clerk failed to load within 2000ms (elapsed: ' + elapsed + 'ms) - marking context ready (unauthenticated)');
+          console.warn('⚠️ [UnifiedAuth] Auth buttons may not work if Clerk initialization is still pending');
           return {
             ...prev,
             isReady: true,
@@ -396,8 +405,11 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
             isAuthenticated: false,
           };
         });
-      }, 200);
+      }, 2000);
       return () => clearTimeout(t);
+    } else {
+      // Clerk loaded successfully
+      console.log('✅ [UnifiedAuth] Clerk loaded successfully');
     }
   }, [isLoaded]);
 

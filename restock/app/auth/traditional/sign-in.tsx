@@ -147,7 +147,17 @@ export default function SignInScreen() {
     }
 
     if (!isLoaded) {
-      console.warn('[RESTOCK_AUTH] Clerk not loaded; aborting email sign-in');
+      const now = Date.now();
+      console.warn('[RESTOCK_AUTH] ❌ Email sign-in BLOCKED - Clerk not loaded yet', {
+        timestamp: now,
+        isLoaded: false,
+        message: 'This is likely causing the auth flow issue in TestFlight'
+      });
+      Alert.alert(
+        'Please Wait',
+        'Authentication system is still initializing. Please wait a moment and try again.',
+        [{ text: 'OK' }]
+      );
       return;
     }
 
@@ -210,7 +220,17 @@ export default function SignInScreen() {
     }
     
     if (!isLoaded) {
-      console.log('⚠️  GOOGLE FLOW: Clerk not loaded, aborting');
+      const now = Date.now();
+      console.warn('[RESTOCK_AUTH] ❌ Google sign-in BLOCKED - Clerk not loaded yet', {
+        timestamp: now,
+        isLoaded: false,
+        message: 'This is likely causing the auth flow issue in TestFlight'
+      });
+      Alert.alert(
+        'Please Wait',
+        'Authentication system is still initializing. Please wait a moment and try again.',
+        [{ text: 'OK' }]
+      );
       return;
     }
 
@@ -299,13 +319,16 @@ export default function SignInScreen() {
           </View>
 
 
-          <TouchableOpacity 
-            style={signInStyles.googleButton}
+          <TouchableOpacity
+            style={[
+              signInStyles.googleButton,
+              (!isLoaded || googleLoading || emailLoading) && { opacity: 0.5 }
+            ]}
             onPress={() => handleGoogleSignIn(false)}
-            disabled={googleLoading || emailLoading}
+            disabled={!isLoaded || googleLoading || emailLoading}
           >
             <Text style={signInStyles.googleButtonText}>
-              {googleLoading ? 'Signing in...' : 'Continue with Google'}
+              {!isLoaded ? 'Initializing...' : googleLoading ? 'Signing in...' : 'Continue with Google'}
             </Text>
           </TouchableOpacity>
 
@@ -335,13 +358,16 @@ export default function SignInScreen() {
             autoCapitalize="none"
           />
 
-          <TouchableOpacity 
-            style={[signInStyles.button, emailLoading && signInStyles.buttonDisabled]}
+          <TouchableOpacity
+            style={[
+              signInStyles.button,
+              (!isLoaded || emailLoading || googleLoading) && signInStyles.buttonDisabled
+            ]}
             onPress={onSignInPress}
-            disabled={googleLoading || emailLoading}
+            disabled={!isLoaded || googleLoading || emailLoading}
           >
             <Text style={signInStyles.buttonText}>
-              {emailLoading ? 'Signing in...' : 'Sign In'}
+              {!isLoaded ? 'Initializing...' : emailLoading ? 'Signing in...' : 'Sign In'}
             </Text>
           </TouchableOpacity>
 
