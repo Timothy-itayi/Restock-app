@@ -4,10 +4,13 @@
     "slug": "restock",
     "version": "1.0.0",
     "orientation": "portrait",
+
     "icon": "./assets/restock-icon.png",
+
     "scheme": "restock",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.timothyitayi.restock",
@@ -15,6 +18,7 @@
         "ITSAppUsesNonExemptEncryption": false
       }
     },
+
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/restock-icon.png",
@@ -23,23 +27,26 @@
       "edgeToEdgeEnabled": true,
       "package": "com.timothyitayi.restock"
     },
+
     "web": {
       "bundler": "metro",
       "output": "static",
       "favicon": "./assets/restock-icon.png"
     },
+
     "plugins": [
       "expo-document-picker",
       "expo-router",
+
       [
         "expo-splash-screen",
         {
-          "image": "./assets/restock-icon.png",
-          "imageWidth": 200,
+          "image": "./assets/splash.png",
           "resizeMode": "contain",
           "backgroundColor": "#fafafa"
         }
       ],
+
       [
         "expo-font",
         {
@@ -57,15 +64,19 @@
           ]
         }
       ],
+
       "expo-secure-store",
       "expo-web-browser"
     ],
+
     "experiments": {
       "typedRoutes": true
     },
+
     "runtimeVersion": {
       "policy": "appVersion"
     },
+
     "extra": {
       "router": {},
       "eas": {
