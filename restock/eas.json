@@ -1,1 +1,64 @@
-
+{
+  "cli": {
+    "version": ">=16.24.1",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "channel": "development",
+      "node": "20.19.5",
+      "environment": "development",
+      "resourceClass": "large"
+    },
+    "dev-simulator": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "channel": "development",
+      "node": "20.19.5",
+      "ios": {
+        "simulator": true
+      },
+      "environment": "development",
+      "resourceClass": "large"
+    },
+    "preview": {
+      "distribution": "store",
+      "channel": "preview",
+      "node": "20.19.5",
+      "environment": "preview",
+      "resourceClass": "large"
+    },
+    "preview-debug": {
+      "extends": "preview",
+      "developmentClient": false,
+      "distribution": "store",
+      "channel": "preview",
+      "node": "20.19.5",
+      "environment": "preview",
+      "autoIncrement": true,
+      "resourceClass": "large",
+      "env": {
+        "EXPO_PUBLIC_ENABLE_AUTH_DEBUG": "true",
+        "EXPO_NO_MINIFY": "true",
+        "EAS_SKIP_AUTO_FINGERPRINT": "1"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "distribution": "store",
+      "channel": "production",
+      "node": "20.19.5",
+      "environment": "production",
+      "resourceClass": "large",
+      "env": {
+        "NPM_CONFIG_OMIT": "dev",
+        "EAS_SKIP_AUTO_FINGERPRINT": "1"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
